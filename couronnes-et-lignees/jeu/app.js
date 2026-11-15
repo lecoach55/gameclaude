@@ -997,12 +997,24 @@ function clampView() {
   const ncx = Math.max(0, Math.min(g.W, cx)), ncy = Math.max(-40, Math.min(g.H + 40, cy));
   view.x = ncx - view.w / 2; view.y = ncy - view.h / 2;
 }
-function applyView() { const b = document.getElementById('board'); if (!b) return; if (!view) view = fitView(); b.setAttribute('viewBox', `${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`); b.setAttribute('preserveAspectRatio', 'xMidYMid meet'); }
+let vBase = null, vTimer = 0;
+// live = pendant un geste : on déplace l'image déjà dessinée (transform, accéléré par la puce graphique) et on ne redessine la carte qu'à la fin
+function applyView(live) {
+  const b = document.getElementById('board'); if (!b) return; if (!view) view = fitView();
+  if (live && vBase && b._vb === vBase) {
+    const k = vBase.w / view.w, tx = (vBase.x - view.x) / view.w * innerWidth, ty = (vBase.y - view.y) / view.h * innerHeight;
+    b.style.transformOrigin = '0 0'; b.style.transform = `translate3d(${tx.toFixed(1)}px,${ty.toFixed(1)}px,0) scale(${k.toFixed(4)})`;
+    clearTimeout(vTimer); vTimer = setTimeout(() => applyView(), 160); return;
+  }
+  clearTimeout(vTimer); b.style.transform = '';
+  b.setAttribute('viewBox', `${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`); b.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  vBase = { x: view.x, y: view.y, w: view.w, h: view.h }; b._vb = vBase;
+}
 function zoomAt(f, px, py) {
   if (!view) view = fitView();
   const mx = view.x + view.w * (px / innerWidth), my = view.y + view.h * (py / innerHeight);
   view.w *= f; view.h *= f; clampView();
-  view.x = mx - view.w * (px / innerWidth); view.y = my - view.h * (py / innerHeight); clampView(); applyView();
+  view.x = mx - view.w * (px / innerWidth); view.y = my - view.h * (py / innerHeight); clampView(); applyView(true);
 }
 function zoomBy(f) { SND.play('tap'); zoomAt(f, innerWidth / 2, innerHeight / 2); }
 let dragMoved = false;
@@ -1013,10 +1025,10 @@ function wireMap() {
   b.addEventListener('pointerdown', e => { pts.set(e.pointerId, [e.clientX, e.clientY]); dragMoved = false; if (pts.size === 1) last = [e.clientX, e.clientY]; if (pts.size === 2) { const [p, q] = [...pts.values()]; pinch = { d: Math.hypot(p[0] - q[0], p[1] - q[1]), m: [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2] }; } });
   b.addEventListener('pointermove', e => {
     if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
-    if (pts.size === 1 && last) { const dx = e.clientX - last[0], dy = e.clientY - last[1]; if (Math.abs(dx) + Math.abs(dy) > 2) { if (!dragMoved && Math.hypot(e.clientX - last[0], e.clientY - last[1]) < 6) return; dragMoved = true; view.x -= dx * view.w / innerWidth; view.y -= dy * view.h / innerHeight; clampView(); applyView(); last = [e.clientX, e.clientY]; } }
+    if (pts.size === 1 && last) { const dx = e.clientX - last[0], dy = e.clientY - last[1]; if (Math.abs(dx) + Math.abs(dy) > 2) { if (!dragMoved && Math.hypot(e.clientX - last[0], e.clientY - last[1]) < 6) return; dragMoved = true; view.x -= dx * view.w / innerWidth; view.y -= dy * view.h / innerHeight; clampView(); applyView(true); last = [e.clientX, e.clientY]; } }
     else if (pts.size === 2 && pinch) { const [p, q] = [...pts.values()]; const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (Math.abs(d - pinch.d) > 2) { dragMoved = true; zoomAt(pinch.d / d, pinch.m[0], pinch.m[1]); pinch.d = d; } }
   });
-  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 1) last = [...pts.values()][0]; if (!pts.size) last = null; };
+  const up = e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; if (pts.size === 1) last = [...pts.values()][0]; if (!pts.size) { last = null; applyView(); } };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
   b.addEventListener('click', e => { if (dragMoved) { e.stopPropagation(); e.preventDefault(); dragMoved = false; } }, true);
   b.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.deltaY > 0 ? 1.12 : 0.89, e.clientX, e.clientY); }, { passive: false });
@@ -1203,6 +1215,7 @@ const JOURNAL = [
   ['Héritiers et transmission', '1 %', '78 %', 'L\'éducation suit une voie : les armes (brave, robuste), les lettres (sage, parfois génie), la foi (pieux, sage) ou la cour (charismatique) ; chacune peut corriger un défaut, et le conseiller de la charge correspondante sert de précepteur. Quand un enfant hérite, il faut choisir son régent : la mère (stabilité), l\'oncle (soldats, mais il peut tenter d\'usurper le trône) ou un conseil (or, au prix de la stabilité). Les frères se jalousent, et le souverain vieillissant dicte son testament : tout à l\'aîné, des apanages pour les cadets, ou un legs à l\'Église.'],
   ['Revue d\'ensemble', '1 %', '77 %', 'Revue des nouveaux écrans sur téléphone et en mouvement réduit. Le bot qui simule les choix tient désormais compte de la loyauté des proches, des relations avec les voisins, des chantiers et des récits en cours : il voit enfin la valeur des choix à effet différé. Neuf choix trop tranchés rééquilibrés (guérisseuse, pont, enfant prodige, vœu de croisade, amours secrètes, trésor templier). Accords des textes au féminin, guide d\'introduction mis à jour (conseil, tactiques, édifices, éducation).'],
   ['Atelier partagé : mode test et testeurs', '0 %', '75 %', 'Le jeu rejoint l\'atelier commun de vos jeux (dépôt gameclaude) et reprend ses outils. Sur l\'écran titre, 🧪 Mode test lance une partie à part, sans toucher à votre sauvegarde, avec un compteur d\'images par seconde et un banc de mesure. Dans le menu ☰, 🐞 Signaler un problème envoie l\'écran ouvert et l\'état de la partie. Côté fabrication, chaque version passe désormais par un testeur au doigt (600 touches au hasard en 4 minutes, aucune erreur), par 15 captures fixes comparées aux précédentes et par 1 000 parties simulées.'],
+  ['Carte plus fluide', '0 %', '75 %', 'Pendant un glissé ou un zoom, la carte n\'est plus redessinée à chaque image : la puce graphique déplace l\'image déjà dessinée, et le dessin précis n\'est refait qu\'à la fin du geste. Sur un téléphone simulé (processeur ralenti 4 fois), le glissé passe de 25 à 54 images par seconde ; ouvrir une fiche de terre prend 12 ms au lieu de 22.'],
 ];
 function viewLabo() {
   const C = { victoire: '#2f6b55', extinction: '#6b3a78', revolte: '#a8321f', conquete: '#b98a2e', timeout: '#888' };

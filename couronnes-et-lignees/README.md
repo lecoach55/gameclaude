@@ -19,6 +19,8 @@ Artefact publié : slug `c14b9bc8-e782-45aa-b06c-06126bd542d0` (https://claude.a
 - `mesure/captures.py index.html dossier` : 15 vues fixes (graine 1234, mouvement réduit), puis
   `python3 ../outils-communs/compare.py references dossier planche.png` pour repérer tout changement visuel.
 - `mesure/review.py index.html [rm]` : revue écran par écran + temps de rendu.
+- `mesure/perf.py index.html sortie.json` : banc de performance (graine 1234, processeur ralenti ×4 comme un téléphone) : rendu de chaque onglet, fiches, tour, img/s pendant un zoom et un glissé. Référence : `mesures/perf_apres.json`.
+- `tests/geste.py index.html` : glisser, molette et toucher une terre sur la carte.
 
 ## Mesures (`mesures/`)
 Référence 15/11/2026 : bot attentif 74,5 % de victoires sur 1000 parties, hasard 0,3 % ; banc navigateur et explorateur sans erreur.

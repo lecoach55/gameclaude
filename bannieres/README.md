@@ -12,7 +12,7 @@ Construire : `python3 jeu/build.py` → `build/bannieres.html`, à publier en `i
 Sauvegarde locale `bannieres-v1` (ne pas changer la clé) + document en ligne `partie` (ne jamais le modifier).
 
 ## Outils (`outils/`)
-- `sim_factions.js nbGraines [jours]` : équilibre des factions (chaque paire dans les deux sens). Repère 16/11/2026 (3 factions, 30 parties) : 50 / 50 / 45 %.
+- `sim_factions.js nbGraines [jours]` : équilibre des factions (chaque paire dans les deux sens). Repère 16/11/2026 (4 factions, 72 parties, 18 nulles) : Bastion 31 %, Sylve 36 %, Nécropole 53 %, Horde 31 % (équilibre parfait ≈ 37 %). `duel_factions.js` : duels d'armées à croissance égale.
 - `sim_partie.js N taille joueurs jours` : parties complètes entre IA (repère 15/11/2026, petite carte 2 royaumes : victoire en 26–70 jours).
 - `parcours.py jours [l h] [captures]` : le joueur humain est joué par le robot à travers la vraie interface (fenêtres, villes, combats), puis sauvegarde → aller-retour identique → rechargement « Continuer ».
 - `scen.py` : siège d'une ville humaine par l'IA (combat interactif en défense), victoire.

@@ -30,7 +30,7 @@ function nouvellePartie(o){
  index();for(const h of G.heros)revele(h.j,h.x,h.y,visionH(h));
  return G;}
 
-function initVille(v){const f=v.fac;v.nom=nomVille(v);v.bat={conseil:1,fort:1,hab1:1};if(v.prop>=0){v.bat.taverne=1;}else{v.bat.hab2=1;if(alea()<.5)v.bat.hab3=1;}
+function initVille(v){const f=v.fac;v.nom=nomVille(v);v.bat={conseil:1,fort:1,hab1:1,taverne:1};if(v.prop>=0){}else{v.bat.hab2=1;if(alea()<.5)v.bat.hab3=1;}
  v.dispo=[0,0,0,0,0,0,0];v.garn=[null,null,null,null,null,null,null];v.construit=false;
  // guilde : sorts tirés au hasard
  v.guilde=[[],R.melange(SORTS_NIV[1].slice()).slice(0,3),R.melange(SORTS_NIV[2].slice()).slice(0,2),R.melange(SORTS_NIV[3].slice()).slice(0,2)];v.guilde[1].push('vision');v.guilde[3].push('portail');
@@ -252,7 +252,7 @@ async function finCombat(C,h,o,m,v){
  if(m){if(gagneA){retirerObjet(m);}else{m.n=C.survivants(1);if(m.n<=0)retirerObjet(m);}}
  if(gagneA){if(o){retirerHeros(o,h.j);}await gagnerXp(h,xpA+(o?500:0));await necromancie(h,C,1);h.bonus.fontaine=0;HOOK.maj();return true;}
  else{if(o&&C.fin.gagnant===1){await gagnerXp(o,xpD+500);await necromancie(o,C,0);}retirerHeros(h,o?o.j:-1,C.fin.fuite);HOOK.maj();return false;}}
-async function necromancie(h,C,coteEnnemi){const n=h.comp.necromancie||0;if(!n)return;const pv=C.pvTues(coteEnnemi,true);const q=Math.floor(pv*(.1*n)/CRE.squelette.pv);if(q>0&&ajouterTroupe(h.armee,'squelette',q))await HOOK.message(h.j,'Nécromancie',`${q} squelettes se relèvent et rejoignent ${h.nom}.`);}
+async function necromancie(h,C,coteEnnemi){const n=h.comp.necromancie||0;if(!n)return;const pv=C.pvTues(coteEnnemi,true);const q=Math.floor(pv*(.07*n)/CRE.squelette.pv);if(q>0&&ajouterTroupe(h.armee,'squelette',q))await HOOK.message(h.j,'Nécromancie',`${q} squelettes se relèvent et rejoignent ${h.nom}.`);}
 function retirerHeros(h,par,fuite){G.heros=G.heros.filter(x=>x!==h);G.hpos[idx(h.x,h.y)]=0;HOOK.journal(h.j,`${h.nom} ${fuite?'a fui le combat':'a été vaincu'}.`);verifierElimination(h.j);}
 function verifierElimination(j){const p=G.joueurs[j];if(p.elim)return;if(!villesDe(j).length&&!herosDe(j).length){p.elim=true;HOOK.journal(j,`${p.nom} est éliminé.`);}
  const vivants=G.joueurs.filter(q=>!q.elim);if(vivants.length===1)G.fini={gagnant:vivants[0].id};else if(!vivants.some(q=>q.humain)&&G.joueurs.some(q=>q.humain))G.fini={gagnant:vivants[0].id,defaite:true};}

@@ -1,19 +1,19 @@
 {
- "generation_ms": 431,
+ "generation_ms": 514,
  "carte": {
-  "fps": 47.3,
+  "fps": 49.8,
   "pire": 50.1,
-  "n": 189
+  "n": 199
  },
  "carte_dezoom_tout_vu": {
-  "fps": 56.5,
-  "pire": 33.4,
-  "n": 225
+  "fps": 51,
+  "pire": 50,
+  "n": 203
  },
  "combat": {
-  "fps": 59.6,
-  "pire": 49.9,
-  "n": 297
+  "fps": 60,
+  "pire": 16.8,
+  "n": 299
  },
  "ville": {
   "fps": 60,

@@ -57,3 +57,6 @@ Simulation boursière jour par jour (HTML/JS sans dépendance, une seule page). 
 - Menu ☰ : 🐞 « Signaler un problème » → documents `signalement_*` ; 🧪 « Mesurer la fluidité » → `mesures_*` (la partie est copiée puis remise à l'identique). Lire avec `db_whoami` + `db_list` sur `data/users/<id>`.
 - Équilibre : ne pas toucher aux réglages du marché sans mesurer. Outils dans `wallstreet/outils` (copier jeu/ et outils/ dans un même dossier de travail) : `bots.js` (stratégies 44 marchés × 8 ans), `sim_lev.js`/`simstats.js` (faits stylisés : effet de levier, corrélations, volatilité), `rivalsim.js` (équilibre des rivaux), `proprobe.js`/`peprobe.js` (avantage des signaux), `gsim.py` (parties automatiques dans Chrome : `python3 gsim.py passif,actif 1 504`), `shots7.py` (captures), `memtest.py`, `kittest.py` (banc + signalement).
 - Cibles et méthode : `wallstreet/mesures/NUIT_WALLST.md`. Aucune stratégie gratuite > +5 %/an, hasard −1 à −3 %/an, au plus une fenêtre bloquante pour trois clics « +1 semaine ».
+
+## Une vie parmi 8 milliards (`une-vie/`)
+Simulateur de vie avec scène 3D. Artefact : slug `b04fac4d-6c5d-4942-aea6-f931c43137b7`. Construire avec `python3 une-vie/jeu/build.py`, publier `une-vie/build/index.html`. Outils et règles : `une-vie/README.md` (sim.sh, studio.py + compare.py, perf.py, qa.py).

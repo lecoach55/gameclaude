@@ -2,6 +2,7 @@
 
 Les jeux de Victor créés avec Claude, et les outils de fabrication partagés entre conversations.
 
+- `couronnes-et-complots/` — Couronnes & Complots, jeu de conquête et d'intrigues (jeu, outils de simulation et de mesure, références visuelles)
 - `valdragon/jeu` — Valdragon, les Héritiers du Puits (code source et ressources)
 - `valdragon/outils` — studio de captures, banc de mesure, testeur automatique, simulateur, outils de ressources
 - `wallstreet/` — Wall Street, séance par séance : jeu (`jeu/`), simulateurs et tests (`outils/`), journal et cibles (`mesures/`)

@@ -4,7 +4,7 @@ Dépôt de Victor (lecoach55) : ses jeux créés avec Claude et les outils de fa
 Réponds à Victor en français. Il joue surtout sur téléphone et sur un MacBook Pro Intel (puce graphique modeste).
 
 ## Outils communs (`outils-communs/`)
-`testkit.js` (🐞 signalement, compteur d'img/s, banc, envoi en base), `sauvegarde-en-ligne.js` (grosses sauvegardes compressées et découpées, reprise sur un autre appareil), `atelier.py` (serveur, pages, mesures, captures), `compare.py`. À intégrer dans chaque nouveau jeu.
+`testkit.js` (🐞 signalement, compteur d'img/s, banc, envoi en base ; jeux SVG : option `capture` + `svgCapture`), `sauvegarde-en-ligne.js` (grosses sauvegardes compressées et découpées, reprise sur un autre appareil), `atelier.py` (serveur, pages, mesures, captures), `compare.py`. À intégrer dans chaque nouveau jeu.
 
 ## Couronnes & Lignées (`couronnes-et-lignees/`)
 Simulation dynastique médiévale en une page HTML (SVG, sans dépendance). Artefact : slug `c14b9bc8-e782-45aa-b06c-06126bd542d0`.
@@ -15,6 +15,13 @@ Simulation dynastique médiévale en une page HTML (SVG, sans dépendance). Arte
 
 ## Hameau 3D (`hameau/`)
 City builder à zones peintes (Three.js r160). Artefact : slug `c5adfecd-00f3-46b2-bf27-710271ef3626`. Tout est décrit dans `hameau/README.md` (construction, mode test, sauvegarde en ligne, simulateur de parties, captures de référence). Ne pas modifier l'équilibre sans simulations appariées.
+
+## Couronnes & Complots (`couronnes-et-complots/`)
+Jeu de plateau façon Risk + politique (SVG). Artefact : slug `bb426884-b0bb-4943-a930-164fb4e5f790` (capacités db + user).
+- Construire : `cd couronnes-et-complots/jeu && npm i && node build.mjs`, publier `couronnes-et-complots.html`.
+- Équilibre et IA : ne rien changer sans A/B (`outils/ab.cjs`, `hv.cjs`, `fs.cjs`) ; historique et chiffres dans `jeu/JOURNAL.md`.
+- Fluidité : `outils/perf.py` (référence `mesures/perf_v5.json`) ; visuel : `outils/refs.py` + `outils-communs/compare.py` (références `references/normale`).
+- Mesures réelles : bouton 🐞 et « 🧪 Mode test » (écran d'accueil) → `db_list` sur le slug, collection `data/users/<id>`.
 
 ## Valdragon — Les Héritiers du Puits (`valdragon/`)
 RPG 3D au tour par tour (Three.js r160). Artefact publié : slug `6899e11c-5894-4f5e-8850-c3f0adb308f6`.

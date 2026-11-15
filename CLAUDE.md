@@ -13,6 +13,9 @@ Simulation dynastique médiévale en une page HTML (SVG, sans dépendance). Arte
 - Avant publication : `outils/tests/pass1test.py` (partie + anciennes sauvegardes), `mock.py` (IA), `explore.py` (au doigt), `mesure/captures.py` + `outils-communs/compare.py` contre `references/`.
 - Voir `couronnes-et-lignees/README.md`.
 
+## Hameau 3D (`hameau/`)
+City builder à zones peintes (Three.js r160). Artefact : slug `c5adfecd-00f3-46b2-bf27-710271ef3626`. Tout est décrit dans `hameau/README.md` (construction, mode test, sauvegarde en ligne, simulateur de parties, captures de référence). Ne pas modifier l'équilibre sans simulations appariées.
+
 ## Valdragon — Les Héritiers du Puits (`valdragon/`)
 RPG 3D au tour par tour (Three.js r160). Artefact publié : slug `6899e11c-5894-4f5e-8850-c3f0adb308f6`.
 - Ne JAMAIS changer la difficulté des combats ni le système de respawn (Victor les aime). Vérifier avec `sim.js` + `analyze.js`.

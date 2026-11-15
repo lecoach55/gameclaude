@@ -20,3 +20,7 @@ Adaptation pour un jeu sans canvas (DOM/SVG) : voir `couronnes-et-lignees/jeu/ap
 ## Pièges déjà rencontrés
 - Sur téléphone, vérifier que le menu reste accessible : un sélecteur CSS mal orthographié (`.icon-btn` au lieu de `.iconbtn`) cachait le menu de Wall Street depuis le début.
 - Le banc ne doit jamais toucher la vraie partie : copier l'état, couper la sauvegarde (locale ET en ligne), mesurer, puis tout remettre.
+
+## Utilisé par
+- Valdragon (`valdragon/`) — exemple complet.
+- Hameau 3D (`hameau/`) — testkit intégré par `build.py` (remplace `/*TESTKIT*/`), références visuelles dans `hameau/references`.

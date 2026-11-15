@@ -1,0 +1,16 @@
+--- nuit 2
+expert 50j     36 pop 315 famine 0.2 froid 0.0 départs 0.0 bonheur 84 échecs 0.0% ms/j 80
+novice 50j     36 pop 262 famine 0.0 froid 0.2 départs 0.0 bonheur 80 échecs 0.0% ms/j 58
+lazy 50j       36 pop 158 famine 1.1 froid 1.4 départs 1.4 bonheur 76 échecs 0.0% ms/j 30
+greedy 50j     36 pop 303 famine 0.1 froid 0.0 départs 0.0 bonheur 89 échecs 0.0% ms/j 72
+chaotic 50j    35 pop 261 famine 0.7 froid 0.5 départs 0.0 bonheur 83 échecs 0.0% ms/j 62
+expert 100j    22 pop 361 famine 4.4 froid 0.0 départs 0.0 bonheur 79 échecs 0.0% ms/j 138
+novice 100j    22 pop 344 famine 3.0 froid 1.1 départs 0.7 bonheur 81 échecs 0.0% ms/j 110
+--- 9 nov soir
+expert 50j     34 pop 315 famine 0.4 froid 0.0 départs 0.0 bonheur 85 échecs 0.0% ms/j 86
+novice 50j     34 pop 261 famine 0.5 froid 0.3 départs 0.0 bonheur 79 échecs 0.0% ms/j 61
+lazy 50j       34 pop 158 famine 1.1 froid 1.1 départs 1.1 bonheur 77 échecs 0.0% ms/j 32
+greedy 50j     33 pop 304 famine 0.3 froid 0.0 départs 0.0 bonheur 87 échecs 0.0% ms/j 79
+chaotic 50j    33 pop 254 famine 1.4 froid 0.4 départs 0.1 bonheur 85 échecs 0.0% ms/j 64
+expert 100j    21 pop 365 famine 8.1 froid 0.0 départs 0.0 bonheur 79 échecs 0.0% ms/j 147
+novice 100j    21 pop 341 famine 7.4 froid 1.8 départs 3.1 bonheur 80 échecs 0.0% ms/j 114

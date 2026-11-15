@@ -28,3 +28,11 @@ Artefact publié : slug `b04fac4d-6c5d-4942-aea6-f931c43137b7` (capacités `db` 
 - Pluie, neige, feuilles : un seul maillage instancié par nuée (`nuee`, `stepNuee`).
 - Pas de `backdrop-filter` au-dessus de la 3D (très coûteux sur puce Intel et téléphone).
 - Qualité automatique : si la HD tourne sous ~33 img/s et que le joueur n'a rien choisi, passage en SD une fois.
+
+## v17 (15/11/2026 soir)
+- Le 2e banc du MacBook était vide : fenêtre masquée pendant la mesure (le navigateur suspend l'affichage). Trousse de test reprise de `outils-communs/testkit.js` : attend que la page soit visible, recommence une fois, marque ⏸️ `masquee`.
+- **Reprise de la vie en cours** : point de reprise à chaque choix de priorité (`checkpoint`, clé locale `vie8m_cur`, effacée à la mort) ; en ligne via `sauvegarde-en-ligne.js` (document `partie` : `{ck, save}`, méta `ckt/nom/age` ou `fin/seed`). Accueil : « ▶ Reprendre » (local) ou « ☁️ Reprendre » (autre appareil, si plus récent). Une vie finie ailleurs efface la reprise locale et ajoute la vie à l'historique. Ne jamais modifier le document `partie` à la main.
+- Tests : `outils/reprise.py` (jouer, recharger, reprendre, finir), `outils/nuage_test.py` (deux appareils, base simulée), `outils/fuites.py` (mémoire sur une vie entière).
+- Ombres douces sous les personnages et animaux en SD ; shaders des bulles précompilés ; plus d'allocations à chaque image (caméra, bulles, couleur d'humeur).
+- Événements nationaux : au moins 12 ans entre deux occurrences du même événement, et « De nouveau. » quand il revient (âge moyen 65,0, score 55,8 sur 3 000 vies : inchangé).
+- Messages (toasts) en haut de l'écran pour ne plus cacher les choix.

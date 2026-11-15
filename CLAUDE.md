@@ -67,3 +67,5 @@ Simulation boursière jour par jour (HTML/JS sans dépendance, une seule page). 
 
 ## Une vie parmi 8 milliards (`une-vie/`)
 Simulateur de vie avec scène 3D. Artefact : slug `b04fac4d-6c5d-4942-aea6-f931c43137b7`. Construire avec `python3 une-vie/jeu/build.py`, publier `une-vie/build/index.html`. Outils et règles : `une-vie/README.md` (sim.sh, studio.py + compare.py, perf.py, qa.py).
+- Reprise de la vie en cours : locale (`vie8m_cur`) et en ligne (document `partie`, capacités db + user) ; ne jamais modifier ces données. Tester avec `outils/reprise.py` et `outils/nuage_test.py`.
+- Mesures réelles : 🧪 sur l'accueil → `mesures_*` ; 🐞 → `signalement_*` (`db_list` sur `data/users/<id>`).

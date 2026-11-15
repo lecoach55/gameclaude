@@ -3,7 +3,9 @@ const Sim=(function(){
 'use strict';
 const W=56,H=56,N=W*H;
 const T_GRASS=0,T_STONE=2,T_WATER=3;
-const Z={none:0,house:1,field:2,forest:3,quarry:4,market:5,workshop:6,fishing:7,chapel:8};
+const Z={none:0,house:1,field:2,forest:3,quarry:4,market:5,workshop:6,fishing:7,chapel:8,pasture:9};
+const NF=['Jeanne','Marie','Agnès','Isabeau','Mahaut','Perrine','Aude','Blanche','Guillemette','Alix','Héloïse','Margot','Ysabel','Clémence','Sibylle','Ermengarde','Béatrice','Colette','Odile','Pernelle','Jacquette','Aliénor','Gisèle','Mathilde'];
+const NM=['Jehan','Guillaume','Pierre','Thibaut','Martin','Bertrand','Gautier','Hugues','Robin','Colin','Arnaud','Étienne','Raoul','Simon','Mathieu','Enguerrand','Gilles','Benoît','Aymeric','Florent','Lambert','Renaud','Tristan','Baudouin'];
 const DEFAULTS={
   houseWood:4, marketWood:3, marketStone:2, upWood:2, upStone:3, upTools:1, storeWood:6, storeStone:2,
   shopWood:5, shopStone:3, craftTime:6, craftWood:2, craftStone:1, toolInterval:45, useTools:true,
@@ -13,7 +15,11 @@ const DEFAULTS={
   walkSpeed:1.7, roadMul:1.7, pathMul:1.3, pathT:6, roadT:30, trafficDecay:0.995,
   buildTime:6, carry:5, immigInterval:5, immigHappy:30, immigFood:3, immigTrend:true, replantTree:true, trampleRoad:true, reachFilter:true, advTrend:true, forage:0.5, berryYield:2, berryRegen:150, autumnGate:1.2, autumnFarm:1.4, deadwood:0.7, dwYield:2, dwRegen:150, stoneNeed:true, stoneTgt:4, stoneW:3.2, fest:true, festBonus:10, festNeed:1.8, festFood:2, weed:0.6, weedGain:0.2, emigHappy:20, hallCap:6, houseCap:4, house2Cap:7,
   marketR:9, autoStore:true, storeDist:12, storeDemand:25, startFood:60, startWood:24, startStone:6,
-  bigFamily:true, terraces:true
+  bigFamily:true, terraces:true,
+  gens:true, adultAge:14, elderAge:58, retireAge:66, deathAge:62, kidMeal:0.5, birthInterval:34, birthHappy:55, birthMaxKids:0.3, ageRate:1,
+  pasture:true, woolGrow:55, shearTime:3, woolYield:3, sheepPer:4, sheepBreed:45, sheepMax:30, sheepHay:0.12, clothWool:2, clothTime:6, clothUse:0.015, warmBonus:6, warmHeat:0.75,
+  merchant:true, merchantStock:3,
+  fert:true, fertUse:0.12, fertRegen:200, fertWinter:90, fertBase:0.62, fertGain:0.42, fallowMin:0.3, fallowOk:0.7
 };
 function hash2(x,y,s){let h=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(s|0,1442695041);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
 function vnoise(x,y,s){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
@@ -26,19 +32,19 @@ const P=Object.assign({},DEFAULTS,params||{});
 let R=rng||Math.random;
 const S={P,W,H,N,Z,T_GRASS,T_STONE,T_WATER,idx,inb,hash2,
   terrain:null,tree:null,stoneAmt:null,zone:null,traffic:null,fstate:null,fgrow:null,occ:null,reserved:null,unreach:null,elev:null,
-  buildings:[],bmap:new Map(),villagers:[],res:null,fishAmt:null,time:0,happy:60,starving:false,seed:1,hall:null,
+  buildings:[],bmap:new Map(),villagers:[],sheep:[],merchant:null,fert:null,rest:null,res:null,fishAmt:null,time:0,happy:60,starving:false,seed:1,hall:null,
   cold:false,noTools:false,variety:false,info:{fields:0,forestTrees:0,quarryStone:0,houseZone:0,marketZone:0,shopZone:0,fishZone:0,chapelZone:0,spot:true,jobs:{}},
-  stats:{pathFails:0,pathCalls:0,coldTime:0,starveTime:0,idleTime:0,workTime:0,walkTime:0,haulDist:0,hauls:0,arrivals:0,departures:0,built:0},
-  milestones:new Set(),onEvent:null,version:0,hist:[],trend:{food:0,wood:0,stone:0,tools:0,fish:0}};
+  stats:{pathFails:0,pathCalls:0,coldTime:0,starveTime:0,idleTime:0,workTime:0,walkTime:0,haulDist:0,hauls:0,arrivals:0,departures:0,built:0,births:0,deaths:0,sheared:0,trades:0},
+  milestones:new Set(),onEvent:null,version:0,hist:[],trend:{food:0,wood:0,stone:0,tools:0,fish:0,wool:0,clothes:0}};
 let nextVid=1,nextBid=1;
-const timers={trend:0,tool:0,heat:0,plan:0,meal:0,immig:0,emig:0,env:0,decay:0,store:0};
+const timers={trend:0,tool:0,heat:0,plan:0,meal:0,immig:0,emig:0,env:0,decay:0,store:0,birth:0,death:0,sheep:0};
 let demand=new Float32Array(Math.ceil(W/7)*Math.ceil(H/7));
 const emit=(type,data)=>{if(S.onEvent)S.onEvent(type,data);};
 
 function alloc(){
   S.terrain=new Uint8Array(N);S.tree=new Float32Array(N);S.stoneAmt=new Uint8Array(N);S.zone=new Uint8Array(N);
   S.traffic=new Float32Array(N);S.fstate=new Uint8Array(N);S.fgrow=new Float32Array(N);S.occ=new Int32Array(N).fill(-1);
-  S.reserved=new Int32Array(N);S.unreach=new Float32Array(N);S.elev=new Float32Array(N);S.fishAmt=new Float32Array(N).fill(1);
+  S.reserved=new Int32Array(N);S.unreach=new Float32Array(N);S.elev=new Float32Array(N);S.fishAmt=new Float32Array(N).fill(1);S.fert=new Float32Array(N).fill(1);S.rest=new Uint8Array(N);
 }
 function genTerrain(){
   const {terrain,tree,stoneAmt,elev}=S,seed=S.seed,cx=W/2,cy=H/2;
@@ -81,13 +87,16 @@ function nearestStore(x,y,needStock){
   return best;
 }
 // ---- villageois ----
-function spawnVillager(x,y){
+function pickName(fem){const L=fem?NF:NM,used=new Set(S.villagers.map(v=>v.name));for(let k=0;k<8;k++){const n=L[(R()*L.length)|0];if(!used.has(n))return n;}return L[(R()*L.length)|0];}
+function spawnVillager(x,y,o){
+  o=o||{};const fem=o.fem!=null?o.fem:R()<0.5;
   const v={id:nextVid++,x,y,plan:[],cur:null,job:'idle',carry:null,res:[],face:0,phase:R()*6,walking:false,working:false,wait:0,
-    skin:(R()*4)|0,hat:(R()*3)|0,from:null};
+    skin:o.skin!=null?o.skin:(R()*4)|0,hat:(R()*3)|0,from:null,fem,age:o.age!=null?o.age:16+R()*24,name:o.name||pickName(fem)};
   S.villagers.push(v);return v;
 }
+const isKid=v=>P.gens&&v.age<P.adultAge,isRetired=v=>P.gens&&v.age>=P.retireAge,isElder=v=>P.gens&&v.age>=P.elderAge;
 function release(v){
-  v.shop=null;
+  v.shop=null;v.weave=false;if(v.sheepId){const a=S.sheep.find(o=>o.id===v.sheepId);if(a&&a.held===v.id)a.held=0;v.sheepId=0;}
   for(const i of v.res)if(S.reserved[i]===v.id)S.reserved[i]=0;
   v.res.length=0;
   for(const b of S.buildings)if(b.site&&b.site.asg===v.id)b.site.asg=0;
@@ -124,7 +133,7 @@ function findFieldTask(v){
   const L=zoneList(Z.field);for(let q=0;q<L.length;q++){const i=L[q];
     if(zone[i]!==Z.field||reserved[i]||occ[i]>=0||terrain[i]!==T_GRASS||unreach[i]>S.time)continue;if(rs&&!rs[i])continue;
     let k,p;
-    if(tree[i]>0){k='clear';p=6;}else if(fstate[i]===2){k='harvest';p=0;}else if(fstate[i]===0){k='plant';p=3;}else continue;
+    if(tree[i]>0){k='clear';p=6;}else if(fstate[i]===2){k='harvest';p=0;}else if(fstate[i]===0){if(P.fert&&S.rest[i])continue;k='plant';p=3+(P.fert?(1-S.fert[i])*4:0);}else continue;
     const d=vdist(v,i)+p;if(d<bs){bs=d;best={i,k};}
   }
   return best;
@@ -182,7 +191,7 @@ function planFarm(v,t){
   goTo(v,i%W,i/W|0);
   if(t.k==='harvest'){
     const harvestAt=j=>{
-      work(v,P.harvestTime,()=>{if(S.fstate[j]===2&&S.zone[j]===Z.field){S.fstate[j]=P.replant?1:0;S.fgrow[j]=0;v.carry=v.carry||{food:0};v.carry.food+=P.harvestYield;}});
+      work(v,P.harvestTime,()=>{if(S.fstate[j]===2&&S.zone[j]===Z.field){S.fstate[j]=P.replant?1:0;S.fgrow[j]=0;v.carry=v.carry||{food:0};const fy=P.fert?Math.round(P.harvestYield*(P.fertBase+P.fertGain*S.fert[j])):P.harvestYield;v.carry.food+=fy;if(P.fert){S.fert[j]=Math.max(0,S.fert[j]-P.fertUse);if(S.fert[j]<P.fallowMin)S.rest[j]=1;}}});
       doIt(v,()=>{
         if(!P.chainHarvest||!v.carry||v.carry.food>=P.harvestYield*P.chainMax)return;
         let best=-1,bd=1e9;const jx=j%W,jy=j/W|0;
@@ -218,6 +227,27 @@ function planCraft(v,b){
   work(v,P.craftTime,()=>{if(b.removed){deposit(v);return;}v.carry={tools:1};});
   thenDeposit(v);
 }
+function planWeave(v,b){
+  v.job='craft';v.shop=b.id;v.weave=true;const t=frontOf(b),st=nearestStore(t.x,t.y),f=frontOf(st);
+  goTo(v,f.x,f.y);
+  doIt(v,()=>{if((S.res.wool||0)<P.clothWool||b.removed){v.plan.length=0;return;}S.res.wool-=P.clothWool;v.carry={wool:P.clothWool};});
+  goTo(v,t.x,t.y);
+  work(v,P.clothTime,()=>{if(b.removed){deposit(v);return;}v.carry={clothes:1};});
+  thenDeposit(v);
+}
+function planHerd(v,a){
+  v.job='herd';a.held=v.id;v.sheepId=a.id;
+  v.plan.push({a:'go',x:Math.round(a.x-0.5),y:Math.round(a.y-0.5)});
+  doIt(v,()=>{v.face=Math.atan2(a.x-v.x,a.y-v.y);});
+  work(v,P.shearTime,()=>{a.held=0;if(S.sheep.includes(a)&&a.wool>=1){a.wool=0;v.carry={wool:P.woolYield};S.stats.sheared++;emit('shear',{id:a.id});}});
+  thenDeposit(v);
+}
+function planCull(v,a){
+  v.job='herd';a.held=v.id;
+  v.plan.push({a:'go',x:Math.round(a.x-0.5),y:Math.round(a.y-0.5)});
+  work(v,P.shearTime,()=>{const k=S.sheep.indexOf(a);if(k>=0){S.sheep.splice(k,1);v.carry={food:6,wool:a.wool>=1?P.woolYield:0};}});
+  thenDeposit(v);
+}
 function fishSpot(i){const x=i%W,y=i/W|0;for(const [dx,dy] of [[0,1],[1,0],[-1,0],[0,-1]]){const nx=x+dx,ny=y+dy;if(inb(nx,ny)&&S.terrain[idx(nx,ny)]!==T_WATER&&S.occ[idx(nx,ny)]<0)return idx(nx,ny);}return -1;}
 function planFish(v,i){
   v.job='fish';reserve(v,i);const st=fishSpot(i);goTo(v,st%W,st/W|0);
@@ -244,9 +274,17 @@ function planIdle(v){
   }
   work(v,1.5+R()*3);
 }
+function planPlay(v){
+  v.job='kid';const hs=S.buildings.filter(b=>b.built&&(b.type==='house'||b.type==='hall'||b.type==='market'||b.type==='chapel'));const b=hs.length?hs[(R()*hs.length)|0]:S.hall;
+  for(let k=0;k<8;k++){const x=b.x+(b.w>>1)+Math.round((R()-0.5)*6),y=b.y+b.h+Math.round((R()-0.4)*5);
+    if(inb(x,y)&&S.terrain[idx(x,y)]!==T_WATER&&S.occ[idx(x,y)]<0){goTo(v,x,y);break;}}
+  work(v,2+R()*4);
+}
 function assignJob(v){
   release(v);
-  if(S._cntT!==S.time){S._cntT=S.time;const c={build:0,farm:0,wood:0,stone:0,craft:0,fish:0,idle:0};for(const o of S.villagers)if(o.cur||o.plan.length)c[o.job]++;S._cnt=c;}
+  if(isKid(v)){planPlay(v);return;}
+  if(isRetired(v)){planIdle(v);v.job='elder';return;}
+  if(S._cntT!==S.time){S._cntT=S.time;const c={build:0,farm:0,wood:0,stone:0,craft:0,fish:0,idle:0,kid:0,elder:0,herd:0};for(const o of S.villagers)if(o.cur||o.plan.length)c[o.job]++;S._cnt=c;}
   const cnt=S._cnt;
   const pop=S.villagers.length,opts=[],res=S.res;
   const site=pickSite(v);if(site)opts.push(['build',6,()=>planBuild(v,site)]);
@@ -261,12 +299,15 @@ function assignJob(v){
   if(st>=0){let sn=0;if(P.stoneNeed)for(const b of S.buildings)if(b.site&&b.site.need.stone>b.site.have.stone)sn+=b.site.need.stone-b.site.have.stone;const w=lvl(res.stone,15+houses*(P.stoneTgt||2)+sn,P.stoneW||2.6);opts.push(['stone',w,()=>planStone(v,st)]);}
   if(P.fishing){const fi=nearest(v,i=>S.zone[i]===Z.fishing&&S.terrain[i]===T_WATER&&S.fishAmt[i]>=0.5&&!S.reserved[i]&&(P.reachFilter?(j=>j>=0&&reachSet()[j])(fishSpot(i)):fishSpot(i)>=0),Z.fishing);
     if(fi>=0)opts.push(['fish',lvl(res.fish,pop*3+15,2.8),()=>planFish(v,fi)]);}
-  if(P.useTools&&res.wood>=P.craftWood&&res.stone>=P.craftStone){
-    const l2=S.buildings.filter(b=>b.type==='house'&&b.level>=2).length;
-    let shop=null,sd=1e9;
-    for(const b of S.buildings){if(b.type!=='workshop'||!b.built)continue;let n=0;for(const o of S.villagers)if(o.shop===b.id)n++;if(n>=3)continue;const d=Math.hypot(b.x-v.x,b.y-v.y);if(d<sd){sd=d;shop=b;}}
-    if(shop)opts.push(['craft',lvl(res.tools,6+l2*1.5+houses*0.3,3),()=>planCraft(v,shop)]);
-  }
+  if(P.pasture&&S.sheep.length){let sh=null,sd=1e9;for(const a of S.sheep){if(a.held||a.wool<1||a.age<1)continue;const d=Math.hypot(a.x-v.x,a.y-v.y);if(d<sd){sd=d;sh=a;}}
+    if(sh)opts.push(['herd',lvl(res.wool||0,6+houses*0.6,2.6),()=>planHerd(v,sh)]);
+    else{const cap=sheepCap();const ex=S.sheep.find(a=>!a.held&&a.age>=1);if(ex&&S.sheep.length>cap+1)opts.push(['herd',1.6,()=>planCull(v,ex)]);}}
+  const wantWeave=P.pasture&&(res.wool||0)>=P.clothWool,wantTools=P.useTools&&res.wood>=P.craftWood&&res.stone>=P.craftStone;
+  if(wantWeave||wantTools){let shop=null,sd=1e9;const occ={};for(const o of S.villagers)if(o.shop)occ[o.shop]=(occ[o.shop]||0)+1;
+    for(const b of S.buildings){if(b.type!=='workshop'||!b.built||(occ[b.id]||0)>=3)continue;const d=Math.hypot(b.x-v.x,b.y-v.y);if(d<sd){sd=d;shop=b;}}
+    if(shop&&wantWeave)opts.push(['craft',lvl(res.clothes||0,pop*0.35+4,2.7),()=>planWeave(v,shop)]);
+    if(shop&&wantTools){const l2=S.buildings.filter(b=>b.type==='house'&&b.level>=2).length;opts.push(['craft',lvl(res.tools,6+l2*1.5+houses*0.3,3),()=>planCraft(v,shop)]);}}
+  if(isElder(v))for(let k=opts.length-1;k>=0;k--)if(opts[k][0]==='wood'||opts[k][0]==='stone'||opts[k][0]==='build')opts.splice(k,1);
   let best=null,bs=0.12;
   for(const o of opts){const s=o[1]/(1+cnt[o[0]]*0.7)*(0.85+R()*0.3);if(s>bs){bs=s;best=o;}}
   if(best){best[2]();S._cnt[best[0]]++;}else planIdle(v);
@@ -312,12 +353,12 @@ function stepVillager(v,dt){
       if(step>=d){v.x=tx;v.y=ty;rem-=d/sp;c.k++;onEnter(i);}
       else{v.x+=dx/d*step;v.y+=dy/d*step;rem=0;}
     }
-    v.walking=true;v.phase+=dt*12;
-    if(v.job==='idle')S.stats.idleTime+=dt;else S.stats.walkTime+=dt;
+    v.walking=true;v.phase+=dt*12;const lazy=v.job==='idle'||v.job==='kid'||v.job==='elder';
+    if(lazy)S.stats.idleTime+=dt;else S.stats.walkTime+=dt;
     if(c.k>=c.path.length)v.cur=null;
   }else if(c.a==='work'){
-    c.t-=dt;v.working=v.job!=='idle';v.phase+=dt*8;if(c.tick)c.tick(dt);
-    if(v.job==='idle')S.stats.idleTime+=dt;else S.stats.workTime+=dt;
+    const lazy=v.job==='idle'||v.job==='kid'||v.job==='elder';c.t-=dt;v.working=!lazy;v.phase+=dt*8;if(c.tick)c.tick(dt);
+    if(lazy)S.stats.idleTime+=dt;else S.stats.workTime+=dt;
     if(c.t<=0){v.cur=null;if(c.fn)c.fn();}
   }else{v.cur=null;c.fn();}
 }
@@ -445,27 +486,29 @@ function storePlanner(){
   for(let c=0;c<demand.length;c++)demand[c]*=0.85;
   if(bc<0)return;
   const cw=Math.ceil(W/7),cx=(bc%cw)*7+3.5,cy=((bc/cw)|0)*7+3.5;
-  const ok=i=>S.terrain[i]===T_GRASS&&S.zone[i]!==Z.field&&S.zone[i]!==Z.quarry&&S.tree[i]<1;
+  const ok=i=>S.terrain[i]===T_GRASS&&S.zone[i]!==Z.field&&S.zone[i]!==Z.quarry&&S.zone[i]!==Z.pasture&&S.tree[i]<1;
   const s=findSpot(ok,cx,cy,7);
   if(s){addBuilding('store',s[0],s[1],2,2,false,[P.storeWood,P.storeStone]);demand[bc]=0;}
 }
 function computeInfo(){
-  let f=0,ft=0,qs=0,hz=0,mz=0,wz=0,hf=0,fz=0,cz=0;const {zone,tree,terrain}=S;
+  let f=0,ft=0,qs=0,hz=0,mz=0,wz=0,hf=0,fz=0,cz=0,pz=0,fw=0;const {zone,tree,terrain}=S;
   for(let i=0;i<N;i++){const z=zone[i];
-    if(z===Z.field)f++;else if(z===Z.forest&&tree[i]>=1)ft++;else if(z===Z.quarry&&terrain[i]===T_STONE)qs++;else if(z===Z.house){hz++;if(S.occ[i]<0)hf++;}else if(z===Z.market)mz++;else if(z===Z.workshop)wz++;else if(z===Z.fishing)fz++;else if(z===Z.chapel)cz++;}
-  Object.assign(S.info,{fields:f,forestTrees:ft,quarryStone:qs,houseZone:hz,marketZone:mz,shopZone:wz,houseFree:hf,fishZone:fz,chapelZone:cz});
-  const j={build:0,farm:0,wood:0,stone:0,craft:0,fish:0,idle:0};for(const v of S.villagers)j[v.job]++;S.info.jobs=j;
+    if(z===Z.field)f++;else if(z===Z.forest&&tree[i]>=1)ft++;else if(z===Z.quarry&&terrain[i]===T_STONE)qs++;else if(z===Z.house){hz++;if(S.occ[i]<0)hf++;}else if(z===Z.market)mz++;else if(z===Z.workshop)wz++;else if(z===Z.fishing)fz++;else if(z===Z.chapel)cz++;else if(z===Z.pasture)pz++;if(z===Z.field&&S.rest[i])fw++;}
+  Object.assign(S.info,{fields:f,forestTrees:ft,quarryStone:qs,houseZone:hz,marketZone:mz,shopZone:wz,houseFree:hf,fishZone:fz,chapelZone:cz,pastureZone:pz,fallow:fw});
+  const j={build:0,farm:0,wood:0,stone:0,craft:0,fish:0,herd:0,idle:0,kid:0,elder:0};for(const v of S.villagers)j[isKid(v)?'kid':isRetired(v)?'elder':v.job]=(j[isKid(v)?'kid':isRetired(v)?'elder':v.job]||0)+1;S.info.jobs=j;
 }
 function season(){return P.seasons?Math.floor(S.time/P.seasonLen)%4:1;}
 function seasonProgress(){return P.seasons?(S.time%P.seasonLen)/P.seasonLen:0;}
 function growMul(){const s=season();return s===0?1:s===1?1.25:s===2?0.9:P.winterGrow;}
 function envUpdate(dt){
-  const {tree,zone,terrain,occ,traffic,fstate,fgrow}=S;const gm=growMul();const fa=S.fishAmt,fr=dt/P.fishRegen*(season()===3?0.3:1);
+  const {tree,zone,terrain,occ,traffic,fstate,fgrow}=S;const gm=growMul(),sea=season();const fa=S.fishAmt,fr=dt/P.fishRegen*(season()===3?0.3:1);
   for(let i=0;i<N;i++){
     const t=tree[i];
     if(t>0&&t<1)tree[i]=Math.min(1,t+dt*gm/P.treeGrow);
     else if(t===0&&zone[i]===Z.forest&&terrain[i]===T_GRASS&&occ[i]<0&&traffic[i]<P.pathT&&R()<dt*P.treeRegrow)tree[i]=0.05;
     if(fa[i]<1&&terrain[i]===T_WATER)fa[i]=Math.min(1,fa[i]+fr);
+    if(P.fert&&S.fert[i]<1){let f=S.fert[i];if(zone[i]!==Z.field){f+=dt/40;S.rest[i]=0;}else if(sea===3)f+=dt/P.fertWinter;else if(fstate[i]===0)f+=dt/P.fertRegen;
+      S.fert[i]=f>=1?1:f;if(S.rest[i]&&f>=P.fallowOk)S.rest[i]=0;}
     if(fstate[i]){
       if(zone[i]!==Z.field||occ[i]>=0){fstate[i]=0;fgrow[i]=0;}
       else if(fstate[i]===1){fgrow[i]+=dt*gm/P.fieldGrow;if(fgrow[i]>=1){fgrow[i]=1;fstate[i]=2;}}
@@ -494,7 +537,7 @@ function happinessTarget(){
   for(const b of S.buildings){if(b.type!=='house'||!b.built)continue;houses++;if(b.level>=2)l2++;if(mk.some(m=>Math.hypot(m.x-b.x,m.y-b.y)<=P.marketR))cov++;if(ch.some(m=>Math.hypot(m.x-b.x,m.y-b.y)<=P.chapelR))cc++;}
   let t=45+(S.starving?-35:12)+(S.cold?-20:0)+(S.noTools?-12:0)+(S.festT>S.time?P.festBonus:0)+(S.festGlow>S.time?P.festBonus*0.4:0);
   if(houses)t+=25*cov/houses+12*l2/houses+P.chapelBonus*cc/houses;
-  t+=P.varietyBonus*(S.varietyF||0);
+  t+=P.varietyBonus*(S.varietyF||0);if(S.warm)t+=P.warmBonus;if(S.mourn>S.time)t-=4;
   if(pop>cap)t-=15;
   return clamp(t,0,100);
 }
@@ -503,30 +546,80 @@ function festCheck(){if(!P.fest||!P.seasons)return;const sea=season();if(sea===S
     if(pop>=10&&S.res.food>=wf*P.festNeed&&S.res.wood>=pop*1.5){S.res.food-=pop*P.festFood;S.res.wood-=pop*0.5;S.festT=S.time+P.seasonLen*0.25;S.festGlow=S.time+P.seasonLen*1.5;S.stats.fests=(S.stats.fests||0)+1;
       emit('toast','🎉 Fête des moissons ! Les réserves sont pleines : le village fait la fête (😄 bonheur ↑)');emit('fest',{});}
     else if(pop>=10)emit('toast','🌾 Pas de fête des moissons cette année : il faudrait plus de réserves');}}
+// ---- générations ----
+function die(v){release(v);if(v.carry)deposit(v);const k=S.villagers.indexOf(v);if(k>=0)S.villagers.splice(k,1);S.stats.deaths++;S.mourn=S.time+40;S.graves=(S.graves||0)+1;
+  emit('toast',`🕯️ ${v.name} s'est éteint${v.fem?'e':''} à ${Math.floor(v.age)} ans, entouré${v.fem?'e':''} des siens`);emit('death',{x:v.x,y:v.y});}
+function genUpdate(dt){
+  if(!P.gens)return;const da=dt/P.seasonLen*P.ageRate;
+  for(const v of S.villagers){const a0=v.age;v.age+=da;if(a0<P.adultAge&&v.age>=P.adultAge){emit('toast',`🧑 ${v.name} a ${P.adultAge} ans : un bras de plus au travail`);if(v.job==='kid'){v.plan.length=0;v.cur=null;}}
+    if(a0<P.retireAge&&v.age>=P.retireAge){v.plan.length=0;v.cur=null;}}
+  if((timers.death+=dt)>=10){timers.death=0;for(const v of S.villagers.slice())if(v.age>P.deathAge&&R()<(v.age-P.deathAge)*0.05*10/P.seasonLen)die(v);}
+  if((timers.birth+=dt)>=P.birthInterval){timers.birth=0;const pop=S.villagers.length,cap=capacity();
+    if(pop<cap&&S.happy>=P.birthHappy&&!S.starving&&!S.cold&&S.res.food>=pop*3){let kids=0,fem=null,mal=0;
+      for(const v of S.villagers){if(isKid(v))kids++;else if(v.age<46){if(v.fem)fem=v;else mal++;}}
+      if(fem&&mal&&kids<pop*P.birthMaxKids&&R()<0.55){const hs=S.buildings.filter(b=>b.type==='house'&&b.built),b=hs.length?hs[(R()*hs.length)|0]:S.hall,f=frontOf(b);
+        const nv=spawnVillager(f.x+0.5,f.y+0.5,{age:0,skin:fem.skin});S.stats.births++;timers.immig=0;emit('toast',`👶 Naissance : ${nv.name} vient au monde`);emit('birth',{x:nv.x,y:nv.y});}}}
+}
+// ---- élevage ----
+let nextSid=1;
+function sheepCap(){return Math.min(P.sheepMax,Math.floor(zoneList(Z.pasture).length/P.sheepPer));}
+function spawnSheep(x,y,age){const a={id:nextSid++,x,y,tx:x,ty:y,wool:age>=1?0.6:0,age,wait:R()*3,held:0,face:R()*6,moving:false};S.sheep.push(a);return a;}
+function pastureTile(near,ax,ay){const L=zoneList(Z.pasture);if(!L.length)return -1;let best=-1;
+  for(let k=0;k<8;k++){const i=L[(R()*L.length)|0];if(S.occ[i]>=0)continue;best=i;if(!near||Math.hypot(i%W+0.5-ax,(i/W|0)+0.5-ay)<3.5)break;}return best;}
+function sheepUpdate(dt){
+  if(!P.pasture)return;const L=zoneList(Z.pasture),sea=season();
+  if(!S.sheep.length){if(L.length>=P.sheepPer*2&&(S._sheepWait=(S._sheepWait||0)+dt)>15){S._sheepWait=0;for(let k=0;k<2;k++){const i=pastureTile(false);if(i>=0)spawnSheep(i%W+0.5,(i/W|0)+0.5,2);}
+      emit('toast','🐑 Un couple de moutons arrive au pâturage');}return;}
+  if(!L.length){let n=0;for(const a of S.sheep){S.res.food+=4;n++;}S.sheep.length=0;emit('toast',`🐑 Sans pâturage, le troupeau est vendu (+${n*4} 🍞)`);return;}
+  if((timers.sheep+=dt)>=P.sheepBreed){timers.sheep=0;if(sea<3&&S.sheep.length>=2&&S.sheep.length<sheepCap()){const m=S.sheep[(R()*S.sheep.length)|0];spawnSheep(m.x+(R()-0.5)*0.4,m.y+(R()-0.5)*0.4,0);emit('lamb',{});}}
+  for(const a of S.sheep){a.age+=dt/P.seasonLen;if(sea!==3&&a.age>=1)a.wool=Math.min(1.5,a.wool+dt/P.woolGrow);
+    if(a.held){a.moving=false;continue;}
+    if(a.wait>0){a.wait-=dt;a.moving=false;continue;}
+    const dx=a.tx-a.x,dy=a.ty-a.y,d=Math.hypot(dx,dy);
+    if(d<0.05){const i=pastureTile(true,a.x,a.y);if(i>=0){a.tx=i%W+0.2+R()*0.6;a.ty=(i/W|0)+0.2+R()*0.6;}a.wait=2+R()*7;continue;}
+    const sp=(d>4?1.2:0.35)*(a.age<1?1.3:1)*dt,k=Math.min(sp,d)/d;a.x+=dx*k;a.y+=dy*k;a.face=Math.atan2(dx,dy);a.moving=true;
+    const ti=idx(clamp(a.x|0,0,W-1),clamp(a.y|0,0,H-1));if(S.zone[ti]!==Z.pasture&&d<1.5){a.tx=a.x;a.ty=a.y;}}
+}
+// ---- marchand ambulant ----
+const DEALS=[[{food:12},{tools:2}],[{wood:15},{stone:5}],[{stone:6},{food:14}],[{wool:4},{tools:2}],[{clothes:2},{stone:8}],[{food:20},{sheep:2}],[{fish:10},{tools:1}],[{tools:2},{food:16}],[{wood:12},{wool:4}],[{food:15},{clothes:2}],[{stone:5},{tools:1}],[{wood:10},{food:10}]];
+function merchantUpdate(){
+  if(!P.merchant)return;const m=S.merchant;
+  if(m&&S.time>m.until){S.merchant=null;emit('toast','🧳 Le marchand ambulant reprend la route');emit('merchantGone',{});}
+  const sea=season();if(sea===S._lastSeaM)return;const first=S._lastSeaM==null;S._lastSeaM=sea;if(first||S.merchant)return;
+  if(sea!==0&&sea!==2)return;const mk=S.buildings.find(b=>b.type==='market'&&b.built);if(!mk||S.villagers.length<8)return;
+  const past=zoneList(Z.pasture).length>=P.sheepPer*2;const pool=DEALS.filter(d=>(past||!d[1].sheep)&&(P.pasture||!(d[0].wool||d[0].clothes||d[1].wool||d[1].clothes)));
+  const deals=[];while(deals.length<3&&pool.length){const d=pool.splice((R()*pool.length)|0,1)[0];deals.push({give:{...d[0]},get:{...d[1]},stock:P.merchantStock});}
+  S.merchant={until:S.time+P.seasonLen*0.7,deals,mk:mk.id};emit('toast','🧳 Un marchand ambulant s\'installe au marché : touche le marché pour échanger');emit('merchant',{});
+}
+function trade(k){const m=S.merchant;if(!m)return false;const d=m.deals[k];if(!d||d.stock<=0)return false;if(d.get.sheep&&zoneList(Z.pasture).length<P.sheepPer)return false;
+  for(const r in d.give)if((S.res[r]||0)<d.give[r])return false;
+  for(const r in d.give)S.res[r]-=d.give[r];
+  for(const r in d.get){if(r==='sheep'){for(let q=0;q<d.get[r];q++){const i=pastureTile(false);if(i>=0)spawnSheep(i%W+0.5,(i/W|0)+0.5,1.2);}}else S.res[r]=(S.res[r]||0)+d.get[r];}
+  d.stock--;S.stats.trades++;S.version++;return true;}
 function step(dt){
-  S.time+=dt;festCheck();
+  S.time+=dt;festCheck();genUpdate(dt);sheepUpdate(dt);
   for(const v of S.villagers)stepVillager(v,dt);
   if((timers.env+=dt)>=0.5){envUpdate(timers.env);timers.env=0;}
-  if((timers.plan+=dt)>=1){timers.plan=0;planner();computeInfo();}
+  if((timers.plan+=dt)>=1){timers.plan=0;planner();computeInfo();merchantUpdate();}
   if((timers.store+=dt)>=10){timers.store=0;storePlanner();}
   if((timers.decay+=dt)>=1){timers.decay=0;const tr=S.traffic;for(let i=0;i<N;i++)if(tr[i]>0)tr[i]*=P.trafficDecay;}
   if(S.starving)S.stats.starveTime+=dt;
   if(S.cold)S.stats.coldTime+=dt;
-  if((timers.trend+=dt)>=10){timers.trend=0;S.hist.push({t:S.time,fish:S.res.fish,food:S.res.food,wood:S.res.wood,stone:S.res.stone,tools:S.res.tools,pop:S.villagers.length,happy:S.happy});
+  if((timers.trend+=dt)>=10){timers.trend=0;S.hist.push({t:S.time,fish:S.res.fish,wool:S.res.wool||0,clothes:S.res.clothes||0,food:S.res.food,wood:S.res.wood,stone:S.res.stone,tools:S.res.tools,pop:S.villagers.length,happy:S.happy});
     if(S.hist.length>200)S.hist.shift();
     const h=S.hist,a=h[Math.max(0,h.length-7)],b=h[h.length-1],dtm=(b.t-a.t)/60||1;
-    for(const k of ['food','wood','stone','tools','fish'])S.trend[k]=(b[k]-a[k])/dtm;}
+    for(const k of ['food','wood','stone','tools','fish','wool','clothes'])S.trend[k]=((b[k]||0)-(a[k]||0))/dtm;}
   if(P.useTools&&(timers.tool+=dt)>=P.toolInterval){
     timers.tool=0;let need=0;for(const b of S.buildings)if(b.type==='house'&&b.built&&b.level>=2)need++;
     if(need){S.res.tools-=need;if(S.res.tools<0){S.res.tools=0;if(!S.noTools)emit('toast','🔧 Les maisons en pierre manquent d\'outils');S.noTools=true;}else S.noTools=false;}else S.noTools=false;
   }
   if((timers.heat+=dt)>=P.heatInterval){
-    timers.heat=0;let need=0;const hm=season()===3?2:1;for(const b of S.buildings)if(b.built)need+=b.type==='house'?(b.level>=2?P.heatHouse2:P.heatHouse):b.type==='hall'?P.heatHall:0;
+    timers.heat=0;let need=0;const wint=season()===3,hm=wint?(S.warm?2*P.warmHeat:2):1;if(P.pasture&&wint&&S.res.clothes>0)S.res.clothes=Math.max(0,S.res.clothes-S.villagers.length*P.clothUse);for(const b of S.buildings)if(b.built)need+=b.type==='house'?(b.level>=2?P.heatHouse2:P.heatHouse):b.type==='hall'?P.heatHall:0;
     need*=hm;S.res.wood-=need;
     if(S.res.wood<0){S.res.wood=0;if(!S.cold&&need)emit('toast','🥶 Plus de bois de chauffage : les maisons ont froid');S.cold=true;}else S.cold=false;
   }
   if((timers.meal+=dt)>=P.mealInterval){
-    timers.meal=0;const need=S.villagers.length*P.foodPerMeal;
+    timers.meal=0;let eaters=0;for(const v of S.villagers)eaters+=isKid(v)?P.kidMeal:1;const need=eaters*P.foodPerMeal+(season()===3?S.sheep.length*P.sheepHay:0);S.warm=P.pasture&&S.villagers.length>0&&(S.res.clothes||0)>=S.villagers.length*0.12;
     const fromFish=Math.min(S.res.fish,need*(S.res.food>0?0.4:1));S.res.fish-=fromFish;S.res.food-=need-fromFish;
     S.varietyF=need?Math.min(1,fromFish/(need*0.15)):0;S.variety=S.varietyF>=0.6;
     if(S.res.food<0){S.res.food=0;if(!S.starving&&need)emit('toast','⚠️ Famine : il manque de nourriture !');S.starving=true;}else S.starving=false;
@@ -538,14 +631,14 @@ function step(dt){
     timers.immig=0;
     const idleN=S.villagers.filter(v=>v.job==='idle').length;S.idleShare=pop?idleN/pop:0;
     if(pop<cap&&S.happy>P.immigHappy&&(P.winterImmig||season()!==3)&&S.res.food>=pop*P.immigFood&&(!P.autumnGate||season()!==2||S.res.food>=(pop+1)*P.seasonLen/P.mealInterval*P.foodPerMeal*P.autumnGate)&&(!P.immigTrend||S.trend.food>=0||S.res.food>=pop*4)&&(!P.jobsGate||pop<12||S.idleShare<P.maxIdle)){
-      const [x,y]=edgeSpawn();const v=spawnVillager(x,y);const f=frontOf(S.hall);goTo(v,f.x,f.y);S.stats.arrivals++;
+      const [x,y]=edgeSpawn();const v=spawnVillager(x,y,{age:16+R()*22});const f=frontOf(S.hall);goTo(v,f.x,f.y);S.stats.arrivals++;
       const np=S.villagers.length;
       for(const m of [10,20,30,50,75,100,150])if(np>=m)milestone('pop'+m,`🎉 Le hameau compte ${m} habitants !`);
     }
   }
   if((timers.emig+=dt)>=10){
     timers.emig=0;
-    if(S.happy<P.emigHappy&&S.villagers.length>0){const v=S.villagers[S.villagers.length-1];release(v);S.villagers.pop();S.stats.departures++;emit('toast','😞 Un villageois mécontent quitte le hameau');}
+    if(S.happy<P.emigHappy&&S.villagers.length>0){let k=S.villagers.length-1;while(k>0&&isKid(S.villagers[k]))k--;const v=S.villagers[k];release(v);if(v.carry)deposit(v);S.villagers.splice(k,1);S.stats.departures++;emit('toast','😞 Un villageois mécontent quitte le hameau');}
   }
 }
 // ---- actions joueur ----
@@ -568,17 +661,17 @@ function demolish(x,y){
 }
 function newGame(seed){
   alloc();S.seed=seed!=null?seed:(R()*1e9)|0;
-  S.buildings=[];S.bmap=new Map();S.villagers=[];nextVid=1;nextBid=1;S.milestones.clear();
-  S.res={food:P.startFood,wood:0,stone:P.startStone,tools:0,fish:0};S.time=0;S.happy=60;S.starving=false;
+  S.buildings=[];S.bmap=new Map();S.villagers=[];S.sheep=[];S.merchant=null;S._lastSeaM=null;S.mourn=0;S.graves=0;nextVid=1;nextBid=1;nextSid=1;S.milestones.clear();
+  S.res={food:P.startFood,wood:0,stone:P.startStone,tools:0,fish:0,wool:0,clothes:0};S.time=0;S.happy=60;S.starving=false;
   for(const k in timers)timers[k]=0;demand.fill(0);
-  for(const k in S.stats)S.stats[k]=0;S.hist=[];S.trend={food:0,wood:0,stone:0,tools:0,fish:0};
+  for(const k in S.stats)S.stats[k]=0;S.hist=[];S.trend={food:0,wood:0,stone:0,tools:0,fish:0,wool:0,clothes:0};
   genTerrain();
   const cx=W>>1,cy=H>>1;
   for(let y=cy-4;y<=cy+5;y++)for(let x=cx-4;x<=cx+4;x++){const i=idx(x,y);if(Math.hypot(x-cx,y-cy)<4.6){S.terrain[i]=T_GRASS;S.stoneAmt[i]=0;S.tree[i]=0;}}
   S.hall=addBuilding('hall',cx-1,cy-1,3,3,true);
   S.res.wood=P.startWood;
   const f=frontOf(S.hall);
-  for(let k=0;k<6;k++)spawnVillager(f.x+0.5+(R()-0.5)*3,f.y+0.5+R()*1.5);
+  for(let k=0;k<6;k++)spawnVillager(f.x+0.5+(R()-0.5)*3,f.y+0.5+R()*1.5,{fem:k%2===0,age:19+R()*17});
   computeInfo();S.version++;
 }
 function serialize(){
@@ -586,7 +679,7 @@ function serialize(){
   return {v:3,seed:S.seed,time:S.time,happy:S.happy,res:S.res,nextBid,starving:S.starving,ms:[...S.milestones],
     terrain:Array.from(S.terrain),tree:r2(S.tree),stone:Array.from(S.stoneAmt),zone:Array.from(S.zone),traffic:r2(S.traffic),fstate:Array.from(S.fstate),fgrow:r2(S.fgrow),
     b:S.buildings.map(b=>({id:b.id,type:b.type,x:b.x,y:b.y,w:b.w,h:b.h,built:b.built,level:b.level,site:b.site?{need:{...b.site.need},have:{...b.site.have},prog:b.site.prog,asg:0}:null})),
-    vil:S.villagers.map(v=>[Math.round(v.x*10)/10,Math.round(v.y*10)/10]),hist:S.hist.slice(-180).map(h=>({t:Math.round(h.t),food:Math.round(h.food),wood:Math.round(h.wood),stone:Math.round(h.stone),tools:Math.round(h.tools),pop:h.pop,happy:Math.round(h.happy)}))};
+    vil:S.villagers.map(v=>[Math.round(v.x*10)/10,Math.round(v.y*10)/10,Math.round(v.age*100)/100,v.fem?1:0,v.name,v.skin]),sheep:S.sheep.map(a=>[Math.round(a.x*10)/10,Math.round(a.y*10)/10,Math.round(a.wool*100)/100,Math.round(a.age*100)/100]),merchant:S.merchant,fert:r2(S.fert),rest:Array.from(S.rest),mourn:S.mourn||0,graves:S.graves||0,lastSeaM:S._lastSeaM,hist:S.hist.slice(-180).map(h=>({t:Math.round(h.t),food:Math.round(h.food),wood:Math.round(h.wood),stone:Math.round(h.stone),tools:Math.round(h.tools),pop:h.pop,happy:Math.round(h.happy)}))};
 }
 function deserialize(d){
   if(!d)return false;if(d.v!==3)return false;
@@ -597,7 +690,9 @@ function deserialize(d){
   S.buildings=[];S.bmap=new Map();S.hall=null;
   for(const b of d.b){S.buildings.push(b);S.bmap.set(b.id,b);for(let dy=0;dy<b.h;dy++)for(let dx=0;dx<b.w;dx++)S.occ[idx(b.x+dx,b.y+dy)]=b.id;if(b.type==='hall')S.hall=b;}
   if(!S.hall)return false;
-  S.villagers=[];nextVid=1;for(const [x,y] of d.vil)spawnVillager(x,y);
+  S.villagers=[];nextVid=1;for(const e of d.vil){if(e.length>2)spawnVillager(e[0],e[1],{age:e[2],fem:!!e[3],name:e[4],skin:e[5]});else spawnVillager(e[0],e[1]);}
+  S.sheep=[];nextSid=1;for(const e of (d.sheep||[])){const a=spawnSheep(e[0],e[1],e[3]);a.wool=e[2];}S.merchant=d.merchant||null;S._lastSeaM=d.lastSeaM!=null?d.lastSeaM:null;S.mourn=d.mourn||0;S.graves=d.graves||0;
+  if(d.fert)S.fert.set(d.fert);if(d.rest)S.rest.set(d.rest);if(S.res.wool==null)S.res.wool=0;if(S.res.clothes==null)S.res.clothes=0;
   if(S.res.fish==null)S.res.fish=0;S.hist=d.hist||[];computeInfo();S.version++;return true;
 }
 function genTerrainElevOnly(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)S.elev[idx(x,y)]=fbm(x/12,y/12,S.seed+303);}
@@ -632,13 +727,17 @@ function advice(){
   if(pop>=20){const mk=S.buildings.filter(b=>b.type==='market'&&b.built);let un=0,ux=0,uy=0,tot=0;
     for(const b of S.buildings){if(b.type!=='house'||!b.built)continue;tot++;if(!mk.some(m=>Math.hypot(m.x-b.x,m.y-b.y)<=P.marketR)){un++;ux+=b.x;uy+=b.y;}}
     if(tot&&un/tot>0.4&&!S.buildings.some(b=>b.type==='market'&&!b.built))return {code:'market',at:[Math.round(ux/un),Math.round(uy/un)],text:`🏪 ${un} maisons loin d'un marché : peins un Marché près d'elles`};}
+  if(P.merchant&&S.merchant&&S.merchant.deals.some(d=>d.stock>0&&Object.keys(d.give).every(r=>(res[r]||0)>=d.give[r]))){const m=S.bmap.get(S.merchant.mk);if(m)return {code:'merchant',at:[m.x+1,m.y+1],text:'🧳 Le marchand est au marché : touche ici pour échanger'};}
   if(P.fishing&&pop>=15&&info.fishZone===0){const w=nearOf(i=>S.terrain[i]===T_WATER&&fishSpot(i)>=0);if(w)return {code:'fish',at:w,text:'🐟 Peins une zone Pêche sur l\'eau près du rivage : la variété des repas rend heureux'};}
   if(P.fishing&&pop>=25&&info.fishZone>0&&(S.varietyF||0)<0.6&&S.hist.length>8){const w=nearOf(i=>S.zone[i]===0&&S.terrain[i]===T_WATER&&fishSpot(i)>=0);if(w)return {code:'fish',at:w,text:`🐟 Repas peu variés (${Math.round((S.varietyF||0)*100)} %) : agrandis la zone Pêche`};}
   if(P.chapels&&S.buildings.filter(b=>b.type==='house'&&b.level>=2).length>=4&&info.chapelZone===0&&!S.buildings.some(b=>b.type==='chapel'))return {code:'chapel',text:'⛪ Peins une Chapelle (2×2) au cœur des maisons : bonheur + maisons de maître'};
   if(S.noTools)return {code:'workshop',text:'🔧 Manque d\'outils : agrandis l\'Atelier ou la Carrière'};
+  if(P.fert&&info.fields>=10&&info.fallow>=info.fields*0.3)return {code:'field',at:centroid(Z.field),text:`🌾 ${Math.round(info.fallow/info.fields*100)} % des champs se reposent (terre épuisée) : ajoute des champs`};
+  if(P.pasture&&pop>=16&&info.pastureZone===0)return {code:'pasture',text:'🐑 Peins un Pâturage (8 cases ou plus) : la laine devient des vêtements chauds à l\'atelier'};
+  if(P.pasture&&S.sheep.length&&(res.wool||0)>=6&&!S.buildings.some(b=>b.type==='workshop'&&b.built))return {code:'workshop',text:'🧶 La laine s\'entasse : un Atelier en ferait des vêtements chauds'};
   return null;
 }
-Object.assign(S,{fishSpot,season,seasonProgress,growMul,advice,newGame,step,paint,demolish,capacity,serialize,deserialize,frontOf,computeInfo,happinessTarget});
+Object.assign(S,{trade,sheepCap,isKid,isElder,isRetired,fishSpot,season,seasonProgress,growMul,advice,newGame,step,paint,demolish,capacity,serialize,deserialize,frontOf,computeInfo,happinessTarget});
 return S;
 }
 return {create,DEFAULTS,W,H,Z};

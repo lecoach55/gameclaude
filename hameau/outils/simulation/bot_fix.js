@@ -29,6 +29,12 @@ function bot(S,opt){
   // pêche + chapelle
   if(opt.fish!==false&&pop>=15&&S.info.fishZone<Math.max(6,pop/8)){const i=nearestFree(hx,hy,j=>S.zone[j]===0&&S.terrain[j]===S.T_WATER&&S.fishSpot(j)>=0);if(i>=0)paintAround(Z.fishing,i,3);}
   if(opt.chapel!==false&&S.buildings.filter(b=>b.type==='house'&&b.level>=2).length>=4&&S.info.chapelZone<4&&!S.buildings.some(b=>b.type==='chapel')){const i=nearestFree(hx,hy,j=>free(j)&&S.tree[j]===0,4);if(i>=0)paintAround(Z.chapel,i,3);}
+  // pâturage
+  if(opt.pasture!==false&&pop>=16&&S.info.pastureZone<Math.min(36,8+pop/4)){const c=S.info.pastureZone?(()=>{let sx=0,sy=0,n=0;for(let i=0;i<S.N;i++)if(S.zone[i]===Z.pasture){sx+=i%W;sy+=i/W|0;n++;}return [sx/n,sy/n];})():[hx-opt.fieldDir[0]*10,hy-opt.fieldDir[1]*10];
+    const i=nearestFree(c[0],c[1],j=>free(j)&&S.tree[j]===0,S.info.pastureZone?0:6);if(i>=0)paintAround(Z.pasture,i,3);}
+  // marchand : n'échange que des surplus
+  if(opt.trade!==false&&S.merchant){const need={food:pop*10+30,wood:40+pop*2,stone:20,tools:8,fish:pop*2,wool:4,clothes:pop*0.3};
+    S.merchant.deals.forEach((d,k)=>{if(d.stock>0&&Object.keys(d.give).every(r=>(S.res[r]||0)-d.give[r]>=need[r]))S.trade(k);});}
   // marché
   const mk=S.buildings.filter(b=>b.type==='market').length;
   if(pop>=6&&S.info.marketZone<4*(1+Math.floor(pop/14))&&mk<1+Math.floor(pop/14)){
@@ -58,6 +64,8 @@ function novice(S,opt){
     case 'fish':{const c=a.at;paint(Z.fishing,c?idx(c[0],c[1]):-1,3);break;}
     case 'chapel':{const c=near(Z.house)||[hx,hy];paint(Z.chapel,nearestFree(c[0],c[1],j=>free(j)&&S.tree[j]===0),3);break;}
     case 'workshop':{paint(Z.workshop,nearestFree(hx,hy,j=>free(j)&&S.tree[j]===0,5),3);break;}
+    case 'pasture':{const c=near(Z.pasture)||[hx-8,hy-6];for(let q=0;q<3;q++)paint(Z.pasture,nearestFree(c[0],c[1],j=>free(j)&&S.tree[j]===0,near(Z.pasture)?0:5),3);break;}
+    case 'merchant':break;
   }
   opt.log&&opt.log.push(Math.round(S.time)+':'+a.code);
 }
@@ -71,7 +79,7 @@ function run(params,seed,days,opt){
     rows.push({day:d,pop:S.villagers.length,cap:S.capacity(),food:Math.round(S.res.food),wood:Math.round(S.res.wood),stone:Math.round(S.res.stone),tools:Math.round(S.res.tools||0),
       happy:Math.round(S.happy),idle:+(st.idleTime/tot).toFixed(2),walk:+(st.walkTime/tot).toFixed(2),haul:+(st.haulDist/(st.hauls||1)).toFixed(1),
       starve:Math.round(st.starveTime),notool:S.noTools?1:0,cold:Math.round(st.coldTime),stores:S.buildings.filter(b=>b.type==='store'&&b.built).length,
-      houses:S.buildings.filter(b=>b.type==='house'&&b.built).length,l3:S.buildings.filter(b=>b.level>=3).length,fish:Math.round(S.res.fish||0),variety:+(S.varietyF||0).toFixed(2),lvl2:S.buildings.filter(b=>b.level>=2).length,jobs:{...S.info.jobs}});
+      houses:S.buildings.filter(b=>b.type==='house'&&b.built).length,l3:S.buildings.filter(b=>b.level>=3).length,fish:Math.round(S.res.fish||0),variety:+(S.varietyF||0).toFixed(2),lvl2:S.buildings.filter(b=>b.level>=2).length,jobs:{...S.info.jobs},sheep:S.sheep.length,wool:Math.round(S.res.wool||0),clothes:Math.round(S.res.clothes||0),births:st.births,deaths:st.deaths,trades:st.trades,fallow:S.info.fallow||0,fields:S.info.fields});
     for(const k of ['idleTime','workTime','walkTime','haulDist','hauls'])st[k]=0;
   }
   rows.opt=opt;return rows;

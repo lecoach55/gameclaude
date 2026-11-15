@@ -69,3 +69,9 @@ Simulation boursière jour par jour (HTML/JS sans dépendance, une seule page). 
 Simulateur de vie avec scène 3D. Artefact : slug `b04fac4d-6c5d-4942-aea6-f931c43137b7`. Construire avec `python3 une-vie/jeu/build.py`, publier `une-vie/build/index.html`. Outils et règles : `une-vie/README.md` (sim.sh, studio.py + compare.py, perf.py, qa.py).
 - Reprise de la vie en cours : locale (`vie8m_cur`) et en ligne (document `partie`, capacités db + user) ; ne jamais modifier ces données. Tester avec `outils/reprise.py` et `outils/nuage_test.py`.
 - Mesures réelles : 🧪 sur l'accueil → `mesures_*` ; 🐞 → `signalement_*` (`db_list` sur `data/users/<id>`).
+
+## Le Trône de Braise (`trone-de-braise/`)
+Action-RPG façon Diablo + royaume (dés, diplomatie, dynastie). Canvas 2D, une seule page hors ligne. Artefact : slug `ad95fb12-6952-4fbd-8b8b-ff66978db6c6` (capacités db + user).
+- Construire : `python3 trone-de-braise/jeu/build.py`, publier `trone-de-braise/build/trone-de-braise.html` en `index.html` (publish_files).
+- Équilibre : `outils/sim_donjon.js` et `outils/sim_royaume.js` (repères dans le README) ; ne pas changer la difficulté sans accord.
+- Avant publication : `outils/parcours.py`, `outils/fumee.py`, `outils/perf.py` (référence `mesures/perf_base.json`). Voir `trone-de-braise/README.md`.

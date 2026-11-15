@@ -1,0 +1,567 @@
+'use strict';
+/* =========================================================
+   Interface : écrans, carte, panneaux, fenêtres, donjon (entrées + HUD), sauvegarde
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const CLE = 'tdb-v1';
+let G = null, MODE = 'accueil', A = null, XP = null, TK = null, TEST = false;
+const UI = { sel: null, cibles: null, amis: null, survol: null, fleches: [], mode: null, de: null, auto: false };
+const nf = n => Math.round(n).toLocaleString('fr-FR');
+const esc = s => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+function montrer(id) { document.querySelectorAll('.ecran').forEach(e => e.classList.toggle('on', e.id === id)); MODE = id; if (id === 'royaume') { redim(); AUDIO.musiqueDe('royaume'); } if (id === 'donjon') { redim(); AUDIO.musiqueDe('donjon'); } if (id === 'accueil') AUDIO.musiqueDe(null); }
+function toast(s, d = 2600) { const t = $('#toast'); t.innerHTML = s; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, d); }
+document.addEventListener('pointerdown', () => AUDIO.init(), { once: true });
+document.addEventListener('keydown', () => AUDIO.init(), { once: true });
+if ('ontouchstart' in window || navigator.maxTouchPoints > 1) document.body.classList.add('tact');
+
+/* ---------- sauvegarde ---------- */
+function sauver() {
+ if (TEST || !G) return; G.sauveT = Date.now();
+ try { const s = JSON.stringify(G); localStorage.setItem(CLE, s); NUAGE.sauver(s, { an: G.an, s: G.saison, nom: G.joueur.heros.nom }); } catch (e) { console.warn(e); }
+}
+function restaurer(s) { const g = JSON.parse(s); let mx = 0; const scan = o => { if (o && typeof o === 'object') { if (o.ilvl && o.id > mx) mx = o.id; for (const k in o) scan(o[k]); } }; scan(g); UID_OBJ = mx + 1; return g; }
+function lireLocal() { try { const s = localStorage.getItem(CLE); return s ? { s, t: JSON.parse(s).sauveT || 0 } : null; } catch (e) { return null; } }
+
+/* ---------- accueil ---------- */
+const braises = { p: [] };
+function animBraises(dt) {
+ const c = $('#braises'), g = c.getContext('2d'); if (c.width !== innerWidth) { c.width = innerWidth; c.height = innerHeight; }
+ g.clearRect(0, 0, c.width, c.height);
+ if (braises.p.length < 140) braises.p.push({ x: Math.random() * c.width, y: c.height + 10, v: 20 + Math.random() * 60, s: 1 + Math.random() * 2.5, f: Math.random() * 6, a: 1 });
+ for (const p of braises.p) { p.y -= p.v * dt; p.x += Math.sin(p.f += dt * 2) * 12 * dt; p.a -= dt * .12; g.fillStyle = `rgba(255,${120 + p.s * 40 | 0},40,${Math.max(0, p.a)})`; g.beginPath(); g.arc(p.x, p.y, p.s, 0, 6.28); g.fill(); }
+ braises.p = braises.p.filter(p => p.a > 0 && p.y > -10);
+}
+function initAccueil() {
+ const l = lireLocal();
+ $('#bContinuer').style.display = l ? '' : 'none';
+ NUAGE.charger().then(d => { if (d && (!l || d.t > l.t + 5000)) { $('#bContinuer').style.display = ''; $('#bContinuer').dataset.nuage = '1'; $('#bContinuer').textContent = `▶ Continuer (${d.d && d.d.nom || 'partie'} — sauvegarde en ligne)`; braises.nuage = d.s; } }).catch(() => { });
+ $('#bContinuer').onclick = () => { const s = braises.nuage && $('#bContinuer').dataset.nuage ? braises.nuage : lireLocal().s; G = restaurer(s); entrerRoyaume(); };
+ $('#bNouvelle').onclick = () => { initCreation(); montrer('creation'); };
+ $('#bAide').onclick = aide;
+ $('#bTest').onclick = () => { TEST = true; if (TK) TK.modeTest(); G = nouvellePartie({ classe: 'chevalier', nom: 'Testeur' }); G.evts = []; entrerRoyaume(); toast('🧪 Mode test : rien n’est sauvegardé. ☰ → ▶ Banc de mesure.'); };
+}
+function aide() {
+ fenetre('Comment jouer', `<p><b>Le royaume</b> — Chaque saison, vous disposez de <b>3 ordres</b> (points dorés en haut). Touchez une province pour la gérer : recruter, bâtir, attaquer une province voisine (bataille aux dés, façon Risk), lancer une expédition dans son donjon. Déplacer des troupes entre vos provinces est gratuit (une fois par saison). Puis « Fin de la saison » : les maisons rivales jouent, l’or rentre, des événements surviennent.</p>
+ <p><b>Le but</b> — Tenir <b>Haute-Braise</b> (♛) et au moins <b>10 provinces</b> pour être couronné. Mariez-vous, ayez des héritiers : quand votre souverain meurt, son enfant reprend le flambeau avec l’armurerie familiale.</p>
+ <p><b>Les donjons</b> — Combat en temps réel. <b>Clic gauche</b> : se déplacer / attaquer la cible (maintenir). <b>ZQSD / WASD / flèches</b> : se déplacer (le clic attaque alors vers le curseur). <b>Maj + clic</b> : attaquer sur place. <b>1 2 3 4</b> ou <b>clic droit</b> (compétence 1) : compétences. <b>Espace</b> : potion. <b>E</b> : descendre. <b>I</b> : sac, <b>K</b> : compétences, <b>Échap</b> : pause. Les cercles rouges au sol annoncent une attaque : sortez-en !</p>
+ <p><b>Le butin compte</b> — Objets magiques (bleus), rares (jaunes), légendaires (orange) : certains légendaires agissent aussi sur le royaume (+1 ordre, +25 % d’impôts, un dé de plus en attaque…). Revendez le reste à l’armurerie pour payer vos armées.</p>
+ <p><b>Le mal revient</b> — Un donjon nettoyé rend sa province prospère, mais ses créatures reviennent quelques saisons plus tard, plus fortes.</p>`, [{ t: 'Compris', f: fermer }]);
+}
+
+/* ---------- création ---------- */
+const CREA = { sexe: 'h', classe: 'chevalier', dif: 'normale', mort: '0' };
+function initCreation() {
+ const box = $('#cClasses'); box.innerHTML = '';
+ for (const id in CLASSES) {
+  const C = CLASSES[id], d = document.createElement('div'); d.className = 'carte-classe' + (id === CREA.classe ? ' sel' : ''); d.dataset.c = id;
+  d.innerHTML = `<canvas width="240" height="240"></canvas><h3>${C.nom}</h3><p>${C.desc}</p><div class="comp">${C.comp.map(c => c.ic + ' ' + c.nom).join(' · ')}</div>`;
+  d.onclick = () => { CREA.classe = id; box.querySelectorAll('.carte-classe').forEach(x => x.classList.toggle('sel', x === d)); SON('clic'); };
+  box.appendChild(d); apercuHeros(d.querySelector('canvas'), id, CREA.sexe);
+ }
+ const choix = (sel, k, cb) => $(sel).querySelectorAll('button').forEach(b => b.onclick = () => { CREA[k] = b.dataset.v; $(sel).querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b)); SON('clic'); cb && cb(); });
+ choix('#cSexe', 'sexe', () => { $('#cNom').value = CREA.sexe === 'f' ? 'Aénor' : 'Émeric'; initCreation(); });
+ choix('#cDif', 'dif'); choix('#cMort', 'mort');
+ $('#cRetour').onclick = () => montrer('accueil');
+ $('#cGo').onclick = () => {
+  G = nouvellePartie({ classe: CREA.classe, sexe: CREA.sexe, nom: $('#cNom').value.trim() || 'Émeric', maison: $('#cMaison').value.trim() || 'Aubrac', difficulte: CREA.dif, mortReelle: CREA.mort === '1' });
+  sauver(); entrerRoyaume();
+ };
+}
+function apercuHeros(cv, classe, sexe) {
+ const g = cv.getContext('2d'); const h = nouveauHeros(classe, '', sexe); h.equip.arme = { arme: CLASSES[classe].armes[0], rar: 'normal' };
+ const fauxA = { X: { o: { heros: h, couleurs: ['#c8632a', '#f2d7a0'] } }, t: 0 };
+ const P = { x: 0, y: 0, ang: .6, pas: 0, inv: 0, anim: 0, animT: 1, buff: 0 };
+ let t0 = performance.now();
+ const f = () => { if (!cv.isConnected) return; const t = (performance.now() - t0) / 1000; fauxA.t = t; P.ang = .5 + Math.sin(t * .8) * .9; P.anim = (t % 1.6) < .25 ? .25 - (t % 1.6) : 0; P.animT = .25; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 240, 240); const gr = g.createRadialGradient(120, 150, 10, 120, 150, 120); gr.addColorStop(0, 'rgba(255,170,80,.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 240, 240); g.setTransform(130, 0, 0, 130, 120, 175); dessinerHeros(g, P, fauxA); requestAnimationFrame(f); };
+ f();
+}
+
+/* ---------- royaume ---------- */
+const cvC = $('#carte'), ctxC = cvC.getContext('2d');
+const cvJ = $('#jeu'), ctxJ = cvJ.getContext('2d');
+const lum = document.createElement('canvas'), lctx = lum.getContext('2d');
+function redim() {
+ const q = Math.min(devicePixelRatio || 1, RENDU.haute ? 2 : 1.25);
+ for (const cv of [cvC, cvJ]) { const w = Math.round(innerWidth * q), h = Math.round(innerHeight * q); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } cv.q = q; }
+ RENDU.q = q; lum.width = Math.ceil(cvJ.width / 4); lum.height = Math.ceil(cvJ.height / 4);
+ if (G) CARTE.ajuster(cvC.width, cvC.height);
+}
+addEventListener('resize', () => { redim(); });
+function entrerRoyaume() { CARTE.V.init = false; montrer('royaume'); majBarre(); panneau(); traiterFile(); }
+function majBarre() {
+ const J = G.maisons.joueur, rev = revenus(G, 'joueur') - entretien(G, 'joueur');
+ $('#barre').innerHTML = `<span class="maison">${blason('joueur', 26)}${esc(J.nom)}</span>
+  <span class="res" title="Or (revenu net par saison)">🪙 <b>${nf(J.or)}</b> <small style="color:${rev >= 0 ? '#9c9' : '#e88'}">${rev >= 0 ? '+' : ''}${rev}</small></span>
+  <span class="res" title="Troupes">⚔️ <b>${troupesDe(G, 'joueur')}</b></span>
+  <span class="res" title="Prestige">✨ <b>${J.prestige}</b></span>
+  <span class="res" title="Influence (complots)">🕯️ <b>${J.influence}</b></span>
+  <span class="res" title="Provinces">🏰 <b>${provincesDe(G, 'joueur').length}</b>/10</span>
+  <span class="esp"></span>
+  <span class="saison">${SAISONS[G.saison]} de l’an ${G.an}</span>
+  <span class="ordres" title="Ordres restants">${[...Array(ordresMax(G))].map((_, i) => `<i class="${i < G.ordres ? '' : 'vide'}"></i>`).join('')}</span>`;
+ $('#barre').querySelector('.maison').style.color = '';
+}
+function relTxt(v) { return v >= 60 ? 'amicale' : v >= 25 ? 'cordiale' : v > -25 ? 'neutre' : v > -60 ? 'hostile' : 'haineuse'; }
+function etatMaison(m) { if (m === 'joueur' || m === 'rebelles') return ''; const J = G.maisons.joueur; return enGuerre(G, 'joueur', m) ? '<span class="etiq g">guerre</span>' : J.alliance[m] ? '<span class="etiq a">alliance</span>' : '<span class="etiq p">paix</span>'; }
+function panneau() {
+ const el = $('#panneau'); majBarre();
+ if (!UI.sel) { el.innerHTML = `<div class="info" style="margin:0">Touchez une province pour la gérer.<br><span style="color:#9a8">☠ = donjon (niveau) · bannière = troupes</span></div>`; return; }
+ const p = prov(G, UI.sel), M = G.maisons[p.o], mien = p.o === 'joueur';
+ const voisinsMiens = voisinsDe(p.id).map(id => prov(G, id)).filter(q => q.o === 'joueur');
+ const proche = mien || voisinsMiens.length > 0;
+ const D = DONJONS[p.donjon];
+ const bat = Object.keys(p.bat).filter(k => p.bat[k]).map(k => ({ marche: 'Marché', caserne: 'Caserne', temple: 'Temple' }[k]));
+ let h = `<h3>${blason(p.o, 26)}${esc(p.nom)}${p.capitale ? ' ♛' : ''}</h3>
+  <div class="info">${p.o === 'rebelles' ? 'Terres libres (brigands, insoumis)' : `Maison <b>${esc(M.nom)}</b> ${etatMaison(p.o)}${!mien ? ` · relation ${relTxt(M.rel.joueur)} (${Math.round(M.rel.joueur)})` : ''}`}<br>
+  ⚔️ Troupes : <b>${p.t}</b> · 🏰 Château : ${p.c ? 'niveau ' + p.c : 'aucun'}<br>
+  🌾 Prospérité : ${'★'.repeat(p.p)}${'☆'.repeat(5 - p.p)} · 🪙 ${Math.round(revenuProv(G, p))}/saison<br>
+  Loyauté <div class="jauge"><i style="width:${clamp(p.loy, 0, 100)}%"></i></div>
+  ${bat.length ? '🏛️ ' + bat.join(', ') + '<br>' : ''}
+  ☠ ${D.nom} : ${p.nettoye ? `<span style="color:#9c9">purgé</span> (le mal reviendra dans ~${p.nettoye} saison${p.nettoye > 1 ? 's' : ''})` : `<b style="color:#ffb080">niveau ${p.dniv}</b>`}</div><div class="acts">`;
+ const o = G.ordres > 0, J = G.maisons.joueur, combat = !G.joueur.blesse && !G.joueur.regence;
+ const b = (txt, act, ok = true, cls = '') => `<button class="btn ${cls}" data-a="${act}" ${ok ? '' : 'disabled'}>${txt}</button>`;
+ if (mien) {
+  h += b(`➕ Recruter (${4 + (p.bat.caserne ? 2 : 0) + (p.capitale ? 2 : 0)}) · 30🪙`, 'recruter', o && J.or >= 30);
+  h += b('🚶 Déplacer', 'deplacer', p.t > 1 && !G.dejaBouge[p.id] && voisinsMiens.length > 0);
+  h += b('⚔️ Attaquer…', 'attaquerDepuis', o && p.t > 1 && voisinsDe(p.id).some(id => prov(G, id).o !== 'joueur'), 'rouge');
+  h += b('🔨 Bâtir…', 'batir', o);
+ } else if (proche) {
+  h += b('⚔️ Attaquer', 'attaquer', o && voisinsMiens.some(q => q.t > 1), 'rouge');
+  if (p.o !== 'rebelles') h += b('🕯️ Fomenter une révolte (3)', 'revolte', o && J.influence >= 3);
+ }
+ if (proche) h += b(`☠ Expédition (niv ${p.dniv})`, 'expedition', o && !p.nettoye && combat, 'or');
+ if (!mien && p.o !== 'rebelles') h += b('🤝 Diplomatie', 'diplo');
+ h += '</div>';
+ if (!combat && proche && !p.nettoye) h += `<div class="info" style="color:#e9a">${G.joueur.regence ? 'Votre héritier est trop jeune pour combattre.' : `Vous êtes blessé(e) : encore ${G.joueur.blesse} saison(s) de repos.`}</div>`;
+ el.innerHTML = h;
+ el.querySelectorAll('button[data-a]').forEach(bt => bt.onclick = () => { SON('clic'); actionProv(p, bt.dataset.a); });
+}
+function actionProv(p, a) {
+ if (a === 'recruter') { const r = act(G, 'recruter', { prov: p.id }); toast(r.msg); SON('tambour'); apres(); }
+ else if (a === 'deplacer') { UI.mode = 'deplacer'; UI.de = p.id; UI.amis = voisinsDe(p.id).filter(id => prov(G, id).o === 'joueur'); UI.cibles = null; toast('Choisissez la province de destination (Échap pour annuler)'); }
+ else if (a === 'attaquerDepuis') { UI.mode = 'attaque'; UI.de = p.id; UI.cibles = voisinsDe(p.id).filter(id => prov(G, id).o !== 'joueur'); UI.amis = null; toast('Choisissez la province à attaquer'); }
+ else if (a === 'attaquer') { const src = voisinsDe(p.id).map(id => prov(G, id)).filter(q => q.o === 'joueur' && q.t > 1).sort((x, y) => y.t - x.t); fenetreAttaque(src, p); }
+ else if (a === 'batir') fenetreBatir(p);
+ else if (a === 'revolte') { confirmer(`Fomenter une révolte à ${p.nom} ? (3 influence, un ordre). Si le complot est découvert, la maison ${G.maisons[p.o].nom} vous en voudra.`, () => { const r = act(G, 'complot', { type: 'revolte', prov: p.id, maison: p.o }); fenetre('Complot', `<p>${r.msg}</p>`, [{ t: 'Continuer', f: fermer }]); apres(); }); }
+ else if (a === 'expedition') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition({ type: p.donjon, niveau: p.dniv, etages: 3, nom: `${DONJONS[p.donjon].nom} de ${p.nom}` }, X => { const res = finExpedition(G, p.id, X); resumeExpedition(X, res.lignes); }); }
+ else if (a === 'diplo') fenetreMaisons(p.o);
+}
+function apres() { sauver(); panneau(); }
+function fenetreBatir(p) {
+ const J = G.maisons.joueur, opts = [['marche', 'Marché', COUTS.marche, '+6 or par saison'], ['caserne', 'Caserne', COUTS.caserne, '+2 recrues par levée'], ['temple', 'Temple', COUTS.temple, '+loyauté, +influence'], ['fortifier', `Fortifier (niveau ${p.c + 1})`, COUTS.fortifier * (p.c + 1), p.c >= 1 ? 'un dé de défense de plus (niv. 2), +1 au meilleur dé (niv. 3)' : 'défense accrue']];
+ fenetre(`Bâtir à ${p.nom}`, `<p>Or disponible : <b>${nf(J.or)}</b></p>`, opts.map(([k, n, c, d]) => ({ t: `${n} — ${c} or <small style="color:#a98">(${d})</small>`, ok: J.or >= c && (k === 'fortifier' ? p.c < 3 : !p.bat[k]), f: () => { const r = act(G, 'batir', { prov: p.id, bat: k }); fermer(); toast(r.msg); SON('tambour'); apres(); } })).concat([{ t: 'Annuler', f: fermer }]));
+}
+function chancesAttaque(n, def, o) { let w = 0; for (let i = 0; i < 300; i++) if (bataille(G, n, def, o).gagne) w++; return w / 300; }
+function fenetreAttaque(sources, cible) {
+ if (!sources.length) return toast('Aucune de vos provinces voisines n’a assez de troupes.');
+ let src = sources[0], n = src.t - 1, prudent = false;
+ const combat = !G.joueur.blesse && !G.joueur.regence;
+ const rendre = () => {
+  const o = { chateau: cible.c, prudent }; const e = effetsRoyaume(G.joueur.heros); if (e.de) o.deAtt = 1;
+  const ch = chancesAttaque(n, cible.t, o), chC = chancesAttaque(n, Math.max(1, cible.t - Math.ceil(cible.t * .3)), Object.assign({ bonusAtt: 1 }, o));
+  const paix = cible.o !== 'rebelles' && !enGuerre(G, 'joueur', cible.o);
+  $('#fen').innerHTML = `<button class="fermer" onclick="fermer()">×</button><div class="tete"><h2>Assaut sur ${esc(cible.nom)}</h2></div><div class="corps">
+   ${sources.length > 1 ? `<p>Depuis : ${sources.map((s, i) => `<button class="btn petit ${s === src ? 'or' : ''}" data-s="${i}">${esc(s.nom)} (${s.t})</button>`).join(' ')}</p>` : `<p>Depuis <b>${esc(src.nom)}</b></p>`}
+   <div class="armees"><div>Vos troupes<b>${n}</b></div><div style="align-self:center;font-size:26px">⚔️</div><div>Défenseurs<b>${cible.t}</b>${cible.c ? `<small>château niv. ${cible.c}</small>` : ''}</div></div>
+   <input type="range" min="1" max="${src.t - 1}" value="${n}" id="aN" style="width:100%">
+   <p><label><input type="checkbox" id="aP" ${prudent ? 'checked' : ''}> Prudent : sonner la retraite à 50 % de pertes</label></p>
+   <p>Chances estimées : <b style="color:${ch > .6 ? '#9d9' : ch > .35 ? '#ed9' : '#e99'}">${Math.round(ch * 100)} %</b>${combat ? ` · si vous terrassez leur champion : <b>${Math.round(chC * 100)} %</b>` : ''}</p>
+   ${paix ? `<p style="color:#eaa">⚠ Vous êtes en paix avec ${esc(G.maisons[cible.o].nom)} : attaquer sans déclaration coûte du prestige et la confiance des autres maisons.</p>` : ''}
+   </div><div class="pied">
+   <button class="btn rouge" id="aGo">🎲 Lancer l’assaut</button>
+   ${combat ? `<button class="btn or" id="aCh">⚔ Mener la charge en personne (combat contre leur champion)</button>` : ''}
+   <button class="btn" onclick="fermer()">Annuler</button></div>`;
+  $('#voile').classList.add('on');
+  $('#aN').oninput = e => { n = +e.target.value; rendre(); };
+  $('#aP').onchange = e => { prudent = e.target.checked; rendre(); };
+  $('#fen').querySelectorAll('[data-s]').forEach(b => b.onclick = () => { src = sources[+b.dataset.s]; n = src.t - 1; rendre(); });
+  $('#aGo').onclick = () => { fermer(); lancerAttaque(src, cible, n, prudent, null); };
+  if ($('#aCh')) $('#aCh').onclick = () => {
+   fermer(); const rr = act(G, 'expedition', {}); if (!rr.ok) return toast(rr.msg); G.ordres++; // l'ordre est consommé par l'attaque
+   lancerExpedition({ arene: { n: Math.min(12, cible.t), maison: cible.o }, niveau: Math.max(1, cible.dniv * .45 + G.joueur.heros.niveau * .55), etages: 1, nom: `Assaut sur ${cible.nom}` }, X => {
+    finExpedition(G, null, X, true);
+    const champ = X.resultat === 'victoire' ? 'victoire' : X.resultat === 'mort' ? 'mort' : null;
+    if (X.resultat === 'mort' && G.options.mortReelle) { /* le souverain est déjà mort */ }
+    lancerAttaque(src, cible, Math.min(n, src.t - 1), prudent, champ);
+   });
+  };
+ };
+ rendre();
+}
+function lancerAttaque(src, cible, n, prudent, champion) {
+ if (src.t < 2) return toast('Plus assez de troupes');
+ const avant = cible.o;
+ const r = act(G, 'attaquer', { prov: src.id, vers: cible.id, n, prudent, champion });
+ if (!r.ok) return toast(r.msg);
+ UI.fleches.push({ de: src.id, vers: cible.id, coul: '#d8402a', t: 3 });
+ UI.mode = null; UI.cibles = null; UI.sel = cible.id;
+ afficherBataille(r.bataille, avant, () => { apres(); traiterFile(); });
+}
+function afficherBataille(b, avant, ok) {
+ const M = G.maisons[b.md === 'joueur' ? b.ma : avant] || G.maisons.rebelles;
+ $('#fen').innerHTML = `<div class="tete"><h2>Bataille de ${esc(b.prov)}</h2></div><div class="corps"><div class="armees"><div>${esc(G.maisons.joueur.nom)}<b id="bA">${b.n}</b></div><div style="align-self:center">contre</div><div>${esc(M.nom)}<b id="bD">${b.def0 || '?'}</b></div></div><div id="bM"></div><div id="bR"></div></div><div class="pied"><button class="btn" id="bPasser">Passer</button></div>`;
+ $('#voile').classList.add('on');
+ let i = 0, a = b.n, d = b.manches.reduce((s, m) => s + m.pd, 0) + b.def; $('#bD').textContent = d;
+ const fini = () => { clearInterval(h); $('#bA').textContent = b.att; $('#bD').textContent = b.def; $('#bR').innerHTML = `<div class="resultat" style="font-size:18px;text-align:center">${b.gagne ? `🏆 Victoire ! ${esc(b.prov)} est à vous.` : `🛡️ L’assaut est repoussé.`}<br><small>Pertes : ${b.pertesA} contre ${b.pertesD}</small></div>`; SON(b.gagne ? 'victoire' : 'defaite'); const p = $('#bPasser'); p.textContent = 'Continuer'; p.className = 'btn or'; p.onclick = () => { fermer(); ok && ok(); }; };
+ const h = setInterval(() => {
+  if (i >= b.manches.length || i > 14) return fini();
+  const m = b.manches[i++]; a -= m.pa; d -= m.pd; SON('des');
+  const k = Math.min(m.a.length, m.d.length);
+  const dA = m.a.map((v, j) => `<span class="de a ${j < k && v <= m.d[j] ? 'perdu' : ''}">${v}</span>`).join(''), dD = m.d.map((v, j) => `<span class="de d ${j < k && v < m.a[j] ? '' : j < k ? '' : ''} ${j < k && m.a[j] > v ? 'perdu' : ''}">${v}</span>`).join('');
+  const el = document.createElement('div'); el.className = 'manche'; el.innerHTML = `<div class="des" style="justify-content:flex-end">${dA}</div><div style="font-size:12px;color:#a98">−${m.pa} / −${m.pd}</div><div class="des" style="justify-content:flex-start">${dD}</div>`;
+  $('#bM').prepend(el); if ($('#bM').children.length > 6) $('#bM').lastChild.remove();
+  $('#bA').textContent = a; $('#bD').textContent = d;
+ }, 330);
+ $('#bPasser').onclick = fini;
+}
+/* entrées sur la carte : glisser pour déplacer, molette/pincer pour zoomer, toucher pour choisir */
+(() => {
+ const pts = new Map(); let glisse = false, dep = null, dist0 = 0, z0 = 1;
+ const pos = e => [e.offsetX * (cvC.q || 1), e.offsetY * (cvC.q || 1)];
+ cvC.addEventListener('pointerdown', e => { cvC.setPointerCapture(e.pointerId); pts.set(e.pointerId, pos(e)); glisse = false; dep = pos(e); if (pts.size === 2) { const [a, b] = [...pts.values()]; dist0 = Math.hypot(a[0] - b[0], a[1] - b[1]); z0 = CARTE.V.z; } });
+ cvC.addEventListener('pointermove', e => {
+  const p = pos(e);
+  if (pts.has(e.pointerId)) {
+   const avant = pts.get(e.pointerId); pts.set(e.pointerId, p);
+   if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); zoomer(z0 * d / dist0 / CARTE.V.z, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); glisse = true; return; }
+   if (Math.hypot(p[0] - dep[0], p[1] - dep[1]) > 8 * (cvC.q || 1)) glisse = true;
+   if (glisse) { CARTE.V.x += p[0] - avant[0]; CARTE.V.y += p[1] - avant[1]; borner(); }
+  } else { const [mx, my] = CARTE.versCarte(p[0], p[1]); const q = CARTE.provinceA(G, mx, my); UI.survol = q && q.id; }
+ });
+ const fin = e => { const avait = pts.has(e.pointerId); pts.delete(e.pointerId); if (avait && !glisse && pts.size === 0 && e.type === 'pointerup') clicCarte(pos(e)); };
+ cvC.addEventListener('pointerup', fin); cvC.addEventListener('pointercancel', fin);
+ cvC.addEventListener('wheel', e => { e.preventDefault(); const p = pos(e); zoomer(e.deltaY < 0 ? 1.12 : 1 / 1.12, p[0], p[1]); }, { passive: false });
+})();
+function zoomer(k, cx, cy) { const V = CARTE.V, nz = clamp(V.z * k, V.base * .9, V.base * 3.2); k = nz / V.z; V.x = cx - (cx - V.x) * k; V.y = cy - (cy - V.y) * k; V.z = nz; borner(); }
+function borner() { const V = CARTE.V, w = cvC.width, h = cvC.height; V.x = clamp(V.x, w - 1000 * V.z - w * .3, w * .3); V.y = clamp(V.y, h - 680 * V.z - h * .3, h * .3); }
+function clicCarte([sx, sy]) {
+ const [mx, my] = CARTE.versCarte(sx, sy); const p = CARTE.provinceA(G, mx, my);
+ if (UI.mode === 'attaque') { if (p && UI.cibles.includes(p.id)) { const src = prov(G, UI.de); UI.mode = null; UI.cibles = null; fenetreAttaque([src], p); return; } UI.mode = null; UI.cibles = null; }
+ if (UI.mode === 'deplacer') { if (p && UI.amis.includes(p.id)) { const src = prov(G, UI.de); UI.mode = null; UI.amis = null; fenetreDeplacer(src, p); return; } UI.mode = null; UI.amis = null; }
+ UI.sel = p ? p.id : null; SON('clic'); panneau();
+}
+function fenetreDeplacer(src, dst) {
+ let n = src.t - 1;
+ const rendre = () => { fenetre(`Marcher vers ${dst.nom}`, `<p>De ${esc(src.nom)} (${src.t}) vers ${esc(dst.nom)} (${dst.t}) :</p><div class="armees"><div>Envoyer<b>${n}</b></div></div><input type="range" min="1" max="${src.t - 1}" value="${n}" id="dN" style="width:100%"><p><small>Gratuit, mais ces troupes ne pourront plus bouger cette saison.</small></p>`, [{ t: 'Marcher', f: () => { const r = act(G, 'deplacer', { prov: src.id, vers: dst.id, n }); fermer(); toast(r.msg); UI.sel = dst.id; apres(); } }, { t: 'Annuler', f: fermer }]); $('#dN').oninput = e => { n = +e.target.value; $('#fen .armees b').textContent = n; }; };
+ rendre();
+}
+$('#finSaison').onclick = () => {
+ if (G.fin) return verifierFin();
+ SON('cloche');
+ const avant = { or: G.maisons.joueur.or, prov: provincesDe(G, 'joueur').length };
+ finSaison(G); UI.sel = UI.sel; UI.fleches = UI.fleches.filter(f => (f.t -= 1) > 0);
+ for (const e of G.evts) if (e.id === 'attaque_subie') { const q = prov(G, e.prov); const src = voisinsDe(e.prov).map(id => prov(G, id)).find(x => x.o === e.maison) || q; UI.fleches.push({ de: src.id, vers: e.prov, coul: G.maisons[e.maison].c1, t: 2 }); }
+ toast(`${SAISONS[G.saison]} de l’an ${G.an} · ${G.maisons.joueur.or - avant.or >= 0 ? '+' : ''}${G.maisons.joueur.or - avant.or} or`);
+ sauver(); panneau(); traiterFile();
+};
+function traiterFile() {
+ majBarre();
+ if (G.succession) return fenetreSuccession();
+ if (G.fin) return verifierFin();
+ const e = G.evts[0]; if (!e) { sauver(); return; }
+ const o = ouvrirEvt(G, e);
+ const icones = { intro: '🏰', mort_roi: '👑', couronnement: '👑', naissance: '👶', declaration: '⚔️', offre_paix: '🕊️', offre_alliance: '🤝', attaque_subie: '🔥', retour_mal: '☠', tournoi: '🏇', bandits: '🗡️', duel: '⚔️', crypte_decouverte: '⚰️', dragon: '🐉', marchand: '💰', famine: '🌾', peste: '☣', prophete: '🔥', espion: '🕵️', vassal_rebelle: '😠', mariage_offre: '💍', enfant_malade: '🤒', mine_or: '⛏️', comete: '☄️', deserteurs: '🛡️', heretique: '🔮', chevalier_errant: '🐎', grande_foire: '🎪', trahison_alliee: '✉️', relique: '✝', recrue_heros: '🤺', corbeaux: '🐦‍⬛', inondation: '🌊', heritier_fugue: '🐎', tresor_royal: '💎', loups: '🐺' };
+ SON('page');
+ fenetre(o.titre, `<div class="illus" style="background:radial-gradient(circle at 50% 60%,#5a3a1a,#1a100a);display:flex;align-items:center;justify-content:center;font-size:62px">${icones[e.id] || '📜'}</div><p>${o.texte}</p>`, o.choix.map(c => ({ t: c.t, ok: c.ok, f: () => {
+  const r = choisirEvt(G, e, c.i);
+  if (r.combat) {
+   fermer(); const cb = r.combat;
+   lancerExpedition({ type: cb.type || 'arene', arene: cb.arene, niveau: cb.niveau, etages: cb.etages || 1, nom: cb.nom, boss: cb.boss }, X => {
+    const res = finExpedition(G, null, X, true); const m = apresCombatEvt(G, e, X); resumeExpedition(X, res.lignes, m);
+   });
+   return;
+  }
+  fenetre(o.titre, `<p>${r.msg || 'Ainsi soit-il.'}</p>`, [{ t: 'Continuer', f: () => { fermer(); panneau(); traiterFile(); } }]);
+ } })), true);
+}
+function fenetreSuccession() {
+ const S = G.succession, e = S.heritier;
+ fenetre('Le souverain est mort', `<p>${esc(S.ancien.nom)} n’est plus. ${esc(e.nom)}, ${e.age} ans, hérite du siège d’${esc(G.maisons.joueur.nom)}${e.age < 16 ? ' (sous régence jusqu’à ses seize ans)' : ''}.</p><p>L’armurerie familiale lui revient. Quelle voie suivra ${e.sexe === 'f' ? 'la nouvelle dame' : 'le nouveau seigneur'} ?</p>`,
+  Object.keys(CLASSES).map(c => ({ t: `${CLASSES[c].nom} — ${CLASSES[c].desc}`, f: () => { succession(G, c); fermer(); sauver(); toast(`Longue vie à ${e.nom} !`); traiterFile(); } })), true);
+}
+function verifierFin() {
+ if (!G.fin) return;
+ SON('defaite');
+ fenetre(G.fin.type === 'defaite' ? 'Défaite' : 'La lignée s’éteint', `<p>${G.fin.txt}</p><p>Votre maison a tenu ${G.tour} saisons, sur ${G.joueur.generation} génération(s). Donjons purgés : ${G.stats.donjons} · batailles : ${G.stats.batailles} · créatures abattues : ${nf(G.stats.tues)}.</p>`, [{ t: '📜 Lire la chronique', f: fenetreChronique }, { t: '⚔ Nouvelle partie', f: () => { fermer(); localStorage.removeItem(CLE); initCreation(); montrer('creation'); } }], true);
+}
+
+/* ---------- fenêtres génériques ---------- */
+function fenetre(titre, corps, boutons = [], sansFermer, large) {
+ const f = $('#fen'); f.className = 'fenetre' + (large ? ' large' : '');
+ f.innerHTML = `${sansFermer ? '' : '<button class="fermer">×</button>'}<div class="tete"><h2>${titre}</h2></div><div class="corps">${corps}</div><div class="pied"></div>`;
+ const pied = f.querySelector('.pied');
+ for (const b of boutons) { const e = document.createElement('button'); e.className = 'btn' + (b.cls ? ' ' + b.cls : ''); e.innerHTML = b.t; if (b.ok === false) e.disabled = true; e.onclick = () => { SON('clic'); b.f(); }; pied.appendChild(e); }
+ if (!boutons.length) pied.remove();
+ if (!sansFermer) f.querySelector('.fermer').onclick = fermer;
+ $('#voile').classList.add('on'); if (A) A.pause = true;
+ f.scrollTop = 0;
+}
+function fermer() { $('#voile').classList.remove('on'); if (A && MODE === 'donjon') A.pause = false; }
+function confirmer(txt, f) { fenetre('Confirmer', `<p>${txt}</p>`, [{ t: 'Oui', f: () => { fermer(); f(); } }, { t: 'Non', f: fermer }]); }
+
+/* ---------- dynastie, maisons, chronique ---------- */
+$('#bDyn').onclick = () => {
+ const Jo = G.joueur, h = Jo.heros, C = CLASSES[h.classe];
+ const av = s => s === 'f' ? '👸' : '🤴';
+ let html = `<div class="arbre"><div class="perso"><span class="av">${av(h.sexe)}</span><div><b style="color:var(--or2);font-size:18px">${esc(h.nom)}</b> d’${esc(G.maisons.joueur.nom)}<br>${C.nom}, niveau ${h.niveau} · ${Jo.age} ans · génération ${Jo.generation}${Jo.blesse ? ' · <span style="color:#e99">blessé(e)</span>' : ''}${Jo.regence ? ' · <span style="color:#e99">régence</span>' : ''}</div></div>`;
+ html += Jo.conjoint ? `<div class="perso"><span class="av">💍</span><div>Époux·se : <b>${esc(Jo.conjoint.nom)}</b> ${esc(G.maisons[Jo.conjoint.maison].nom)}, ${Jo.conjoint.age} ans</div></div>` : `<div class="perso"><span class="av">💍</span><div>Pas encore marié(e). Une union scelle une alliance et donne des héritiers : passez par 🤝 Maisons → Mariage.</div></div>`;
+ html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Enfants</h4>` + (Jo.enfants.length ? Jo.enfants.slice().sort((a, b) => b.age - a.age).map((e, i) => `<div class="perso"><span class="av">${e.age < 12 ? '👶' : av(e.sexe)}</span><div><b>${esc(e.nom)}</b>, ${e.age} ans${i === 0 ? ' — <i>héritier·e</i>' : ''}</div></div>`).join('') : '<p style="color:#a98">Aucun enfant. Sans héritier, la mort du souverain signerait la fin de la maison.</p>');
+ if (Jo.lignee.length) html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Les ancêtres</h4>` + Jo.lignee.map(l => `<div class="perso"><span class="av">🕯️</span><div>${esc(l.nom)} (${CLASSES[l.classe].nom}, niveau ${l.niveau}) — mort(e) en ${l.fin} à ${l.age} ans, ${esc(l.cause)}</div></div>`).join('');
+ html += '</div>';
+ fenetre('La dynastie', html, [{ t: 'Fermer', f: fermer }]);
+};
+$('#bMais').onclick = () => fenetreMaisons();
+function fenetreMaisons(focus) {
+ const J = G.maisons.joueur, o = G.ordres > 0;
+ let html = `<p style="font-size:13.5px;color:#bba">Chaque action diplomatique coûte un ordre (${G.ordres} restant${G.ordres > 1 ? 's' : ''}). Influence : ${J.influence} 🕯️</p><div class="maisons">`;
+ for (const m of IA_MAISONS) {
+  const M = G.maisons[m]; if (M.elim) continue;
+  const g = enGuerre(G, 'joueur', m), al = J.alliance[m];
+  const b = (t, a, ok) => `<button class="btn petit" data-m="${m}" data-a="${a}" ${ok ? '' : 'disabled'}>${t}</button>`;
+  html += `<div class="mais" ${focus === m ? 'style="border-color:var(--or)"' : ''}>${blason(m, 40)}<div><b style="color:var(--or2)">${esc(M.nom)}</b> ${etatMaison(m)}<br><span class="rel">« ${esc(M.devise)} » · ${M.chef ? esc(M.chef.nom + ' ' + (M.chef.surnom || '')) + ', ' + M.chef.age + ' ans' : ''}${M.chef && M.chef.roi ? ' — roi' : ''}<br>${provincesDe(G, m).length} provinces · ${troupesDe(G, m)} troupes · relation <b>${relTxt(M.rel.joueur)}</b> (${Math.round(M.rel.joueur)})</span></div>
+   <div class="acts">${b('🎁 Présents 50🪙', 'presents', o && J.or >= 50)}${!g && !al ? b('🤝 Alliance', 'alliance', o) : ''}${!G.joueur.conjoint && !g ? b('💍 Mariage', 'mariage', o) : ''}${g ? b('🕊️ Paix', 'paix', o) : b('⚔️ Guerre', 'guerre', o)}${b('🪙 Voler (2🕯️)', 'vol', o && J.influence >= 2)}${b('🗡️ Assassiner (6🕯️)', 'assassinat', o && J.influence >= 6)}</div></div>`;
+ }
+ html += '</div>';
+ fenetre('Les grandes maisons', html, [{ t: 'Fermer', f: fermer }], false, true);
+ $('#fen').querySelectorAll('[data-m]').forEach(bt => bt.onclick = () => {
+  const m = bt.dataset.m, a = bt.dataset.a; SON('clic');
+  const go = () => { const r = ['vol', 'assassinat'].includes(a) ? act(G, 'complot', { type: a, maison: m }) : act(G, a, { maison: m }); toast(r.msg, 4000); sauver(); majBarre(); fenetreMaisons(m); };
+  if (a === 'guerre' || a === 'assassinat') confirmer(a === 'guerre' ? `Déclarer la guerre à la maison ${G.maisons[m].nom} ?` : `Faire assassiner ${G.maisons[m].chef.nom} ? (38 % de réussite, risque d’être découvert)`, go); else go();
+ });
+}
+$('#bChron').onclick = fenetreChronique;
+function fenetreChronique() { fenetre('La chronique', `<div class="chron">${G.chronique.map(c => `<div class="t-${c.type}"><span class="d">${SAISONS[c.s]} ${c.an}</span>${esc(c.txt)}</div>`).join('')}</div>`, [{ t: 'Fermer', f: () => { fermer(); if (G.fin) verifierFin(); } }]); }
+$('#bMenu').onclick = () => fenetre('Menu', `<p>${TEST ? '🧪 Mode test : rien n’est sauvegardé.' : 'La partie est sauvegardée automatiquement (sur cet appareil et en ligne).'}</p>`, [
+ { t: AUDIO.actif() ? '🔇 Couper le son' : '🔊 Activer le son', f: () => { AUDIO.regler(!AUDIO.actif()); if (AUDIO.actif()) AUDIO.musiqueDe(MODE === 'donjon' ? 'donjon' : 'royaume'); fermer(); } },
+ { t: RENDU.haute ? '🖥️ Qualité : haute (passer en normale)' : '🖥️ Qualité : normale (passer en haute)', f: () => { RENDU.haute = !RENDU.haute; try { localStorage.setItem('tdb-qualite', RENDU.haute ? '1' : '0'); } catch (e) { } redim(); fermer(); } },
+ { t: '📖 Comment jouer', f: aide },
+ { t: '🐞 Signaler un problème à Claude', f: async () => { fermer(); if (!TK) return toast('Trousse de test indisponible'); const ok = await TK.signaler(); toast(ok ? 'Signalement envoyé ✓' : 'Signalement enregistré sur cet appareil'); } },
+ ...(TEST ? [{ t: '▶ Banc de mesure (fluidité)', f: () => { fermer(); banc(); } }] : []),
+ ...(window.claude ? [] : [{ t: '💾 Télécharger la sauvegarde', f: () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(G)], { type: 'application/json' })); a.download = `trone-de-braise-${G.an}.json`; a.click(); } }]),
+ { t: '🏠 Retour à l’écran titre', f: () => { fermer(); sauver(); initAccueil(); montrer('accueil'); } },
+]);
+addEventListener('keydown', e => { if (MODE === 'royaume' && e.code === 'Escape') { if ($('#voile').classList.contains('on')) return; UI.mode = null; UI.cibles = null; UI.amis = null; } });
+
+/* ---------- armurerie ---------- */
+$('#bArm').onclick = () => armurerie('equip');
+let ARM = { onglet: 'equip', sel: null };
+function sacCourant() { return MODE === 'donjon' && XP ? XP.butin : G.joueur.inventaire; }
+function armurerie(onglet) {
+ ARM.onglet = onglet || ARM.onglet;
+ const h = G.joueur.heros, enDonjon = MODE === 'donjon';
+ const tabs = `<div class="choix" style="margin-bottom:10px">${[['equip', '🛡️ Équipement'], ['comp', `✦ Compétences${h.points ? ' (' + h.points + ')' : ''}`], ...(enDonjon ? [] : [['forge', '🔥 Forge']])].map(([k, t]) => `<button data-o="${k}" class="${ARM.onglet === k ? 'sel' : ''}">${t}</button>`).join('')}</div>`;
+ let html = tabs;
+ if (ARM.onglet === 'equip') html += ongletEquip(h, enDonjon);
+ else if (ARM.onglet === 'comp') html += ongletComp(h);
+ else html += ongletForge(h);
+ fenetre(enDonjon ? 'Votre sac' : 'L’armurerie', html, [], false, true);
+ $('#fen').querySelectorAll('[data-o]').forEach(b => b.onclick = () => { ARM.sel = null; armurerie(b.dataset.o); });
+ brancherArm(h, enDonjon);
+}
+function caseObj(o, extra = '') { if (!o) return ''; return `<div class="case r-${o.rar} ${ARM.sel === o.id ? 'sel' : ''}" data-id="${o.id}" ${extra} title="${esc(o.nom)}">${o.ic}<span class="nv">${o.ilvl}</span></div>`; }
+function ongletEquip(h, enDonjon) {
+ const S = statsHeros(h, G.joueur.generation), E = h.equip;
+ const empl = k => E[k] ? caseObj(E[k], `data-eq="${k}"`) : `<div class="case" data-vide="${k}" style="opacity:.5">${k === 'arme' ? '🗡️' : ICONES[k]}<small>${NOMS_EMPL[k]}</small></div>`;
+ const sac = sacCourant();
+ let html = `<div class="arm"><div><div class="poupee"><div></div>${empl('casque')}${empl('amulette')}${empl('arme')}${empl('armure')}${empl('anneau')}${empl('gants')}${empl('bottes')}<div></div></div>
+  <div class="stats">❤️ Vie ${Math.round(S.pvmax)}<br>💧 Mana ${Math.round(S.manamax)}<br>⚔️ Dégâts ${Math.round(S.dmin * (1 + S.pdmg / 100))}–${Math.round(S.dmax * (1 + S.pdmg / 100))}<br>⏱️ ${S.cadence.toFixed(2)} coups/s<br>🛡️ Armure ${Math.round(S.arm)}<br>🎯 Critique ${S.crit} % (+${S.critd} %)<br>${S.vol ? `🩸 Vol de vie ${S.vol} %<br>` : ''}${S.feu ? `🔥 Feu +${S.feu}<br>` : ''}${S.res ? `🧱 Résistance ${S.res} %<br>` : ''}💨 Vitesse +${S.vmov} %<br>📈 Puissance ≈ <b>${Math.round(S.dps)}</b>/s</div></div>
+  <div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span>${enDonjon ? 'Sac' : 'Coffres de la maison'} (${sac.length})</span>${!enDonjon ? `<button class="btn petit" id="aVendreTout">Vendre les ordinaires et magiques</button>` : ''}</div>
+  <div class="sac">${sac.slice().sort((a, b) => ['legendaire', 'rare', 'magique', 'normal'].indexOf(a.rar) - ['legendaire', 'rare', 'magique', 'normal'].indexOf(b.rar) || b.ilvl - a.ilvl).map(o => caseObj(o)).join('') || '<p style="color:#987;font-size:13px;grid-column:1/-1">Rien pour l’instant. Les donjons regorgent de trésors.</p>'}</div>
+  <div id="aFiche"></div></div></div>`;
+ return html;
+}
+function ficheObjet(o, h, equipe) {
+ const R = RARETES.find(r => r.id === o.rar); const actuel = h.equip[o.empl];
+ const sc = scoreObjet(o, h.classe), sa = scoreObjet(actuel, h.classe);
+ const inutil = o.empl === 'arme' && !CLASSES[h.classe].armes.includes(o.arme);
+ return `<div class="fiche"><h4 style="color:${R.coul}">${esc(o.nom)}</h4><div style="font-size:12px;color:#a98">${R.nom} · ${o.base} · niveau ${o.ilvl}</div>${lignesObjet(o).join('<br>')}
+  ${!equipe && !inutil ? `<div style="margin-top:6px">${actuel ? `Comparé à ${esc(actuel.nom)} : <b class="${sc >= sa ? 'mieux' : 'pire'}">${sc >= sa ? '▲ meilleur' : '▼ moins bon'}</b>` : '<b class="mieux">Emplacement libre</b>'}</div>` : ''}
+  ${inutil ? `<div class="pire">Arme inutilisable par un ${CLASSES[h.classe].nom.toLowerCase()}</div>` : ''}
+  <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">${equipe ? `<button class="btn petit" id="aRetirer">Retirer</button>` : `${!inutil ? `<button class="btn petit or" id="aEquiper">Équiper</button>` : ''}${MODE === 'donjon' ? `<button class="btn petit" id="aJeter">Jeter</button>` : `<button class="btn petit" id="aVendre">Vendre ${Math.round(o.prix / 3)} 🪙</button>`}`}</div></div>`;
+}
+function brancherArm(h, enDonjon) {
+ const f = $('#fen'), sac = sacCourant();
+ f.querySelectorAll('.case[data-id]').forEach(c => c.onclick = () => {
+  const id = +c.dataset.id; ARM.sel = id; const eq = c.dataset.eq; const o = eq ? h.equip[eq] : sac.find(x => x.id === id);
+  f.querySelectorAll('.case').forEach(x => x.classList.toggle('sel', x === c));
+  $('#aFiche').innerHTML = ficheObjet(o, h, !!eq); SON('clic');
+  const maj = () => { if (A) { const pv = A.p.pv / A.p.S.pvmax; A.p.S = statsHeros(h, G.joueur.generation); A.p.pv = A.p.S.pvmax * pv; } sauver(); ARM.sel = null; armurerie('equip'); };
+  if ($('#aEquiper')) $('#aEquiper').onclick = () => { const anc = h.equip[o.empl]; h.equip[o.empl] = o; sac.splice(sac.indexOf(o), 1); if (anc) sac.push(anc); SON('objet'); maj(); };
+  if ($('#aRetirer')) $('#aRetirer').onclick = () => { if (eq === 'arme') return toast('Gardez au moins une arme !'); delete h.equip[eq]; sac.push(o); maj(); };
+  if ($('#aVendre')) $('#aVendre').onclick = () => { G.maisons.joueur.or += Math.round(o.prix / 3); sac.splice(sac.indexOf(o), 1); SON('or'); majBarre(); maj(); };
+  if ($('#aJeter')) $('#aJeter').onclick = () => { sac.splice(sac.indexOf(o), 1); maj(); };
+ });
+ if ($('#aVendreTout')) $('#aVendreTout').onclick = () => { let s = 0; for (const o of sac.slice()) if (o.rar === 'normal' || o.rar === 'magique') { s += Math.round(o.prix / 3); sac.splice(sac.indexOf(o), 1); } G.maisons.joueur.or += s; SON('or'); toast(`+${s} or`); majBarre(); sauver(); armurerie('equip'); };
+ f.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const id = b.dataset.up; if (h.points <= 0) return; h.comp[id] = (h.comp[id] || 0) + 1; h.points--; SON('niveau'); sauver(); armurerie('comp'); });
+ f.querySelectorAll('[data-forge]').forEach(b => b.onclick = () => { const k = b.dataset.forge, cout = prixForge(h); if (G.maisons.joueur.or < cout) return toast('Pas assez d’or'); G.maisons.joueur.or -= cout; const o = genObjet(h.niveau + 1, h.classe, { empl: k === 'hasard' ? null : k, min: 'magique', bonus: k === 'hasard' ? .12 : .05 }); G.joueur.inventaire.push(o); SON(o.rar === 'legendaire' ? 'legendaire' : 'objet_rare'); majBarre(); sauver(); ARM.sel = o.id; armurerie('equip'); setTimeout(() => { const c = $(`.case[data-id="${o.id}"]`); if (c) c.click(); }, 30); });
+}
+const SEUILS_COMP = [1, 2, 4, 6];
+function ongletComp(h) {
+ const C = CLASSES[h.classe];
+ return `<p>Points à répartir : <b style="color:var(--or2)">${h.points}</b> <small style="color:#a98">(un par niveau)</small></p><div class="comps">${C.comp.map((c, i) => { const r = h.comp[c.id] || 0, ok = h.points > 0 && h.niveau >= SEUILS_COMP[i] && r < 10; return `<div class="compl"><div class="ic">${c.ic}</div><div class="tx"><b>${c.nom}</b> — rang ${r}${r ? ` (+${Math.round((r - 1) * 22)} % de puissance)` : ''} · touche ${i + 1}${i === 0 ? ' ou clic droit' : ''}<br>${c.desc}<br><small style="color:#8ab8ff">${c.cout} mana · recharge ${c.cd} s</small>${h.niveau < SEUILS_COMP[i] ? `<br><small style="color:#e99">Disponible au niveau ${SEUILS_COMP[i]}</small>` : ''}</div><button class="btn petit ${ok ? 'or' : ''}" data-up="${c.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>`;
+}
+const prixForge = h => 40 + 16 * h.niveau;
+function ongletForge(h) {
+ const c = prixForge(h);
+ return `<p>Le maître forgeron de la maison peut vous forger une pièce (au moins magique, niveau ${h.niveau + 1}) pour <b>${c} or</b>. Vous avez ${nf(G.maisons.joueur.or)} or.</p><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">${[...EMPLACEMENTS.map(k => [k, (k === 'arme' ? '🗡️' : ICONES[k]) + ' ' + NOMS_EMPL[k]]), ['hasard', '🎲 Au hasard (meilleures chances)']].map(([k, t]) => `<button class="btn petit" data-forge="${k}" ${G.maisons.joueur.or >= c ? '' : 'disabled'}>${t}</button>`).join('')}</div>`;
+}
+
+/* ---------- expéditions (donjon) ---------- */
+let surFin = null, entree = { haut: 0, bas: 0, gauche: 0, droite: 0, clic: false, shift: false, mx: 0, my: 0, sx: 0, sy: 0, comp: [0, 0, 0, 0], potion: false, action: false };
+function lancerExpedition(cfg, fin) {
+ const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
+ XP = creerExpedition({ type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, heros: h, generation: G.joueur.generation, arene: cfg.arene, boss: cfg.boss, nomLieu: cfg.nom, couleurs: [G.maisons.joueur.c1, G.maisons.joueur.c2], inventaire: G.joueur.inventaire, dif: G.options.difficulte });
+ surFin = fin; fermer(); montrer('donjon'); nouvelEtage();
+}
+function nouvelEtage() {
+ A = creerEtage(XP); A.sol = null;
+ $('#hLieu').innerHTML = `${esc(XP.o.nomLieu || DONJONS[A.type].nom)}<small>${XP.o.arene ? 'Combat' : `Étage ${XP.etage + 1} / ${XP.etages}`} · niveau ${Math.round(A.niveau)}</small>`;
+ construireBarre();
+ message(A, XP.o.arene ? 'Abattez leur champion !' : XP.etage === XP.etages - 1 ? 'Le maître des lieux vous attend…' : `${DONJONS[A.type].nom} — étage ${XP.etage + 1}`, 2.5);
+}
+function construireBarre() {
+ const h = G.joueur.heros, C = CLASSES[h.classe];
+ $('#hComp').innerHTML = C.comp.map((c, i) => `<div class="cp ${h.comp[c.id] ? '' : 'verr'}" data-c="${i}" title="${c.nom}"><span class="k">${i + 1}</span>${c.ic}<div class="cd"></div><span class="m">${c.cout}</span></div>`).join('') + `<div class="cp pot" data-p="1" title="Potion (Espace)"><span class="k">␣</span>🧪<span class="n"></span></div>`;
+ $('#hComp').querySelectorAll('[data-c]').forEach(e => e.onpointerdown = ev => { ev.stopPropagation(); entree.comp[+e.dataset.c] = 1; viserAuto(); });
+ $('#hComp').querySelector('[data-p]').onpointerdown = ev => { ev.stopPropagation(); entree.potion = true; };
+}
+function viserAuto() { if (!document.body.classList.contains('tact') || !A) return; let c = null, bd = 9; for (const m of A.mobs) { if (m.mort || m.objet) continue; const d = Math.hypot(m.x - A.p.x, m.y - A.p.y); if (d < bd) { bd = d; c = m; } } if (c) { entree.mx = c.x; entree.my = c.y; } else { entree.mx = A.p.x + Math.cos(A.p.ang) * 3; entree.my = A.p.y + Math.sin(A.p.ang) * 3; } entree.touche = true; }
+function finEtage() {
+ const r = XP.resultat;
+ if (r === 'etage') { XP.etage++; XP.resultat = null; nouvelEtage(); return; }
+ const X = XP; const a = A;
+ setTimeout(() => { A = null; XP = null; montrer('royaume'); const f = surFin; surFin = null; f && f(X); }, r === 'mort' ? 1600 : 700);
+ a.pause = true;
+}
+function resumeExpedition(X, lignes, extra) {
+ const titre = X.resultat === 'victoire' ? '🏆 Victoire' : X.resultat === 'mort' ? '💀 Défaite' : '↩ Retraite';
+ const obj = X.butin.length ? `<div class="sac" style="margin-top:8px">${X.butin.map(o => caseObj(o)).join('')}</div>` : '';
+ fenetre(titre, `${extra ? `<div class="resultat">${extra}</div>` : ''}<p>${lignes.map(esc).join('<br>')}</p><p>Créatures abattues : ${X.tues} · expérience : +${nf(X.xpGagne)}</p>${obj}`, [{ t: X.butin.length ? '🛡️ Voir l’armurerie' : 'Continuer', f: () => { fermer(); sauver(); panneau(); if (G.succession || G.fin) return traiterFile(); if (X.butin.length) armurerie('equip'); else traiterFile(); } }, ...(X.butin.length ? [{ t: 'Continuer', f: () => { fermer(); sauver(); panneau(); traiterFile(); } }] : [])], true);
+ sauver();
+}
+// clavier
+const TOUCHES = { KeyW: 'haut', ArrowUp: 'haut', KeyS: 'bas', ArrowDown: 'bas', KeyA: 'gauche', ArrowLeft: 'gauche', KeyD: 'droite', ArrowRight: 'droite' };
+addEventListener('keydown', e => {
+ if (MODE !== 'donjon' || !A) return;
+ if (TOUCHES[e.code]) { entree[TOUCHES[e.code]] = 1; e.preventDefault(); }
+ if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') entree.shift = true;
+ if (e.repeat) return;
+ const ouvert = $('#voile').classList.contains('on');
+ if (e.code === 'Escape') { if (ouvert) fermer(); else pauseDonjon(); return; }
+ if (ouvert) { if (e.code === 'KeyI' || e.code === 'KeyK') fermer(); return; }
+ if (/^Digit[1-4]$/.test(e.code)) entree.comp[+e.code.slice(5) - 1] = 1;
+ if (e.code === 'Space') { entree.potion = true; e.preventDefault(); }
+ if (e.code === 'KeyE') entree.action = true;
+ if (e.code === 'KeyI') armurerie('equip');
+ if (e.code === 'KeyK') armurerie('comp');
+});
+addEventListener('keyup', e => { if (TOUCHES[e.code]) entree[TOUCHES[e.code]] = 0; if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') entree.shift = false; });
+addEventListener('blur', () => { for (const k of ['haut', 'bas', 'gauche', 'droite']) entree[k] = 0; entree.clic = false; });
+// souris
+cvJ.addEventListener('pointerdown', e => { if (e.pointerType === 'touch') return; entree.sx = e.offsetX; entree.sy = e.offsetY; if (e.button === 0) entree.clic = true; if (e.button === 2) entree.comp[0] = 1; });
+addEventListener('pointerup', e => { if (e.pointerType !== 'touch' && e.button === 0) entree.clic = false; });
+cvJ.addEventListener('pointermove', e => { if (e.pointerType === 'touch') return; entree.sx = e.offsetX; entree.sy = e.offsetY; });
+cvJ.addEventListener('contextmenu', e => e.preventDefault());
+// tactile : joystick + bouton d'attaque
+(() => {
+ const j = $('#joy'), k = j.querySelector('i'); let id = null, c0 = null;
+ j.addEventListener('pointerdown', e => { id = e.pointerId; j.setPointerCapture(id); const r = j.getBoundingClientRect(); c0 = [r.left + r.width / 2, r.top + r.height / 2]; mv(e); });
+ const mv = e => { if (e.pointerId !== id) return; let dx = e.clientX - c0[0], dy = e.clientY - c0[1]; const d = Math.hypot(dx, dy), m = 50; if (d > m) { dx *= m / d; dy *= m / d; } k.style.transform = `translate(${dx}px,${dy}px)`; entree.jx = dx / m; entree.jy = dy / m; };
+ j.addEventListener('pointermove', mv);
+ const fin = e => { if (e.pointerId !== id) return; id = null; k.style.transform = ''; entree.jx = entree.jy = 0; };
+ j.addEventListener('pointerup', fin); j.addEventListener('pointercancel', fin);
+ const at = $('#attq');
+ at.addEventListener('pointerdown', e => { e.preventDefault(); entree.tattq = true; });
+ at.addEventListener('pointerup', () => entree.tattq = false); at.addEventListener('pointercancel', () => entree.tattq = false);
+ cvJ.addEventListener('pointerdown', e => { if (e.pointerType !== 'touch' || !A) return; const q = cvJ.q || 1; const wx = (e.offsetX * q - A.ox) / A.TS, wy = (e.offsetY * q - A.oy) / A.TS; if (A.surEscalier) entree.action = true; entree.mx = wx; entree.my = wy; });
+})();
+function lireEntree() {
+ if (UI.auto) return botEntree(A);
+ const q = cvJ.q || 1, inp = { haut: entree.haut, bas: entree.bas, gauche: entree.gauche, droite: entree.droite, shift: entree.shift, comp: entree.comp.slice(), potion: entree.potion, action: entree.action };
+ if (entree.touche || entree.tattq || document.body.classList.contains('tact')) {
+  if (entree.jx || entree.jy) { inp.droite = entree.jx > .3 ? 1 : 0; inp.gauche = entree.jx < -.3 ? 1 : 0; inp.bas = entree.jy > .3 ? 1 : 0; inp.haut = entree.jy < -.3 ? 1 : 0; }
+  if (entree.tattq) { viserAuto(); inp.clic = true; inp.shift = true; }
+  inp.mx = entree.mx; inp.my = entree.my;
+  if (!entree.tattq && !inp.comp.some(x => x)) { inp.mx = A.p.x + Math.cos(A.p.ang); inp.my = A.p.y + Math.sin(A.p.ang); }
+  entree.touche = false;
+ } else { inp.clic = entree.clic; inp.mx = (entree.sx * q - A.ox) / A.TS; inp.my = (entree.sy * q - A.oy) / A.TS; }
+ entree.comp = [0, 0, 0, 0]; entree.potion = false; entree.action = false;
+ return inp;
+}
+$('#bDescendre').onclick = () => entree.action = true;
+$('#bPause').onclick = () => pauseDonjon();
+$('#bInvD').onclick = () => armurerie('equip');
+$('#bCompD').onclick = () => armurerie('comp');
+function pauseDonjon() {
+ fenetre('Pause', `<p>${esc(XP.o.nomLieu || '')} — ${XP.o.arene ? 'combat' : `étage ${XP.etage + 1}/${XP.etages}`}. Or ramassé : ${XP.sacOr} · objets : ${XP.butin.length}</p>`, [
+  { t: '▶ Reprendre', f: fermer, cls: 'or' }, { t: '🎒 Sac et équipement (I)', f: () => armurerie('equip') }, { t: '✦ Compétences (K)', f: () => armurerie('comp') },
+  { t: AUDIO.actif() ? '🔇 Couper le son' : '🔊 Activer le son', f: () => { AUDIO.regler(!AUDIO.actif()); if (AUDIO.actif()) AUDIO.musiqueDe('donjon'); fermer(); } },
+  { t: '🐞 Signaler un problème à Claude', f: async () => { fermer(); if (TK) { const ok = await TK.signaler(); toast(ok ? 'Signalement envoyé ✓' : 'Signalement enregistré'); } } },
+  { t: '🏳️ Battre en retraite (garder l’or et le butin)', f: () => { fermer(); XP.resultat = 'fuite'; A.fini = true; finEtage(); } },
+ ]);
+}
+let hudT = 0, miniT = 0;
+function hud(dt) {
+ hudT -= dt; if (hudT > 0) return; hudT = .08;
+ const P = A.p, S = P.S, h = G.joueur.heros, C = CLASSES[h.classe];
+ $('#hVie').style.height = clamp(P.pv / S.pvmax * 100, 0, 100) + '%'; $('#hVieT').textContent = Math.ceil(P.pv);
+ $('#hMana').style.height = clamp(P.mana / S.manamax * 100, 0, 100) + '%'; $('#hManaT').textContent = Math.floor(P.mana);
+ $('#hXp').style.width = clamp(h.xp / xpPour(h.niveau) * 100, 0, 100) + '%';
+ $('#hComp').querySelectorAll('[data-c]').forEach((e, i) => { const c = C.comp[i], cd = P.cds[c.id] || 0; e.querySelector('.cd').style.height = cd > 0 ? (cd / (c.cd * (1 - S.recup / 100)) * 100) + '%' : '0'; e.classList.toggle('verr', !h.comp[c.id]); e.style.borderColor = h.comp[c.id] && P.mana < c.cout ? '#3a4a8a' : ''; });
+ $('#hComp').querySelector('.pot .n').textContent = P.potions;
+ const b = A.boss; const bb = $('#hBoss');
+ if (b && !b.mort && b.etat === 'chasse') { bb.classList.add('on'); bb.querySelector('.nm').textContent = b.M.nom + (b.phase === 2 ? ' — fureur' : ''); bb.querySelector('i').style.width = clamp(b.pv / b.pvmax * 100, 0, 100) + '%'; } else bb.classList.remove('on');
+ const m = $('#hMsg'); m.textContent = A.msg || ''; m.style.opacity = A.msgT > 0 ? 1 : 0;
+ $('#hAction').classList.toggle('on', !!A.surEscalier);
+ miniT -= .08; if (miniT <= 0) { miniT = .3; minicarte(); }
+}
+function minicarte() {
+ const c = $('#minicarte'), g = c.getContext('2d'); const k = 150 / Math.max(A.W, A.H);
+ g.clearRect(0, 0, 150, 150);
+ for (let y = 0; y < A.H; y++) for (let x = 0; x < A.W; x++) { const i = y * A.W + x; if (!A.vu[i]) continue; const v = A.carte.t[i]; if (v === MUR) continue; g.fillStyle = v === ESC ? '#ffd84a' : v === PIL ? '#555' : 'rgba(190,170,140,.55)'; g.fillRect(x * k, y * k, k + .3, k + .3); }
+ for (const m of A.mobs) if (!m.mort && !m.objet && A.vu[(m.y | 0) * A.W + (m.x | 0)] && Math.hypot(m.x - A.p.x, m.y - A.p.y) < 10) { g.fillStyle = m.boss ? '#ff4020' : m.elite ? '#ffa030' : '#c03030'; g.fillRect(m.x * k - 1, m.y * k - 1, 2.5, 2.5); }
+ if (A.portail) { g.fillStyle = '#8ab8ff'; g.fillRect(A.portail.x * k - 2, A.portail.y * k - 2, 4, 4); }
+ g.fillStyle = '#fff'; g.beginPath(); g.arc(A.p.x * k, A.p.y * k, 2.5, 0, 6.28); g.fill();
+}
+
+/* ---------- boucle principale ---------- */
+let dernier = 0, carteT = 0;
+function boucle(t) {
+ requestAnimationFrame(boucle);
+ const dt = Math.min(.05, (t - dernier) / 1000 || .016); dernier = t;
+ if (MODE === 'donjon' && A) {
+  if (!A.pause && !A.fini) { majDonjon(A, dt, lireEntree()); if (A.fini) finEtage(); }
+  rendreDonjon(A, cvJ, ctxJ, lum, lctx); hud(dt);
+ } else if (MODE === 'royaume' && G) {
+  carteT -= dt;
+  if (carteT <= 0) {
+   carteT = 1 / 30; const V = CARTE.V;
+   const cle = [V.x, V.y, V.z, cvC.width, UI.sel, UI.survol, UI.mode, G.tour, G.ordres, UI.fleches.length, G.provinces.map(p => p.o + p.t + p.c + p.nettoye + p.dniv).join('')].join('|');
+   if (cle !== UI.cleCarte || UI.cibles || UI.amis) { UI.cleCarte = cle; CARTE.dessiner(G, cvC, ctxC, UI); }
+  }
+ }
+ else if (MODE === 'accueil') animBraises(dt);
+}
+requestAnimationFrame(boucle);
+
+/* ---------- trousse de test ---------- */
+async function banc() {
+ if (!TK) return toast('Trousse indisponible');
+ toast('Banc en cours (≈ 30 s)…', 30000);
+ const res = await TK.banc([
+  { nom: 'carte du royaume', preparer: async () => { A = null; montrer('royaume'); } },
+  { nom: 'donjon niveau 5 (combat automatique)', preparer: async () => { UI.auto = true; lancerExpedition({ type: 'catacombes', niveau: 5, etages: 2, nom: 'Banc' }, () => { }); } },
+  { nom: 'boss (combat automatique)', preparer: async () => { UI.auto = true; XP = creerExpedition({ type: 'crypte', niveau: 3, etages: 1, heros: G.joueur.heros, generation: 1 }); montrer('donjon'); nouvelEtage(); A.p.x = A.boss.x - 4; A.p.y = A.boss.y; A.p.S.pvmax *= 50; A.p.pv = A.p.S.pvmax; } },
+ ], 5000);
+ UI.auto = false; A = null; XP = null; montrer('royaume');
+ fenetre('Banc de mesure', `<p>${res.res.map(r => `${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p><small>${esc(res.gpu)}</small><br>${res.enregistre ? 'Résultats envoyés à Claude ✓' : 'Résultats enregistrés sur cet appareil.'}</p>`, [{ t: 'Fermer', f: fermer }]);
+}
+(function attendreTK(n = 0) {
+ if (window.Testkit) {
+  TK = window.Testkit({ jeu: 'trone-de-braise', canvas: () => MODE === 'donjon' ? cvJ : cvC, rendu: () => { if (MODE === 'donjon' && A) rendreDonjon(A, cvJ, ctxJ, lum, lctx); else if (G) CARTE.dessiner(G, cvC, ctxC, UI); }, etat: () => ({ mode: MODE, test: TEST, tour: G && G.tour, an: G && G.an, provinces: G && provincesDe(G, 'joueur').length, heros: G && { classe: G.joueur.heros.classe, niveau: G.joueur.heros.niveau }, donjon: A && { type: A.type, etage: XP && XP.etage, mobs: A.mobs.filter(m => !m.mort).length, pv: Math.round(A.p.pv) }, fenetre: $('#voile').classList.contains('on') ? $('#fen .tete h2').textContent : null }) });
+  if (TEST) TK.modeTest();
+ } else if (n < 100) setTimeout(() => attendreTK(n + 1), 100);
+})();
+try { RENDU.haute = localStorage.getItem('tdb-qualite') === '1'; } catch (e) { }
+initAccueil();
+window.JEU = { get G() { return G; }, get A() { return A; }, get XP() { return XP; }, UI, lancerExpedition, entrerRoyaume, act, finSaison, montrer };

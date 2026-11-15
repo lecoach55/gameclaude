@@ -8,6 +8,7 @@ Les jeux de Victor créés avec Claude, et les outils de fabrication partagés e
 - `wallstreet/` — Wall Street, séance par séance : jeu (`jeu/`), simulateurs et tests (`outils/`), journal et cibles (`mesures/`)
 - `valdragon/mesures` — résultats des mesures de performance
 - `sedes-petri/` — Sedes Petri, le Trône de Pierre (jeu de gestion papale) : `jeu`, `outils`, `mesures`, `references`
+- `trone-de-braise/` — Le Trône de Braise, action-RPG + conquête d’un royaume (jeu, simulateurs, tests, mesures ; version hors ligne dans `build/`)
 - `couronnes-et-lignees/` — Couronnes & Lignées, simulation dynastique (jeu, outils de test et d'équilibrage, captures de référence)
 
 Dans une nouvelle conversation, il suffit de dire à Claude : « utilise mon dépôt GitHub lecoach55/gameclaude ».

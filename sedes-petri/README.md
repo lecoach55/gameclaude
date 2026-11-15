@@ -4,7 +4,7 @@ Jeu de gestion : on incarne le pape de 1073 à 1517 (4 époques : 1073, 1198, 12
 Artefact publié : slug `e403381b-4eb6-4956-af79-666fc1dc0712` (fichiers multiples, scripts classiques, aucune étape de construction).
 
 ## Code (`jeu/`)
-`data.js` (carte, royaumes, scénarios, décrets, ordres) · `engine.js` (simulation pure, testable sous Node) · `events.js` (~100 événements) · `art.js` (blasons, portraits, scènes en SVG) · `map.js` (carte raster + calque SVG) · `ui.js` · `nuage.js` (sauvegarde en ligne, document `partie`) · `testkit.js` (copie de `outils-communs/testkit.js`).
+`data.js` (carte, royaumes, scénarios, décrets, ordres) · `engine.js` (simulation pure, testable sous Node) · `events.js` (~100 événements) · `art.js` (blasons, portraits, scènes en SVG) · `map.js` (carte raster + calque SVG) · `ui.js` · `nuage.js` (sauvegarde en ligne, document `partie` ; attend `window.claude`, état visible dans ☰ Menu) · `codex.js` (notes historiques : décrets, ordres, hérésies) · `testkit.js` (copie de `outils-communs/testkit.js` sans `export`, chargée en script classique).
 Capacités déclarées : `db` + `user`. Ne jamais modifier le document `partie` d'un joueur.
 Graine fixe pour les tests : `index.html?graine=7` (local uniquement).
 

@@ -12,8 +12,18 @@
 export function Testkit(o){
  const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
- const cloud=()=>init||(init=(async()=>{try{if(!window.claude||!window.claude.use)return false;const [db,u]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);UID=await u.id();DB=db;return !!(db&&UID);}catch(e){return false;}})());
- TK.envoyer=async(nom,obj)=>{try{localStorage.setItem(o.jeu+'_'+nom.split('_')[0],JSON.stringify(obj));}catch(e){}if(!await cloud())return false;try{await DB.collection('data/users/'+UID).doc(nom).set(obj);return true;}catch(e){return false;}};
+ // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
+ // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
+ TK.base='pas encore essayé';
+ const cloud=()=>init||(init=(async()=>{try{
+   for(let i=0;i<50&&!(window.claude&&window.claude.use);i++)await new Promise(r=>setTimeout(r,200));
+   if(!window.claude||!window.claude.use){TK.base='window.claude absent (page hors de claude.ai ?)';return false;}
+   const [db,u]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+   if(!db){TK.base='base refusée (db null : déconnecté ou capacité non accordée)';return false;}
+   if(!u){TK.base='identité refusée (user null)';return false;}
+   UID=await u.id();DB=db;if(!UID){TK.base='identifiant vide';return false;}TK.base='ok';return true;
+  }catch(e){TK.base='erreur : '+String(e&&e.message||e).slice(0,160);return false;}})().then(ok=>{if(!ok)init=null;return ok;}));
+ TK.envoyer=async(nom,obj)=>{try{localStorage.setItem(o.jeu+'_'+nom.split('_')[0],JSON.stringify(obj));}catch(e){}if(!await cloud())return false;try{await DB.collection('data/users/'+UID).doc(nom).set(obj);return true;}catch(e){TK.base='écriture refusée : '+String(e&&(e.code||e.message)||e).slice(0,160);return false;}};
  addEventListener('error',e=>{TK.erreurs.push(String(e.message||e).slice(0,300));if(TK.erreurs.length>20)TK.erreurs.shift();});
  addEventListener('unhandledrejection',e=>TK.erreurs.push('promesse: '+String(e.reason).slice(0,300)));
  const gpu=()=>{try{const c0=o.canvas&&o.canvas();let gl=c0&&(c0.getContext('webgl2')||c0.getContext('webgl'));if(!gl){const c=document.createElement('canvas');gl=c.getContext('webgl');} // jeux 2D : canvas WebGL temporaire
@@ -30,7 +40,7 @@ export function Testkit(o){
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
   const st=stats(a);if(suspendu)st.masquee=true;return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
-  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);return out;};
+  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
   const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
   return TK.envoyer('signalement_'+Date.now(),st);};
@@ -47,4 +57,6 @@ export function svgCapture(svg,largeur=480){return new Promise(res=>{try{
  const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=r.width*k|0;c.height=r.height*k|0;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6));}catch(e){res('');}};img.onerror=()=>res('');
  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml.replace('<svg','<svg width="'+r.width+'" height="'+r.height+'"'));}catch(e){res('');}});}
 // Jeux en scripts classiques (sans import) : exposer aussi la trousse sur window.
+// Plus sûr dans un artefact : charger une copie SANS les mots « export » en <script src> classique
+// (sed 's/^export //' testkit.js > jeu/testkit.js) : un <script type="module"> peut ne pas se charger dans le cadre isolé.
 if(typeof window!=="undefined"){window.Testkit=Testkit;window.svgCapture=svgCapture;}

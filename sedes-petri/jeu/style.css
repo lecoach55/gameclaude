@@ -479,3 +479,18 @@ h4{font-size:12px;letter-spacing:.12em;color:var(--ink2);margin:10px 0 6px;text-
  .tb-s .chip b{font-size:13px}
  .tb-s .chip small{display:none}
 }
+/* v14 : sur téléphone, les messages s'affichent au-dessus du bouton de fin de saison (ils masquaient les onglets) */
+.toast{text-wrap:balance}
+@media (max-width:900px){#toast{top:auto;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 66px)}.toast{font-size:14px;padding:7px 12px}}
+/* v14 : codex historique */
+.cxb{display:block;margin:8px 0 2px auto;background:none;border:1px solid rgba(106,74,34,.45);border-radius:16px;padding:5px 12px;font-family:Cinzel;font-size:12px;color:var(--ink2);cursor:pointer}
+.cxb:hover{background:rgba(226,181,62,.15)}
+.codex{max-width:640px}
+.cx-h{font-family:Cinzel;color:var(--red,#8a1c14);margin:18px 0 6px;border-bottom:1px solid rgba(106,74,34,.35);padding-bottom:3px}
+.cx{border:1px solid rgba(106,74,34,.3);border-radius:9px;margin:5px 0;background:rgba(255,250,235,.55)}
+.cx summary{cursor:pointer;padding:9px 12px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;list-style:none}
+.cx summary::-webkit-details-marker{display:none}
+.cx summary b{font-family:Cinzel;font-size:14px}
+.cx summary em{font-style:normal;font-size:11px;font-family:Cinzel;color:#2f6a2a;white-space:nowrap}
+.cx[open] summary{border-bottom:1px dashed rgba(106,74,34,.3)}
+.cx p{margin:0;padding:9px 12px 11px;font-size:15px;line-height:1.5}

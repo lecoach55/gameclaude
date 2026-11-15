@@ -18,6 +18,8 @@ Exemple complet : `valdragon/outils` et le mode test de Valdragon (bouton 🧪 s
 Adaptation pour un jeu sans canvas (DOM/SVG) : voir `couronnes-et-lignees/jeu/app.js` (Testkit intégré sans `export`, `etat()` qui envoie l'écran ouvert et la sauvegarde). Testeur au doigt générique pour ce genre de jeu : `couronnes-et-lignees/outils/tests/explore.py`.
 
 ## Pièges déjà rencontrés
+- **`window.claude` peut arriver après le chargement** : une sauvegarde en ligne qui teste `window.claude` au démarrage et mémorise l'échec ne sauvegarde plus jamais (Sedes Petri : aucune partie ni mesure reçue). Attendre jusqu'à 10 s, ne mémoriser que le succès, afficher l'état (« ☁ Sauvegarde en ligne : active / refusée… ») dans le menu. `testkit.js` le fait désormais (raison dans `TK.base`, renvoyée avec le banc).
+- Préférer une copie de `testkit.js` sans les mots `export` chargée en `<script src>` classique : plus sûr qu'un `<script type="module">` dans le cadre isolé de l'artefact.
 - Sur téléphone, vérifier que le menu reste accessible : un sélecteur CSS mal orthographié (`.icon-btn` au lieu de `.iconbtn`) cachait le menu de Wall Street depuis le début.
 - Le banc ne doit jamais toucher la vraie partie : copier l'état, couper la sauvegarde (locale ET en ligne), mesurer, puis tout remettre.
 

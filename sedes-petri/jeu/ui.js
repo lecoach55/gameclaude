@@ -96,7 +96,7 @@ function cloudOffer() {
 /* ---------- Trousse de test (outils-communs/testkit.js) ---------- */
 let TKI = null;
 function tk() { if (!TKI && window.Testkit) TKI = window.Testkit({ jeu: 'sedes-petri', canvas: () => document.getElementById('map'), etat: () => S ? { scen: S.scen, date: dateStr(), pape: popeName(), autorite: Math.round(S.authority), tresor: S.treasury, onglet: UI.tab, royaume: UI.sel, mode: MAP.mode, test: !!S.test, annales: S.log.slice(-8).map(l => l.y + ' ' + l.t) } : { ecran: 'accueil' } }); return TKI; }
-async function signaler() { const T = tk(); if (!T) { toast('Outil de signalement indisponible.'); return; } toast('Envoi du signalement…'); const ok = await T.signaler(); toast(ok ? '🐞 Signalement envoyé à Claude : capture, état du jeu et erreurs.' : 'Signalement enregistré sur cet appareil seulement.', ok ? 'gold' : ''); }
+async function signaler() { const T = tk(); if (!T) { toast('Outil de signalement indisponible.'); return; } toast('Envoi du signalement…'); const ok = await T.signaler(); toast(ok ? '🐞 Signalement envoyé à Claude : capture, état du jeu et erreurs.' : 'Signalement gardé sur cet appareil : envoi impossible (' + T.base + ').', ok ? 'gold' : ''); }
 let STRESS = null;
 function stopStress() { if (STRESS) { STRESS(); STRESS = null; } }
 async function modeTest() {
@@ -114,12 +114,28 @@ async function modeTest() {
  ];
  toast('🧪 Banc en cours (environ 35 s)…');
  const r = await T.banc(scenes, 5000); stopStress();
- modal(`<div class="rep"><h2>🧪 Mesures de cet appareil</h2><p class="mut">${esc(r.gpu)} · écran ${r.ecran}</p>${r.res.map(x => `<div class="brow"><span>${x.scene}</span><b>${x.fps || '—'} img/s</b><b>pire ${x.pire || '—'} ms</b></div>`).join('')}<p class="mut">${r.enregistre ? 'Résultats envoyés : Claude pourra les lire.' : 'Résultats gardés sur cet appareil (envoi impossible ici).'}</p><button class="big" data-new="1">Retour à l’accueil</button></div>`, 'repm');
+ modal(`<div class="rep"><h2>🧪 Mesures de cet appareil</h2><p class="mut">${esc(r.gpu)} · écran ${r.ecran}</p>${r.res.map(x => `<div class="brow"><span>${x.scene}</span><b>${x.fps || '—'} img/s</b><b>pire ${x.pire || '—'} ms</b></div>`).join('')}<p class="mut">${r.enregistre ? 'Résultats envoyés : Claude pourra les lire.' : 'Résultats gardés sur cet appareil : envoi impossible (' + esc(r.base || '?') + ').'}</p><button class="big" data-new="1">Retour à l’accueil</button></div>`, 'repm');
+}
+/* Préchauffage : décode à l'avance, par petites tranches, les portraits et blasons des onglets
+   (le premier passage sur la Curie coûtait ~270 ms sur téléphone, surtout du décodage d'images). */
+const CHAUD = { vus: new Set(), garde: [], file: [], actif: false };
+function prechauffer() {
+ if (!S) return;
+ const tabs = [tabPontife, tabRoyaume, tabCurie, tabEglise, tabCroisade, tabRome];
+ for (const f of tabs) { let h = ''; try { h = f(); } catch (e) { continue; } const re = /src="(data:image\/svg\+xml[^"]+)"/g; let m; while ((m = re.exec(h))) if (!CHAUD.vus.has(m[1])) { CHAUD.vus.add(m[1]); CHAUD.file.push(m[1]); } }
+ if (CHAUD.actif) return; CHAUD.actif = true;
+ const pas = () => {
+  const t0 = performance.now();
+  while (CHAUD.file.length && performance.now() - t0 < 8) { const im = new Image(); im.src = CHAUD.file.shift().replace(/&amp;/g, '&'); CHAUD.garde.push(im); if (im.decode) im.decode().catch(() => { }); }
+  if (CHAUD.garde.length > 400) CHAUD.garde.splice(0, CHAUD.garde.length - 400);
+  if (CHAUD.file.length) setTimeout(pas, 40); else CHAUD.actif = false;
+ };
+ setTimeout(pas, 300);
 }
 function enterGame(fresh) {
  mapPret();
  $('#start').hidden = true; $('#game').hidden = false; UI.sel = null; UI.tab = 'pontife';
- requestAnimationFrame(() => { mapReset(); renderAll(); if (fresh) showWelcome(); });
+ requestAnimationFrame(() => { mapReset(); renderAll(); if (fresh) showWelcome(); setTimeout(prechauffer, 600); });
 }
 function showWelcome() {
  let skip = false; try { skip = localStorage.getItem('sp_welcome') === '1'; } catch (e) { }
@@ -270,7 +286,7 @@ function tabEglise() {
  const byz = active('byzance') ? `${stat('Union avec les Grecs', RL('byzance').union, 'purple')}<p class="mut">${S.flags.unionDone ? 'L’union est proclamée.' : S.flags.sac ? 'Depuis le sac de Constantinople, les Grecs ne veulent plus entendre parler des Latins.' : 'À 60, un concile pourra proclamer l’union.'}</p><div class="acts">${actBtn('ambassade', { r: 'byzance' })}</div>` : '<p class="mut">L’Empire byzantin a disparu.</p>';
  const pag = activeRealms(r => RL(r).relig === 'paien').map(r => `${stat(rname(r), RL(r).mission, 'gold')}<div class="acts">${actBtn('mission', { r })}</div>`).join('') || '<p class="mut">Plus aucun peuple païen en Europe.</p>';
  const sch = S.schism ? `<div class="schism"><b>Schisme !</b> L’antipape <b>${S.schism.anti}</b> ${S.schism.backer ? `est soutenu par ${rulerLbl(S.schism.backer)}` : 'est soutenu par des cardinaux dissidents'}. ${catholics(r => RL(r).obed === 'anti').length} royaume(s) suivent son obédience. Réconciliez son protecteur, attendez sa mort, ou faites-le déposer par un concile.</div>` : '';
- return `${sch}${sec('Concile œcuménique', concH)}${sec('Hérésies', her)}${sec('Décrets en vigueur', `<div class="decs">${decs}</div>`)}${sec('Ordres religieux', `<div class="ords">${ords}</div>`)}${sec('L’Orient chrétien', byz)}${sec('Missions chez les païens', pag)}`;
+ return `${sch}${sec('Concile œcuménique', concH)}${sec('Hérésies', her + `<button class="cxb" data-codex="heresies">📜 Histoire des hérésies</button>`)}${sec('Décrets en vigueur', `<div class="decs">${decs}</div>` + `<button class="cxb" data-codex="decrets">📜 Histoire des décrets</button>`)}${sec('Ordres religieux', `<div class="ords">${ords}</div>` + `<button class="cxb" data-codex="ordres">📜 Histoire des ordres</button>`)}${sec('L’Orient chrétien', byz)}${sec('Missions chez les païens', pag)}`;
 }
 function tabCroisade() {
  const c = S.crusade;
@@ -420,7 +436,7 @@ function showGuide() {
  <button class="big" data-close="1">Fermer</button></div>`, 'repm');
 }
 function showMenu() {
- modal(`<div class="rep"><h2>Menu</h2><div class="acts"><button class="act" data-save="1"><span class="at"><b>Sauvegarder</b></span></button><button class="act" data-export="1"><span class="at"><b>Copier un code de partie</b></span></button><button class="act" data-guide="1"><span class="at"><b>Guide du pontife</b></span></button><button class="act" data-music="1"><span class="at"><b>${MUS ? 'Couper la musique' : 'Musique (plain-chant)'}</b></span></button><button class="act" data-sound="1"><span class="at"><b>${UI.sound ? 'Couper les sons' : 'Activer les sons'}</b></span></button><button class="act" data-bug="1"><span class="at"><b>🐞 Signaler un problème à Claude</b></span><span class="ad">Envoie une capture et l’état du jeu</span></button><button class="act" data-new="1"><span class="at"><b>Nouvelle partie</b></span></button></div><button class="big" data-close="1">Reprendre</button></div>`, 'repm');
+ modal(`<div class="rep"><h2>Menu</h2><div class="acts"><button class="act" data-save="1"><span class="at"><b>Sauvegarder</b></span><span class="ad">☁ Sauvegarde en ligne : ${typeof NUAGE === 'undefined' ? 'absente' : esc(NUAGE.etat())}${S && S.test ? ' (mode test : rien n’est enregistré)' : ''}</span></button><button class="act" data-export="1"><span class="at"><b>Copier un code de partie</b></span></button><button class="act" data-guide="1"><span class="at"><b>Guide du pontife</b></span></button><button class="act" data-codex=""><span class="at"><b>📜 Codex du pontife</b></span><span class="ad">Histoire des décrets, des ordres et des hérésies</span></button><button class="act" data-music="1"><span class="at"><b>${MUS ? 'Couper la musique' : 'Musique (plain-chant)'}</b></span></button><button class="act" data-sound="1"><span class="at"><b>${UI.sound ? 'Couper les sons' : 'Activer les sons'}</b></span></button><button class="act" data-bug="1"><span class="at"><b>🐞 Signaler un problème à Claude</b></span><span class="ad">Envoie une capture et l’état du jeu</span></button><button class="act" data-new="1"><span class="at"><b>Nouvelle partie</b></span></button></div><button class="big" data-close="1">Reprendre</button></div>`, 'repm');
 }
 
 /* ---------- Événements DOM ---------- */
@@ -439,7 +455,7 @@ async function endTurn() {
  try {
   if (S.seals > 0 && !UI.warned) { UI.warned = true; toast(`Il vous reste ${S.seals} sceau${S.seals > 1 ? 'x' : ''} inutilisé${S.seals > 1 ? 's' : ''}. Touchez de nouveau pour clore la saison.`); UI.busy = false; renderEnd(); return; }
   UI.warned = false; sfx('bell');
-  const rep = endSeason(); renderAll();
+  const rep = endSeason(); renderAll(); setTimeout(prechauffer, 900);
   await seasonCard();
   await runEvents();
   if (S.pendingConclave) await runConclave();
@@ -459,8 +475,9 @@ function onChange(e) {
 }
 function onClick(e) {
  const t = e.target.closest('button,[data-realm]'); if (!t) return;
- if (t.closest('#modal') && !['close', 'new', 'save', 'export', 'guide', 'imp', 'copy', 'act', 'music', 'sound', 'bug'].some(k => t.dataset[k] !== undefined)) return;
+ if (t.closest('#modal') && !['close', 'new', 'save', 'export', 'guide', 'imp', 'copy', 'act', 'music', 'sound', 'bug', 'codex'].some(k => t.dataset[k] !== undefined)) return;
  const d = t.dataset;
+ if (d.codex !== undefined) { showCodex(d.codex); return; }
  if (d.scen) { START.scen = d.scen; START.name = null; startScreen(); return; }
  if (d.voc) { START.voc = d.voc; startScreen(); return; }
  if (d.diff) { START.diff = +d.diff; startScreen(); return; }

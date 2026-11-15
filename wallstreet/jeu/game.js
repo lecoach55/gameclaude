@@ -16,8 +16,9 @@ const txt=(v,f)=>v==null||!isFinite(v)?'<span class="muted">—</span>':'<span c
 const short$=v=>{const a=Math.abs(v);return a>=1e9?nf1.format(v/1e9)+' Md$':a>=1e6?nf1.format(v/1e6)+' M$':a>=1e4?nf0.format(v/1e3)+' k$':nf0.format(v)+' $';};
 const dObj=s=>new Date(s+'T12:00:00Z');
 const cap1=s=>s.charAt(0).toUpperCase()+s.slice(1);
-const dLong=s=>cap1(dObj(s).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}));
-const dShort=s=>dObj(s).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+const DTF={},dtf=o=>{const k=JSON.stringify(o);return DTF[k]||(DTF[k]=new Intl.DateTimeFormat('fr-FR',Object.assign({timeZone:'UTC'},o)));},fdate=(d,o)=>dtf(o).format(d);
+const dLong=s=>cap1(fdate(dObj(s),{weekday:'long',day:'numeric',month:'long',year:'numeric'}));
+const DSH={};const dShort=s=>DSH[s]||(DSH[s]=fdate(dObj(s),{day:'numeric',month:'short',year:'numeric'}));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const rnd=Math.random, pickA=a=>a[Math.floor(rnd()*a.length)], clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const AV={3:'Achat',2:'Neutre',1:'Vente'};
@@ -34,7 +35,8 @@ const DIFF={sal:[1.5,1,0.6],rsal:[0.7,1,1.3],xp:[1,1,1.25]};
 const dif=()=>GM().diff??1;
 let G=null, sel='AAPL', range=252, sortK='name', sortDir=1, auto=null, tab='cote', sub='fil', filt='tout', qf='all', side='A', busy=false;
 const KEY='wallst-sim-v3';
-function save(){if(NOSAVE)return;G.savedAt=Date.now();try{localStorage.setItem(KEY,JSON.stringify(G));}catch(e){}CLOUD.push();}
+function saveNow(){clearTimeout(save.tm);save.tm=0;if(NOSAVE||!G)return;G.savedAt=Date.now();try{localStorage.setItem(KEY,JSON.stringify(G));}catch(e){}CLOUD.push();}
+function save(){if(NOSAVE)return;G.savedAt=Date.now();if(!save.tm)save.tm=setTimeout(saveNow,1500);}
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
 
 /* =====================================================================
@@ -500,11 +502,11 @@ function sparkSVG(a,cl,w,h,fill,klass){
   return '<svg class="'+(klass||'sp')+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">'+(fill?'<path d="'+d+'L'+w+' '+h+'L0 '+h+'Z" fill="'+col+'" opacity=".12"/>':'')+'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>';
 }
 let lastFlap='';
-function flapText(){const d=dObj(G.date);const wd=d.toLocaleDateString('fr-FR',{weekday:'short',timeZone:'UTC'}).replace('.','').slice(0,3);const m=d.toLocaleDateString('fr-FR',{month:'short',timeZone:'UTC'}).replace('.','').slice(0,4);return(wd+' '+String(d.getUTCDate()).padStart(2,'0')+' '+m.padEnd(4,' ')+' '+d.getUTCFullYear()).toUpperCase();}
+function flapText(){const d=dObj(G.date);const wd=fdate(d,{weekday:'short',timeZone:'UTC'}).replace('.','').slice(0,3);const m=fdate(d,{month:'short',timeZone:'UTC'}).replace('.','').slice(0,4);return(wd+' '+String(d.getUTCDate()).padStart(2,'0')+' '+m.padEnd(4,' ')+' '+d.getUTCFullYear()).toUpperCase();}
 function renderBoard(){
   const s=flapText(),host=$('#flaps');
   if(host.children.length!==s.length){host.innerHTML=[...s].map(c=>'<span class="fl'+(c===' '?' sp':'')+'">'+(c===' '?'':c)+'</span>').join('');}
-  else [...s].forEach((c,k)=>{if(lastFlap[k]!==c){const el=host.children[k];el.textContent=c===' '?'':c;el.classList.remove('go');void el.offsetWidth;el.style.animationDelay=(k*28)+'ms';el.classList.add('go');}});
+  else{const ch=[];[...s].forEach((c,k)=>{if(lastFlap[k]!==c){const el=host.children[k];el.textContent=c===' '?'':c;el.classList.remove('go');el.style.animationDelay=(k*28)+'ms';ch.push(el);}});if(ch.length)requestAnimationFrame(()=>ch.forEach(el=>el.classList.add('go')));}
   lastFlap=s;host.setAttribute('aria-label',dLong(G.date));
   $('#seanceLbl').innerHTML='Séance<br>'+nf0.format(G.day-G.start+1);
 }
@@ -682,7 +684,7 @@ function renderTerminal(){
   if(sub==='resu'){
     const up=TK.map(t=>({t,o:G.st[t],d:G.st[t].earn-G.day})).filter(x=>x.d<=15).sort((a,b)=>a.d-b.d);
     const days=[];for(let k=0;k<10;k++)days.push({k,L:up.filter(x=>x.d===k)});
-    h+='<div class="ecal">'+days.map(d=>'<div class="ecd'+(d.L.length?'':' empty')+'"><div class="ecl"><b>'+(d.k===0?'Auj.':dObj(dateIn(d.k)).toLocaleDateString('fr-FR',{weekday:'short',timeZone:'UTC'}).replace('.',''))+'</b><small>'+dObj(dateIn(d.k)).getUTCDate()+'</small></div>'+d.L.map(x=>'<button class="tk ec'+(G.pos[x.t]?' mine':'')+'" data-t="'+x.t+'" style="--h:'+hueOf(x.t)+'" title="'+esc(ST[x.t].n)+'">'+x.t+'</button>').join('')+'</div>').join('')+'</div>';
+    h+='<div class="ecal">'+days.map(d=>'<div class="ecd'+(d.L.length?'':' empty')+'"><div class="ecl"><b>'+(d.k===0?'Auj.':fdate(dObj(dateIn(d.k)),{weekday:'short',timeZone:'UTC'}).replace('.',''))+'</b><small>'+dObj(dateIn(d.k)).getUTCDate()+'</small></div>'+d.L.map(x=>'<button class="tk ec'+(G.pos[x.t]?' mine':'')+'" data-t="'+x.t+'" style="--h:'+hueOf(x.t)+'" title="'+esc(ST[x.t].n)+'">'+x.t+'</button>').join('')+'</div>').join('')+'</div>';
     h+='<p class="intro">Chaque trimestre, les sociétés publient leurs bénéfices. Une surprise fait bouger le cours, mais une partie de l\'information filtre dans les jours qui précèdent.</p><div class="tw"><table><thead><tr><th>Valeur</th><th>Date</th><th>Bénéfice attendu</th><th>Indice repéré</th>'+(proOn()?'<th>Recherche Pro</th>':'')+'</tr></thead><tbody>';
     h+=up.map(x=>'<tr data-t="'+x.t+'"><td><div class="who">'+avatar(x.t)+'<div><b>'+esc(ST[x.t].n)+'</b><small>'+x.t+'</small></div></div></td><td><span class="chipd'+(x.d<=5?' soon':'')+'">'+(x.d===0?'aujourd\'hui':dShort(dateIn(x.d)))+'</span></td><td>'+money(x.o.cons)+'</td><td>'+(x.o.hint&&x.o.hintDay<=G.day&&x.o.hintDay>G.day-20?(x.o.hint>0?'<span class="pill up">positif</span>':'<span class="pill down">négatif</span>'):'<span class="muted">—</span>')+'</td>'+(proOn()?'<td class="'+(x.o.proSig>0?'up':'down')+'">'+(x.o.proSig>0?'au-dessus':'en dessous')+'</td>':'')+'</tr>').join('');
     h+='</tbody></table></div><h3 class="st">Dernières publications</h3>'+(G.news.filter(n=>n.cat==='resultats').slice(-15).reverse().map(n=>newsItem(n,false)).join('')||'<div class="quiet">Aucune pour l\'instant.</div>');
@@ -822,10 +824,12 @@ function renderAll(){
 }
 
 /* ---------- graphiques ---------- */
-function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+const CSSV={};function css(n){return n in CSSV?CSSV[n]:(CSSV[n]=getComputedStyle(document.documentElement).getPropertyValue(n).trim());}
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{for(const k in CSSV)delete CSSV[k];});}catch(e){}
+const CSZ={};const RO=window.ResizeObserver?new ResizeObserver(es=>es.forEach(e=>{const b=e.borderBoxSize&&e.borderBoxSize[0];e.target._sz=b?{width:b.inlineSize,height:b.blockSize}:{width:e.target.offsetWidth,height:e.target.offsetHeight};})):null;
 function hex(c){if(/^#[0-9a-f]{6}$/i.test(c))return c;const t=document.createElement('div');t.style.color=c;document.body.appendChild(t);const m=getComputedStyle(t).color.match(/\d+/g);t.remove();return'#'+m.slice(0,3).map(x=>(+x).toString(16).padStart(2,'0')).join('');}
 function chart(canvas,series,labels,fmt,marks,lines){
-  const wrap=canvas.parentElement,r=wrap.getBoundingClientRect(),dpr=window.devicePixelRatio||1;if(r.width<10)return;
+  const wrap=canvas.parentElement;if(RO&&!wrap._ro){wrap._ro=1;RO.observe(wrap);}const sz=(wrap._sz&&wrap._sz.width>=10)?wrap._sz:(canvas.id&&CSZ[canvas.id]&&CSZ[canvas.id].iw===innerWidth?CSZ[canvas.id]:null),r=sz||wrap.getBoundingClientRect();if(canvas.id&&r.width>=10)CSZ[canvas.id]={width:r.width,height:r.height,iw:innerWidth};const dpr=window.devicePixelRatio||1;if(r.width<10)return;
   canvas.width=r.width*dpr;canvas.height=r.height*dpr;const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);
   const W=r.width,H=r.height,L=2,R=58,T=10,B=22;let mn=Infinity,mx=-Infinity;series.forEach(s=>s.d.forEach(v=>{if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}}));(lines||[]).forEach(l=>{mn=Math.min(mn,l.v);mx=Math.max(mx,l.v);});
   if(mx===mn){mx+=1;mn-=1;}const pad=(mx-mn)*0.1;mn-=pad;mx+=pad;
@@ -833,7 +837,7 @@ function chart(canvas,series,labels,fmt,marks,lines){
   c.strokeStyle=css('--line');c.lineWidth=1;c.setLineDash([2,4]);c.fillStyle=css('--muted');c.font='12px '+(css('--body')||'sans-serif');c.textBaseline='middle';c.textAlign='left';
   for(let g=0;g<4;g++){const v=mn+(mx-mn)*(g+0.5)/4,y=Math.round(Y(v))+.5;c.beginPath();c.moveTo(L,y);c.lineTo(W-R,y);c.stroke();c.fillText(fmt(v),W-R+8,y);}
   c.setLineDash([]);c.textBaseline='alphabetic';
-  if(n>1){const o=n<130?{day:'numeric',month:'short',timeZone:'UTC'}:{month:'short',year:'numeric',timeZone:'UTC'};[0,Math.floor((n-1)/2),n-1].forEach((k,j)=>{c.textAlign=j===0?'left':j===2?'right':'center';c.fillText(dObj(labels[k]).toLocaleDateString('fr-FR',o),j===2?W-R:X(k),H-5);});}
+  if(n>1){const o=n<130?{day:'numeric',month:'short',timeZone:'UTC'}:{month:'short',year:'numeric',timeZone:'UTC'};[0,Math.floor((n-1)/2),n-1].forEach((k,j)=>{c.textAlign=j===0?'left':j===2?'right':'center';c.fillText(fdate(dObj(labels[k]),o),j===2?W-R:X(k),H-5);});}
   series.forEach(s=>{c.beginPath();s.d.forEach((v,k)=>{const x=X(k),y=Y(v);k?c.lineTo(x,y):c.moveTo(x,y);});c.strokeStyle=s.c;c.lineWidth=s.w||2.2;c.lineJoin='round';c.setLineDash(s.dash||[]);c.stroke();c.setLineDash([]);
     if(s.fill){c.lineTo(X(n-1),H-B);c.lineTo(X(0),H-B);c.closePath();const g=c.createLinearGradient(0,T,0,H-B);g.addColorStop(0,s.c+'44');g.addColorStop(1,s.c+'00');c.fillStyle=g;c.fill();}
     if(s.dot){const x=X(n-1),y=Y(s.d[n-1]);c.beginPath();c.arc(x,y,7,0,7);c.fillStyle=s.c+'33';c.fill();c.beginPath();c.arc(x,y,3.5,0,7);c.fillStyle=s.c;c.fill();}});
@@ -1035,8 +1039,8 @@ const CLOUD=(()=>{
   const C={ini,get,full,push,ok:false,err:'',taille:0,put:async(n,o)=>{if(!await ini())return false;try{await to(doc(n).set(o),10000);return true;}catch(e){return false;}}};
   return C;
 })();
-addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')CLOUD.push(true);});
-addEventListener('pagehide',()=>CLOUD.push(true));
+addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(save.tm)saveNow();CLOUD.push(true);}});
+addEventListener('pagehide',()=>{if(save.tm)saveNow();CLOUD.push(true);});
 const KIT={erreurs:[]};
 addEventListener('error',e=>{KIT.erreurs.push(String(e.message||e).slice(0,300));if(KIT.erreurs.length>20)KIT.erreurs.shift();});
 addEventListener('unhandledrejection',e=>{KIT.erreurs.push('promesse : '+String(e.reason).slice(0,300));if(KIT.erreurs.length>20)KIT.erreurs.shift();});
@@ -1066,7 +1070,8 @@ async function kitBench(){
     setTab('cote');$('#bAuto').click();await sleep(400);res.push(Object.assign({scene:'lecture auto'},await kitFrames(5000)));stopAuto();quiet();
   }catch(e){res.push({erreur:String(e)});}
   G=JSON.parse(snap);ensureGame();SKY.heights={};shownVal=null;quiet();$('#recapCard').hidden=true;document.body.classList.remove('has-recap');sel=keep.sel;NOSAVE=false;soundOn=sOn;setTab(keep.tab);
-  const out={jeu:'wallstreet',date:new Date().toISOString(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,coeurs:navigator.hardwareConcurrency||0,res};
+  saveNow();CLOUD.push(true);for(let i=0;i<50&&!CLOUD.ok&&!CLOUD.err;i++)await sleep(200);
+  const out={jeu:'wallstreet',date:new Date().toISOString(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,coeurs:navigator.hardwareConcurrency||0,res,version:'passe6',cloud:{ok:CLOUD.ok,err:CLOUD.err,taille_ko:Math.round(CLOUD.taille/1024),partie_ko:Math.round(snap.length/1024)}};
   try{localStorage.setItem('wallst-derniere-mesure',JSON.stringify(out));}catch(e){}
   const ok=await CLOUD.put('mesures_'+Date.now(),out);KIT.dernier=out;
   const r=res.filter(x=>!x.erreur);

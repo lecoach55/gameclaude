@@ -45,6 +45,33 @@ a{color:inherit}
 
 <!--NOUVELLES-ENTREES-->
 
+<article id="e-passe6">
+<header><h2>Passe 6 : fluidité, d'après la mesure faite sur le MacBook</h2><span class="when">15 novembre 2026 <span class="tag gold">publié</span></span></header>
+<h3>Ce que la mesure du Mac a montré</h3>
+<div class="tw"><table>
+<tr><th>Scène (MacBook Pro Intel)</th><th>Mesuré</th></tr>
+<tr><td>Séance suivante</td><td class="ko">77 ms</td></tr>
+<tr><td>+1 mois</td><td>64 ms</td></tr>
+<tr><td>Onglet Rivaux au repos</td><td class="ko">51 img/s, un à-coup de 384 ms</td></tr>
+<tr><td>Lecture auto</td><td class="ko">59 img/s mais 1 % des images à 20 img/s (à-coups jusqu'à 99 ms)</td></tr>
+</table></div>
+<h3>Les causes, trouvées au profileur (processeur ralenti ×4 pour imiter un téléphone)</h3>
+<ul>
+<li>Le panneau de la date (lettres qui basculent) forçait le navigateur à recalculer toute la page une fois par lettre changée.</li>
+<li>La sauvegarde complète était écrite à chaque séance (environ 300 Kio).</li>
+<li>Les graphiques relisaient leur taille, et les couleurs du thème, en forçant un recalcul de mise en page.</li>
+<li>Le formatage des dates en français recréait un formateur à chaque appel.</li>
+</ul>
+<h3>Après correction (5 séances, processeur ×4)</h3>
+<div class="tw"><table>
+<tr><th>Onglet</th><th>Avant</th><th>Après</th></tr>
+<tr><td>Marché</td><td>886 ms</td><td class="ok">265 ms (−70 %)</td></tr>
+<tr><td>Rivaux</td><td>630 ms</td><td class="ok">152 ms (−76 %)</td></tr>
+</table></div>
+<p>Sur la machine de test, sans ralentissement : séance suivante 61 → 49 ms (ordinateur) et 77 → 53 ms (téléphone), +1 mois 53 → 33 ms. La sauvegarde est maintenant regroupée (au plus toutes les 1,5 s), et toujours faite immédiatement quand on quitte ou change d'application.</p>
+<p>Contrôles : parties automatiques de 2 ans sans erreur ; testeur au doigt 2 minutes sur téléphone sans erreur ; banc : partie remise à l'identique ; captures vérifiées.</p>
+</article>
+
 <article id="e-atelier">
 <header><h2>Passe 5 : les outils des autres jeux appliqués à Wall Street</h2><span class="when">15 novembre 2026 <span class="tag gold">publié</span></span></header>
 <p>Le jeu rejoint l'atelier commun (dépôt gameclaude) et reprend les outils mis au point pour Valdragon, Sedes Petri et Couronnes &amp; Lignées.</p>

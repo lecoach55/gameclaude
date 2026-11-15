@@ -2,13 +2,14 @@
 /* =========================================================
    BANNIÈRES & SORTILÈGES — intelligence des royaumes rivaux (sans DOM)
    ========================================================= */
-var IA_PRIO=['taverne','hab2','hab3','mairie','marche','hab4','citadelle','guilde1','hab5','hotelville','hab6','chateau','hab7','silo','guilde2','capitole','guilde3'];
+var IA_PRIO=['taverne','hab2','hab3','mairie','marche','hab4','citadelle','guilde1','hab5','hotelville','hab6','hab3u','hab4u','chateau','hab7','hab5u','hab6u','silo','hab1u','hab2u','guilde2','capitole','hab7u','guilde3'];
 function iaVille(v){const p=G.joueurs[v.prop];
  if(!v.construit){for(const b of IA_PRIO){if(!batDisponible(v,b).ok)continue;const c=batCout(b,v.fac);if(aDeQuoi(p.res,c)){
     // garder de quoi recruter les premiers jours de la semaine
     if(construire(v,b))break;}else if(b.startsWith('hab')||b==='mairie'||b==='citadelle')break;}}
  iaRecruter(v);}
 function iaRecruter(v){const h=heroPar(G.hpos[idx(v.x,v.y)]);const dest=h&&h.j===v.prop?h.armee:v.garn;
+ for(const arm of [dest,v.garn])for(let k=6;k>=0;k--)ameliorerPile(v,arm,k);
  for(let n=6;n>=0;n--){if(!v.dispo[n])continue;recruter(v,n,v.dispo[n],dest)||(dest!==v.garn&&recruter(v,n,v.dispo[n],v.garn));}
  if(h&&h.j===v.prop){for(let k=0;k<7;k++){const s=v.garn[k];if(s&&ajouterTroupe(h.armee,s.c,s.n))v.garn[k]=null;}
   // garder une petite garnison si le héros s'en va : rien (simple)
@@ -28,7 +29,9 @@ async function tourIA(j){const p=G.joueurs[j];if(p.elim)return;
  for(const v of villesDe(j))iaRecruter(v);}
 // prédiction par simulation (copie des armées) : renvoie la part de valeur perdue (1 = défaite)
 var IA_CACHE={};
-function iaRisque(h,armee,heroAdv,opts){const cle=h.id+':'+G.jour+':'+h.mp+':'+JSON.stringify(armee)+':'+(heroAdv?heroAdv.id:'');if(IA_CACHE[cle]!=null)return IA_CACHE[cle];
+function iaRisque(h,armee,heroAdv,opts){const cle=h.id+':'+G.jour+':'+nbPiles(h.armee)+':'+forceArmee(h.armee)+':'+(heroAdv?heroAdv.id+':'+forceArmee(heroAdv.armee):JSON.stringify(armee))+':'+(opts&&opts.siege||0);if(IA_CACHE[cle]!=null)return IA_CACHE[cle];
+ // écarts évidents : pas de simulation
+ const fa=forceArmee(h.armee,h),fd=heroAdv?forceArmee(heroAdv.armee,heroAdv):forceArmee(armee);if(!heroAdv&&!(opts&&opts.siege)&&fa>fd*6){IA_CACHE[cle]=0;return 0;}
  const cl=a=>a.map(s=>s?{c:s.c,n:s.n}:null);const hA=Object.assign({},h,{armee:cl(h.armee),bonus:Object.assign({},h.bonus)});const hD=heroAdv?Object.assign({},heroAdv,{armee:cl(heroAdv.armee),bonus:Object.assign({},heroAdv.bonus)}):null;
  let perte=0,n=0;for(let k=0;k<2;k++){const C=creerCombat({heros:hA,armee:cl(hA.armee),joueur:h.j},{heros:hD,armee:hD?cl(hD.armee):cl(armee),joueur:-1},Object.assign({graine:G.jour*97+k*13+h.id},opts||{}));
   for(let t=0;t<3000&&!C.fin;t++)C.agir(iaCombat(C));if(!C.fin||C.fin.gagnant!==0){perte+=1;}else{const v0=forceArmee(h.armee);let v1=0;for(const p of C.piles)if(p.cote===0&&p.n>0)v1+=p.n*CRE[p.c].val;perte+=Math.max(0,1-v1/v0);}n++;}

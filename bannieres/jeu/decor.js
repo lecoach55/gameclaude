@@ -221,7 +221,7 @@ function batimentPano(g,b,x,y,w,H,v,sx){const F=FAC[v.fac].coul;const mur=F.mur,
  if(b==='marche'){for(let k=0;k<3;k++){const xx=x-w*.4+k*w*.4;trait(g,[xx-w*.15,y,xx-w*.15,y-h*.45],'#6a4a2a',2);trait(g,[xx+w*.15,y,xx+w*.15,y-h*.45],'#6a4a2a',2);peint(g,poly([xx-w*.2,y-h*.45,xx,y-h*.62,xx+w*.2,y-h*.45]),['#c83a2a','#e8d8b0','#3a6ac8'][k]);peint(g,rrect(xx-w*.16,y-h*.18,w*.32,h*.1,1),'#9a6a3a');}return{x:x-w*.65,y:y-h*.62,w:w*1.3,h:h*.62};}
  if(b==='silo'){peint(g,rrect(x-w*.35,y-h*.8,w*.7,h*.8,w*.3),'#a87a48');peint(g,g2=>{g2.moveTo(x-w*.38,y-h*.78);g2.quadraticCurveTo(x,y-h*1.1,x+w*.38,y-h*.78);g2.closePath();},'#7a3a2a');return{x:x-w*.4,y:y-h*1.05,w:w*.8,h:h*1.05};}
  // habitations : bâtiment générique + créature devant
- const niv=+b[3];const cre=FAC[v.fac].crea[niv-1];
+ const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;
  if(v.fac==='sylve'){trait(g,[x,y,x,y-h*.9],'#6a4a2a',8*s);for(const [dx,dy,rr] of [[-.3,-.95,.28],[.3,-.95,.28],[0,-1.15,.32]])boule(g,x+dx*w,y+dy*h,rr*w,'#3f7a34');peint(g,rrect(x-w*.3,y-h*.55,w*.6,h*.35,3),'#9a7448');}
  else if(v.fac==='necro'){peint(g,poly([x-w/2,y,x-w/2,y-h*.6,x,y-h*1.0,x+w/2,y-h*.6,x+w/2,y]),teinte(mur,-.15),{pierre:(g.canvas.height>500?.4:.22),y0:y-h,y1:y});g.fillStyle='#120c18';g.beginPath();g.ellipse(x,y-h*.2,w*.18,h*.22,0,Math.PI,0);g.fill();}
  else{peint(g,rrect(x-w/2,y-h*.6,w,h*.6,3),mur,{pierre:(g.canvas.height>500?.4:.22),y0:y-h*.6,y1:y});peint(g,poly([x-w/2-6*s,y-h*.6,x,y-h*(.95+niv*.04),x+w/2+6*s,y-h*.6]),toit);g.fillStyle='#3a2412';g.fillRect(x-w*.12,y-h*.3,w*.24,h*.3);}

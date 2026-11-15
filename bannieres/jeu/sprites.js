@@ -172,7 +172,11 @@ function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[
   dessiner3D(g,id,'idle',0,S*.5,S*.896,ppu,false);SPR_CACHE[k]=c;return c;}const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
  ombreSol(g,50,91,30,6,.4);
  ({hum:dessHum,squel:dessSquel,spectre:dessSpectre,cheval:dessCheval,cavalier:dessCavalier,centaure:dessCentaure,griffon:dessGriffon,loup:dessLoup,treant:dessTreant,dragon:dessDragon,ange:dessAnge})[d.t](g,d);
- SPR_CACHE[k]=c;return c;}
+ eclairage(c);SPR_CACHE[k]=c;return c;}
+// modelé : lumière chaude en haut à gauche, ombre froide en bas à droite, liseré de contre-jour (donne du volume aux figures dessinées)
+function eclairage(c){const g=c.getContext('2d');const W=c.width,H=c.height;g.save();g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-atop';
+ const gr=g.createLinearGradient(W*.15,H*.05,W*.85,H*.95);gr.addColorStop(0,'rgba(255,236,190,.22)');gr.addColorStop(.45,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(10,14,40,.28)');g.fillStyle=gr;g.fillRect(0,0,W,H);
+ const sol=g.createLinearGradient(0,H*.6,0,H*.92);sol.addColorStop(0,'rgba(0,0,0,0)');sol.addColorStop(1,'rgba(20,12,4,.22)');g.fillStyle=sol;g.fillRect(0,0,W,H);g.restore();}
 function spriteMiroir(id,S){const k='m'+id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const s=spriteCreature(id,S);const c=mkC(S,S);const g=c.getContext('2d');g.translate(S,0);g.scale(-1,1);g.drawImage(s,0,0);SPR_CACHE[k]=c;return c;}
 
 // ---------- héros sur la carte (cavalier à la bannière) ----------
@@ -189,7 +193,7 @@ function spriteHeros(h,S){const k='h'+h.classe+':'+h.j+':'+S;if(SPR_CACHE[k])ret
  boule(g,50,12,7.5,'#e3b58c');if(mag)peint(g,g2=>{g2.moveTo(41,16);g2.quadraticCurveTo(42,0,52,2);g2.quadraticCurveTo(60,6,58,14);g2.lineTo(54,9);g2.quadraticCurveTo(46,8,45,18);g2.closePath();},fac.coul.drap);
  else peint(g,g2=>{g2.moveTo(42,12);g2.quadraticCurveTo(50,-2,58,12);g2.closePath();},'#b9c2cc');
  if(mag)arme(g,'baton',58,34,{orbe:h.fac==='necro'?'#7cf7a2':'#ffe79a'});else arme(g,'epee',58,32,{});
- SPR_CACHE[k]=c;return c;}
+ eclairage(c);SPR_CACHE[k]=c;return c;}
 
 // ---------- portraits ----------
 var IMGP={};(function(){if(typeof POR3D==='undefined')return;for(const c in POR3D)POR3D[c].forEach((u,i)=>{const im=new Image();im.onload=()=>{IMGP[c+i]=im;for(const k in SPR_CACHE)if(k[0]==='p')delete SPR_CACHE[k];};im.src=u;});})();

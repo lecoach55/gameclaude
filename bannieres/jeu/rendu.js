@@ -47,7 +47,8 @@ function dessiner(){if(!G)return;V.t=performance.now()/1000;V.images++;const cv=
    if(o===OBS.VEG||o===OBS.ROC){const s=spriteObstacle(o,TER[G.carte.ter[i]],(x*7+y*13)%9);const w=s.width*T/TS,h=s.height*T/TS;g.drawImage(s,ox+(x+.5)*T-w/2,oy+(y+1)*T-h+T*.1,w,h);}
    if(y>0&&G.carte.obs[i-N]===OBS.MONT){const s=spriteObstacle(OBS.MONT,TER[G.carte.ter[i-N]],(x*5+y*11)%7);const w=s.width*T/TS,h=s.height*T/TS;g.drawImage(s,ox+(x+1)*T-w/2,oy+(y+1)*T-h+T*.06,w,h);}}
   for(const o of objPar[y]||[])dessinerObjet(g,o,T,ox,oy);
-  for(const h of hpar[y]||[]){const [hx,hy]=posHeros(h);const s=spriteHeros(h,128);const w=T*1.25;g.drawImage(s,ox+(hx+.5)*T-w/2,oy+(hy+1)*T-w*.98,w,w);}}
+  for(const h of hpar[y]||[]){const [hx,hy]=posHeros(h);const s=spriteHeros(h,128);const w=T*1.25;const dir=V.anim&&V.anim.h===h?(V.anim.x1<V.anim.x0?-1:V.anim.x1>V.anim.x0?1:(h.dir||1)):(h.dir||1);const bob=V.anim&&V.anim.h===h?Math.abs(Math.sin(performance.now()/60))*T*.04:0;
+   if(dir<0){g.save();g.translate(ox+(hx+.5)*T,0);g.scale(-1,1);g.drawImage(s,-w/2,oy+(hy+1)*T-w*.98-bob,w,w);g.restore();}else g.drawImage(s,ox+(hx+.5)*T-w/2,oy+(hy+1)*T-w*.98-bob,w,w);}}
  // croix du Graal quand la carte est complète
  if(graalConnu(vueJoueur())){const [gx,gy]=xy(G.carte.graal);const px=ox+(gx+.5)*T,py=oy+(gy+.5)*T;g.save();g.translate(px,py);g.lineCap='round';for(const [lw,col] of [[7,'rgba(40,10,4,.8)'],[4,'#e83a2a']]){g.lineWidth=lw;g.strokeStyle=col;g.beginPath();g.moveTo(-T*.22,-T*.22);g.lineTo(T*.22,T*.22);g.moveTo(T*.22,-T*.22);g.lineTo(-T*.22,T*.22);g.stroke();}g.restore();}
  // brouillard

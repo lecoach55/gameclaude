@@ -111,7 +111,7 @@ async function deplacer(h,ch){// suit le chemin tant qu'il reste du mouvement ; 
  }
  return bouge;}
 function memeEquipe(a,b){return a===b;}
-function poserHeros(h,x,y){G.hpos[idx(h.x,h.y)]=0;h.x=x;h.y=y;G.hpos[idx(x,y)]=h.id;}
+function poserHeros(h,x,y){G.hpos[idx(h.x,h.y)]=0;if(x!==h.x)h.dir=x<h.x?-1:1;h.x=x;h.y=y;G.hpos[idx(x,y)]=h.id;}
 function retirerObjet(o){G.objs=G.objs.filter(b=>b!==o);G.occ[idx(o.x,o.y)]=0;delete G.oi[o.id];if(o.t==='monstre')index();}
 
 // ---------- visites ----------
@@ -161,7 +161,7 @@ function graalConnu(j){const p=G.joueurs[j];return G.carte.graal>=0&&!G.graalPri
 function creuser(h){if(h.mp<mvtMax(h)*.99)return{ok:false,msg:'Il faut une journée complète de mouvement pour creuser.'};h.mp=0;
  if(!G.graalPris&&idx(h.x,h.y)===G.carte.graal){G.graalPris=1;h.arts.push('graal');return{ok:true,graal:true,msg:`${h.nom} déterre le Saint Graal ! Rapportez-le dans l’une de vos villes.`};}
  return{ok:true,msg:'Rien que de la terre et des cailloux…'};}
-function poserGraal(h,v){const k=h.arts.indexOf('graal');if(k<0||v.prop!==h.j||v.bat.graal)return false;h.arts.splice(k,1);v.bat.graal=1;return true;}
+function poserGraal(h,v){const k=h.arts.indexOf('graal');if(k<0||v.prop!==h.j||v.bat.graal)return false;h.arts.splice(k,1);v.bat.graal=1;if(G.opts.victoire===1&&!G.fini){G.fini={gagnant:h.j,graal:1};if(!G.joueurs[h.j].humain&&G.joueurs.some(q=>q.humain))G.fini.defaite=true;}return true;}
 
 // ---------- économie ----------
 function peutPayer(res,cout,n=1){let m=1e9;for(const r in cout)m=Math.min(m,Math.floor((res[r]||0)/(cout[r]*1)));return Math.max(0,Math.min(m,1e9));}
@@ -180,14 +180,19 @@ function batDisponible(v,b){const B=BAT[b];if(v.bat[b])return{ok:false,raison:'D
  return{ok:true};}
 function construire(v,b){const c=batCout(b,v.fac);const p=G.joueurs[v.prop];if(v.construit||!batDisponible(v,b).ok||!aDeQuoi(p.res,c))return false;payer(v.prop,c);v.bat[b]=1;
  v.construit=true;
- if(BAT[b].niv)v.dispo[BAT[b].niv-1]+=Math.floor(CRE[FAC[v.fac].crea[BAT[b].niv-1]].cr);
+ if(BAT[b].niv&&!BAT[b].amel)v.dispo[BAT[b].niv-1]+=Math.floor(CRE[FAC[v.fac].crea[BAT[b].niv-1]].cr);
  if(b.startsWith('guilde')){const h=heroPar(G.hpos[idx(v.x,v.y)]);if(h)apprendreSorts(h,v);}
  return true;}
 // revenu : seul le meilleur bâtiment de la lignée compte
 function revenuVille(v){return revenuVille0(v)+(v.bat.graal?5000:0);}
 function revenuVille0(v){if(v.bat.capitole)return 4000;if(v.bat.hotelville)return 2000;if(v.bat.mairie)return 1000;return 500;}
 function revenusNets(j){return revenus(j);}
-function recruter(v,niv,n,armee){const c=CRE[FAC[v.fac].crea[niv]];const p=G.joueurs[v.prop];n=Math.min(n,v.dispo[niv],peutPayer(p.res,c.cout));if(n<=0)return 0;if(!ajouterTroupe(armee,c.id,n))return 0;payer(v.prop,c.cout,n);v.dispo[niv]-=n;return n;}
+// créature recrutable au niveau niv (version améliorée si l'habitation est améliorée et que l'on ne demande pas la version de base)
+function creNiv(v,niv,base){const id=FAC[v.fac].crea[niv];return!base&&v.bat['hab'+(niv+1)+'u']&&CRE[id].amelio?CRE[id].amelio:id;}
+function prixAmelioration(c,n){const u=CRE[CRE[c].amelio];if(!u)return null;const p={};for(const r of new Set(Object.keys(u.cout).concat(Object.keys(CRE[c].cout))))p[r]=Math.max(0,((u.cout[r]||0)-(CRE[c].cout[r]||0))*n);return p;}
+function ameliorerPile(v,armee,k){const s=armee[k];if(!s)return false;const C=CRE[s.c];if(!C.amelio||C.fac!==v.fac)return false;const niv=C.niv;if(!v.bat['hab'+niv+'u'])return false;const p=prixAmelioration(s.c,s.n);if(!aDeQuoi(G.joueurs[v.prop].res,p))return false;payer(v.prop,p);
+ const autre=armee.findIndex((x,i)=>i!==k&&x&&x.c===C.amelio);if(autre>=0){armee[autre].n+=s.n;armee[k]=null;}else s.c=C.amelio;return true;}
+function recruter(v,niv,n,armee,base){const c=CRE[creNiv(v,niv,base)];const p=G.joueurs[v.prop];n=Math.min(n,v.dispo[niv],peutPayer(p.res,c.cout));if(n<=0)return 0;if(!ajouterTroupe(armee,c.id,n))return 0;payer(v.prop,c.cout,n);v.dispo[niv]-=n;return n;}
 function apprendreSorts(h,v){const maxN=h.comp.sagesse?3:2;for(let n=1;n<=3;n++)if(v.bat['guilde'+n]&&n<=maxN)for(const s of v.guilde[n])if(!h.sorts.includes(s))h.sorts.push(s);}
 function tauxMarche(j){const k=villesDe(j).filter(v=>v.bat.marche).length;return Math.max(1.3,2.8-.35*(k-1));}
 function echanger(j,de,vers,nVers){const f=tauxMarche(j);const p=G.joueurs[j];let cout;if(vers==='or'){cout=nVers;}else cout=Math.ceil(nVers*RES_VAL[vers]/RES_VAL[de]*(de==='or'?f:f*.8));
@@ -219,9 +224,18 @@ function combatAuto(A,D,opts){const C=creerCombat(A,D,Object.assign({graine:R.i(
 function cotesHeros(h){return{heros:h,armee:h.armee,joueur:h.j};}
 async function combatMonstre(h,m,attaqueParMonstre){const arm=pileMonstre(m);const D={heros:null,armee:arm,joueur:-1,monstre:m};
  // les créatures faibles peuvent fuir ou se joindre — ici elles s'enfuient si l'armée est écrasante
- if(!attaqueParMonstre&&forceArmee(h.armee,h)>forceArmee(arm)*12&&!m.garde&&!m.passage){retirerObjet(m);await HOOK.message(h.j,'Fuite',`Les ${CRE[m.cre].pl.toLowerCase()} s’enfuient devant votre armée !`);return true;}
+ const rap=forceArmee(h.armee,h)/Math.max(1,forceArmee(arm));
+ if(!attaqueParMonstre&&rap>5&&!m.garde&&!m.passage){const C=CRE[m.cre];const place=h.armee.some(s=>!s||s.c===m.cre);
+  // les créatures impressionnées proposent parfois de rejoindre le héros (moyennant leur prix), sinon elles fuient si l'écart est énorme
+  if(!m.refus&&place&&(C.fac===h.fac||C.fac==='neutre'||((m.id*7+G.jour)%3===0))){const prix=Math.round(m.n*C.cout.or*.5);const peut=G.joueurs[h.j].res.or>=prix;
+   const k=await HOOK.choix(h.j,`${qteTxtR(m.n)} ${C.pl.toLowerCase()}`,`Impressionnés par votre armée, les ${C.pl.toLowerCase()} proposent de vous rejoindre pour ${prix} or.`,peut?[`Les engager (${prix} or)`,'Les combattre','Les laisser partir']:['Les combattre','Les laisser partir'],{ia:()=>peut&&h.armee.filter(Boolean).length<6?0:1});
+   const choix=peut?k:k+1;
+   if(choix===0){G.joueurs[h.j].res.or-=prix;ajouterTroupe(h.armee,m.cre,m.n);retirerObjet(m);HOOK.journal(h.j,`${m.n} ${C.pl.toLowerCase()} rejoignent ${h.nom}.`);return true;}
+   if(choix===2){retirerObjet(m);return true;}m.refus=1;}
+  else if(rap>12){retirerObjet(m);await HOOK.message(h.j,'Fuite',`Les ${C.pl.toLowerCase()} s’enfuient devant votre armée !`);return true;}}
  const C=await lancerCombat(cotesHeros(h),D,{terrain:TER[G.carte.ter[idx(m.x,m.y)]]});
  return finCombat(C,h,null,m,null);}
+function qteTxtR(n){return n<5?'Quelques':n<10?'Plusieurs':n<20?'Une bande de':n<50?'Beaucoup de':n<100?'Une horde de':'Une multitude de';}
 function pileMonstre(m){const arm=[null,null,null,null,null,null,null];const n=m.n,piles=Math.min(7,Math.max(1,Math.min(n,n>=60?7:n>=30?5:n>=10?4:n>=4?3:n)));const base=Math.floor(n/piles);let rest=n-base*piles;for(let k=0;k<piles;k++){arm[k]={c:m.cre,n:base+(rest-->0?1:0)};}return arm.filter(Boolean).concat(Array(7-piles).fill(null));}
 async function combatHeros(h,o){const vo=villeSous(o);const C=await lancerCombat(cotesHeros(h),cotesHeros(o),{terrain:TER[G.carte.ter[idx(o.x,o.y)]],siege:vo&&vo.prop===o.j?niveauFort(vo):0,ville:vo&&vo.prop===o.j?vo:null,garnison:vo&&vo.prop===o.j?vo.garn:null});return finCombat(C,h,o,null,vo&&vo.prop===o.j?vo:null);}
 async function assiegerVille(h,v){const def=heroPar(G.hpos[idx(v.x,v.y)]);if(def&&def.j!==h.j)return combatHeros(h,def).then(r=>r&&v.prop!==h.j?capturer(h,v):r);

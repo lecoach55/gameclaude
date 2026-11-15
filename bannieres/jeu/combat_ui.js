@@ -97,9 +97,9 @@ function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(
   g.restore();g.save();g.globalAlpha=al;badgePile(g,q,pos,G2);g.restore();return;}const spr=q.cote===0?spriteCreature(q.c,160):spriteMiroir(q.c,160);g.save();g.globalAlpha=al;
  if(q.n<=0){const r=CB.mortT&&CB.mortT[q.id]!=null?CB.mortT[q.id]:1;const fy=pos.y+G2.h*.28*SQ*ps;g.translate(pos.x,fy);g.rotate((q.cote===0?-1:1)*r*Math.PI/2*.92);g.globalAlpha=1-.4*r;
   g.filter=r>.5?'grayscale(.55) brightness(.75)':'none';g.drawImage(spr,-S/2,-S*.87+G2.h*.28*SQ*0,S,S);g.filter='none';g.restore();return;}
- const actif=CB.C.actif===q;const b=actif?Math.sin(now/160)*2:0;
+ const actif=CB.C.actif===q;const b=actif?Math.sin(now/160)*2:0;const resp=1+Math.sin(now/520+q.id*1.3)*.012;
  const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
- g.drawImage(spr,pos.x-S/2,pos.y-S*.87+G2.h*.28*SQ+b,S,S);
+ g.drawImage(spr,pos.x-S/2,pos.y-S*.87*resp+G2.h*.28*SQ+b,S,S*resp);
  if(fl){g.globalCompositeOperation='lighter';g.globalAlpha=.5*(1-(now-fl.t0)/fl.d);g.drawImage(spr,pos.x-S/2,pos.y-S*.87+G2.h*.28*SQ,S,S);g.globalCompositeOperation='source-over';g.globalAlpha=al;}
  badgePile(g,q,pos,G2);
  g.restore();}

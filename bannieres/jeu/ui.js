@@ -63,7 +63,7 @@ function majAccueil(){let s=null;try{s=localStorage.getItem(CLE_SAUVE);}catch(e)
  if(window.NUAGE)NUAGE.get().then(m=>{if(!m)return;let loc=0;try{loc=+localStorage.getItem(CLE_SAUVE+'-t')||0;}catch(e){}if(m.t>loc+5000){$('bContinuer').style.display='';$('nuageInfo').innerHTML=`☁ Une partie plus récente existe sur un autre appareil (${m.jour?'jour '+m.jour:''}).`;V.nuageMeta=m;}else $('nuageInfo').textContent='☁ Sauvegarde en ligne : active';}).catch(()=>{});}
 
 // ---------- configuration ----------
-var CFG={taille:54,eau:1,monstres:1,difficulte:1,joueurs:[{fac:'bastion',humain:true},{fac:'necro',humain:false}]};
+var CFG={taille:54,eau:1,monstres:1,difficulte:1,victoire:0,joueurs:[{fac:'bastion',humain:true},{fac:'necro',humain:false}]};
 function choixGroupe(id,cle){const el=$(id);el.querySelectorAll('button').forEach(b=>{b.classList.toggle('sel',+b.dataset.v===CFG[cle]);b.onclick=()=>{SON.clic();CFG[cle]=+b.dataset.v;el.querySelectorAll('button').forEach(x=>x.classList.toggle('sel',x===b));};});}
 function majJoueursCfg(){const el=$('cJoueurs');el.innerHTML=CFG.joueurs.map((p,i)=>`<div class="joueur"><div class="pastille" style="background:${COULEURS[i].c}"></div>
  <select data-i="${i}" data-k="fac">${FACS.map(f=>`<option value="${f}" ${p.fac===f?'selected':''}>${FAC[f].nom}</option>`).join('')}<option value="hasard" ${p.fac==='hasard'?'selected':''}>Au hasard</option></select>
@@ -71,7 +71,7 @@ function majJoueursCfg(){const el=$('cJoueurs');el.innerHTML=CFG.joueurs.map((p,
  ${i>=2?`<button class="x" data-x="${i}">✕</button>`:'<span></span>'}</div>`).join('')+`<div style="font-size:13px;color:#c9b38a;text-align:center">${FAC[CFG.joueurs[0].fac]?FAC[CFG.joueurs[0].fac].desc:''}</div>`;
  el.querySelectorAll('select').forEach(s=>s.onchange=()=>{const p=CFG.joueurs[+s.dataset.i];if(s.dataset.k==='fac')p.fac=s.value;else p.humain=s.value==='1';majJoueursCfg();});
  el.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{CFG.joueurs.splice(+b.dataset.x,1);majJoueursCfg();});$('cAjout').style.display=CFG.joueurs.length>=4?'none':'';}
-function ouvrirConfig(){choixGroupe('cTaille','taille');choixGroupe('cEau','eau');choixGroupe('cMonstres','monstres');choixGroupe('cDif','difficulte');majJoueursCfg();ecran('config');}
+function ouvrirConfig(){choixGroupe('cTaille','taille');choixGroupe('cEau','eau');choixGroupe('cMonstres','monstres');choixGroupe('cDif','difficulte');choixGroupe('cVict','victoire');majJoueursCfg();ecran('config');}
 
 // ---------- démarrage ----------
 function demarrer(opts){ecran('generation');$('genMsg').textContent='Le cartographe trace des terres inconnues…';
@@ -105,7 +105,7 @@ async function debutTour(premier){const p=G.joueurs[G.courant];V.chemin=null;ban
 function finTour(){if(V.occupe&&G.joueurs[G.courant].humain)return;V.chemin=null;const avant=G.jour;finTourJoueur();if(G.jour!==avant)V.nouveauJour=true;V.fogDirty=true;V.miniDirty=true;setTimeout(()=>debutTour(false),20);}
 async function finPartie(){V.occupe=true;bandeau(null);const g=G.fini;const p=G.joueurs[g.gagnant];const gagne=p&&p.humain&&!g.defaite;try{localStorage.removeItem(CLE_SAUVE);}catch(e){}
  gagne?SON.fanfare():SON.defaite();
- await fenetre(`<h2>${gagne?'Victoire !':'Défaite…'}</h2><p>${gagne?`Toutes les bannières rivales sont tombées. ${p.nom} règne sur ces terres depuis ${dateTxt().toLowerCase()}.`:`${p?p.nom:'Un rival'} l’emporte. Vos héros ne sont plus que des légendes.`}</p><p style="font-size:13px">Combats livrés : ${G.stats.combats} · Graine de la carte : ${G.graine}</p>`,[{t:'Retour à l’accueil',or:true}]);
+ await fenetre(`<h2>${gagne?'Victoire !':'Défaite…'}</h2><p>${gagne?(g.graal?`La merveille du Graal s’élève dans votre royaume : ${p.nom} entre dans la légende (${dateTxt().toLowerCase()}).`:`Toutes les bannières rivales sont tombées. ${p.nom} règne sur ces terres depuis ${dateTxt().toLowerCase()}.`):(g.graal?`${p.nom} a bâti la merveille du Graal avant vous.`:`${p?p.nom:'Un rival'} l’emporte. Vos héros ne sont plus que des légendes.`)}</p><p style="font-size:13px">Combats livrés : ${G.stats.combats} · Graine de la carte : ${G.graine}</p>`,[{t:'Retour à l’accueil',or:true}]);
  G=null;ecran('accueil');majAccueil();}
 
 // ---------- panneau d'aventure ----------
@@ -245,7 +245,7 @@ function brancher(){V.mini=$('minicarte');for(const ev of ['pointerdown','pointe
  $('bNouvelle').onclick=()=>{SON.debloquer();SON.clic();ouvrirConfig();};$('bContinuer').onclick=()=>{SON.debloquer();continuer();};$('bAide').onclick=()=>aide();$('bTest').onclick=()=>{SON.debloquer();modeTest();};
  $('cRetour').onclick=()=>ecran('accueil');$('cAjout').onclick=()=>{if(CFG.joueurs.length<4){CFG.joueurs.push({fac:FACS[CFG.joueurs.length%3],humain:false});majJoueursCfg();}};
  $('cDe').onclick=()=>{$('cGraine').value=Math.floor(Math.random()*999999);};
- $('cGo').onclick=()=>{SON.clic();TEST=false;const gr=parseInt($('cGraine').value);demarrer({graine:isNaN(gr)?Math.floor(Math.random()*999999)+1:gr,taille:CFG.taille,eau:CFG.eau,monstres:CFG.monstres,difficulte:CFG.difficulte,joueurs:CFG.joueurs.map(p=>Object.assign({},p))});};
+ $('cGo').onclick=()=>{SON.clic();TEST=false;const gr=parseInt($('cGraine').value);demarrer({graine:isNaN(gr)?Math.floor(Math.random()*999999)+1:gr,taille:CFG.taille,eau:CFG.eau,monstres:CFG.monstres,difficulte:CFG.difficulte,victoire:CFG.victoire,joueurs:CFG.joueurs.map(p=>Object.assign({},p))});};
  $('bHeroSuiv').onclick=()=>heroSuivant();$('bFiche').onclick=()=>{const h=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):herosDe(G.courant)[0];if(h)ouvrirFiche(h);};
  $('bVille').onclick=()=>{const v=V.sel&&V.sel.t==='ville'?G.oi[V.sel.id]:villesDe(G.courant)[0];if(v)ouvrirVille(v);else toast('Vous n’avez plus de ville !');};
  $('bBouger').onclick=()=>avancer();$('bFinTour').onclick=()=>{SON.clic();const reste=herosDe(G.courant).filter(h=>h.mp>200);if(reste.length&&!V.avertiFin){V.avertiFin=true;toast(`Encore du mouvement pour ${reste.map(h=>h.nom).join(', ')} — touchez ⌛ à nouveau pour finir le tour.`,2600);setTimeout(()=>V.avertiFin=false,2600);return;}V.avertiFin=false;finTour();};

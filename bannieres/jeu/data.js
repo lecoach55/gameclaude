@@ -57,6 +57,32 @@ var CRE={
  troll:{nom:'Troll',pl:'Trolls',fac:'neutre',niv:5,pv:40,att:14,def:7,dmin:10,dmax:15,vit:7,sp:['regen'],cr:3,cout:{or:500},d:{t:'hum',gros:1,peau:'#6f8f8a',tun:'#5a4632',arme:'massue'}},
  wyverne:{nom:'Wyverne',pl:'Wyvernes',fac:'neutre',niv:6,pv:70,att:14,def:14,dmin:14,dmax:18,vit:7,vol:1,sp:['poison'],cr:2,cout:{or:800},d:{t:'dragon',corps:'#8a6a2f',ventre:'#d8b46a',aile:'#6a4a20',petit:1}},
 };
+// ---------- créatures améliorées (habitations améliorées des villes) ----------
+var AMEL={
+ piquier:['Hallebardier','Hallebardiers',{att:2,def:1,pv:2,dmin:1,dmax:0,vit:1},{tun:'#24488a',arm:'#d0d8e0',casque:2,arme:'hache'},75],
+ archer:['Arbalétrier','Arbalétriers',{att:1,def:2,pv:2,dmin:1,dmax:1,vit:1},{tun:'#24602a',capuche:'#c9a040',arme:'arc'},140,['doubletir']],
+ griffon:['Griffon royal','Griffons royaux',{att:1,def:1,pv:5,dmin:0,dmax:0,vit:3},{corps:'#d8a840',tete:'#ffffff',aile:'#8a5a20'},240],
+ croise:['Paladin','Paladins',{att:2,def:2,pv:5,dmin:1,dmax:1,vit:1},{tun:'#3d64b0',arm:'#e8c860',bouclier:'#3d64b0',croix:'#f0d070'},400],
+ moine:['Zélote','Zélotes',{att:0,def:3,pv:0,dmin:0,dmax:0,vit:2},{robe:'#e8dcc0',capuche:'#c9a040',orbe:'#ffffff'},450],
+ cavalier:['Champion','Champions',{att:1,def:1,pv:0,dmin:0,dmax:0,vit:2},{cheval:'#6a4a2a',arm:'#e8c860',tun:'#b02a2a'},1200],
+ ange:['Archange','Archanges',{att:10,def:10,pv:50,dmin:0,dmax:0,vit:6},{robe:'#fff4c8',aile:'#ffe9a8',cheveux:'#ff9a3a'},5000],
+ centaure:['Capitaine centaure','Capitaines centaures',{att:1,def:1,pv:2,dmin:0,dmax:0,vit:2},{corps:'#6a4422',tun:'#2f6a24'},90],
+ nain:['Nain de bataille','Nains de bataille',{att:1,def:0,pv:0,dmin:1,dmax:1,vit:2},{tun:'#5a2a6a',barbe:'#e8d090',arm:'#d0d4d8'},150],
+ elfe:['Grand elfe','Grands elfes',{att:0,def:1,pv:0,dmin:0,dmax:0,vit:1},{tun:'#1f6a8a',cheveux:'#ffffff'},275,['doubletir']],
+ pegase:['Pégase d’argent','Pégases d’argent',{att:0,def:2,pv:0,dmin:0,dmax:0,vit:4},{corps:'#d8e4f4',crin:'#8aa8e0',aile:'#d0e0ff'},275],
+ treant:['Tréant ancien','Tréants anciens',{att:0,def:0,pv:10,dmin:0,dmax:0,vit:1},{ecorce:'#4a3420',feuille:'#2f6a1e'},425],
+ licorne:['Licorne de guerre','Licornes de guerre',{att:0,def:0,pv:20,dmin:0,dmax:0,vit:2},{crin:'#7a5aff',corne:'#9ae8ff'},950],
+ dragonvert:['Dragon d’émeraude','Dragons d’émeraude',{att:9,def:9,pv:70,dmin:0,dmax:0,vit:3},{corps:'#1f9a6a',ventre:'#f0e090',aile:'#1a6a4a'},4000,null,{cristal:2}],
+ squelette:['Squelette guerrier','Squelettes guerriers',{att:1,def:2,pv:0,dmin:0,dmax:0,vit:1},{os:'#f4ecd4',bouclier:'#8a2a2a'},70],
+ zombie:['Zombie putride','Zombies putrides',{att:0,def:0,pv:5,dmin:0,dmax:0,vit:1},{peau:'#6a8a5a',tun:'#3a2a3a'},125],
+ spectre:['Spectre hurlant','Spectres hurlants',{att:2,def:2,pv:2,dmin:0,dmax:0,vit:2},{robe:'#b8e0e8',yeux:'#ff9af0'},230],
+ vampire:['Seigneur vampire','Seigneurs vampires',{att:0,def:1,pv:10,dmin:0,dmax:2,vit:3},{tun:'#3a0a14',cape:'#d01a2a'},500],
+ liche:['Archiliche','Archiliches',{att:1,def:2,pv:10,dmin:0,dmax:2,vit:1},{robe:'#1a3a2a',capuche:'#0a2a1a',orbe:'#ff6af0'},650],
+ chevnoir:['Chevalier de l’effroi','Chevaliers de l’effroi',{att:2,def:2,pv:0,dmin:0,dmax:0,vit:2},{cheval:'#0a0a12',tun:'#3a0a5a',yeux:'#9ad8ff'},1500],
+ dragonos:['Dragon spectral','Dragons spectraux',{att:8,def:7,pv:50,dmin:0,dmax:0,vit:5},{corps:'#c8e8e0',ventre:'#8ac8c0',aile:'#3a6a6a'},3000,null,{mercure:1}],
+};
+for(const b in AMEL){const [nom,pl,bo,dd,or,sp,rare]=AMEL[b];const B=CRE[b];const u=JSON.parse(JSON.stringify(B));u.nom=nom;u.pl=pl;for(const k in bo)u[k]+=bo[k];u.dmax=Math.max(u.dmax,u.dmin);u.cout=Object.assign({or},rare||{});if(B.cout.gemmes)u.cout.gemmes=B.cout.gemmes+1;
+ u.d=Object.assign({},B.d,dd);if(sp)u.sp=Array.from(new Set((u.sp||[]).concat(sp)));u.base=b;u.amel=1;CRE[b+'2']=u;B.amelio=b+'2';}
 for(const k in CRE){const c=CRE[k];c.id=k;c.sp=c.sp||[];c.val=c.cout.or+500*Object.keys(c.cout).filter(r=>r!=='or').reduce((s,r)=>s+c.cout[r],0);if(c.tirs)c.val=Math.round(c.val*1.1);}
 var CRE_NEUTRES=['gobelin','loup','orque','troll','wyverne'];
 var CAP_NOM={riposte2:'Riposte deux fois',charge:'Charge (+5 % dégâts par case parcourue)',moral:'+1 moral à l’armée',resmagie:'Résiste à 40 % des sorts',doubletir:'Tire deux fois',entrave:'Entrave la cible (vitesse −2)',souffle:'Souffle : frappe aussi la case derrière',mort:'Mort-vivant (moral neutre)',sansriposte:'Attaque sans riposte',drain:'Draine la vie (ressuscite les siens)',malefice:'25 % de chance de dégâts doublés',peur:'−1 moral à l’ennemi',regen:'Se régénère à chaque tour',poison:'Empoisonne (−10 % PV max)'};
@@ -99,10 +125,17 @@ var BAT={
  hab5:{cout:{or:3000,bois:5,minerai:5,rare:5},req:['hab3','guilde1'],niv:5},
  hab6:{cout:{or:4000,bois:10,minerai:10,rare:10},req:['hab4'],niv:6},
  hab7:{cout:{or:8000,minerai:10,rare:15},req:['hab5','hab6','citadelle'],niv:7},
+ hab1u:{cout:{or:400,bois:5},req:['hab1'],niv:1,amel:1},
+ hab2u:{cout:{or:1000,bois:5,minerai:5},req:['hab2','marche'],niv:2,amel:1},
+ hab3u:{cout:{or:1200,minerai:5,rare:2},req:['hab3'],niv:3,amel:1},
+ hab4u:{cout:{or:2000,bois:5,minerai:5,rare:5},req:['hab4','guilde1'],niv:4,amel:1},
+ hab5u:{cout:{or:3000,bois:5,minerai:5,rare:5},req:['hab5'],niv:5,amel:1},
+ hab6u:{cout:{or:4000,bois:5,minerai:5,rare:10},req:['hab6','citadelle'],niv:6,amel:1},
+ hab7u:{cout:{or:15000,minerai:10,rare:20},req:['hab7','chateau'],niv:7,amel:1},
 };
-var BAT_ORDRE=['conseil','mairie','hotelville','capitole','fort','citadelle','chateau','taverne','marche','silo','guilde1','guilde2','guilde3','hab1','hab2','hab3','hab4','hab5','hab6','hab7'];
+var BAT_ORDRE=['conseil','mairie','hotelville','capitole','fort','citadelle','chateau','taverne','marche','silo','guilde1','guilde2','guilde3','hab1','hab1u','hab2','hab2u','hab3','hab3u','hab4','hab4u','hab5','hab5u','hab6','hab6u','hab7','hab7u'];
 var GRAAL_NOM={bastion:'Colosse de lumière',sylve:'Arbre-monde',necro:'Sceau des ténèbres'};
-function batNom(b,fac){if(b==='graal')return GRAAL_NOM[fac];return BAT[b].niv?FAC[fac].hab[BAT[b].niv-1]:BAT[b].nom;}
+function batNom(b,fac){if(b==='graal')return GRAAL_NOM[fac];if(BAT[b].amel)return'Amélioration : '+FAC[fac].hab[BAT[b].niv-1].toLowerCase();return BAT[b].niv?FAC[fac].hab[BAT[b].niv-1]:BAT[b].nom;}
 function batCout(b,fac){const c={};for(const r in BAT[b].cout){const k=r==='rare'?FAC[fac].rare:r;c[k]=(c[k]||0)+BAT[b].cout[r];}return c;}
 
 // ---------- sorts ----------

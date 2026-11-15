@@ -92,3 +92,5 @@ var TRAITS={
 };
 var BLESSURES=[{n:'Coupure à l\'arcade',s:[2,3]},{n:'Côte fêlée',s:[3,6]},{n:'Main fracturée',s:[5,9]},{n:'Entorse du genou',s:[4,8]},{n:'Épaule luxée',s:[6,10]},{n:'Commotion',s:[4,7]},{n:'Ligament croisé',s:[18,30],grave:1},{n:'Hernie discale',s:[10,16],grave:1}];
 if(typeof module!=='undefined'){module.exports.TRAITS=TRAITS;module.exports.BLESSURES=BLESSURES;}
+var CLANS=['Team Atlas','Kombat Factory','Les Loups de Lyon','Iron Academy','Phoenix MMA','Tiger Camp','Red Wolves','Bastion Fight Club','Cobra Kai Paris','Nordic Warriors','Black Lotus','Titan Training Center','Gracie Rio Norte','Sambo Club Makhach','Desert Fight Lab','Kings Gym','Alpha Combat','Spartans MMA','Golden Glove','Ronin Dojo','Thunder Camp','Montagne Noire','Crossfire Elite','Shadow Gym','Marseille Fight Club','Lille Combat','Nantes Grappling','Bordeaux Boxing Club'];
+if(typeof module!=='undefined')module.exports.CLANS=CLANS;

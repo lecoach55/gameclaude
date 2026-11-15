@@ -1,0 +1,50 @@
+{
+ "1|explo F2": {
+  "ms": 296,
+  "calls": 91,
+  "tris": 104756,
+  "prog": 51,
+  "geo": 61,
+  "tex": 48
+ },
+ "1|explo F6": {
+  "ms": 265.4,
+  "calls": 90,
+  "tris": 110102,
+  "prog": 51,
+  "geo": 64,
+  "tex": 51
+ },
+ "1|explo F10": {
+  "ms": 283.6,
+  "calls": 112,
+  "tris": 118551,
+  "prog": 51,
+  "geo": 61,
+  "tex": 52
+ },
+ "1|explo F14": {
+  "ms": 303.3,
+  "calls": 119,
+  "tris": 125328,
+  "prog": 56,
+  "geo": 82,
+  "tex": 53
+ },
+ "1|combat F6": {
+  "ms": 335,
+  "calls": 120,
+  "tris": 116748,
+  "prog": 101,
+  "geo": 103,
+  "tex": 70
+ },
+ "1|boss F8": {
+  "ms": 351.8,
+  "calls": 184,
+  "tris": 114248,
+  "prog": 104,
+  "geo": 171,
+  "tex": 87
+ }
+}

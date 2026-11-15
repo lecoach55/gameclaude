@@ -1,0 +1,17 @@
+const fs=require('fs');let G=[];process.argv.slice(2).forEach(f=>G=G.concat(JSON.parse(fs.readFileSync(f))));
+const n=G.length,q=(a,p)=>{a=[...a].sort((x,y)=>x-y);return a.length?a[Math.min(a.length-1,Math.floor(p*a.length))]:0},avg=a=>a.reduce((s,x)=>s+x,0)/Math.max(1,a.length),pct=x=>(100*x).toFixed(1)+'%';const p=(...a)=>console.log(a.join(' '));
+p(`=== ${n} parties (jusqu'à l'étage 16 ou 160 combats) ===`);
+p('Étage atteint : p10',q(G.map(g=>g.best),.1),'· médiane',q(G.map(g=>g.best),.5),'· p90',q(G.map(g=>g.best),.9),'· murs (6 défaites sur un étage)',G.filter(g=>g.wall).length);
+p('Défaites/partie',avg(G.map(g=>g.wipes)).toFixed(2),'· sans défaite',pct(G.filter(g=>!g.wipes).length/n),'· héros KO/partie',avg(G.map(g=>g.kos)).toFixed(1),'· combats/partie',avg(G.map(g=>g.nb)).toFixed(0));
+const B=G.flatMap(g=>g.battles);const kind=b=>b.boss?'boss':b.e?'élite':'normal';
+['normal','élite','boss'].forEach(k=>{const a=B.filter(b=>kind(b)===k);p(`Combats ${k} : ${a.length} · tours méd. ${q(a.map(b=>b.r),.5)} · défaite ${pct(a.filter(b=>b.res==='lose').length/a.length)} · KO/combat ${avg(a.map(b=>b.ko)).toFixed(2)} · PV min méd. ${pct(q(a.map(b=>b.mh),.5))} · <25 % ${pct(a.filter(b=>b.mh<.25).length/a.length)}`);});
+p('\nÉtage | parties | défaites | combats | tours/combat | KO | potions | niv.');
+const by={};G.forEach(g=>g.floors.forEach(f=>(by[f.f]=by[f.f]||[]).push(f)));
+Object.keys(by).sort((a,b)=>a-b).forEach(k=>{const a=by[k];if(a.length<10)return;p(String(k).padStart(5),'|',String(a.length).padStart(5),'|',avg(a.map(f=>f.w)).toFixed(2),'|',avg(a.map(f=>f.b)).toFixed(1),'|',(avg(a.map(f=>f.r/Math.max(1,f.b)))).toFixed(1),'|',avg(a.map(f=>f.ko)).toFixed(2),'|',avg(a.map(f=>f.pots)).toFixed(1),'|',q(a.map(f=>f.lvl),.5));});
+const bb={};B.filter(b=>b.boss).forEach(b=>(bb[b.f]=bb[b.f]||[]).push(b));Object.keys(bb).forEach(k=>{const a=bb[k];p(`Dragon étage ${k} : ${a.length} combats · victoire ${pct(a.filter(b=>b.res==='win').length/a.length)} · tours méd. ${q(a.map(b=>b.r),.5)}`);});
+const wl=G.flatMap(g=>g.wl),wc={};wl.forEach(w=>{const k=w.boss?'dragon':w.elite?'élite':'groupe normal';wc[k]=(wc[k]||0)+1;});p('\nDéfaites par type :',Object.entries(wc).map(([k,v])=>k+' '+pct(v/Math.max(1,wl.length))).join(' · '));
+const wk={};wl.filter(w=>!w.boss).forEach(w=>w.by.split('+').forEach(k=>wk[k]=(wk[k]||0)+1));p('Ennemis présents lors des défaites hors dragon :',Object.entries(wk).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>k+' '+v).join(' · '));
+const us={};G.forEach(g=>{for(const k in g.use)us[k]=(us[k]||0)+g.use[k];});const tu=Object.values(us).reduce((s,x)=>s+x,0);p('Actions utilisées :',Object.entries(us).sort((a,b)=>b[1]-a[1]).map(([k,v])=>k+' '+pct(v/tu)).join(' · '));
+const dl={};G.forEach(g=>{for(const k in g.dealt)dl[k]=(dl[k]||0)+g.dealt[k];});const td=Object.values(dl).reduce((s,x)=>s+x,0);p('Dégâts par héros :',Object.entries(dl).map(([k,v])=>k+' '+pct(v/td)).join(' · '));
+const it=[0,0,0,0];G.forEach(g=>g.items.forEach((v,i)=>it[i]+=v));p('Objets/partie :',it.map((v,i)=>['commun','magique','rare','légendaire'][i]+' '+(v/n).toFixed(1)).join(' · '),'· or restant',Math.round(avg(G.map(g=>g.gold))));
+p('Rareté moyenne équipée en fin :',avg(G.flatMap(g=>g.eq.flat().filter(r=>r>=0))).toFixed(2));

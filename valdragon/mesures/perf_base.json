@@ -1,0 +1,98 @@
+{
+ "1|explo F2": {
+  "ms": 394.1,
+  "calls": 113,
+  "tris": 292409,
+  "prog": 61,
+  "geo": 52,
+  "tex": 49
+ },
+ "1|explo F6": {
+  "ms": 308.6,
+  "calls": 103,
+  "tris": 315265,
+  "prog": 61,
+  "geo": 55,
+  "tex": 53
+ },
+ "1|explo F10": {
+  "ms": 417.3,
+  "calls": 137,
+  "tris": 367979,
+  "prog": 60,
+  "geo": 61,
+  "tex": 52
+ },
+ "1|explo F14": {
+  "ms": 423.3,
+  "calls": 140,
+  "tris": 366147,
+  "prog": 64,
+  "geo": 59,
+  "tex": 52
+ },
+ "1|combat F6": {
+  "ms": 458.6,
+  "calls": 156,
+  "tris": 219350,
+  "prog": 112,
+  "geo": 98,
+  "tex": 71
+ },
+ "1|boss F8": {
+  "ms": 495.7,
+  "calls": 225,
+  "tris": 203666,
+  "prog": 117,
+  "geo": 162,
+  "tex": 88
+ },
+ "2|explo F2": {
+  "ms": 452.3,
+  "calls": 112,
+  "tris": 292311,
+  "prog": 108,
+  "geo": 50,
+  "tex": 59
+ },
+ "2|explo F6": {
+  "ms": 392.6,
+  "calls": 105,
+  "tris": 315269,
+  "prog": 109,
+  "geo": 54,
+  "tex": 64
+ },
+ "2|explo F10": {
+  "ms": 483.2,
+  "calls": 127,
+  "tris": 360190,
+  "prog": 106,
+  "geo": 61,
+  "tex": 63
+ },
+ "2|explo F14": {
+  "ms": 446.8,
+  "calls": 144,
+  "tris": 366197,
+  "prog": 117,
+  "geo": 76,
+  "tex": 63
+ },
+ "2|combat F6": {
+  "ms": 468.6,
+  "calls": 156,
+  "tris": 219350,
+  "prog": 149,
+  "geo": 96,
+  "tex": 82
+ },
+ "2|boss F8": {
+  "ms": 467,
+  "calls": 226,
+  "tris": 203698,
+  "prog": 157,
+  "geo": 150,
+  "tex": 99
+ }
+}

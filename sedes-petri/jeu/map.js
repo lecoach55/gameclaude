@@ -10,17 +10,30 @@ function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 
 function lerpC(a, b, t) { t = clamp(t, 0, 1); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
 function landPath(ctx) { ctx.beginPath(); for (const poly of LAND) { for (let i = 0; i < poly.length; i += 2) { const [x, y] = proj(poly[i], poly[i + 1]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); } }
 
-function buildMap() {
- const W = MW, H = MH, N = W * H;
+function* buildMapGen() {
+ // construction découpée en tranches (yield) : l'écran d'accueil s'affiche tout de suite,
+ // la carte se termine pendant que le joueur choisit son époque. Résultat identique à l'ancienne version.
+ const W = MW, H = MH, N = W * H, STEP = 24000;
  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
  x.fillStyle = '#fff'; landPath(x); x.fill('nonzero');
  const d = x.getImageData(0, 0, W, H).data; const land = new Uint8Array(N);
  for (let i = 0; i < N; i++) land[i] = d[i * 4 + 3] > 127 ? 1 : 0;
+ // vagues tirées en premier (même ordre de Math.random qu'avant, avant tout écran)
+ const wv = []; let guard = 0; while (wv.length < 34 && guard++ < 4000) { const x = 20 + Math.random() * 960, y = 20 + Math.random() * 760; const k = (y | 0) * W + (x | 0); let ok = !land[k]; for (let dy = -14; dy <= 14 && ok; dy += 7) for (let dx = -18; dx <= 18 && ok; dx += 9) { const kk = ((y + dy) | 0) * W + ((x + dx) | 0); if (kk >= 0 && kk < N && land[kk]) ok = false; } if (ok && !(x < 230 && y < 90)) wv.push([x | 0, y | 0]); } MAP.waves = wv;
+ yield 'terre';
  // composantes
  const comp = new Int32Array(N).fill(-1); const st = new Int32Array(N); let nc = 0;
- for (let i = 0; i < N; i++) if (land[i] && comp[i] < 0) {
+ for (let i = 0; i < N; i++) {
+  if (i % STEP === 0 && i) yield;
+  if (!land[i] || comp[i] >= 0) continue;
   let sp = 0; st[sp++] = i; comp[i] = nc;
-  while (sp) { const k = st[--sp], kx = k % W; const nb = [kx > 0 ? k - 1 : -1, kx < W - 1 ? k + 1 : -1, k - W, k + W]; for (const q of nb) if (q >= 0 && q < N && land[q] && comp[q] < 0) { comp[q] = nc; st[sp++] = q; } }
+  while (sp) {
+   const k = st[--sp], kx = k % W;
+   if (kx > 0 && land[k - 1] && comp[k - 1] < 0) { comp[k - 1] = nc; st[sp++] = k - 1; }
+   if (kx < W - 1 && land[k + 1] && comp[k + 1] < 0) { comp[k + 1] = nc; st[sp++] = k + 1; }
+   if (k >= W && land[k - W] && comp[k - W] < 0) { comp[k - W] = nc; st[sp++] = k - W; }
+   if (k + W < N && land[k + W] && comp[k + W] < 0) { comp[k + W] = nc; st[sp++] = k + W; }
+  }
   nc++;
  }
  const seeds = [];
@@ -39,9 +52,11 @@ function buildMap() {
   const ds = seeds.map(s => { const d = Math.hypot(cx - s.x, cy - s.y); if (d0[s.c] === undefined || d < d0[s.c]) d0[s.c] = d; return d; });
   cellC[gy * GW + gx] = seeds.filter((s, j) => ds[j] <= d0[s.c] + 2 * RR);
  }
+ yield;
  for (let i = 0; i < N; i++) {
-  const px = i % W, py = (i / W) | 0;
+  if (i % STEP === 0 && i) yield;
   if (!land[i]) continue;
+  const px = i % W, py = (i / W) | 0;
   const cm = comp[i], own = byComp[cm], list = own ? cellC[((py / G) | 0) * GW + ((px / G) | 0)] : seeds;
   const wx = px + (fbm(px * 0.017, py * 0.017) - 0.5) * 36, wy = py + (fbm(px * 0.017 + 40, py * 0.017 + 40) - 0.5) * 36;
   let bd = 1e12, bp = -1;
@@ -52,18 +67,21 @@ function buildMap() {
  // adjacence, centres
  const adj = {}; PROVS.forEach(p => adj[p.id] = new Set());
  const sx = new Float64Array(PROVS.length), sy = new Float64Array(PROVS.length), cnt = new Int32Array(PROVS.length);
+ const bl = PROVS.map(() => []);
  for (let i = 0; i < N; i++) {
+  if (i % (STEP * 4) === 0 && i) yield;
   const p = pid[i]; if (p < 0) continue; const px = i % W;
   sx[p] += px; sy[p] += (i / W) | 0; cnt[p]++;
-  if (px < W - 1) { const q = pid[i + 1]; if (q >= 0 && q !== p) { adj[PROVS[p].id].add(PROVS[q].id); adj[PROVS[q].id].add(PROVS[p].id); } }
-  if (i + W < N) { const q = pid[i + W]; if (q >= 0 && q !== p) { adj[PROVS[p].id].add(PROVS[q].id); adj[PROVS[q].id].add(PROVS[p].id); } }
+  const r = px < W - 1 ? pid[i + 1] : p, l = px > 0 ? pid[i - 1] : p, dn = i + W < N ? pid[i + W] : p, up = i >= W ? pid[i - W] : p;
+  if (px < W - 1 && r >= 0 && r !== p) { adj[PROVS[p].id].add(PROVS[r].id); adj[PROVS[r].id].add(PROVS[p].id); }
+  if (i + W < N && dn >= 0 && dn !== p) { adj[PROVS[p].id].add(PROVS[dn].id); adj[PROVS[dn].id].add(PROVS[p].id); }
+  if (r !== p || l !== p || dn !== p || up !== p) bl[p].push(i);
  }
  setAdjacency(adj);
  MAP.cent = PROVS.map((p, i) => cnt[i] ? [sx[i] / cnt[i], sy[i] / cnt[i]] : p.xy[0]);
- const bl = PROVS.map(() => []);
- for (let i = 0; i < N; i++) { const p = pid[i]; if (p < 0) continue; const px = i % W; if ((px < W - 1 && pid[i + 1] !== p) || (px > 0 && pid[i - 1] !== p) || (i + W < N && pid[i + W] !== p) || (i >= W && pid[i - W] !== p)) bl[p].push(i); }
  MAP.bord = bl.map(a => Int32Array.from(a));
  MAP.cnt = Array.from(cnt);
+ yield;
  // mer gravée
  const sc = document.createElement('canvas'); sc.width = W; sc.height = H; const sx2 = sc.getContext('2d');
  const g = sx2.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#b7c4b8'); g.addColorStop(0.5, '#c4ccb8'); g.addColorStop(1, '#b4c1b6');
@@ -72,11 +90,37 @@ function buildMap() {
  const rings = [[22, 'rgba(70,95,100,.10)'], [17, '#c0c9b8'], [13, 'rgba(60,85,95,.16)'], [10, '#bcc6b6'], [7, 'rgba(50,75,85,.22)'], [4.5, '#b9c4b4'], [2.6, 'rgba(40,60,70,.32)']];
  for (const [w, col] of rings) { sx2.lineWidth = w; sx2.strokeStyle = col; landPath(sx2); sx2.stroke(); }
  const sd = sx2.getImageData(0, 0, W, H).data;
- for (let i = 0; i < N; i++) { const n = 0.94 + fbm((i % W) * 0.03, ((i / W) | 0) * 0.03) * 0.1 + (hash2(i % W, (i / W) | 0) - 0.5) * 0.03; sd[i * 4] *= n; sd[i * 4 + 1] *= n; sd[i * 4 + 2] *= n; }
+ yield;
+ for (let i = 0; i < N; i++) {
+  if (i % (STEP * 2) === 0 && i) yield;
+  if (pid[i] >= 0) continue; // la terre recouvre la mer : inutile de bruiter ces pixels
+  const n = 0.94 + fbm((i % W) * 0.03, ((i / W) | 0) * 0.03) * 0.1 + (hash2(i % W, (i / W) | 0) - 0.5) * 0.03; sd[i * 4] *= n; sd[i * 4 + 1] *= n; sd[i * 4 + 2] *= n;
+ }
  MAP.sea = sd; MAP.pid = pid; MAP.tex = tex;
- const wv = []; let guard = 0; while (wv.length < 34 && guard++ < 4000) { const x = 20 + Math.random() * 960, y = 20 + Math.random() * 760; const k = (y | 0) * W + (x | 0); let ok = !land[k]; for (let dy = -14; dy <= 14 && ok; dy += 7) for (let dx = -18; dx <= 18 && ok; dx += 9) { const kk = ((y + dy) | 0) * W + ((x + dx) | 0); if (kk >= 0 && kk < N && land[kk]) ok = false; } if (ok && !(x < 230 && y < 90)) wv.push([x | 0, y | 0]); } MAP.waves = wv;
  const cv = document.getElementById('map'); MAP.ctx = cv.getContext('2d'); MAP.img = MAP.ctx.createImageData(W, H);
  MAP.ready = true;
+}
+// termine la carte tout de suite (avant de commencer une partie : le moteur a besoin des voisinages)
+function mapPret() {
+ if (MAP.ready) return;
+ if (!MAP.gen) MAP.gen = buildMapGen();
+ const t0 = performance.now();
+ try { while (!MAP.gen.next().done); } catch (e) { console.error(e); MAP.gen = null; if (typeof PADJ === 'undefined' || !PADJ) computeFallbackAdj(); }
+ window.__tCarteFin = performance.now() - t0;
+}
+function buildMap() { MAP.gen = null; MAP.ready = false; mapPret(); }
+// construction en arrière-plan, par tranches de ~12 ms
+function mapEnFond(fini) {
+ if (!MAP.gen) MAP.gen = buildMapGen();
+ const pas = () => {
+  if (MAP.ready || !MAP.gen) { fini && fini(); return; }
+  const t0 = performance.now();
+  try { while (performance.now() - t0 < 12) if (MAP.gen.next().done) break; } catch (e) { console.error(e); MAP.gen = null; computeFallbackAdj(); }
+  window.__tCarteCpu = (window.__tCarteCpu || 0) + performance.now() - t0;
+  if (MAP.ready || !MAP.gen) { fini && fini(); return; }
+  setTimeout(pas, 0);
+ };
+ pas();
 }
 
 const MODES = [['royaumes', 'Royaumes'], ['relations', 'Relations'], ['ferveur', 'Ferveur'], ['heresie', 'Hérésie'], ['investitures', 'Investitures'], ['religions', 'Religions']];

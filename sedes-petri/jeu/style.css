@@ -460,3 +460,22 @@ h4{font-size:12px;letter-spacing:.12em;color:var(--ink2);margin:10px 0 6px;text-
 
 @media (max-width:900px){.tb-r [data-music],.tb-r [data-sound],.tb-r [data-guide],.tb-r [data-bug]{display:none}}
 .lg-ends{gap:10px}
+
+/* v13 : onglets tous visibles sur téléphone */
+#tabs i{font-style:normal}#tabs .ts{display:none}
+@media (max-width:520px){
+ #tabs{gap:1px;padding:4px 3px}
+ #tabs button{flex:1 1 0;min-width:0;padding:4px 0;font-size:9.5px;letter-spacing:-.2px;white-space:nowrap}
+ #tabs button svg{width:19px;height:19px}
+ #tabs .tl{display:none}#tabs .ts{display:inline}
+}
+/* v13 : les 7 jauges visibles d'un coup sur téléphone (grille 4 + 3) */
+@media (max-width:520px){
+ #top{gap:6px;padding:0 6px}
+ .tb-date b{font-size:17px}.tb-date span{font-size:11px}
+ .tb-s{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;overflow:visible;padding:0}
+ .tb-s .chip{padding:1px 4px 1px 3px;gap:3px;border-radius:6px;min-width:0}
+ .tb-s .chip .ci svg{width:16px;height:16px}
+ .tb-s .chip b{font-size:13px}
+ .tb-s .chip small{display:none}
+}

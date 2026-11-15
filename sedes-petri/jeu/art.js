@@ -293,6 +293,7 @@ function romePanorama() {
 
 /* ---------- Icônes ---------- */
 const ICON = {
+ crown: '<svg viewBox="0 0 24 24"><path d="M4 18L3 8l5 4 4-7 4 7 5-4-1 10Z" fill="#e2b53e" stroke="#6b4a10" stroke-width="1.4" stroke-linejoin="round"/><path d="M4.5 20.5h15" stroke="#6b4a10" stroke-width="2"/><circle cx="12" cy="14" r="1.6" fill="#a8322a"/></svg>',
  coin: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#e2b53e" stroke="#6b4a10" stroke-width="1.5"/><circle cx="12" cy="12" r="5.5" fill="none" stroke="#6b4a10" stroke-width="1"/><path d="M12 8v8M9 12h6" stroke="#6b4a10" stroke-width="1.4"/></svg>',
  auth: '<svg viewBox="0 0 24 24"><path d="M12 21C7 21 6.5 15 7 11C7.6 6 10 3 12 2.5C14 3 16.4 6 17 11C17.5 15 17 21 12 21Z" fill="#f6efdc" stroke="#8a6a20" stroke-width="1.2"/><path d="M7.4 17Q12 18.6 16.6 17M7.2 13Q12 14.6 16.8 13M8.4 9Q12 10.2 15.6 9" stroke="#e2b53e" stroke-width="1.6" fill="none"/></svg>',
  fervor: '<svg viewBox="0 0 24 24"><rect x="9.5" y="11" width="5" height="11" rx="1" fill="#f3ead2" stroke="#8a6a20"/><path d="M12 2C15 6 15.5 8.5 12 10.5C8.5 8.5 9 6 12 2Z" fill="#f0a030" stroke="#a04010" stroke-width=".8"/></svg>',

@@ -50,9 +50,12 @@ function hofAdd() { try { const h = hof(); h.push({ s: S.scen, g: glory(), p: S.
 function boot() {
  $('#ldArms').innerHTML = papalArms(110);
  setTimeout(() => {
-  const t0 = performance.now(); try { buildMap(); } catch (e) { console.error(e); computeFallbackAdj(); } window.__tCarte = performance.now() - t0;
+  const t0 = performance.now();
+  try { MAP.gen = buildMapGen(); MAP.gen.next(); } catch (e) { console.error(e); MAP.gen = null; computeFallbackAdj(); } // terre + vagues
   $('#loading').classList.add('gone'); setTimeout(() => $('#loading').hidden = true, 600);
   startScreen();
+  // le reste de la carte se construit pendant que le joueur lit l'accueil
+  setTimeout(() => mapEnFond(() => { window.__tCarte = (window.__tCarteCpu || 0) + (window.__tCarteFin || 0); window.__tCartePrete = performance.now() - t0; }), 30);
  }, 60);
  document.addEventListener('click', onClick);
  document.addEventListener('change', onChange);
@@ -114,6 +117,7 @@ async function modeTest() {
  modal(`<div class="rep"><h2>🧪 Mesures de cet appareil</h2><p class="mut">${esc(r.gpu)} · écran ${r.ecran}</p>${r.res.map(x => `<div class="brow"><span>${x.scene}</span><b>${x.fps || '—'} img/s</b><b>pire ${x.pire || '—'} ms</b></div>`).join('')}<p class="mut">${r.enregistre ? 'Résultats envoyés : Claude pourra les lire.' : 'Résultats gardés sur cet appareil (envoi impossible ici).'}</p><button class="big" data-new="1">Retour à l’accueil</button></div>`, 'repm');
 }
 function enterGame(fresh) {
+ mapPret();
  $('#start').hidden = true; $('#game').hidden = false; UI.sel = null; UI.tab = 'pontife';
  requestAnimationFrame(() => { mapReset(); renderAll(); if (fresh) showWelcome(); });
 }
@@ -162,10 +166,10 @@ function renderEnd() {
 }
 
 /* ---------- Panneau ---------- */
-const TABS = [['pontife', 'Pontife', 'auth'], ['royaume', 'Royaumes', 'coin'], ['rome', 'Rome', 'rome'], ['curie', 'Curie', 'curia'], ['eglise', 'Église', 'fervor'], ['croisade', 'Croisade', 'army'], ['tresor', 'Trésor', 'coin'], ['chronique', 'Chronique', 'seal']];
+const TABS = [['pontife', 'Pontife', 'auth'], ['royaume', 'Royaumes', 'crown'], ['rome', 'Rome', 'rome'], ['curie', 'Curie', 'curia'], ['eglise', 'Église', 'fervor'], ['croisade', 'Croisade', 'army'], ['tresor', 'Trésor', 'coin'], ['chronique', 'Chronique', 'seal', 'Annales']];
 function renderPanel() {
  const agn = agenda().filter(x => x.l !== 'info').length;
- $('#tabs').innerHTML = TABS.map(([k, n, ic]) => `<button class="${UI.tab === k ? 'on' : ''}" data-tab="${k}"><span>${ICON[ic]}</span>${n}${k === 'pontife' && agn ? `<em class="num">${agn}</em>` : ''}${k === 'croisade' && S.crusade ? '<em>●</em>' : ''}${k === 'eglise' && S.council ? '<em>●</em>' : ''}</button>`).join('');
+ $('#tabs').innerHTML = TABS.map(([k, n, ic, sh]) => `<button class="${UI.tab === k ? 'on' : ''}" data-tab="${k}"><span>${ICON[ic]}</span>${sh ? `<i class="tl">${n}</i><i class="ts">${sh}</i>` : n}${k === 'pontife' && agn ? `<em class="num">${agn}</em>` : ''}${k === 'croisade' && S.crusade ? '<em>●</em>' : ''}${k === 'eglise' && S.council ? '<em>●</em>' : ''}</button>`).join('');
  const f = { pontife: tabPontife, royaume: tabRoyaume, rome: tabRome, curie: tabCurie, eglise: tabEglise, croisade: tabCroisade, tresor: tabTresor, chronique: tabChronique }[UI.tab];
  const body = $('#tabBody'); const sc = body.scrollTop; body.innerHTML = f(); if (UI.keepScroll) body.scrollTop = sc; UI.keepScroll = false;
 }
@@ -460,6 +464,7 @@ function onClick(e) {
  if (d.scen) { START.scen = d.scen; START.name = null; startScreen(); return; }
  if (d.voc) { START.voc = d.voc; startScreen(); return; }
  if (d.diff) { START.diff = +d.diff; startScreen(); return; }
+ if (['stStart', 'stLoad', 'stCloudLoad', 'stTest'].includes(t.id) || d.imp) mapPret();
  if (t.id === 'stStart') { START.fam = ($('#stFam').value || 'de Rome').trim(); newGame(START); audio(); sfx('gold'); enterGame(true); setTimeout(() => toast(`${popeName()} coiffe la tiare. Que votre règne commence !`, 'gold'), 300); return; }
  if (t.id === 'stLoad') { if (loadGame()) enterGame(); return; }
  if (t.id === 'stCloudLoad') { if (UI.cloud && loadFromString(UI.cloud.s)) { saveGame(); enterGame(); toast('Partie reprise depuis votre sauvegarde en ligne.'); } else toast('Sauvegarde en ligne illisible.', 'bad'); return; }

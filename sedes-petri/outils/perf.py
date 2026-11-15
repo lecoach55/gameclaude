@@ -1,5 +1,6 @@
 # Banc reproductible de Sedes Petri : coût de construction de la carte, du rendu et du tour de jeu.
 # usage : python3 perf.py sortie.json [ralenti_cpu=4] [dossier_jeu]
+# chargement_ms = écran d'accueil visible ; carte_prete_ms = carte finie en arrière-plan (depuis la fin du chargement des scripts).
 # ralenti_cpu=4 imite un téléphone milieu de gamme (CDP Emulation.setCPUThrottlingRate).
 import asyncio,json,sys,os
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),'../../outils-communs'))
@@ -20,7 +21,9 @@ async def main():
             await pg.goto(base+'index.html?graine=7')
             await pg.wait_for_function("document.getElementById('start') && !document.getElementById('start').hidden",timeout=120000)
             charge=await pg.evaluate("performance.now()-window.__t0")
+            await pg.wait_for_function("typeof MAP!==\"undefined\" && MAP.ready",timeout=120000)
             carte=await pg.evaluate("window.__tCarte||null")
+            prete=await pg.evaluate("window.__tCartePrete||null")
             await pg.click('#stStart'); await pg.wait_for_timeout(800)
             r=await pg.evaluate("""()=>{const t=[];const modes=['relations','ferveur','heresie','royaumes'];
               for(let i=0;i<8;i++){MAP.mode=modes[i%4];MAP.lastKey=null;const a=performance.now();renderAll();t.push(performance.now()-a);}
@@ -28,7 +31,7 @@ async def main():
               const t3=[];for(let i=0;i<12;i++){const a=performance.now();endSeason();t3.push(performance.now()-a);S.events=[];if(S.pendingConclave){const cv=conclaveSetup();while(!cv.done)conclaveRound(cv);electPope(cv,'Pie');}}
               const m=a=>+(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1);
               return {rendu_carte_ms:m(t),rendu_sans_carte_ms:m(t2),tour_moteur_ms:m(t3),taille_sauvegarde_ko:Math.round(JSON.stringify(S).length/1024)};}""")
-            res[nom]=dict(chargement_ms=round(charge),construction_carte_ms=carte and round(carte),**r,erreurs=err)
+            res[nom]=dict(chargement_ms=round(charge),construction_carte_ms=carte and round(carte),carte_prete_ms=prete and round(prete),**r,erreurs=err)
             await pg.close()
         await nav.close()
     json.dump(res,open(OUT,'w'),indent=1,ensure_ascii=False); print(json.dumps(res,indent=1,ensure_ascii=False))

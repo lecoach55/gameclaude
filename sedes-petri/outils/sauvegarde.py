@@ -20,6 +20,8 @@ async def main():
         y1 = await pg.evaluate("dateStr()+' '+S.treasury")
         await pg.reload(); await pg.wait_for_timeout(2500)
         await pg.click('#stLoad'); await pg.wait_for_timeout(800)
+        # v15 : la reprise affiche « Où en étions-nous ? » : on le referme
+        await pg.wait_for_selector('#modal [data-close]', timeout=5000); await pg.click('#modal [data-close]'); await pg.wait_for_timeout(300)
         y2 = await pg.evaluate("dateStr()+' '+S.treasury")
         await pg.evaluate("UI.warned=true"); await pg.click('#endTurn'); await pg.wait_for_timeout(2500)
         print(y1, '|', y2, errs); await b.close()

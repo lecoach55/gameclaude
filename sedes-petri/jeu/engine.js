@@ -671,7 +671,7 @@ function updateWars() {
    if (Rr.relig !== Rn.relig) agg += 1;
    if ((r === 'turcs' && n === 'byzance') || (r === 'egypte' && n === 'outremer') || (['castille', 'aragon', 'portugal'].includes(r) && ['andalus', 'maghreb'].includes(n))) agg += 1.5;
    if (isCath(r) && isCath(n) && S.decrees.includes('treve')) agg *= 0.7;
-   if (chance(0.05 * agg)) { S.wars.push({ a: r, b: n, score: 0, t: 0, max: ri(4, 11) }); log(`Guerre : ${leR(r)} attaque ${leR(n)}.`, 'war'); break; }
+   if (chance(0.05 * agg)) { S.wars.push({ a: r, b: n, score: 0, t: 0, max: ri(4, 11) }); log(`Guerre : ${leR(r)} ${/^les /i.test(leR(r)) ? 'attaquent' : 'attaque'} ${leR(n)}.`, 'war'); break; }
   }
  }
 }

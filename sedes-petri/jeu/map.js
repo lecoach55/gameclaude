@@ -234,6 +234,8 @@ function renderOverlay() {
   const [bx, by] = q(fr);
   s += `<path class="crpath" d="M${o[0]} ${o[1]}Q${mx} ${my} ${tgt[0]} ${tgt[1]}" fill="none" stroke="#b3242b" stroke-width="3" stroke-dasharray="7 5"/><circle cx="${tgt[0]}" cy="${tgt[1]}" r="9" fill="none" stroke="#b3242b" stroke-width="2.5" class="pulse"/><g transform="translate(${bx} ${by})"><path d="M0 0V-26" stroke="#3a2410" stroke-width="2"/><path d="M0 -26H18L14 -20L18 -14H0Z" fill="#f3efe4" stroke="#3a2410"/><path d="M6 -24H9V-16H6ZM3.5 -21.5H11.5V-18.5H3.5Z" fill="#b3242b"/></g>`;
  }
+ // provinces qui ont changé de mains cette saison
+ if (UI.chg && UI.chg.k === S.year * 4 + S.season) for (const x of UI.chg.l) { const i = PROVS.findIndex(p => p.id === x.p); const c = MAP.cent[i]; if (!c) continue; s += `<g class="chg" transform="translate(${c[0].toFixed(1)} ${c[1].toFixed(1)})"><circle r="12" class="chg-p" fill="none" stroke="#b3242b" stroke-width="3"/><circle r="7" fill="#fff6dc" stroke="#1d140c" stroke-width="1.6"/><circle r="4" fill="${REALMS[x.b].c}" stroke="#1d140c" stroke-width=".8"/><title>${PROV[x.p].n} : passe à ${rname(x.b)}</title></g>`; }
  // villes
  for (const r of realmIds()) { if (r === 'etats' || !active(r)) continue; const cp = capOf(r); if (!cp) continue; const i = PROVS.findIndex(p => p.id === cp); const [x, y] = PROV[cp].xy[0]; s += `<g class="city"><use href="#i-tower" x="${x - 4}" y="${y - 4}" width="8" height="8"/><text x="${x + 6}" y="${y + 3}">${PROV[cp].city}</text></g>`; }
  const [rx, ry] = ptLL(41.9, 12.5); s += `<use href="#i-keys" x="${rx - 11}" y="${ry - 11}" width="22" height="22" class="rome-key"><title>Rome</title></use>`;

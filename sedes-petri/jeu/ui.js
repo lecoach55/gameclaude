@@ -46,8 +46,12 @@ function stopMusic() { if (!MUS) return; clearTimeout(MUS.timer); MUS.dr.forEach
 function hof() { try { return JSON.parse(localStorage.getItem('sp_hof') || '[]'); } catch (e) { return []; } }
 function hofAdd() { try { const h = hof(); h.push({ s: S.scen, g: glory(), p: S.popes.length + 1, y: S.year, a: Object.keys(S.ach).length, r: S.over.reason, f: popeName() }); h.sort((a, b) => b.g - a.g); localStorage.setItem('sp_hof', JSON.stringify(h.slice(0, 10))); } catch (e) { } }
 
+/* ---------- v15 : taille du texte (panneau et fenêtres) ---------- */
+function tz() { try { return +(localStorage.getItem('sp_tz') || 1) || 1; } catch (e) { return 1; } }
+function setTz(v) { try { localStorage.setItem('sp_tz', String(v)); } catch (e) { } document.documentElement.style.setProperty('--tz', v); }
 /* ---------- Démarrage ---------- */
 function boot() {
+ document.documentElement.style.setProperty('--tz', tz());
  $('#ldArms').innerHTML = papalArms(110);
  setTimeout(() => {
   const t0 = performance.now();
@@ -328,11 +332,34 @@ function tabTresor() {
   <label class="tog"><input type="checkbox" data-indulg="1" ${S.indulg ? 'checked' : ''} ${S.year < 1095 ? 'disabled' : ''}><span><b>Vendre des indulgences</b><small>${S.year < 1095 ? 'Pas avant les croisades (1095)' : 'Revenus importants, mais corruption +1,2/saison et l’hérésie se nourrit du scandale.'}</small></span></label>`)}
  ${sec('Dette', `<p>Dette : <b>${fmt(S.debt)}</b> marcs · intérêts ${(S.debt * 0.03).toFixed(1)}/saison · au-delà de 1 200, banqueroute${lender() ? ` · prêteurs : ${lender()}` : ''}</p><div class="acts two">${actBtn('emprunt')}${actBtn('rembourser')}</div>`)}`;
 }
+
+/* ---------- v15 : frise des pontificats (Annales) ---------- */
+function frise() {
+ const H = S.hist; if (H.length < 2) return '<p class="mut">La frise se dessinera au fil des saisons.</p>';
+ const x0 = H[0].y, x1 = Math.max(H[H.length - 1].y, x0 + 1), X = y => (y - x0) / (x1 - x0) * 1000, Y = v => 150 - clamp(v, 0, 100) * 1.4;
+ const reg = S.popes.map((p, i) => ({ i, n: p.name, a: p.from, b: p.to, ep: p.sum && p.sum.ep, how: p.how, au: p.auth })).concat([{ i: -1, n: popeName(), a: S.pope.start, b: S.year + S.season / 4, cur: 1 }])
+  .filter(p => p.b >= x0).map(p => ({ ...p, l: Math.max(0, X(p.a)), r: Math.min(1000, X(Math.max(p.b, p.a + 0.25))) }));
+ const line = (k, col, w) => `<polyline points="${H.map(h => X(h.y).toFixed(1) + ',' + Y(h[k] || 0).toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="${w}" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+ const bands = reg.map((p, k) => `<rect x="${p.l.toFixed(1)}" y="0" width="${Math.max(1, p.r - p.l).toFixed(1)}" height="152" fill="${p.cur ? 'rgba(179,36,43,.13)' : k % 2 ? 'rgba(184,137,45,.13)' : 'rgba(120,90,40,.05)'}"/>`).join('');
+ const grid = [25, 50, 75].map(v => `<line x1="0" x2="1000" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(90,58,26,.18)" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`).join('');
+ const decs = []; for (let y = Math.ceil(x0 / 25) * 25; y <= x1; y += 25) decs.push(`<i style="left:${(X(y) / 10).toFixed(2)}%">${y}</i>`);
+ const labels = reg.map(p => `<button class="fr-b${p.cur ? ' cur' : ''}" data-frp="${p.i}" style="left:${(p.l / 10).toFixed(2)}%;width:${((p.r - p.l) / 10).toFixed(2)}%" title="${esc(p.n)}"><span>${p.r - p.l > 70 ? esc(p.n) : ''}</span></button>`).join('');
+ return `<div class="frise"><svg viewBox="0 0 1000 152" preserveAspectRatio="none">${bands}${grid}${line('h', '#e2702a', 1.6)}${line('f', '#2b4f9c', 1.6)}${line('a', '#b8892d', 3)}</svg>${labels}<div class="fr-x">${decs.join('')}</div></div>
+ <div class="lg-sw"><span><i style="background:#b8892d"></i>Autorité</span><span><i style="background:#2b4f9c"></i>Ferveur</span><span><i style="background:#e2702a"></i>Hérésie moyenne</span><span><i style="background:rgba(184,137,45,.5)"></i>Un pontificat</span></div>
+ <div id="frInfo" class="fr-i">${friseInfo(UI.frp == null ? -1 : UI.frp)}</div>`;
+}
+function friseInfo(i) {
+ if (i < 0 || !S.popes[i]) { const yrs = S.year - S.pope.start; return `<b>${popeName()}</b>, pontife régnant depuis ${yrs ? yrs + ' an' + (yrs > 1 ? 's' : '') : 'quelques mois'} · autorité ${Math.round(S.authority)}. <span class="mut">Touchez un pontificat sur la frise.</span>`; }
+ const p = S.popes[i], d = p.sum || {};
+ const bits = [d.cw ? `${d.cw} croisade${d.cw > 1 ? 's' : ''} victorieuse${d.cw > 1 ? 's' : ''}` : '', d.dec ? `${d.dec} décret${d.dec > 1 ? 's' : ''}` : '', d.b ? `${d.b} édifice${d.b > 1 ? 's' : ''}` : '', d.ord ? `${d.ord} ordre${d.ord > 1 ? 's' : ''} approuvé${d.ord > 1 ? 's' : ''}` : '', d.ach && d.ach.length ? 'hauts faits : ' + d.ach.join(', ') : ''].filter(Boolean);
+ return `<b>${p.name}${d.ep ? ' ' + d.ep : ''}</b> (${p.from}–${p.to}) · ${p.how === 'abdication' ? 'abdique' : 'meurt sur le trône'} · autorité finale ${p.auth}${d.a != null ? ` (${sgn(d.a)})` : ''}${bits.length ? '<br>' + bits.join(' · ') : ''}`;
+}
 function tabChronique() {
- const L = S.log.slice(-160).reverse(); let last = ''; let h = '';
- for (const e of L) { const k = e.y + ' ' + e.s; if (k !== last) { h += `<div class="lgh">${SEASONS[e.s]} ${e.y}</div>`; last = k; } h += `<div class="lg ${e.k}">${e.t}</div>`; }
- return `${sec('Courbes du pontificat', `<svg viewBox="0 0 300 90" class="chart">${spark('a', '#b8892d', 90)}${spark('f', '#2b4f9c', 90)}${spark('c', '#7a3a1a', 90)}${spark('h', '#e2702a', 90)}</svg><div class="lg-sw"><span><i style="background:#b8892d"></i>Autorité</span><span><i style="background:#2b4f9c"></i>Ferveur</span><span><i style="background:#7a3a1a"></i>Corruption</span><span><i style="background:#e2702a"></i>Hérésie moyenne</span></div>`)}
- ${sec('Annales', `<div class="annals">${h}</div>`)}
+ const F = { tout: () => true, faits: e => e.k !== 'info', guerres: e => /guerre|paix|bataille|conqu|croisade|siège|assaut/i.test(e.t), eglise: e => /hérés|concile|décret|cardinal|antipape|schisme|ordre|évêque|excommuni|interdit|légat/i.test(e.t) };
+ const f = F[UI.anf] || F.tout; const L = S.log.filter(f).slice(-160).reverse(); let last = ''; let h = '';
+ for (const e of L) { const k = e.y + ' ' + e.s; if (k !== last) { h += `<div class="lgh">${SEASONS[e.s]} ${e.y}</div>`; last = k; } h += lgLine(e); }
+ return `${sec('Frise des pontificats', frise())}
+ ${sec('Annales', `<div class="anf">${[['tout', 'Tout'], ['faits', 'Faits marquants'], ['guerres', 'Guerres'], ['eglise', 'Église']].map(([k, l]) => `<button class="tzb${(UI.anf || 'tout') === k ? ' on' : ''}" data-anf="${k}">${l}</button>`).join('')}</div><div class="annals">${h || '<p class="mut">Rien de tel dans les annales.</p>'}</div>`)}
  ${sec('Archives', `<div class="acts two"><button class="act" data-save="1"><span class="at"><b>Sauvegarder</b></span><span class="ad">Dans ce navigateur (aussi automatique à chaque saison)</span></button><button class="act" data-export="1"><span class="at"><b>Copier un code de partie</b></span><span class="ad">Pour reprendre sur un autre appareil</span></button><button class="act" data-new="1"><span class="at"><b>Nouvelle partie</b></span><span class="ad">Retour à l’écran d’accueil</span></button></div>`)}`;
 }
 
@@ -406,18 +433,44 @@ async function runConclave() {
  electPope(cv, nb.dataset.pname); sfx('gold'); closeModal(); renderAll();
  await runEvents();
 }
+
+/* ---------- v15 : lignes d'annales illustrées (blason + toucher pour situer le royaume) ---------- */
+const RTX = { k: '', re: null, map: null, memo: new Map() };
+function realmPats() {
+ const key = S.year + '|' + realmIds().filter(active).join(',');
+ if (RTX.k === key) return RTX; RTX.k = key; RTX.memo.clear();
+ const esc2 = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); const map = new Map();
+ realmIds().filter(r => r !== 'etats' && active(r)).forEach(r => [mapName(r), mapNameE(r), rname(r)].forEach(x => { if (x && x.length > 3 && !map.has(x.toLowerCase())) map.set(x.toLowerCase(), r); }));
+ const names = [...map.keys()].sort((a, b) => b.length - a.length);
+ RTX.map = map; RTX.re = new RegExp('(?<![\\p{L}])(' + names.map(esc2).join('|') + ')(?![\\p{L}])', 'iu');
+ return RTX;
+}
+// une seule expression pour tous les royaumes, et un mémo par ligne : l'onglet Annales reste rapide
+function realmIn(t) { const P = realmPats(); if (P.memo.has(t)) return P.memo.get(t); const m = P.re.exec(String(t).replace(/<[^>]+>/g, '')); const r = m ? P.map.get(m[1].toLowerCase()) || null : null; P.memo.set(t, r); return r; }
+function lgLine(l) { const r = realmIn(l.t); return r ? `<div class="lg ${l.k} lgr" data-realm="${r}" role="button">${shieldSVG(r, 18)}<span>${l.t}</span></div>` : `<div class="lg ${l.k}">${l.t}</div>`; }
+function frontieres() {
+ const c = UI.chg; if (!c || c.k !== S.year * 4 + S.season || !c.l.length) return '';
+ return `<div class="front"><b>🗺 Frontières</b>${c.l.slice(0, 6).map(x => `<div class="lg lgr bad" data-realm="${x.b}" role="button">${shieldSVG(x.b, 18)}<span><b>${PROV[x.p].n}</b> passe sous l’autorité ${deR(x.b)} (auparavant ${leR(x.a)}).</span></div>`).join('')}${c.l.length > 6 ? `<p class="mut">… et ${c.l.length - 6} autres provinces.</p>` : ''}<p class="mut">Les provinces conquises clignotent sur la carte cette saison.</p></div>`;
+}
 function showReport(rep) {
  const d = rep.d; const ln = rep.lines.filter(l => l.k !== 'info' || rep.lines.length < 14).slice(-18);
  const pill = (n, v, inv) => `<span class="${(inv ? -v : v) >= 0 ? 'pos' : 'neg'}">${n} ${sgn(v)}</span>`;
  if (S.over) return showGameOver();
  if (!ln.length && Math.abs(d.a) < 1) { toast(`${SEASONS[S.season]} ${S.year} : la saison s’ouvre calmement.`); return; }
- modal(`<div class="rep"><div class="eyebrow">Rapport de la Chambre apostolique</div><h2>${SEASONS[S.season]} ${S.year}</h2><div class="deltas">${pill('Trésor', d.t)}${pill('Autorité', d.a)}${pill('Ferveur', d.f)}${pill('Corruption', d.c, 1)}</div><div class="rep-l">${ln.map(l => `<div class="lg ${l.k}">${l.t}</div>`).join('') || '<p class="mut">Rien de notable.</p>'}</div>${agenda().filter(x => x.l === 'crit').map(x => `<div class="agi crit"><i>‼</i><span>${x.t}</span></div>`).join('')}<button class="big" data-close="1">Gouverner</button></div>`, 'repm');
+ modal(`<div class="rep"><div class="eyebrow">Rapport de la Chambre apostolique</div><h2>${SEASONS[S.season]} ${S.year}</h2><div class="deltas">${pill('Trésor', d.t)}${pill('Autorité', d.a)}${pill('Ferveur', d.f)}${pill('Corruption', d.c, 1)}</div>${frontieres()}<div class="rep-l">${ln.map(lgLine).join('') || '<p class="mut">Rien de notable.</p>'}</div>${agenda().filter(x => x.l === 'crit').map(x => `<div class="agi crit"><i>‼</i><span>${x.t}</span></div>`).join('')}<button class="big" data-close="1">Gouverner</button></div>`, 'repm');
+}
+/* v15 : « Où en étions-nous ? » à la reprise d'une partie */
+function showReprise() {
+ if (!S || S.over) return;
+ const faits = S.log.filter(e => e.k !== 'info').slice(-6).reverse();
+ const ag = agenda().filter(x => x.l !== 'info').slice(0, 3);
+ modal(`<div class="rep"><div class="eyebrow">Reprise de la partie</div><h2>${SEASONS[S.season]} ${S.year}</h2><p class="ev-t"><b>${popeName()}</b> règne depuis ${S.year - S.pope.start ? (S.year - S.pope.start) + ' an' + (S.year - S.pope.start > 1 ? 's' : '') : 'quelques mois'} · autorité ${Math.round(S.authority)} · trésor ${fmt(S.treasury)} marcs.</p>${faits.length ? `<h3 class="go-h">Les derniers faits</h3><div class="rep-l">${faits.map(e => lgLine(e)).join('')}</div>` : ''}${ag.length ? `<h3 class="go-h">Affaires pressantes</h3><div class="rep-l">${ag.map(x => `<div class="lg ${x.l === 'crit' ? 'bad' : 'gold'}">${x.t}</div>`).join('')}</div>` : ''}<button class="big" data-close="1">Reprendre le gouvernement</button></div>`, 'repm');
 }
 function showGameOver() {
  sfx(S.over.reason === 'fin' ? 'gold' : 'bad'); localStorageSafeRemove(); if (!S.hofDone) { S.hofDone = 1; hofAdd(); }
  const lineage = S.popes.map(x => `<div class="lin"><div>${portraitSVG({ seed: x.seed, kind: 'pope', age: 65, w: 34, bg: '#4a1010' })}</div><div><b>${x.name}${x.sum ? ' ' + x.sum.ep : ''}</b><small>${x.from}–${x.to}</small></div></div>`).join('');
  const achs = Object.keys(S.ach).map(k => `<span class="tr">${ACH[k].n}</span>`).join('') || '<span class="mut">Aucun</span>';
- modal(`<div class="rep go"><div class="ev-art">${sceneSVG(S.over.reason === 'fin' ? 'book' : 'fire')}</div><h2>${S.over.t}</h2><p class="ev-t">${S.over.d}</p><div class="glory"><b>${fmt(glory())}</b><span>points de gloire</span></div><p><b>${S.popes.length + 1}</b> papes ont régné sous votre conduite, de ${SCEN[S.scen].year} à ${S.year}.</p><div class="traits">${achs}</div><h3 class="go-h">La lignée</h3><div class="go-lin">${lineage}</div><button class="big" data-new="1">Nouvelle partie</button></div>`, 'repm');
+ modal(`<div class="rep go"><div class="ev-art">${sceneSVG(S.over.reason === 'fin' ? 'book' : 'fire')}</div><h2>${S.over.t}</h2><p class="ev-t">${S.over.d}</p><div class="glory"><b>${fmt(glory())}</b><span>points de gloire</span></div><p><b>${S.popes.length + 1}</b> papes ont régné sous votre conduite, de ${SCEN[S.scen].year} à ${S.year}.</p><div class="traits">${achs}</div><h3 class="go-h">Les pontificats</h3>${frise()}<h3 class="go-h">La lignée</h3><div class="go-lin">${lineage}</div><button class="big" data-new="1">Nouvelle partie</button></div>`, 'repm');
 }
 function localStorageSafeRemove() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } }
 function showGuide() {
@@ -436,7 +489,7 @@ function showGuide() {
  <button class="big" data-close="1">Fermer</button></div>`, 'repm');
 }
 function showMenu() {
- modal(`<div class="rep"><h2>Menu</h2><div class="acts"><button class="act" data-save="1"><span class="at"><b>Sauvegarder</b></span><span class="ad">☁ Sauvegarde en ligne : ${typeof NUAGE === 'undefined' ? 'absente' : esc(NUAGE.etat())}${S && S.test ? ' (mode test : rien n’est enregistré)' : ''}</span></button><button class="act" data-export="1"><span class="at"><b>Copier un code de partie</b></span></button><button class="act" data-guide="1"><span class="at"><b>Guide du pontife</b></span></button><button class="act" data-codex=""><span class="at"><b>📜 Codex du pontife</b></span><span class="ad">Histoire des décrets, des ordres et des hérésies</span></button><button class="act" data-music="1"><span class="at"><b>${MUS ? 'Couper la musique' : 'Musique (plain-chant)'}</b></span></button><button class="act" data-sound="1"><span class="at"><b>${UI.sound ? 'Couper les sons' : 'Activer les sons'}</b></span></button><button class="act" data-bug="1"><span class="at"><b>🐞 Signaler un problème à Claude</b></span><span class="ad">Envoie une capture et l’état du jeu</span></button><button class="act" data-new="1"><span class="at"><b>Nouvelle partie</b></span></button></div><button class="big" data-close="1">Reprendre</button></div>`, 'repm');
+ modal(`<div class="rep"><h2>Menu</h2><div class="acts"><button class="act" data-save="1"><span class="at"><b>Sauvegarder</b></span><span class="ad">☁ Sauvegarde en ligne : ${typeof NUAGE === 'undefined' ? 'absente' : esc(NUAGE.etat())}${S && S.test ? ' (mode test : rien n’est enregistré)' : ''}</span></button><button class="act" data-export="1"><span class="at"><b>Copier un code de partie</b></span></button><button class="act" data-guide="1"><span class="at"><b>Guide du pontife</b></span></button><div class="tzrow"><span>Taille du texte</span>${[[0.9, 'A−'], [1, 'A'], [1.15, 'A+'], [1.3, 'A++']].map(([v, l]) => `<button class="tzb${Math.abs(tz() - v) < 0.01 ? ' on' : ''}" data-tz="${v}">${l}</button>`).join('')}</div><button class="act" data-codex=""><span class="at"><b>📜 Codex du pontife</b></span><span class="ad">Histoire des décrets, des ordres et des hérésies</span></button><button class="act" data-music="1"><span class="at"><b>${MUS ? 'Couper la musique' : 'Musique (plain-chant)'}</b></span></button><button class="act" data-sound="1"><span class="at"><b>${UI.sound ? 'Couper les sons' : 'Activer les sons'}</b></span></button><button class="act" data-bug="1"><span class="at"><b>🐞 Signaler un problème à Claude</b></span><span class="ad">Envoie une capture et l’état du jeu</span></button><button class="act" data-new="1"><span class="at"><b>Nouvelle partie</b></span></button></div><button class="big" data-close="1">Reprendre</button></div>`, 'repm');
 }
 
 /* ---------- Événements DOM ---------- */
@@ -455,10 +508,12 @@ async function endTurn() {
  try {
   if (S.seals > 0 && !UI.warned) { UI.warned = true; toast(`Il vous reste ${S.seals} sceau${S.seals > 1 ? 'x' : ''} inutilisé${S.seals > 1 ? 's' : ''}. Touchez de nouveau pour clore la saison.`); UI.busy = false; renderEnd(); return; }
   UI.warned = false; sfx('bell');
+  const own0 = { ...S.own };
   const rep = endSeason(); renderAll(); setTimeout(prechauffer, 900);
   await seasonCard();
   await runEvents();
   if (S.pendingConclave) await runConclave();
+  UI.chg = { k: S.year * 4 + S.season, l: PROVS.filter(p => own0[p.id] && S.own[p.id] !== own0[p.id]).map(p => ({ p: p.id, a: own0[p.id], b: S.own[p.id] })) };
   saveGame(); renderAll(); showReport(rep);
  } catch (e) { console.error(e); toast('Erreur : ' + e.message, 'bad'); }
  UI.busy = false; renderEnd();
@@ -475,16 +530,19 @@ function onChange(e) {
 }
 function onClick(e) {
  const t = e.target.closest('button,[data-realm]'); if (!t) return;
- if (t.closest('#modal') && !['close', 'new', 'save', 'export', 'guide', 'imp', 'copy', 'act', 'music', 'sound', 'bug', 'codex'].some(k => t.dataset[k] !== undefined)) return;
+ if (t.closest('#modal') && !t.classList.contains('lgr') && !['close', 'new', 'save', 'export', 'guide', 'imp', 'copy', 'act', 'music', 'sound', 'bug', 'codex', 'tz', 'frp'].some(k => t.dataset[k] !== undefined)) return;
  const d = t.dataset;
+ if (d.tz !== undefined) { setTz(+d.tz); document.querySelectorAll('.tzb').forEach(b => b.classList.toggle('on', b.dataset.tz === d.tz)); return; }
  if (d.codex !== undefined) { showCodex(d.codex); return; }
+ if (d.anf) { UI.anf = d.anf; UI.keepScroll = true; renderPanel(); return; }
+ if (d.frp !== undefined) { UI.frp = +d.frp; document.querySelectorAll('.fr-i').forEach(el => el.innerHTML = friseInfo(UI.frp)); document.querySelectorAll('.fr-b').forEach(b => b.classList.toggle('on', b.dataset.frp === d.frp)); return; }
  if (d.scen) { START.scen = d.scen; START.name = null; startScreen(); return; }
  if (d.voc) { START.voc = d.voc; startScreen(); return; }
  if (d.diff) { START.diff = +d.diff; startScreen(); return; }
  if (['stStart', 'stLoad', 'stCloudLoad', 'stTest'].includes(t.id) || d.imp) mapPret();
  if (t.id === 'stStart') { START.fam = ($('#stFam').value || 'de Rome').trim(); newGame(START); audio(); sfx('gold'); enterGame(true); setTimeout(() => toast(`${popeName()} coiffe la tiare. Que votre règne commence !`, 'gold'), 300); return; }
- if (t.id === 'stLoad') { if (loadGame()) enterGame(); return; }
- if (t.id === 'stCloudLoad') { if (UI.cloud && loadFromString(UI.cloud.s)) { saveGame(); enterGame(); toast('Partie reprise depuis votre sauvegarde en ligne.'); } else toast('Sauvegarde en ligne illisible.', 'bad'); return; }
+ if (t.id === 'stLoad') { if (loadGame()) { enterGame(); setTimeout(showReprise, 400); } return; }
+ if (t.id === 'stCloudLoad') { if (UI.cloud && loadFromString(UI.cloud.s)) { saveGame(); enterGame(); setTimeout(showReprise, 400); toast('Partie reprise depuis votre sauvegarde en ligne.'); } else toast('Sauvegarde en ligne illisible.', 'bad'); return; }
  if (t.id === 'stTest') { modeTest(); return; }
  if (d.bug) { if (t.closest('#modal')) closeModal(); signaler(); return; }
  if (t.id === 'stImport') { modal(`<div class="rep"><h2>Importer une partie</h2><textarea id="impCode" rows="6" placeholder="Collez ici votre code"></textarea><button class="big" data-imp="1">Charger</button><button class="ghost" data-close="1">Annuler</button></div>`, 'repm'); return; }
@@ -500,6 +558,7 @@ function onClick(e) {
  if (d.new) { if (S && S.test) { location.reload(); return; } closeModal(); START.name = null; startScreen(); return; }
  if (d.tab) { UI.tab = d.tab; if (d.tab !== 'royaume') { } sfx('click'); renderPanel(); return; }
  if (d.realm !== undefined && !t.closest('#modal')) { selectRealm(d.realm); return; }
+ if (d.realm !== undefined && t.classList.contains('lgr')) { closeModal(); selectRealm(d.realm); return; }
  if (d.mode) { MAP.mode = d.mode; renderMap(); renderEnd(); return; }
  if (d.z) { const w = $('#mapWrap'); if (d.z === '0') mapReset(); else zoomAt(d.z === '1' ? 1.35 : 1 / 1.35, w.clientWidth / 2, w.clientHeight / 2); return; }
  if (d.fisc) { S.fisc = +d.fisc; UI.keepScroll = true; renderAll(); return; }

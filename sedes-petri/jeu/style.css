@@ -494,3 +494,30 @@ h4{font-size:12px;letter-spacing:.12em;color:var(--ink2);margin:10px 0 6px;text-
 .cx summary em{font-style:normal;font-size:11px;font-family:Cinzel;color:#2f6a2a;white-space:nowrap}
 .cx[open] summary{border-bottom:1px dashed rgba(106,74,34,.3)}
 .cx p{margin:0;padding:9px 12px 11px;font-size:15px;line-height:1.5}
+/* v15 : lignes d'annales avec blason, touchables */
+.lg.lgr{display:flex;gap:7px;align-items:flex-start;cursor:pointer}
+.lg.lgr img{flex:none;margin-top:1px;width:16px;height:auto}
+.lg.lgr:hover{background:rgba(226,181,62,.12)}
+/* v15 : frise des pontificats */
+.frise{position:relative;height:178px;margin:4px 0 2px}
+.frise svg{position:absolute;left:0;top:0;width:100%;height:152px;border:1px solid rgba(106,74,34,.35);border-radius:6px;background:rgba(255,250,235,.5)}
+.fr-b{position:absolute;top:0;height:152px;background:none;border:0;border-right:1px solid rgba(106,74,34,.28);padding:0;cursor:pointer;overflow:hidden}
+.fr-b span{position:absolute;left:3px;right:2px;top:3px;font-family:Cinzel;font-size:10px;color:#5a3a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.fr-b.cur span{color:#8a1c14}
+.fr-b.on{background:rgba(179,36,43,.14);box-shadow:inset 0 -3px 0 #b3242b}
+.fr-x{position:absolute;left:0;right:0;top:156px;height:18px}
+.fr-x i{position:absolute;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--mut);font-family:Cinzel}
+.fr-i{margin:8px 0 2px;padding:8px 10px;border-left:3px solid var(--gold2);background:rgba(226,181,62,.1);font-size:14.5px;line-height:1.45;border-radius:0 6px 6px 0}
+/* v15 : frontières qui changent */
+.front{margin:10px 0;padding:8px 10px;border:1px solid rgba(163,23,28,.35);border-radius:8px;background:rgba(163,23,28,.05)}
+.front>b{font-family:Cinzel;font-size:13px;color:var(--red)}
+.chg-p{animation:chgp 1.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes chgp{0%{opacity:1;transform:scale(.5)}100%{opacity:0;transform:scale(1.9)}}
+@media (prefers-reduced-motion:reduce){.chg-p{animation:none}}
+/* v15 : taille du texte réglable (☰ Menu) */
+#tabBody,#modal .rep,#modal .ev{zoom:var(--tz,1)}
+.tzrow{display:flex;align-items:center;gap:6px;padding:6px 2px 8px;flex-wrap:wrap}
+.tzrow span{font-family:Cinzel;font-size:13px;margin-right:auto}
+.tzb{min-width:44px;height:36px;border-radius:8px;border:1px solid #6a4a22;background:rgba(255,250,235,.7);font-family:Cinzel;font-weight:700;color:var(--ink);cursor:pointer}
+.tzb.on{background:#8a1c14;color:#fbe9c8;border-color:#8a1c14}
+.anf{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0 8px}.anf .tzb{min-width:0;padding:0 10px;height:32px;font-size:12px}

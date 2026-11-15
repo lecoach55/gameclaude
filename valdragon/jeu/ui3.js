@@ -1,7 +1,8 @@
 /* ===== Valdragon 3D — interface ===== */
 import {G3} from './g3d.js';
 import {itemIcon} from './icons.js';
-import {cloudLoad,cloudSave} from './cloud.js';
+import {cloudLoad,cloudSave,cloudPut} from './cloud.js';
+let TEST=false;// mode test : partie séparée, jamais sauvegardée dans la vraie partie
 import {glyph,glyphURL,uiIco} from './glyphs.js';
 const IC=(it,sz=64,cl='ic')=>{try{return`<img class="${cl}" src="${itemIcon(it,sz)}" alt="">`;}catch(e){return'';}};
 import {AU,initAudio,setRoom,pickVar,out,musicStart,musicMode,musicBattle,musicVol} from './audio.js';
@@ -344,11 +345,11 @@ function renderPanel(){VD.calcAll();const P=VD.P;const T=[['equip','⚔ Groupe']
  if(q('best'))q('best').onclick=()=>{P.heroes.forEach(x=>P.bag.slice().forEach(it=>{if(VD.canEquip(x,it)&&VD.power(it)>VD.power(x.eq[it.s]))(sfx('equip'),VD.equip(x,it));}));sel=null;renderPanel();};}
 
 /* ---------- sauvegarde & titre ---------- */
-function save(){try{if(!started||!VD.P||!VD.P.heroes)return;if(VD.B)return;const t=Date.now(),str=JSON.stringify({P:VD.P,UID:VD.getUID(),t});try{localStorage.setItem('valdragon_tb_v1',str);}catch(e){}cloudSave(str,t);}catch(e){}}
+function save(){try{if(TEST)return;if(!started||!VD.P||!VD.P.heroes)return;if(VD.B)return;const t=Date.now(),str=JSON.stringify({P:VD.P,UID:VD.getUID(),t});try{localStorage.setItem('valdragon_tb_v1',str);}catch(e){}cloudSave(str,t);}catch(e){}}
 // sauvegarde à la sortie de l'application, à la mise en arrière-plan et toutes les 15 s en exploration
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});addEventListener('pagehide',save);addEventListener('beforeunload',save);setInterval(()=>{if(mode==='explo'&&!paused)save();},15000);
 // au lancement : récupère la sauvegarde en ligne si elle est plus récente que la locale
-cloudLoad().then(d=>{if(!d||started)return;let loc=null;try{loc=JSON.parse(localStorage.getItem('valdragon_tb_v1'));}catch(e){}if(!loc||(d.t||0)>(loc.t||0)){try{localStorage.setItem('valdragon_tb_v1',d.s);}catch(e){CLOUD=d.s;}if(!started){confirmNew=false;title();}}});
+cloudLoad().then(d=>{if(!d||started||TEST)return;let loc=null;try{loc=JSON.parse(localStorage.getItem('valdragon_tb_v1'));}catch(e){}if(!loc||(d.t||0)>(loc.t||0)){try{localStorage.setItem('valdragon_tb_v1',d.s);}catch(e){CLOUD=d.s;}if(!started){confirmNew=false;title();}}});
 let CLOUD=null;
 function load(){try{const d=JSON.parse(localStorage.getItem('valdragon_tb_v1')||CLOUD);if(d&&d.P){VD.setUID(d.UID||9999);d.P.heroes.forEach(h=>{h.st={};h.cdn={};h.dead=false;});return d.P;}}catch(e){}return null;}
 const tcv=$('tcv'),tx=tcv.getContext('2d');const emb=[];
@@ -369,13 +370,14 @@ function title(){const sv=load();
  <p><b>Combat</b> : à chaque tour, choisis une compétence puis touche la cible. Au-dessus de chaque ennemi, son <b>intention</b> annonce ce qu'il va faire : ⚠️ = attaque chargée, à briser avec la Lance de givre ou à encaisser avec Défense, Rempart ou Barrière.</p>
  <p class="small">Clavier : 1 à 9 pour les actions, Échap pour annuler, I pour le sac.</p></div><p class="small" style="opacity:.55;margin-top:8px">Crédits 3D : dragon « Drago » par Oscar Creativo (CC BY 4.0) · personnages Adobe Mixamo · textures Poly Haven (CC0) · décors KayKit &amp; Quaternius (CC0)</p>`;
  const go=p=>{$('explo').classList.remove('hide');if(!G3.isReady()){const b=$(p?'ct':'nw');if(b){b.disabled=true;b.textContent='Chargement des modèles 3D…';}G3.ready.then(()=>go(p));return;}ac();started=true;if(G3.kitErr)setTimeout(()=>toast('Modèles 3D non chargés ('+G3.kitErr+') : affichage simplifié.','#ff9a7a'),2500);$('title').style.display='none';VD.newGame(p);VD.P.story=VD.P.story||[];mode='explo';
-  if(!p){paused=true;ST.play('prologue',()=>{paused=false;exploEvents();save();},VD.P.story);}else{exploEvents();paused=false;save();}};
+  if(!p&&TEST){VD.P.story.push('prologue','biome0','biome1','biome2','biome3','pre0','pre1','pre2','pre3');paused=false;exploEvents();}else if(!p){paused=true;ST.play('prologue',()=>{paused=false;exploEvents();save();},VD.P.story);}else{exploEvents();paused=false;save();}};
+ {const tb=document.createElement('button');tb.className='b2';tb.id='tst';tb.style.cssText='opacity:.55;font-size:13px;margin-top:6px';tb.textContent='🧪 Mode test (mesures, partie à part)';$('nw').after(tb);tb.onclick=()=>{TEST=true;qAuto=false;go(null);testUI();};}
  $('nw').onclick=()=>{if(sv&&!confirmNew){confirmNew=true;$('nw').textContent='Confirmer : effacer la partie en cours';$('nw').classList.add('gold');return;}go(null);};if($('ct'))$('ct').onclick=()=>go(sv);}
 
 
 /* ---------- boucle ---------- */
 let last=performance.now(),last0=performance.now(),fogT=0,stepD=0,stepN=.55;
-function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;const ts=t/1000;
+function loop(t){if(TEST)testFrame(t);const dt=Math.min(.05,(t-last)/1000);last=t;const ts=t/1000;
  if(!started&&G3.mode==='title'){G3.updTitle(dt,ts);G3.render(ts,dt);}
  if(started&&VD.P){if(!ST.active&&!paused)perfTick((t-last0)/1000);last0=t;
   if(mode==='explo'){if(!paused){const px=VD.P.x,py=VD.P.y;VD.step(dt,input());const mv=Math.hypot(VD.P.x-px,VD.P.y-py);stepD+=mv;if(stepD>stepN){stepD=0;stepN=.5+Math.random()*.14;sfx('step',.5+Math.random()*.35);}exploEvents();}
@@ -385,3 +387,37 @@ function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;const ts=t/1000;
 title();titleLoop();requestAnimationFrame(loop);
 G3.ready.then(ok=>{if(!started&&G3.buildTitle()){const t=$('tcv');t.style.transition='opacity 1.5s';t.style.opacity='0';$('title').style.background='transparent';$('title').classList.add('t3d');$('explo').classList.add('hide');}});
 window.__ui=ui;
+
+/* ---------- mode test : compteur d'images réelles et banc de mesure sur l'appareil ---------- */
+const TF={ft:[],lt:0,txt:0,rec:null,calls:0,tris:0,renders:0};
+function gpuName(){try{const gl=G3._d().renderer.getContext();const e=gl.getExtension('WEBGL_debug_renderer_info');return e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(e){return '?';}}
+function stats(a){if(!a.length)return null;const s=a.slice().sort((x,y)=>x-y),avg=a.reduce((x,y)=>x+y,0)/a.length,p99=s[Math.min(s.length-1,Math.floor(s.length*.99))];return{fps:+(1000/avg).toFixed(1),low1:+(1000/p99).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length};}
+function testFrame(t){{const ri=G3._d().renderer.info;ri.autoReset=false;TF.calls=ri.render.calls;TF.tris=ri.render.triangles;ri.reset();}if(TF.lt){const d=t-TF.lt;TF.ft.push(d);if(TF.rec)TF.rec.push(d);if(TF.ft.length>240)TF.ft.shift();}TF.lt=t;
+ if(t-TF.txt>500&&$('tov')){TF.txt=t;const st=stats(TF.ft.slice(-60));const r={triangles:TF.tris,calls:TF.calls};$('tov').firstChild.textContent=`🧪 ${st?st.fps:'-'} img/s · pire ${st?st.pire:'-'} ms · ${QN[qCur]} · ${mode==='battle'?(VD.B&&VD.B.boss?'boss':'combat'):'explo'} ét.${VD.F||'-'} · ${(r.triangles/1000|0)}k tri · ${r.calls} appels`;}}
+function testUI(){if(!G3.__wr){G3.__wr=1;const r0=G3.render;G3.render=(a,b)=>{TF.renders++;r0(a,b);};}if($('tov'))return;const d=document.createElement('div');d.id='tov';d.style.cssText='position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:99;background:rgba(0,0,0,.72);color:#9fe0a0;font:12px monospace;padding:4px 8px;border-radius:6px;display:flex;gap:8px;align-items:center;pointer-events:auto';
+ d.innerHTML='<span>🧪</span><button id="tbench" style="font:12px sans-serif">▶ Banc</button><button id="tbug" style="font:12px sans-serif">🐞 Signaler</button>';document.body.appendChild(d);$('tbench').onclick=()=>runBench();$('tbug').onclick=()=>report();}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function measure(ms){TF.rec=[];TF.renders=0;let tr=0,ca=0,k=0;const iv=setInterval(()=>{tr+=TF.tris;ca+=TF.calls;k++;},100);await wait(ms);clearInterval(iv);const a=TF.rec;TF.rec=null;const st=stats(a)||{};return Object.assign(st,{tris:Math.round(tr/Math.max(1,k)),calls:Math.round(ca/Math.max(1,k)),rendus:TF.renders,etat:mode+(paused?' pause':'')+(ST.active?' récit':'')+($('panel').style.display==='block'?' panneau':'')});}
+function seedRng(seed){let s=seed;Math.random=()=>{s=(s*16807)%2147483647;return (s-1)/2147483646;};}
+function skipStory(){const k=document.querySelector('#story .sskip');if(ST.active&&k)k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));}
+async function toExplo(){for(let i=0;i<5&&ST.active;i++){skipStory();await wait(250);}paused=true;if(VD.B){const i=VD.E.indexOf(VD.B.pack);if(i>=0)VD.E.splice(i,1);VD.B.over='win';VD.closeBattle();}if(mode==='battle'||VD.B){leaveBattle();paused=true;}VD.ev.length=0;await wait(300);}
+async function runBench(){if(TF.busy)return;TF.busy=true;const btn=$('tbench');btn.disabled=true;const res=[],rnd=Math.random;
+ const SC=window.__SC||[['explo',2],['explo',6],['explo',10],['explo',14],['combat',6],['boss',8]],LV=window.__LV||[0,1,2,3];
+ try{for(const lv of LV){qSet(lv);for(const [k,F] of SC){btn.textContent=`${QN[lv]} · ${k} ${F}…`;await toExplo();seedRng(4242+F);paused=true;VD.newGame(VD.P,4242+F);VD.startFloor(F);const keep=k==='explo'?null:VD.E.find(e=>k==='boss'?e.boss:!e.boss);VD.E.length=0;if(keep)VD.E.push(keep);exploEvents();paused=false;await wait(400);
+   if(k==='explo'){const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await wait(2500);}
+   else{const e=VD.E.find(e=>k==='boss'?e.boss:!e.boss);if(!e)continue;VD.P.x=e.x;VD.P.y=e.y+(e.boss?1:.4);for(let i=0;i<25;i++){await wait(200);skipStory();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await wait(800);}
+   skipStory();await wait(200);const m=await measure(5000);res.push(Object.assign({scene:k+' '+F,niveau:QN[lv]},m));}}
+ }catch(e){res.push({erreur:String(e)});}
+ Math.random=rnd;await toExplo();qSet(1);
+ const out={date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};
+ try{localStorage.setItem('valdragon_mesures',JSON.stringify(out));}catch(e){}const ok=await cloudPut('mesures_'+Date.now(),out);
+ btn.disabled=false;btn.textContent='▶ Banc';TF.busy=false;showBench(out,ok);}
+function showBench(o,ok){const rows=o.res.map(r=>`<tr><td>${r.niveau||''}</td><td>${r.scene||r.erreur}</td><td><b>${r.fps??''}</b></td><td>${r.low1??''}</td><td>${r.pire??''}</td><td>${r.tris?(r.tris/1000|0)+'k':''}</td></tr>`).join('');
+ const p=document.createElement('div');p.style.cssText='position:fixed;inset:40px 8px auto 8px;z-index:100;background:rgba(10,8,6,.95);color:#e8dcc4;font:12px sans-serif;padding:10px;border:1px solid #6a5a40;border-radius:8px;max-height:80vh;overflow:auto';
+ p.innerHTML=`<b>Banc de mesure</b> · ${o.gpu}<br><span style="opacity:.7">${o.ecran} · ${ok?'enregistré dans la base ✓':'enregistré sur cet appareil'}</span><table style="width:100%;margin-top:6px;border-collapse:collapse"><tr><th>Qualité</th><th>Scène</th><th>img/s</th><th>1 % bas</th><th>pire ms</th><th>tri</th></tr>${rows}</table><button style="margin-top:8px">Fermer</button>`;
+ document.body.appendChild(p);p.querySelector('button').onclick=()=>p.remove();}
+const ERRS=[];addEventListener('error',e=>{ERRS.push(String(e.message||e).slice(0,300));if(ERRS.length>20)ERRS.shift();});addEventListener('unhandledrejection',e=>{ERRS.push('promesse: '+String(e.reason).slice(0,300));});
+$('bugb').onclick=()=>report();
+async function report(){const b=$('tbug')||$('bugb');b.disabled=true;const bt=b.textContent;b.textContent='…';let img='';try{const d=G3._d();d.composer.render(.016);const c=document.createElement('canvas');const src=d.renderer.domElement;const k=Math.min(1,480/src.width);c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}catch(e){}
+ const st={test:TEST,date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,mode,F:VD.F,pos:VD.P&&[+VD.P.x.toFixed(2),+VD.P.y.toFixed(2)],combat:VD.B?{round:VD.B.round,foes:VD.B.foes.map(f=>f.k+':'+Math.round(f.hp)),boss:!!VD.B.boss}:null,heros:VD.P&&VD.P.heroes.map(h=>h.n+' '+Math.round(h.hp)+'/'+h.s.mhp),qualite:QN[qCur],img_s:(stats(TF.ft.slice(-60))||{}).fps,erreurs:ERRS.slice(),capture:img};
+ const ok=await cloudPut('signalement_'+Date.now(),st);try{localStorage.setItem('valdragon_signalement',JSON.stringify(st));}catch(e){}b.disabled=false;b.textContent=bt;toast(ok?'Signalement envoyé à Claude ✓':'Signalement gardé sur cet appareil');}

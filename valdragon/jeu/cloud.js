@@ -10,3 +10,6 @@ async function pump(){if(busy||!pending)return;if(!await cloudInit()){pending=nu
  try{await ref().set(p);last=p.s;}catch(e){if(e&&e.code==='unavailable'){pending=pending||p;setTimeout(()=>{busy=false;pump();},1500+Math.random()*1500);return;}}
  busy=false;if(pending)pump();}
 export const cloudOK=()=>!!DB;
+
+// mode test : enregistre un document à part (mesures, signalements) sans jamais toucher à la partie
+export async function cloudPut(name,obj){if(!await cloudInit())return false;try{await timeout(DB.collection('data/users/'+UID).doc(name).set(obj),10000);return true;}catch(e){return false;}}

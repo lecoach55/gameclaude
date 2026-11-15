@@ -33,6 +33,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;color:#e8dcc4;fon
 #bBag .dot{position:absolute;top:0;right:0;width:14px;height:14px;border-radius:50%;background:#e33;box-shadow:0 0 6px #f44;display:none}
 #mute{right:14px;top:calc(124px + env(safe-area-inset-top));width:36px;height:36px;font-size:16px}
 #rotL{right:14px;bottom:calc(92px + env(safe-area-inset-bottom));width:44px;height:44px;font-size:20px}#rotR{right:64px;bottom:calc(92px + env(safe-area-inset-bottom));width:44px;height:44px;font-size:20px}
+#bugb{right:98px;top:calc(124px + env(safe-area-inset-top));width:36px;height:36px;font-size:15px;opacity:.75}
 #fxq{right:56px;top:calc(124px + env(safe-area-inset-top));width:36px;height:36px;font-size:16px}
 #ctx{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:4;display:none;padding:11px 20px;border-radius:26px;border:2px solid var(--gold);background:linear-gradient(#2a2014,#140e08);color:#f0c46a;font-family:Cinzel,serif;font-size:15px;box-shadow:0 0 18px rgba(240,196,106,.35),0 4px 12px #000;white-space:nowrap}
 #toast{position:fixed;top:20%;left:50%;transform:translateX(-50%);z-index:12;text-align:center;pointer-events:none;width:94%}
@@ -103,6 +104,7 @@ h2.t:after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#8a6a2a
  <button class="rb" id="bBag">🎒<span class="dot" id="dot"></span></button>
  <button class="rb" id="mute">🔊</button>
  <button class="rb" id="fxq">✨</button>
+ <button class="rb" id="bugb" title="Signaler un problème à Claude">🐞</button>
  <button class="rb" id="rotL">⟲</button><button class="rb" id="rotR">⟳</button>
  <button id="ctx"></button>
 </div>

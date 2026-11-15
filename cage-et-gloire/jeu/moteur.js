@@ -151,7 +151,7 @@ function appliquer(cid,sim){const {e,c}=trouverCombat(cid);if(c.res)return;const
  // argent et nouvelles pour mes combattants
  F.forEach((f,i)=>{if(!f.mine)return;const w=res.w===i;const sh=c.show||bourse(f,e.org,c.titre,c.main);let tot=sh+(w?(c.win||sh):0);
   let bonus=0;if(w&&fin&&R()<(c.main?.55:.35)){bonus=Math.round(O.show*1.5/50)*50;tot+=bonus;}
-  const com=Math.round(tot*COMM);G.argent+=com;G.stats.bourses+=com;if(w){G.stats.v++;if(res.m==='ko'||res.m==='tko')G.stats.ko=(G.stats.ko||0)+1;if(res.m==='sub')G.stats.sub=(G.stats.sub||0)+1;for(const sp of G.spons||[])if(sp.f===f.id&&sp.fin>=G.sem&&sp.bonusV){G.argent+=sp.bonusV;c.gain=(c.gain||0)+sp.bonusV;}}else if(res.w===1-i)G.stats.d++;
+  const com=Math.round(tot*pctF(f));G.argent+=com;G.stats.bourses+=com;if(w){G.stats.v++;if(res.m==='ko'||res.m==='tko')G.stats.ko=(G.stats.ko||0)+1;if(res.m==='sub')G.stats.sub=(G.stats.sub||0)+1;for(const sp of G.spons||[])if(sp.f===f.id&&sp.fin>=G.sem&&sp.bonusV){G.argent+=sp.bonusV;c.gain=(c.gain||0)+sp.bonusV;}}else if(res.w===1-i)G.stats.d++;
   G.salle.rep=cl(G.salle.rep+(w?1.2+O.tier*.8+(fin?.6:0):-.6),0,100);
   c.gain=(c.gain||0)+com;c.bonus=bonus;
   const adv=F[1-i];news(w?'✅':res.w<0?'➖':'❌',f.pr+' '+f.nom+(w?' bat ':res.w<0?' fait match nul contre ':' s\'incline face à ')+adv.pr+' '+adv.nom+' ('+ISSUES[res.m]+(fin?', R'+res.r:'')+') — '+e.nom+'. Commission : '+fmtE(com)+(bonus?' (dont bonus de performance)':''),w?'#2fbf71':'#e8344a');});
@@ -190,6 +190,8 @@ function avancer(){
  if(s%4===2)recruesMaj();
  for(const O of ORGS)for(const d of DIVS){const L=classement(O.id,d.id);const ch=G.orgs[O.id].ch[d.id];L.forEach((f,i)=>{const r=f.id===ch?0:(ch?i:i+1);if(f.rpS!==s){f.rp0=f.rp??r;f.rp=r;f.rpS=s;}});}
  gpVerifier();const p=evenementAleatoire();if(p)out.popups.push(p);
+ for(const f of mes()){const sp=speciaux(f);if(sp)out.popups.push(sp);}
+ if(s%52===1)nouveauxObjectifs();majObjectifs();if(s%52===0)bilanObjectifs(out);
  if(G.argent<-15000&&!G.faillite){G.faillite=1;out.popups.push({id:'faillite',t:'Les huissiers à la porte',d:'Votre écurie accumule les dettes. Vendez du matériel, baissez les dépenses ou trouvez un sponsor !',ch:[{t:'Compris'}]});}
  if(G.argent>0)G.faillite=0;
  return out;}
@@ -338,7 +340,7 @@ const EVENTS=[
 ];
 function evenementAleatoire(){if(G.sem<3||R()>.3)return null;const ok=EVENTS.filter(e=>e.cond());if(!ok.length)return null;let s=0;ok.forEach(e=>s+=e.p);let x=R()*s;let E=ok[0];for(const e of ok){x-=e.p;if(x<=0){E=e;break;}}
  const d=E.make();if(d===null)return null;const p={id:E.id,x:d,t:E.t(d),d:E.d(d),ch:E.ch.map(c=>({t:c.t}))};G.popup=p;return p;}
-function choisir(i){const p=G.popup;if(!p)return;const E=EVENTS.find(e=>e.id===p.id);G.popup=null;if(E&&E.ch[i]&&E.ch[i].f)E.ch[i].f(p.x);}
+function choisir(i,pp){const p=pp||G.popup;if(!p)return;const E=EVENTS.find(e=>e.id===p.id)||SPECIAUX[p.id];if(G.popup===p||!pp)G.popup=null;if(E&&E.ch[i]&&E.ch[i].f)E.ch[i].f(p.x);verifierSucces();}
 function combatPiedLeve(x){const f=G.F[x.f],adv=G.F[x.adv],O=ORG(x.org);const ev=G.ev.find(e=>e.org===x.org&&!e.fait&&e.sem>=G.sem+1&&e.sem<=G.sem+3)||creerEvent(O,G.sem+2);
  const c={id:ev.id+'c'+ev.combats.length,a:f.id,b:adv.id,div:f.div,titre:false,mine:true,ok:true,res:null,pied:true,org2:x.org};ev.combats.push(c);f.prochain=c.id;adv.prochain=c.id;
  c.show=Math.round(O.show*.8/50)*50;c.win=c.show;news('⚡',f.pr+' '+f.nom+' remplace au pied levé à '+ev.nom+' contre '+adv.pr+' '+adv.nom+' !',O.c1);}
@@ -346,6 +348,36 @@ function combatPiedLeve(x){const f=G.F[x.f],adv=G.F[x.adv],O=ORG(x.org);const ev
 function apresPied(cid){const t=trouverCombat(cid);if(!t||!t.c.pied)return;const f=G.F[t.c.a];if(t.c.res&&t.c.res.w===0)offreContrat(f,t.e.org,'victoire au pied levé');}
 function jouerMonCombat(cid,sim){appliquer(cid,sim);apresPied(cid);G.aJouer=G.aJouer.filter(x=>x!==cid);const t=trouverCombat(cid);if(t&&!G.aJouer.some(id=>id.startsWith(t.e.id+'c')))t.e.fait=true;}
 function prochainEvent(){let best=null;for(const e of G.ev)if(!e.fait&&e.combats.some(c=>c.mine&&c.ok)&&(!best||e.sem<best.sem))best=e;return best;}
+/* ---------- contrats de management, reconversion, objectifs ---------- */
+function pctF(f){return f&&f.mg?f.mg.pct:COMM;}
+function demandePct(f){return cl(.25-(f.pop-30)/420+(G.salle.rep-30)/700+(f.moral-60)/900,.12,.3);}
+function mkP(id,x){const E=SPECIAUX[id];return {id,x,t:E.t(x),d:E.d(x),ch:E.ch.map((c,i)=>({t:typeof c.t==='function'?c.t(x):c.t}))};}
+const SPECIAUX={
+ mgmt:{t:x=>'Contrat de management : '+nomF(x.f),d:x=>{const f=G.F[x.f];return 'Le contrat qui vous lie à '+nomF(x.f)+' arrive à son terme. Sa popularité ('+Math.round(f.pop)+') et votre réputation pèsent dans la discussion : il demande une commission de '+Math.round(x.dem*100)+' % (actuellement '+Math.round(f.mg.pct*100)+' %).';},
+  ch:[{t:x=>'Accepter '+Math.round(x.dem*100)+' % pour deux ans',f:x=>{const f=G.F[x.f];f.mg={pct:x.dem,fin:G.sem+104};news('🖊️',nomF(x.f)+' prolonge avec l\'écurie ('+Math.round(x.dem*100)+' %).','#2fbf71');}},
+   {t:x=>'Insister pour '+Math.round(Math.min(.3,x.dem+.05)*100)+' % ('+Math.round(x.p*100)+' % de chances)',f:x=>{const f=G.F[x.f];if(R()<x.p){f.mg={pct:Math.min(.3,x.dem+.05),fin:G.sem+104};news('🖊️',nomF(x.f)+' accepte vos conditions.','#2fbf71');}else{f.moral=cl(f.moral-15,0,100);if(R()<.5){news('💔',nomF(x.f)+' claque la porte et quitte l\'écurie !','#e8344a');liberer(x.f);}else{f.mg={pct:x.dem,fin:G.sem+52};news('😤',nomF(x.f)+' reste un an, mais à ses conditions.');}}}},
+   {t:'Le laisser partir',f:x=>{liberer(x.f);}}]},
+ veteran:{t:x=>'L\'heure de raccrocher ?',d:x=>{const f=G.F[x.f];return nomF(x.f)+' ('+Math.floor(f.age)+' ans, '+f.v+'-'+f.d+') se pose des questions. Il pourrait raccrocher les gants et rejoindre votre staff comme '+COACHS[x.k].n.toLowerCase()+'.';},
+  ch:[{t:'Raccrocher et devenir entraîneur',f:x=>{const f=G.F[x.f];f.ret=true;f.mine=false;G.coachs[x.k]=Math.min(3,G.coachs[x.k]+1);G.offres=G.offres.filter(o=>o.f!==f.id);temple(f);news('🎓',nomF(x.f)+' prend sa retraite et devient '+COACHS[x.k].n.toLowerCase()+' de l\'écurie !','#e9c46a');}},
+   {t:'Encore une saison !',f:x=>{const f=G.F[x.f];f.moral=cl(f.moral+10,0,100);f.veteranVu=G.sem;}}]}};
+function speciaux(f){if(f.prochain&&trouverCombat(f.prochain)?.e.sem===G.sem)return null;
+ if(!f.mg)f.mg={pct:COMM,fin:G.sem+ri(40,104)};
+ if(f.mg.fin-G.sem===4){const dem=demandePct(f);const p=cl(.65-(f.pop-30)/150+(f.moral-60)/150+(G.salle.rep-30)/200,.1,.9);return mkP('mgmt',{f:f.id,dem:Math.round(dem*100)/100,p});}
+ if(f.mg.fin<G.sem-1){f.mg.fin=G.sem+52;}
+ if(f.age>34.5&&(f.serie<=-2||ov(f)<f.pot-8)&&(!f.veteranVu||G.sem-f.veteranVu>40)&&!f.prochain){f.veteranVu=G.sem;const k={striker:'boxe',cogneur:'boxe',muay:'boxe',lutteur:'lutte',sambo:'lutte',grappler:'jjb',complet:'physique'}[f.style]||'boxe';if(G.coachs[k]>=3)return null;return mkP('veteran',{f:f.id,k});}
+ return null;}
+const OBJ=[
+ {id:'v',n:c=>'Remporter '+c+' combats',c:()=>Math.max(3,Math.round(mes().length*1.4)),p:o=>G.stats.v-o.v0,r:c=>3000+c*900},
+ {id:'fin',n:c=>'Gagner '+c+' combats avant la limite',c:()=>Math.max(2,Math.round(mes().length*.7)),p:o=>(G.stats.ko||0)+(G.stats.sub||0)-o.f0,r:c=>3000+c*1200},
+ {id:'tier',n:c=>'Placer un combattant en '+ORGS[c].court,c:()=>Math.min(4,Math.max(...mes().map(f=>f.org?ORG(f.org).tier:0),0)+1),p:o=>mes().some(f=>f.org&&ORG(f.org).tier>=o.c)?1:0,cible1:1,r:c=>6000+c*6000},
+ {id:'titre',n:()=>'Remporter une ceinture',c:()=>1,p:o=>G.stats.titres-o.t0,r:()=>12000},
+ {id:'mb',n:c=>'Atteindre '+c+' adhérents',c:()=>Math.round(G.salle.membres*1.25/10)*10+10,p:o=>G.salle.membres,abs:1,r:c=>2500+c*12},
+ {id:'rec',n:()=>'Recruter un nouveau combattant',c:()=>1,p:o=>mes().filter(f=>!o.ids.includes(f.id)).length,r:()=>3000}];
+function nouveauxObjectifs(){const an=G.an0+Math.floor((G.sem-1)/52);const L=OBJ.slice().sort(()=>R()-.5).slice(0,3);
+ G.obj={an,L:L.map(o=>{const c=o.c();return {id:o.id,c,n:o.n(c),r:Math.round(o.r(c)/100)*100,v0:G.stats.v,f0:(G.stats.ko||0)+(G.stats.sub||0),t0:G.stats.titres,ids:mes().map(f=>f.id),prog:0,ok:false};})};
+ news('🎯','Objectifs de la saison '+an+' : '+G.obj.L.map(o=>o.n.toLowerCase()).join(', ')+'.','#e9c46a');}
+function majObjectifs(){if(!G.obj)return;for(const o of G.obj.L){const D=OBJ.find(x=>x.id===o.id);if(!D)continue;o.prog=D.p(o);const cible=D.cible1?1:o.c;if(!o.ok&&o.prog>=cible){o.ok=true;G.argent+=o.r;news('🎯','Objectif atteint : '+o.n+' ! Prime de '+fmtE(o.r)+'.','#2fbf71');}}}
+function bilanObjectifs(out){if(!G.obj)return;const n=G.obj.L.filter(o=>o.ok).length;G.objHist=G.objHist||[];G.objHist.push({an:G.obj.an,n});if(n===3){G.salle.rep=cl(G.salle.rep+5,0,100);news('🌟','Saison parfaite : les trois objectifs atteints ! La réputation de l\'écurie grimpe.','#e9c46a');}}
 /* ---------- camp d'entraînement ---------- */
 const CAMP={etude:{n:'Étude vidéo de l\'adversaire',ic:'🎬',b:1.2,c:t=>300+t*500,d:'Le staff décortique ses derniers combats.'},
  spar:{n:'Partenaires d\'entraînement spécialisés',ic:'🥊',b:1.3,c:t=>500+t*900,d:'Des sparrings qui imitent son style.'},
@@ -448,6 +480,6 @@ const SUCCES=[
 function verifierSucces(){G.succes=G.succes||{};for(const x of SUCCES)if((x.id!=='p4p'||G.sem%4===0)&&!G.succes[x.id]&&x.t()){G.succes[x.id]=G.sem;news('🎖️','Succès débloqué : '+x.n+' — '+x.d,'#e9c46a');G.nouveauSucces=(G.nouveauSucces||[]);G.nouveauSucces.push(x.n);}}
 function charger(g){G=g;setRng();return G;}
 return {get G(){return G;},nouvellePartie,charger,avancer,classement,rang,rangTxt,mes,ov,date,fmtE,ORG,DIV,SALLES,COACHS,COACH_PAYE,FOCUS,INTENS,COMM,ALLOC,
- EVENTS,accepterCombat,accepterContrat,refuser,CAMP,bonusCamp,acheterCamp,categorieVoisine,changerCategorie,negocier,chanceNego,p4p,SUCCES,verifierSucces,prixAnnuels,gpTableau,offreSponsor,signerSponsor,MARQUES,preparerSim,jouerMonCombat,trouverCombat,signer,liberer,ameliorerSalle,coach,choisir,bourse,prochainEvent,rounds,medianeOv,nomF,planIA,roster,dispo};
+ EVENTS,SPECIAUX,OBJ,pctF,demandePct,accepterCombat,accepterContrat,refuser,CAMP,bonusCamp,acheterCamp,categorieVoisine,changerCategorie,negocier,chanceNego,p4p,SUCCES,verifierSucces,prixAnnuels,gpTableau,offreSponsor,signerSponsor,MARQUES,preparerSim,jouerMonCombat,trouverCombat,signer,liberer,ameliorerSalle,coach,choisir,bourse,prochainEvent,rounds,medianeOv,nomF,planIA,roster,dispo};
 })();
 if(typeof module!=='undefined')module.exports=Moteur;

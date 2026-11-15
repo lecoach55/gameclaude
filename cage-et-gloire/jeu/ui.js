@@ -111,6 +111,8 @@ function vEcurie(){const ms=M.mes();const S=M.SALLES[G.salle.niv];let h='';
   return `<div class="${mc&&mc.ok?'moi':''}" ${mc?`data-act="${mc.ok?'pre2':'voirOff'}" data-x="${mc.id}"`:''}><span class="doux">${e.sem===G.sem?'Cette sem.':'Dans '+(e.sem-G.sem)+' sem.'}</span><span>${orgB(e.org)} <b>${e.nom}</b> · ${esc(e.ville)}</span><span>${mc?(mc.ok?'🥊 '+esc(f.nom):'📨 '+esc(f.nom)):e.combats.some(c=>c.titre)?ceinture(O.c1):''}</span></div>`;}).join('')}</div>`;
  if(G.gp){const gp=G.gp;const m=gp.ids.filter(id=>G.F[id]&&G.F[id].mine);h+=`<div class="carte" style="margin-top:10px;cursor:pointer" data-act="voirGP"><h3>🏆 ${esc(gp.nom)} <small>${M.DIV(gp.div).nom}</small></h3><div class="doux" style="font-size:12.5px">${['Quarts','Demies','Finale'][Math.min(2,gp.ronde)]} · ${gp.vivants.length} en lice${m.length?' · vos combattants : '+m.map(id=>esc(G.F[id].nom)+(gp.vivants.includes(id)?' ✅':' ❌')).join(', '):''}</div></div>`;}
  const sp=(G.spons||[]);if(sp.length)h+=`<div class="sec">SPONSORS · ${fE(sp.reduce((a,x)=>a+x.hebdo,0))} / sem.</div><div class="carte">${sp.map(x=>`<div class="ligne" style="padding:4px 0;font-size:13px">🤝 <b>${esc(x.nom)}</b><span class="doux">${G.F[x.f]?esc(nomC(G.F[x.f])):''}</span><span style="margin-left:auto">${fE(x.hebdo)}/sem. · +${fE(x.bonusV)}/victoire · fin ${M.date(x.fin).split(' · ')[0]}</span></div>`).join('')}</div>`;
+ if(G.obj)h+=`<div class="sec">OBJECTIFS ${G.obj.an}</div><div class="carte">${G.obj.L.map(o=>{const D=M.OBJ.find(x=>x.id===o.id);const cible=D&&D.cible1?1:o.c;const pr=Math.min(1,(o.prog||0)/cible);
+  return `<div style="padding:6px 0"><div class="ligne"><span>${o.ok?'✅':'🎯'} ${esc(o.n)}</span><b style="margin-left:auto" class="${o.ok?'pos':'or-t'}">${o.ok?'atteint':'+'+fE(o.r)}</b></div><div class="barre" style="margin-top:5px"><i style="width:${pr*100}%;background:${o.ok?'#2fbf71':'#e9c46a'}"></i></div></div>`;}).join('')}</div>`;
  h+=`<div class="sec">MES COMBATTANTS · ${ms.length}/${S.cap}</div>`+ms.sort((a,b)=>M.ov(b)-M.ov(a)).map(ligneF).join('');
  h+=`<div class="carte" style="margin-top:10px;cursor:pointer" data-act="voirPrix"><h3>🎖️ Succès <small>${Object.keys(G.succes||{}).length}/${M.SUCCES.length}</small></h3><div class="barre"><i style="width:${Object.keys(G.succes||{}).length/M.SUCCES.length*100}%;background:var(--or)"></i></div></div>`;
  if(G.trophees.length)h+=`<div class="sec">SALLE DES TROPHÉES</div><div class="carte"><div style="display:flex;flex-wrap:wrap;gap:10px">${G.trophees.slice().reverse().map(t=>{const O=ORGc(t.org),f=G.F[t.f];return `<div style="text-align:center;width:88px">${ceinture(O.c1)}<div class="t" style="font-size:15px">${O.court}</div><div style="font-size:11px" class="doux">${f?esc(f.nom):''} · ${M.DIV(t.div).kg} kg</div></div>`;}).join('')}</div></div>`;
@@ -151,7 +153,7 @@ function fiche(id){const f=G.F[id];if(!f)return;const O=f.org?ORGc(f.org):null;c
   <div class="carte"><h3>Programme d'entraînement</h3><div class="choix" id="cFocus">${Object.entries(M.FOCUS).map(([k,x])=>`<button data-k="${k}" class="${f.train.f===k?'on':''}">${x.ic} ${x.n}</button>`).join('')}</div>
   <div class="doux" style="font-size:12px;margin:10px 0 6px">Intensité</div><div class="choix" id="cInt">${M.INTENS.map((x,i)=>`<button data-k="${i}" class="${f.train.i===i?'on':''}">${['🟢','🟠','🔴'][i]} ${x.n}</button>`).join('')}</div>
   <p class="doux" style="font-size:12px;margin-bottom:0">${conseil(f)}</p></div>
-  <div class="carte"><h3>Contrat</h3>${f.ctr&&f.org?`${orgB(f.org)} ${O.nom} · encore <b>${Math.max(0,f.ctr.rest)}</b> combat(s)${f.ctr.show?` · bourse ${fE(f.ctr.show)} + ${fE(f.ctr.show)} si victoire`:''}`:'<span class="doux">Sans contrat : en attente d\'une offre.</span>'}
+  <div class="carte"><h3>Contrats</h3><div style="margin-bottom:8px">🤝 Management : <b>${Math.round(M.pctF(f)*100)} %</b> de ses bourses pour l'écurie${f.mg?` · jusqu'à la ${M.date(f.mg.fin)}`:''}</div>${f.ctr&&f.org?`${orgB(f.org)} ${O.nom} · encore <b>${Math.max(0,f.ctr.rest)}</b> combat(s)${f.ctr.show?` · bourse ${fE(f.ctr.show)} + ${fE(f.ctr.show)} si victoire`:''}`:'<span class="doux">Sans contrat : en attente d\'une offre.</span>'}
   ${(G.spons||[]).filter(sp=>sp.f===f.id).map(sp=>`<div class="doux" style="font-size:12px;margin-top:6px">🤝 Sponsor ${esc(sp.nom)} : ${fE(sp.hebdo)}/sem. jusqu'à la ${M.date(sp.fin)}</div>`).join('')}</div>
   <div class="carte"><h3>Catégorie de poids</h3><p class="doux" style="font-size:12px;margin-top:0">Monter coûte un peu de puissance ; descendre coûte du cardio et fatigue. Le classement repart du bas et une ceinture est abandonnée.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap">${[[-1,'⬇️'],[1,'⬆️']].map(([d,ic])=>{const v=M.categorieVoisine(f,d);return v?`<button class="btn petit" data-act="cat" data-x="${f.id}:${d}" ${f.prochain?'disabled':''}>${ic} ${v.nom} (${v.kg} kg)</button>`:'';}).join('')}</div></div>
@@ -231,7 +233,7 @@ function vOffres(){let h=`<div class="titreVue"><h1>Offres</h1><small>${G.offres
  h+=`<div class="lst-off">`+G.offres.map(o=>{const f=G.F[o.f];if(!f)return '';
   if(o.type==='combat'){const t=M.trouverCombat(o.c);if(!t)return '';const adv=G.F[o.adv];const p=cote(o.c,'equi');
    return `<div>${affiche(t.c,t.e)}<div class="carte" style="border-radius:0 0 16px 16px;margin-top:-6px">
-   <div class="ligne" style="justify-content:space-between"><div><div class="doux" style="font-size:11px">BOURSE</div><b class="t" style="font-size:24px">${fE(o.show)} <span class="doux" style="font-size:14px">+ ${fE(o.win)} si victoire</span></b><div class="doux" style="font-size:11.5px">Votre commission : ${fE(o.show*M.COMM)} à ${fE((o.show+o.win)*M.COMM)}</div></div>
+   <div class="ligne" style="justify-content:space-between"><div><div class="doux" style="font-size:11px">BOURSE</div><b class="t" style="font-size:24px">${fE(o.show)} <span class="doux" style="font-size:14px">+ ${fE(o.win)} si victoire</span></b><div class="doux" style="font-size:11.5px">Votre commission (${Math.round(M.pctF(f)*100)} %) : ${fE(o.show*M.pctF(f))} à ${fE((o.show+o.win)*M.pctF(f))}</div></div>
    <div style="text-align:right"><div class="doux" style="font-size:11px">CHANCES ESTIMÉES</div><b class="t" style="font-size:30px;color:${p>.6?'#2fbf71':p>.4?'#e9c46a':'#e63946'}">${Math.round(p*100)} %</b></div></div>
    <div class="cote"><i style="width:${p*100}%"></i><i style="flex:1"></i></div>
    <div class="doux" style="font-size:12px">Réponse avant la ${M.date(o.exp)} · ${M.rounds(t.c,ORGc(t.e.org))} rounds · forme de ${esc(f.pr)} : ${Math.round(f.forme)}${f.bless>0?' · 🚑 blessé !':''}</div>
@@ -265,25 +267,35 @@ async function avancer(max){if(!G)return;fermerModal();let n=0;
  if(G.aJouer.length)setTimeout(()=>preCombat(G.aJouer[0]),250);}
 function COTEvider(){for(const k in COTE)delete COTE[k];}
 function popup(p){return new Promise(res=>{modal(`<div class="doux" style="font-size:12px;letter-spacing:.1em">ÉVÉNEMENT · ${M.date()}</div><h2>${esc(p.t)}</h2><p>${esc(p.d)}</p><div class="btns">${p.ch.map((c,i)=>`<button class="btn ${i===0?'or':''}" data-i="${i}" style="${i===0?'font-size:19px':''}">${esc(c.t)}</button>`).join('')}</div>`);$('modal').dataset.bloque=1;
- $('modal').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{if(p.id!=='faillite')M.choisir(+b.dataset.i);fermerModal();res();});});}
+ $('modal').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{if(p.id!=='faillite')M.choisir(+b.dataset.i,p);fermerModal();res();});});}
 /* ---------- soirée de combat ---------- */
 const PLANS_D={equi:'Rester adaptable, saisir les occasions',debout:'Défendre les amenées, boxer',sol:'Chercher les amenées et la soumission',pression:'Avancer, frapper beaucoup (fatigue)',contre:'Attendre l\'erreur, contrer'};
 function campH(cid){const t=M.trouverCombat(cid);const {c,e}=t;const tier=ORGc(e.org).tier;c.camp=c.camp||{};
  return `<div class="carte"><h3>Camp d'entraînement <small>bonus actuel +${M.bonusCamp(c).toFixed(1)}</small></h3><div class="camp">${Object.entries(M.CAMP).map(([k,x])=>`<button class="${c.camp[k]?'on':''}" ${c.camp[k]?'':`data-act="camp" data-x="${cid}:${k}"`}><span style="font-size:24px">${x.ic}</span><div><b>${x.n}</b><span>${x.d} · +${x.b} à toutes les qualités le jour du combat</span></div><b style="margin-left:auto;white-space:nowrap">${c.camp[k]?'✅':fE(x.c(tier))}</b></button>`).join('')}</div></div>`;}
+function rapportAdv(B,A){const n=B.v+B.d+B.n||1;const fin=Math.round((B.ko+B.sub)/Math.max(1,B.v)*100);const H=B.histo.slice(0,4);
+ const forts=ATTRS.map(([k,l])=>[l,B.at[k]-A.at[k]]).sort((a,b)=>b[1]-a[1]);
+ const deja=A.histo.filter(h=>h.adv===B.id);
+ return `<div class="carte"><h3>Rapport sur l'adversaire</h3>${(B.traits||[]).length?`<div class="traits" style="margin:0 0 8px">${traitsH(B)}</div>`:''}
+ <div class="doux" style="font-size:12.5px;line-height:1.55">${STYLES[B.style].ic} ${STYLES[B.style].nom} · ${B.ko} KO, ${B.sub} soumissions, ${B.dec} décisions${B.v?' ('+fin+' % de victoires avant la limite)':''}<br>
+ Plus fort que vous en <b style="color:#ffb3b9">${forts.filter(x=>x[1]>2).slice(0,2).map(x=>x[0].toLowerCase()).join(', ')||'rien de marquant'}</b> · plus faible en <b style="color:#bff0cf">${forts.filter(x=>x[1]<-2).slice(-2).map(x=>x[0].toLowerCase()).join(', ')||'rien de marquant'}</b><br>
+ Forme récente : ${H.map(h=>`<span class="vd ${h.r}" style="display:inline-flex;width:18px;height:18px;font-size:10px">${h.r}</span>`).join(' ')||'—'}${deja.length?`<br>😠 Déjà affrontés : ${deja.map(h=>(h.r==='V'?'victoire':h.r==='D'?'défaite':'nul')+' ('+ISSUES[h.m].toLowerCase()+')').join(', ')}`:''}</div></div>`;}
 function preparerCamp(cid){const t=M.trouverCombat(cid);modal(`<button class="fermer" onclick="fermerModal()">✕</button>${affiche(t.c,t.e)}<div style="margin-top:10px">${campH(cid)}</div><p class="doux" style="font-size:12px">Le plan de combat se choisit le soir du combat.</p>`,true);brancher($('modal'));}
 window.preparerCamp=preparerCamp;
 function preCombat(cid){const t=M.trouverCombat(cid);if(!t)return;const {c,e}=t;const A=G.F[c.a],B=G.F[c.b];c.plan=c.plan||'equi';
  const tale=(l,a,b,fmt=x=>x)=>`<b>${fmt(a)}</b><span>${l}</span><b>${fmt(b)}</b>`;
  const h=`${affiche(c,e)}<div class="carte" style="margin-top:10px"><h3>Fiche technique</h3><div class="stat3">${tale('Âge',Math.floor(A.age),Math.floor(B.age))}${tale('Palmarès',rec(A),rec(B))}${tale('Note',M.ov(A),M.ov(B))}
  ${ATTRS.map(([k,l])=>tale(l,Math.round(A.at[k]),Math.round(B.at[k]))).join('')}${tale('Style',STYLES[A.style].nom,STYLES[B.style].nom)}${tale('Forme',Math.round(A.forme),Math.round(B.forme??100))}</div></div>
+ ${rapportAdv(B,A)}
  ${campH(cid)}
- <div class="carte"><h3>Plan de combat</h3><div class="plans" id="pPlans">${Object.entries(Combat.PLANS).map(([k,p])=>`<button data-k="${k}" class="${c.plan===k?'on':''}"><b>${p.n}</b><span>${PLANS_D[k]}</span></button>`).join('')}</div>
+ <div class="carte"><h3>Plan de combat <small><button class="btn petit fant" id="bStaff">🧠 Avis du staff</button></small></h3><div id="avisStaff"></div><div class="plans" id="pPlans">${Object.entries(Combat.PLANS).map(([k,p])=>`<button data-k="${k}" class="${c.plan===k?'on':''}"><b>${p.n}</b><span>${PLANS_D[k]}</span></button>`).join('')}</div>
  <div class="ligne" style="justify-content:space-between;margin-top:10px"><span class="doux">Chances estimées avec ce plan</span><b class="t" id="pCote" style="font-size:28px"></b></div><div class="cote"><i id="pCoteB"></i><i style="flex:1"></i></div></div>
  <div class="btns"><button class="btn rouge" id="bVoir" style="font-family:var(--t);font-size:24px;letter-spacing:.05em">🎥 Regarder le combat en 3D</button><button class="btn" id="bSim">⚡ Résultat immédiat</button></div>`;
  modal(h,true);$('modal').dataset.bloque=1;
  const maj=()=>{const p=cote(cid,c.plan);$('pCote').textContent=Math.round(p*100)+' %';$('pCote').style.color=p>.6?'#2fbf71':p>.4?'#e9c46a':'#e63946';$('pCoteB').style.width=p*100+'%';};
  $('pPlans').querySelectorAll('button').forEach(b=>b.onclick=()=>{c.plan=b.dataset.k;$('pPlans').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));maj();});
  setTimeout(maj,30);
+ $('bStaff').onclick=()=>{$('bStaff').disabled=true;$('avisStaff').innerHTML='<p class="doux">Le staff simule le combat…</p>';setTimeout(()=>{const L=Object.keys(Combat.PLANS).map(k=>[k,cote(cid,k)]).sort((a,b)=>b[1]-a[1]);
+  $('avisStaff').innerHTML=`<div class="avis">${L.map(([k,p],i)=>`<div class="${i===0?'top':''}"><span>${i===0?'⭐ ':''}${Combat.PLANS[k].n}</span><div class="barre"><i style="width:${p*100}%;background:${p>.6?'#2fbf71':p>.4?'#e9c46a':'#e63946'}"></i></div><b>${Math.round(p*100)} %</b></div>`).join('')}</div>`;},30);};
  $('bVoir').onclick=()=>{fermerModal();regarder(cid);};
  $('bSim').onclick=()=>{fermerModal();const sim=M.preparerSim(cid,c.plan,c.changes);resultat(cid,sim);};
  brancher($('modal'));}
@@ -294,7 +306,7 @@ function regarder(cid){const t=M.trouverCombat(cid);const {c,e}=t;const A=G.F[c.
  CB={cid,sim,i:0,A,B,O,c,e,vit:1,fini:false,tmr:0};
  $('app').classList.add('cache');$('cv3d').style.display='block';$('combat').classList.remove('cache');$('coin').classList.add('cache');$('comm').innerHTML='';
  Arene.preparer(O,[A,B]);Arene.vitesse=1;Arene.demarrer();try{Son.reveil();Son.demarrerFoule();}catch(e){}
- const plaque=(f,cote)=>`<div class="plaque ${cote}"><div class="n">${cote==='g'?flag(f.pays)+' ':''}${esc(f.nom.toUpperCase())}${cote==='d'?' '+flag(f.pays):''}</div><div class="s">${rec(f)} · ${M.rangTxt(f)} ${f.mine?'· VOUS':''}</div><div class="jauge vie"><i id="v${cote}" style="width:100%"></i></div><div class="jauge sta"><i id="s${cote}" style="width:100%"></i></div></div>`;
+ const plaque=(f,cote)=>`<div class="plaque ${cote}"><div class="hp">${Portrait.svg(f,{mini:1,nobg:true})}</div><div class="n">${cote==='g'?flag(f.pays)+' ':''}${esc(f.nom.toUpperCase())}${cote==='d'?' '+flag(f.pays):''}</div><div class="s">${rec(f)} · ${M.rangTxt(f)} ${f.mine?'· VOUS':''}</div><div class="jauge vie"><i id="v${cote}" style="width:100%"></i></div><div class="jauge sta"><i id="s${cote}" style="width:100%"></i></div></div>`;
  $('hud').innerHTML=plaque(A,'g')+`<div class="horloge"><span id="hRd">${e.nom}</span><b id="hT">5:00</b><span id="hR">ROUND 1/${M.rounds(c,O)}</span></div>`+plaque(B,'d');
  ctrlCombat();
  banniere(c.titre?'COMBAT POUR LE TITRE':c.gp!=null?esc(G.gp?G.gp.nom:'GRAND PRIX'):e.nom,esc(e.ville)+' · '+(c.titre?'5 rounds':M.rounds(c,O)+' rounds'),2200);

@@ -29,5 +29,6 @@ async def main():
     if cid:
       await pg.evaluate(f"preCombat('{cid}')");await shot('p_pre')
       await pg.evaluate("document.querySelector('#modal .boite').scrollTop=900");await shot('p_pre2')
+      await pg.click('#bStaff');await pg.wait_for_timeout(4000);await pg.evaluate("document.getElementById('bStaff').scrollIntoView()");await shot('p_staff')
     print('erreurs',errs[:6]);await b.close()
 asyncio.run(main())

@@ -97,6 +97,7 @@ function construire(O){
  // lumières
  S.add(new THREE.HemisphereLight('#c9d4ff','#20140c',.55));
  const key=new THREE.SpotLight('#fff4e0',A.qual>0?260:200,22,Math.PI/5,.45,1.6);key.position.set(0,9.5,0);key.target.position.set(0,0,0);
+ A.key=key;A.spot=new THREE.SpotLight('#ffe7c2',0,9,Math.PI/9,.5,1.2);A.spot.position.set(0,7,0);S.add(A.spot,A.spot.target);
  if(A.qual>0){key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.bias=-.0004;key.shadow.camera.near=4;key.shadow.camera.far=14;}S.add(key,key.target);
  const fill=new THREE.DirectionalLight('#ffe8d0',.9);fill.position.set(4,6,5);S.add(fill);
  const c1=new THREE.Color(O.c1);[[6,2.2,0],[-6,2.2,0],[0,2.2,6],[0,2.2,-6]].forEach(p=>{const l=new THREE.PointLight(c1,9,11,1.6);l.position.set(...p);S.add(l);});
@@ -296,7 +297,7 @@ function restaurer(S0){A.f.forEach((h,i)=>{const x=S0.f[i];h.seq=[];h.pos.copy(x
 A.replay=function(){if(!A.snap)return 0;restaurer(A.snap);A.vitesse=.32;CAM.ang+=1.4;CAM.mode='serre';CAM.repl=1;const d=action(A.lastE,true);return d;};
 A.finReplay=function(){A.vitesse=1;CAM.repl=0;};
 A.degats=function(i,hd,sta){const u=A.f[i]&&A.f[i].mat.userData.u;if(!u)return;u.uDmg.value=Math.min(1,hd*1.1);u.uSweat.value=Math.min(1,.15+(100-sta)/90);};
-A.intro=function(i){CAM.mode=i==null?'large':'portrait'+i;};
+A.intro=function(i){CAM.mode=i==null?'large':'portrait'+i;if(!A.key)return;if(i==null){A.key.intensity=A.qual>0?260:200;A.spot.intensity=0;}else{A.key.intensity=60;const p=A.f[i].pos;A.spot.position.set(p.x*.6,7,p.z*.6);A.spot.target.position.copy(p);A.spot.intensity=240;}};
 function choc(h,zone,k=1){try{Son.coup(k*(zone==='jambe'?.8:1)*(.85+Math.random()*.3),zone==='corps');if(k>=2)Son.clameur(k>=3?1:.7);}catch(e){}const p=new THREE.Vector3();(h.B[zone==='jambe'?'LeftLeg':zone==='corps'?'Spine1':'Head']||h.B.Head).getWorldPosition(p);
  for(let i=0;i<(k>1?14:7);i++){const s=etincelles.find(x=>x.life<=0);if(!s)break;s.life=.35+Math.random()*.25;s.m.position.copy(p);s.v.set(rnd(-1,1),rnd(-.2,1.4),rnd(-1,1)).multiplyScalar(1.2+k*.6);s.m.visible=true;s.m.material.color.set(k>1?'#ffd0a0':'#fff2e0');}
  if(k>=2)A.shake=.18*k;}

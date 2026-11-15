@@ -7,7 +7,7 @@ for(let g=1;g<=N;g++){
  for(let w=0;w<52*ANS;w++){
   try{
    const out=M.avancer();
-   if(G.popup){M.choisir(strat==='bon'?(G.popup.id==='rachat'?1:0):Math.floor(Math.random()*G.popup.ch.length));}
+   for(const p of out.popups){if(p.id==='faillite')continue;M.choisir(strat==='bon'?(p.id==='rachat'?1:p.id==='veteran'?(Math.random()<.5?0:1):0):Math.floor(Math.random()*p.ch.length),p);}
    for(const o of [...G.offres]){if(o.type==='combat'){if(strat!=='passif'||Math.random()<.5)M.accepterCombat(o.id);}
     else{const f=G.F[o.f];const cur=f.org?M.ORG(f.org).tier:-1;if(M.ORG(o.org).tier>=cur||!f.org||o.renouv)M.accepterContrat(o.id);}}
    for(const cid of [...G.aJouer]){M.jouerMonCombat(cid,M.preparerSim(cid,'equi'));}
@@ -24,6 +24,6 @@ for(let g=1;g<=N;g++){
  console.log('— graine',g,'titres',G.stats.titres,'V-D',G.stats.v+'-'+G.stats.d,'max tier',maxT,'erreurs',err,'effectifs',JSON.stringify(nb),'combattants',Object.keys(G.F).length);
  log.forEach(l=>console.log('  ',l));
  tot.titres+=G.stats.titres;if(maxT>=4)tot.apex++;if(G.argent<0)tot.fail++;
- console.log('   GP:',(G.gps||[]).map(x=>x.org+(G.F[x.v]&&G.F[x.v].mine?'*':'')).join(' '),'succès',Object.keys(G.succes||{}).length,'spons',(G.spons||[]).length,'prix',(G.prix||[]).length,'hof',(G.hof||[]).length);console.log('   trophées:',G.trophees.map(t=>M.ORG(t.org).court+'@'+(Math.floor(t.s/52)+1)).join(' '));
+ console.log('   objectifs/an:',(G.objHist||[]).map(x=>x.n).join(''),'commissions',M.mes().map(f=>Math.round(M.pctF(f)*100)).join('/'));console.log('   GP:',(G.gps||[]).map(x=>x.org+(G.F[x.v]&&G.F[x.v].mine?'*':'')).join(' '),'succès',Object.keys(G.succes||{}).length,'spons',(G.spons||[]).length,'prix',(G.prix||[]).length,'hof',(G.hof||[]).length);console.log('   trophées:',G.trophees.map(t=>M.ORG(t.org).court+'@'+(Math.floor(t.s/52)+1)).join(' '));
 }
 console.log('TOTAL',JSON.stringify(tot),((Date.now()-t0)/1000).toFixed(1)+'s');

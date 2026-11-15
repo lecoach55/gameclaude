@@ -355,7 +355,7 @@
   }
   function seatSkillAt(s, seat) { const id = s.council && s.council[seat]; const p = id != null && s.people[id]; return p && p.alive ? seatSkill(s, seat, p) : 0; }
   function ruseBonus(s) { const r = ruler(s), T = r.traits; let b = 0; if (T.includes('genie')) b += 0.2; if (T.includes('sage')) b += 0.12; if (T.includes('simplet')) b -= 0.2; if (T.includes('cruel')) b += 0.04; return b + Math.max(0, seatSkillAt(s, 'marechal')) * 0.02; }
-  function tacticMult(s, tactic, stance) { const T = TACTICS[tactic]; if (!T) return 1; return T.m[stance] * (tactic === 'ruse' ? 1 + ruseBonus(s) : 1); }
+  function tacticMult(s, tactic, stance) { const T = TACTICS[tactic]; if (!T) return 1; return T.m[stance] * (tactic === 'ruse' ? 1 + ruseBonus(s) : 1) * (tactic === 'assaut' ? compBonus(s, 'assaut') : tactic === 'siege' ? compBonus(s, 'siege') : 1); }
   function campaignOdds(s, idx, tactic, stance) {
     const reg = s.regions[idx]; if (!reg) return 0;
     const ours = (s.army * milPower(s) + s.alliances * 3) * (tactic ? tacticMult(s, tactic, stance || scoutReport(s, reg)) : 1), en = regionEnemy(s, reg);
@@ -543,8 +543,8 @@
         for (const q of livingDyn(s)) loyalty(s, q, 3);
         log(s, e < 0.9 ? `Encore un festin… les vassaux s'en lassent (+${st} stabilité).` : `Un festin somptueux réunit les vassaux (+${st} stabilité).`); break;
       }
-      case 'recruter': { const n = Math.round(P.recruitArmy * e); s.gold -= P.recruitCost; s.army += n; log(s, `${n} hommes d'armes rejoignent l'ost.`); break; }
-      case 'mercenaires': s.gold -= P.mercCost; s.army += P.mercArmy; s.stab -= 3; log(s, `Une grande compagnie de ${P.mercArmy * 10} lances passe à votre solde. Les campagnes tremblent.`); break;
+      case 'recruter': { const T = TROOPS[arg2] || TROOPS[arg]; if (T) { const k = TROOPS[arg2] ? arg2 : arg, n = Math.round(T.gain * e); s.gold -= T.cost; addTroops(s, k, n); log(s, `${n} ${T.np} rejoignent l'ost.`); break; } const n = Math.round(P.recruitArmy * e); s.gold -= P.recruitCost; addTroops(s, 'pietons', n); log(s, `${n} hommes d'armes rejoignent l'ost.`); break; }
+      case 'mercenaires': s.gold -= P.mercCost; addTroops(s, 'archers', Math.round(P.mercArmy * 0.4)); addTroops(s, 'pietons', P.mercArmy - Math.round(P.mercArmy * 0.4)); s.stab -= 3; log(s, `Une grande compagnie de ${P.mercArmy * 10} lances passe à votre solde. Les campagnes tremblent.`); break;
       case 'pelerinage': {
         s.gold -= P.pilgCost; s.prestige += Math.round(8 * e); s.stab += 3;
         log(s, `${fullName(s, r)} part en pèlerinage vers ${pick(s, ['Saint-Jacques-de-Compostelle', 'Rome', 'Vézelay', 'Rocamadour', 'Cantorbéry'])}.`);
@@ -689,11 +689,23 @@
       const now = s.council[seat]; if (now != null) used.add(now);
     }
   }
+  // ---------- Composition de l'ost : chevaliers, archers, piétaille (parts de l'armée) ----------
+  const TROOPS = {
+    pietons: { n: 'Piétaille', np: 'piétons', cost: 15, gain: 15, d: 'Bon marché et nombreuse.' },
+    archers: { n: 'Archers', np: 'archers', cost: 20, gain: 13, d: 'Forts au siège et sur les murs contre les invasions.' },
+    chevaliers: { n: 'Chevaliers', np: 'chevaliers', cost: 28, gain: 10, d: 'Puissants à l\'assaut et en rase campagne, chers à entretenir.' },
+  };
+  function mixOf(s) { if (!s.mix) s.mix = { ch: 0.15, ar: 0.15 }; return s.mix; }
+  function troopCounts(s) { const m = mixOf(s), ch = Math.round(s.army * m.ch), ar = Math.round(s.army * m.ar); return { chevaliers: ch, archers: ar, pietons: Math.max(0, s.army - ch - ar) }; }
+  function addTroops(s, type, n) { const m = mixOf(s), old = Math.max(0, s.army), tot = old + n; if (tot <= 0) return; let ch = m.ch * old, ar = m.ar * old; if (type === 'chevaliers') ch += n; else if (type === 'archers') ar += n; m.ch = ch / tot; m.ar = ar / tot; s.army = tot; s._armyPrev = tot; }
+  function mixTick(s) { const m = mixOf(s), prev = s._armyPrev == null ? s.army : s._armyPrev; if (s.army > prev && s.army > 0) { const f = prev / s.army; m.ch *= f; m.ar *= f; } s._armyPrev = s.army; }
+  function compBonus(s, kind) { const m = mixOf(s); return kind === 'assaut' ? 1 + 0.7 * (m.ch - 0.15) : kind === 'siege' ? 1 + 0.8 * (m.ar - 0.15) : kind === 'defense' ? 1 + 0.9 * (m.ar - 0.15) : 1; }
   function milPower(s) {
     const r = ruler(s);
     const m = age(s, r) < 16 ? -1 : tsum(r, 'mil');
     const ms = s.council && s.council.marechal != null && s.people[s.council.marechal] && s.people[s.council.marechal].alive ? seatSkill(s, 'marechal', s.people[s.council.marechal]) : 0;
-    return 1 + m / 10 + ms / 30;
+    const mx = mixOf(s);
+    return 1 + m / 10 + ms / 30 + 0.45 * (mx.ch - 0.15) + 0.1 * (mx.ar - 0.15);
   }
   function campaign(s, idx, tactic) {
     const P = s.P, r = ruler(s);
@@ -1362,13 +1374,13 @@
     for (const k of ['fisc', 'cour', 'ost']) { const f = policyFx(s, k, s.pol[k]); s.polFx[k] = f; s.gold += f.gold || 0; s.stab += f.stab || 0; s.prestige += f.prestige || 0; s.army += f.army || 0; }
     const polGold = Object.values(s.polFx).reduce((a, f) => a + (f.gold || 0), 0);
     // économie
-    const inc = myRegions(s).reduce((a, r) => a + r.wealth, 0) + s.builds * P.incPerBuild + (s.mine && !s.mineSold ? 4 : 0) + (s.trade || 0) + edif(s, 'marche') * 3 + edif(s, 'moulin') - (s.corvee || 0) - (s.chantier ? 4 : 0) + tsum(r, 'inc') - Math.round(s.army * P.upkeep);
+    const inc = myRegions(s).reduce((a, r) => a + r.wealth, 0) + s.builds * P.incPerBuild + (s.mine && !s.mineSold ? 4 : 0) + (s.trade || 0) + edif(s, 'marche') * 3 + edif(s, 'moulin') - (s.corvee || 0) - (s.chantier ? 4 : 0) + tsum(r, 'inc') - Math.round(s.army * P.upkeep * (1 + 0.9 * (mixOf(s).ch - 0.15) + 0.25 * (mixOf(s).ar - 0.15)));
     s.gold += inc; s.lastIncome = inc + polGold;
     if (s.gold < 0) { s.stab -= P.debtStab; s.prestige -= 1; if (s.gold < -30) { s.army = Math.round(s.army * 0.85); log(s, 'Les soldats impayés désertent.', 'bad'); } }
     // dérive
     s.stab += tsum(r, 'stab') + (s.stab < 50 ? P.stabDrift : 0) - P.baron - Math.floor(s.domains / 7);
     s.prestige += tsum(r, 'prest') + (s.builds >= 4 ? 1 : 0) + (s.cathedral ? 1 : 0) + edif(s, 'abbaye') + edif(s, 'universite');
-    s.army += edif(s, 'lices') * 2; s.stab += edif(s, 'hopital');
+    if (edif(s, 'lices')) addTroops(s, 'chevaliers', edif(s, 'lices') * 2); s.stab += edif(s, 'hopital');
     councilTick(s); housesTick(s); regencyTick(s);
     if (s.chantier) { s.chantier--; if (!s.chantier) { s.cathedral = true; s.prestige += 35; log(s, 'Les flèches de la cathédrale s\'élèvent enfin vers le ciel. Toute la chrétienté en parle.', 'big'); } }
     for (const k in s.fat) { s.fat[k] *= P.fatigueDecay; if (s.fat[k] < 0.1) delete s.fat[k]; }
@@ -1476,13 +1488,14 @@
     s.stats.invasions++;
     const enemy = (P.invadeBase + s.menace * 0.35 + (s.year - P.startYear) * P.invadeGrowth) * (0.7 + rand(s) * 0.6) * (s.rivalDown ? 0.8 : 1 + (rivalCount(s) - 4) * 0.06);
     const def = s.army * milPower(s) * 1.15 * [0.8, 1, 1.3][s.pol.ost] + s.alliances * P.allianceDef + s.builds * P.buildDef + edif(s, 'donjon') * 6 + s.domains * 1.5;
+    const defT = def * compBonus(s, 'defense');
     const isRival = !s.rivalDown && rand(s) < 0.55;
     const foe = isRival ? `L'ost de la maison ${s.rival}` : pick(s, ['L\'ost anglais', 'Le comte de Flandre', 'L\'armée impériale', 'Une grande compagnie de routiers', 'L\'ost aragonais']);
     const a0 = s.army;
-    (s.flashes = s.flashes || []).push({ type: 'battle', kind: 'invasion', won: def > enemy, tgt: foe, rival: isRival, ours: Math.round(def), enemy: Math.round(enemy), loss: 0 });
+    (s.flashes = s.flashes || []).push({ type: 'battle', kind: 'invasion', won: defT > enemy, tgt: foe, rival: isRival, ours: Math.round(defT), enemy: Math.round(enemy), loss: 0 });
     const fl = s.flashes[s.flashes.length - 1];
     { const g = mapGeom(s.seed); const src = s.regions.find(r => r.owner !== 'me' && (isRival ? r.owner === 'rival' : r.owner !== 'rival') && g.adj[r.i].some(j => s.regions[j].owner === 'me')) || s.regions.find(r => r.owner !== 'me'); fl.from = src ? src.i : null; fl.to = (myRegions(s).find(r => g.adj[r.i].includes(fl.from)) || myRegions(s)[0] || {}).i; }
-    if (def > enemy) {
+    if (defT > enemy) {
       s.stats.invRepelled++; s.prestige += 6; s.army = Math.round(s.army * 0.88); s.menace = 15;
       fl.loss = a0 - s.army;
       log(s, `${foe} envahit vos terres… et se fait repousser !`, 'good');
@@ -1499,7 +1512,7 @@
 
   function afterChanges(s) {
     s.stab = clamp(Math.round(s.stab), -50, 100);
-    s.army = Math.max(0, Math.round(s.army));
+    s.army = Math.max(0, Math.round(s.army)); mixTick(s);
     s.gold = Math.round(s.gold);
     s.prestige = Math.round(s.prestige);
     if (s.over) return;
@@ -1580,6 +1593,6 @@
     return sc >= 850 ? 'Empire légendaire' : sc >= 750 ? 'Grande dynastie' : sc >= 650 ? 'Royaume prospère' : sc >= 550 ? 'Maison respectée' : 'Lignée modeste';
   }
 
-  const api = { epilogue, EDU_PATHS, eduChance, STANCES, TACTICS, stanceOf, scoutReport, tacticMult, ruseBonus, MOODS, houseOf, neighborHouses, relation, relLabel, giftCost, sendGift, COUNCIL, councilOf, seatSkill, councilCandidates, appoint, councilFx, autoCouncil, BUILDINGS, buildTypes, edif, MISSIONS, ISSUERS, rivalAggro, newRivalLord, vassalCost, vassalOdds, rivalCount, mapGeom, borderTargets, campaignOdds, regionEnemy, myRegions, initRegions, syncDomains, TEMPERS, RANKS, marriageMarket, candidateFx, willLeave, applyAI, histDueEvent, markHistDone, AI_BOUNDS, POLICIES, policyFx, setPolicy, ERAS, eraOf, AMBITIONS, ambitionProgress, eff, DEFAULT_P, TRAITS, EVENTS, createGame, getActions, marriageOptions, playTurn, resolveEvent, ruler, heir, successionLine, livingDyn, unmarriedAdults, age, person, fullName, score, rank, rand, childrenOf };
+  const api = { TROOPS, mixOf, troopCounts, compBonus, epilogue, EDU_PATHS, eduChance, STANCES, TACTICS, stanceOf, scoutReport, tacticMult, ruseBonus, MOODS, houseOf, neighborHouses, relation, relLabel, giftCost, sendGift, COUNCIL, councilOf, seatSkill, councilCandidates, appoint, councilFx, autoCouncil, BUILDINGS, buildTypes, edif, MISSIONS, ISSUERS, rivalAggro, newRivalLord, vassalCost, vassalOdds, rivalCount, mapGeom, borderTargets, campaignOdds, regionEnemy, myRegions, initRegions, syncDomains, TEMPERS, RANKS, marriageMarket, candidateFx, willLeave, applyAI, histDueEvent, markHistDone, AI_BOUNDS, POLICIES, policyFx, setPolicy, ERAS, eraOf, AMBITIONS, ambitionProgress, eff, DEFAULT_P, TRAITS, EVENTS, createGame, getActions, marriageOptions, playTurn, resolveEvent, ruler, heir, successionLine, livingDyn, unmarriedAdults, age, person, fullName, score, rank, rand, childrenOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Dyn = api;
 })(typeof window !== 'undefined' ? window : this);

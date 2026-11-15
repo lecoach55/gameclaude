@@ -205,6 +205,37 @@ function houseBox(h, compact) {
    <button class="btn sm ${can ? '' : 'alt'}" ${can ? '' : 'disabled'} onclick="giftGo('${h.replace(/'/g, "\\'")}')">${S.giftTurn === S.turn ? 'Présents déjà envoyés ce tour' : `Envoyer des présents (−${D.giftCost(S)} or)`}</button></div>`;
 }
 function giftGo(h) { const g = D.sendGift(S, h); if (!g) return; SND.play('coin'); save(); closeM(); render(); }
+// ---------- Troupes dessinées à la main ----------
+function troopSVG(k, sz, robe) {
+  const c = robe || ROBE(), I = '#2a1d10', st = `stroke="${I}" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"`;
+  const body = {
+    chevaliers: `<path d="M8 40 q2 -12 12 -14 l14 -1 q6 0 9 -6 l3 -3 l2 4 l-3 5 q2 6 -3 9 l-2 9 M14 40 v-6 M38 40 v-7 M30 26 l1 14" fill="#c9b7a0" ${st}/><path d="M31 13 l-6 -3 l1 -2 l7 2" fill="none" ${st}/>
+      <path d="M17 26 q-1 -9 6 -11 l3 -1 q6 1 6 8 l-1 5 Z" fill="${c}" ${st}/><rect x="20" y="4" width="8" height="9" rx="3" fill="#b9c2c9" ${st}/><path d="M21 9 h6" stroke="${I}" stroke-width="1.6"/><path d="M28 6 q5 -4 7 0" fill="none" stroke="#c43d2a" stroke-width="2"/>
+      <path d="M10 20 L46 3" stroke="#7a5a30" stroke-width="2"/><path d="M44 2 l5 -1 l-3 4 Z" fill="#b9c2c9" ${st}/><path d="M38 6 l-1 6 l5 -4 Z" fill="${c}"/>`,
+    archers: `<circle cx="24" cy="9" r="5" fill="#e8c9a6" ${st}/><path d="M18 8 q6 -9 12 0" fill="#5d6b3a" ${st}/><path d="M17 40 l3 -14 q-2 -9 4 -11 q6 2 4 11 l3 14" fill="${c}" ${st}/><path d="M20 40 v4 M28 40 v4" ${st}/>
+      <path d="M35 6 q10 16 0 32" fill="none" stroke="#7a5a30" stroke-width="2"/><path d="M35 6 L35 38" stroke="${I}" stroke-width=".7"/><path d="M14 22 L36 22" stroke="#7a5a30" stroke-width="1.4"/><path d="M12 20 l3 2 l-3 2 M36 22 l-3 -2 M36 22 l-3 2" fill="none" ${st}/><path d="M28 16 l8 6" stroke="#e8c9a6" stroke-width="2.4"/>`,
+    pietons: `<circle cx="22" cy="10" r="5" fill="#e8c9a6" ${st}/><path d="M17 9 q5 -7 10 0 v1 h-10 Z" fill="#9aa3aa" ${st}/><path d="M16 40 l3 -15 q-1 -8 3 -9 q5 1 4 9 l3 15" fill="#8a7a5a" ${st}/><path d="M19 40 v4 M27 40 v4" ${st}/>
+      <path d="M33 2 L33 44" stroke="#7a5a30" stroke-width="2"/><path d="M31 6 l2 -5 l2 5 Z" fill="#b9c2c9" ${st}/><path d="M8 20 q0 -4 6 -4 q6 0 6 4 v8 q0 6 -6 9 q-6 -3 -6 -9 Z" fill="${c}" ${st}/><path d="M14 18 v17 M9 25 h10" stroke="#f0dca8" stroke-width="1.4"/>`,
+  }[k];
+  return `<svg viewBox="0 0 50 46" width="${sz}" height="${sz * 46 / 50}" aria-hidden="true">${body}</svg>`;
+}
+function armyPanel() {
+  const t = D.troopCounts(S), T = D.TROOPS, a = D.getActions(S).find(x => x.id === 'recruter');
+  return `<section class="folio armyp"><h3 class="h">L'ost</h3><div class="troops">${['chevaliers', 'archers', 'pietons'].map(k => `<div class="tr">${troopSVG(k, 46)}<b>${t[k]}</b><span>${T[k].n}</span></div>`).join('')}</div>
+   <div class="mixbar">${['chevaliers', 'archers', 'pietons'].map((k, i) => `<i class="m${i}" style="width:${S.army ? t[k] / S.army * 100 : 0}%"></i>`).join('')}</div>
+   <p class="note" style="margin:6px 0 0">Les chevaliers brillent à l'assaut et en rase campagne, les archers au siège et sur les murs ; la piétaille fait le nombre. ${a && a.ok && !S.over ? `<button class="linkb" onclick="recruitMenu()">Recruter…</button>` : ''}</p></section>`;
+}
+function recruitMenu() {
+  const a = D.getActions(S).find(x => x.id === 'recruter'); if (!a) return; SND.play('tap');
+  const e = a.eff != null ? a.eff : 1, mx = D.mixOf(S);
+  sheet(`<h2 class="frak">Recruter</h2><p class="center story" style="margin:2px 0 8px">Votre ost : ${S.army} hommes, dont ${Math.round(mx.ch * 100)} % de chevaliers et ${Math.round(mx.ar * 100)} % d'archers.</p>
+   <div class="rec">${Object.entries(D.TROOPS).map(([k, T]) => `<button class="act" aria-disabled="${S.gold < T.cost}" onclick="${S.gold >= T.cost ? `closeM();recruitGo('${k}')` : ''}">${troopSVG(k, 54)}<span class="nm">${T.n}</span><span class="fx"><span class="neg">−${T.cost} or</span> <span class="pos">+${Math.round(T.gain * e)} hommes</span><span class="neu bdesc">${esc(T.d)}</span></span></button>`).join('')}</div>
+   <p class="center" style="margin:12px 0 0"><button class="btn alt" onclick="closeM()">Fermer</button></p>`, true);
+}
+function recruitGo(k) {
+  if (S.over || S.event || queue.length || busyTurn) return;
+  busyTurn = true; SND.play('seal'); seal(null, () => { busyTurn = false; turn('recruter', null, k); });
+}
 function neighbors() {
   if (S.over) return ''; const hs = D.neighborHouses(S); if (!hs.length) return '';
   return `<section class="folio nbs"><h3 class="h">Les maisons voisines</h3><p class="note" style="margin:0 0 8px">Une maison amie accepte plus volontiers l'hommage et vous prête ses lances ; une maison hostile pille vos frontières. Touchez une maison pour lui envoyer des présents (un envoi par tour).</p>
@@ -251,7 +282,7 @@ function viewCour() {
   const modeLink = !S.aiMode && AI && !S.over ? `<button class="linkb light" onclick="S.aiMode=true;S.ai=S.ai||{story:[],pendingFacts:[],suggestions:[]};S.ai.ready=null;save();render()">Passer en chronique libre : écrire vos ordres à l'IA</button>` : '';
   return `${statusBar()}${rulerCard()}${alerts()}${aiOn ? aiFolio() : ''}${aiOn && showClassic ? classic : ''}${modeLink}
 
-  ${council()}${neighbors()}${policies()}${nw}${royaumeInfo()}
+  ${armyPanel()}${council()}${neighbors()}${policies()}${nw}${royaumeInfo()}
   ${S.over ? `<p style="text-align:center"><button class="btn" onclick="newGame()">Fonder une nouvelle maison</button></p>` : ''}`;
 }
 // ---------- Mode chronique libre (IA) ----------
@@ -1154,7 +1185,7 @@ function royaumeInfo() {
   const P = S.P, r = D.ruler(S);
   const tr = r.traits.reduce((a, t) => a + (D.TRAITS[t].inc || 0), 0);
   const land = D.myRegions(S).reduce((x, y) => x + y.wealth, 0);
-  const rows = [['Terres (' + S.domains + ')', land], ['Édifices', S.builds * P.incPerBuild + D.edif(S, 'marche') * 3 + D.edif(S, 'moulin')], ['Mine d\'argent', S.mine && !S.mineSold ? 4 : 0], ['Commerce et pèlerins', S.trade || 0], ['Talents du souverain', tr], ['Corvées abolies', -(S.corvee || 0)], ['Chantier de la cathédrale', S.chantier ? -5 : 0], ['Solde de l\'armée', -Math.round(S.army * P.upkeep)]].filter(x => x[1]);
+  const rows = [['Terres (' + S.domains + ')', land], ['Édifices', S.builds * P.incPerBuild + D.edif(S, 'marche') * 3 + D.edif(S, 'moulin')], ['Mine d\'argent', S.mine && !S.mineSold ? 4 : 0], ['Commerce et pèlerins', S.trade || 0], ['Talents du souverain', tr], ['Corvées abolies', -(S.corvee || 0)], ['Chantier de la cathédrale', S.chantier ? -5 : 0], ['Solde de l\'armée', -Math.round(S.army * P.upkeep * (1 + 0.9 * (D.mixOf(S).ch - 0.15) + 0.25 * (D.mixOf(S).ar - 0.15)))]].filter(x => x[1]);
   for (const k of ['fisc', 'cour', 'ost']) { const f = D.policyFx(S, k, S.pol[k]); if (f.gold) rows.push([D.POLICIES[k].n + ' (' + D.POLICIES[k].opts[S.pol[k]].toLowerCase() + ')', f.gold]); }
   const tot = rows.reduce((x, y) => x + y[1], 0);
   const goals = `<section class="folio"><h3 class="h">Chemins vers la gloire</h3><div class="goals"><div><b>Tenir jusqu'en ${P.endYear}</b><span>${Math.max(0, P.endYear - S.year)} ans encore</span></div><div><b>Unifier le royaume</b><span>${S.domains} terres sur ${P.unifyAt} : victoire immédiate et grand bonus</span><i style="--p:${Math.min(100, S.domains / P.unifyAt * 100)}%"></i></div><div><b>Anéantir la maison ${esc(S.rival)}</b><span>${S.rivalDown ? 'Accompli !' : D.rivalCount(S) + ' terres encore à prendre'}</span></div></div></section>`;
@@ -1166,7 +1197,7 @@ function royaumeInfo() {
 function viewRoyaume() {
   const P = S.P, r = D.ruler(S);
   const tr = r.traits.reduce((a, t) => a + (D.TRAITS[t].inc || 0), 0);
-  const rows = [['Domaines', S.domains * P.incPerDomain], ['Édifices', S.builds * P.incPerBuild + D.edif(S, 'marche') * 3 + D.edif(S, 'moulin')], ['Mine d\'argent', S.mine && !S.mineSold ? 4 : 0], ['Commerce et pèlerins', S.trade || 0], ['Talents du souverain', tr], ['Corvées abolies', -(S.corvee || 0)], ['Chantier de la cathédrale', S.chantier ? -5 : 0], ['Solde de l\'armée', -Math.round(S.army * P.upkeep)]].filter(x => x[1]);
+  const rows = [['Domaines', S.domains * P.incPerDomain], ['Édifices', S.builds * P.incPerBuild + D.edif(S, 'marche') * 3 + D.edif(S, 'moulin')], ['Mine d\'argent', S.mine && !S.mineSold ? 4 : 0], ['Commerce et pèlerins', S.trade || 0], ['Talents du souverain', tr], ['Corvées abolies', -(S.corvee || 0)], ['Chantier de la cathédrale', S.chantier ? -5 : 0], ['Solde de l\'armée', -Math.round(S.army * P.upkeep * (1 + 0.9 * (D.mixOf(S).ch - 0.15) + 0.25 * (D.mixOf(S).ar - 0.15)))]].filter(x => x[1]);
   const tot = rows.reduce((a, x) => a + x[1], 0);
   const proj = [
     S.chantier ? ['eglise', 'Cathédrale en chantier', `Encore ${S.chantier} tour${S.chantier > 1 ? 's' : ''} avant l'achèvement`] : null,
@@ -1244,6 +1275,7 @@ const JOURNAL = [
   ['Carte plus fluide', '0 %', '75 %', 'Pendant un glissé ou un zoom, la carte n\'est plus redessinée à chaque image : la puce graphique déplace l\'image déjà dessinée, et le dessin précis n\'est refait qu\'à la fin du geste. Sur un téléphone simulé (processeur ralenti 4 fois), le glissé passe de 25 à 54 images par seconde ; ouvrir une fiche de terre prend 12 ms au lieu de 22.'],
   ['L\'âge des fléaux raconté', '0 %', '78 %', 'Un fil historique traverse le XIVe siècle : la croisade des pastoureaux (1320), la bataille de Cassel (1328), puis la guerre de Cent Ans dont le camp choisi décide de la suite quelques années plus tard (la chevalerie fauchée par les archers, une chevauchée anglaise, ou les pillards des deux camps), et le manque de bras après les épidémies. La Peste noire, qui ne pouvait jamais survenir (elle tombait entre deux tours), arrive enfin en 1347. Chaque fin de partie raconte désormais ce que l\'histoire retiendra de votre maison (conquérants, bâtisseurs, diplomates, saints, dynastes ou marchands) et ce qu\'elle devint après 1350.'],
   ['Vos édifices sur la carte', '0 %', '76 %', 'Chaque chantier apparaît désormais sur la carte, dessiné à la main à côté du château de la terre où il a été bâti : moulin aux ailes qui tournent, halle marchande à l\'auvent rayé, abbaye et son clocher, donjon de pierre, lices aux fanions, collège de maîtres, hôtel-Dieu à la croix rouge. La cathédrale se dresse près de la capitale, d\'abord dans ses échafaudages, puis avec ses deux flèches.'],
+  ['Chevaliers, archers et piétaille', '0 %', '75 %', 'L\'ost a désormais une composition. Recruter propose trois troupes : la piétaille (bon marché, nombreuse), les archers (forts au siège et sur les murs contre les invasions) et les chevaliers (puissants à l\'assaut et en rase campagne, chers à entretenir). Les tactiques en tiennent compte : un siège avec beaucoup d\'archers ou un assaut mené par des chevaliers gagne plusieurs points de chances. Les lices forment des chevaliers, les mercenaires amènent archers et piétons. Sur 1 000 parties, une ost bien composée gagne 75 % des parties contre 74 % pour une ost de piétons seuls.'],
 ];
 function viewLabo() {
   const C = { victoire: '#2f6b55', extinction: '#6b3a78', revolte: '#a8321f', conquete: '#b98a2e', timeout: '#888' };
@@ -1310,6 +1342,7 @@ function act(id, ok, el, arg) {
   if (!ok || S.over || S.event || queue.length || busyTurn) return;
   if (id === 'construire') { closeM(); return setTimeout(() => buildMenu(arg), 60); }
   if (id === 'eduquer' && arg == null) { closeM(); return setTimeout(() => eduMenu(), 60); }
+  if (id === 'recruter' && arg == null) { closeM(); return setTimeout(() => recruitMenu(), 60); }
   if (id === 'marier') return marryMenu();
   busyTurn = true; targetMode = false; selRegion = null;
   SND.play('seal');
@@ -1435,6 +1468,7 @@ function showBattle(q) {
     <div class="clash"><span class="burst"></span>${A.icon('epees', 46)}</div>
     <div class="side them">${A.shieldSVG(foeArms, 66)}<b>${esc(foeName)}</b></div>
    </div></div>
+   ${q.kind === 'campagne' || q.kind === 'invasion' ? `<div class="btroops">${(() => { const t = D.troopCounts(S); return ['chevaliers', 'archers', 'pietons'].map(k => `<span>${troopSVG(k, 30)}<b>${t[k]}</b></span>`).join(''); })()}</div>` : ''}
    <div class="forces"><i class="fu" style="--w:${q.ours / tot * 100}%"></i><i class="ft" style="--w:${q.enemy / tot * 100}%"></i></div>
    <div class="forces-l"><span>Votre force ${q.ours}</span><span>Adversaire ${q.enemy}</span></div>
    ${q.tactic && D.TACTICS[q.tactic] ? `<p class="center tacl">${D.TACTICS[q.tactic].n} contre une garnison qui ${D.STANCES[q.stance].n} : ${D.tacticMult(S, q.tactic, q.stance) > 1.05 ? 'le bon choix' : D.tacticMult(S, q.tactic, q.stance) < 0.95 ? 'un mauvais choix' : 'un choix sans surprise'}.</p>` : ''}

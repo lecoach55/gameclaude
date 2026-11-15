@@ -159,6 +159,7 @@ function playOne(seed, bot, params) {
   let guard = 0;
   while (!s.over && guard++ < 500) {
     let m = bot === 'random' ? randomAction(s) : bot === 'heur' ? heuristicAction(s) : strategistAction(s);
+    if (m[0] === 'recruter' && m[2] == null && bot !== 'random' && globalThis.TROOP_BOT !== 0) { const mx = D.mixOf(s), T = D.TROOPS; let k = 'pietons'; if (s.menace > 50 && mx.ar < 0.35 && s.gold >= T.archers.cost) k = 'archers'; else if (globalThis.WAR && mx.ch < 0.3 && s.gold >= T.chevaliers.cost + 20) k = 'chevaliers'; else if (mx.ar < 0.2 && s.gold >= T.archers.cost) k = 'archers'; m = ['recruter', null, k]; }
     if (m[0] === 'eduquer' && m[1] == null && bot !== 'random' && globalThis.EDU_BOT !== 0) { const h = D.heir(s); if (h) { const P = D.EDU_PATHS; const k = Object.keys(P).find(k => h.traits.includes(P[k].fix)) || Object.keys(P).filter(k => P[k].good.some(t => !h.traits.includes(t))).sort((a, b) => D.eduChance(s, b) - D.eduChance(s, a))[0]; if (k) m = ['eduquer', k]; } }
     if (m[0] === 'construire' && m[2] == null && bot !== 'random') m = ['construire', m[1] != null ? m[1] : null, pickBuild(s)];
     if (m[0] === 'campagne' && m[2] == null && bot !== 'random' && globalThis.TACTIC_BOT !== 0 && m[1] != null) { const reg = s.regions[m[1]], st = D.scoutReport(s, reg); m = ['campagne', m[1], Object.keys(D.TACTICS).sort((a, b) => D.tacticMult(s, b, st) - D.tacticMult(s, a, st))[0]]; }

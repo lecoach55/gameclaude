@@ -18,3 +18,13 @@ Artefact publié : slug `b04fac4d-6c5d-4942-aea6-f931c43137b7` (capacités `db` 
 - Ne pas changer l'équilibre du jeu sans le demander à Victor ; vérifier avec `sim.sh`.
 - Mode test 🧪 (accueil) : banc SD/HD → document `mesures_*` ; 🐞 → `signalement_*` (collection `data/users/<id>`, lire avec `db_list`). Le mode test ne sauvegarde pas les vies.
 - Sur téléphone : qualité SD par défaut.
+
+## Fluidité (v16, d'après le banc 🧪 du MacBook de Victor)
+- Mesure réelle (Iris Plus, 15/11/2026) : ~50 img/s en SD comme en HD, mais des à-coups (pire image 40-117 ms).
+- `outils/appels.py [sd|hd] scenes` : appels de dessin par groupe (décor, personnages, effets).
+- `outils/saccades.py [sd|hd] scene secondes` : images longues et ce qui change au même moment (shaders, textures).
+- `outils/profil.py [sd|hd] scene secondes` : profil CPU par fonction.
+- Le décor et les personnages fusionnent les matériaux unis en couleurs par sommet (`plainM`, `VCM`) : un matériau dont la couleur change en cours de partie doit être ajouté à `LIVE` (ou avoir une teinte émissive), sinon il serait figé.
+- Pluie, neige, feuilles : un seul maillage instancié par nuée (`nuee`, `stepNuee`).
+- Pas de `backdrop-filter` au-dessus de la 3D (très coûteux sur puce Intel et téléphone).
+- Qualité automatique : si la HD tourne sous ~33 img/s et que le joueur n'a rien choisi, passage en SD une fois.

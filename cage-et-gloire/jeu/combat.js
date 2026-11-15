@@ -161,7 +161,7 @@ function simuler(F,o){
    if(E){E.r=rd;E.b=b;E.ts=tsec;E.pos=pos==='G'?'G'+top:pos;E.sta=S.map(s=>Math.round(s.sta));E.hd=S.map(s=>+(s.hd/s.hp).toFixed(3));ev.push(E);}
   }
   S.forEach((s,i)=>{s.rp.push(rp[i].p);});
-  if(!res){ev.push({r:rd,b:B+1,k:'fin',t:'Fin du round '+rd+'.',pos:'S',sta:S.map(s=>Math.round(s.sta)),hd:S.map(s=>+(s.hd/s.hp).toFixed(3))});
+  if(!res){const dd=rp[0].p-rp[1].p,ld=dd>0?0:1,ad=Math.abs(dd);ev.push({r:rd,b:B+1,k:'fin',t:'Fin du round '+rd+'. '+(ad>30?'Round écrasé par '+nm[ld]+' !':ad>12?'Round nettement dominé par '+nm[ld]+'.':ad>3?'Avantage '+nm[ld]+' dans ce round.':'Round très serré !'),pos:'S',sta:S.map(s=>Math.round(s.sta)),hd:S.map(s=>+(s.hd/s.hp).toFixed(3))});
    S.forEach(s=>{s.sta=cl(s.sta+22*(1+(s.e.cardio-65)/150),0,100);s.hd*=.62;s.lg*=.8;});}
  }
  // décision

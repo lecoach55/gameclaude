@@ -7,6 +7,7 @@ const CLE='cage-gloire-v1';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
 const fE=x=>M.fmtE(x);
 const ORGc=id=>M.ORG(id);
+const OE=e=>e&&e.maison?{id:'cfr',court:'GALA',nom:G.nom,c1:'#e9c46a',c2:'#3a1d08',acc:'#ffffff',tier:0,devise:'À domicile',freq:10,show:0,max:0,villes:[]}:ORGc(e.org);
 const flag=p=>(PAYS[p]||{}).f||'🏳️';
 const nomC=f=>f.pr+' '+f.nom;
 const rec=f=>f.v+'-'+f.d+(f.n?'-'+f.n:'');
@@ -30,11 +31,17 @@ function courbe(f){const C=(f.carr||[]).slice(-60);if(C.length<2)return '<p clas
  return `<svg viewBox="0 0 ${W} ${H}" class="graph" style="height:90px" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${py(f.pot)}" y2="${py(f.pot)}" stroke="#e9c46a" stroke-dasharray="4 4" opacity=".5"/><polyline points="${pts}" fill="none" stroke="#ff5a66" stroke-width="2.4" vector-effect="non-scaling-stroke"/></svg><div class="ligne doux" style="font-size:11px;justify-content:space-between"><span>${M.date(C[0].s)}</span><span>pointillés : potentiel</span><span>note ${C[C.length-1].o}</span></div>`;}
 function estChamp(f){return f.org&&G.orgs[f.org].ch[f.div]===f.id;}
 /* ---------- sauvegarde ---------- */
-function sauver(){if(TEST||!G)return;try{G.savedAt=Date.now();localStorage.setItem(CLE,JSON.stringify(G));}catch(e){toast('Sauvegarde locale impossible : '+e.message);}if(NUAGE)NUAGE.push();}
-function charge(){try{const s=localStorage.getItem(CLE);return s?JSON.parse(s):null;}catch(e){return null;}}
+const b64=buf=>{let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s);};
+const unb64=s=>{const b=atob(s),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;};
+let SV=null;
+function sauver(){if(TEST||!G)return;G.savedAt=Date.now();const txt=JSON.stringify(G);
+ if(window.CompressionStream){const id=SV=Date.now();new Response(new Blob([txt]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer().then(buf=>{if(id!==SV)return;try{localStorage.setItem(CLE+'z',b64(buf));localStorage.removeItem(CLE);}catch(e){toast('Sauvegarde locale impossible : '+e.message);}}).catch(()=>{});}
+ else{try{localStorage.setItem(CLE,txt);}catch(e){toast('Sauvegarde locale impossible : '+e.message);}}
+ if(NUAGE)NUAGE.push();}
+async function charge(){try{const z=localStorage.getItem(CLE+'z');if(z&&window.DecompressionStream){const t=await new Response(new Blob([unb64(z)]).stream().pipeThrough(new DecompressionStream('gzip'))).text();return JSON.parse(t);}const s=localStorage.getItem(CLE);return s?JSON.parse(s):null;}catch(e){return null;}}
 /* ---------- accueil ---------- */
 async function accueil(){$('accueil').classList.remove('cache');$('app').classList.add('cache');$('combat').classList.add('cache');$('cv3d').style.display='block';
- const s=charge();let h='';
+ const s=await charge();let h='';
  if(s)h+=`<button class="btn or" id="bCont">Continuer · ${esc(s.nom)}</button><div class="doux" style="font-size:12px;margin-top:-4px">${esc(M.date.call?dateDe(s):'')}</div>`;
  h+=`<button class="btn ${s?'':'or'}" id="bNouv">Nouvelle carrière</button><button class="btn fant" id="bNuage" style="display:none">☁ Reprendre la partie d'un autre appareil</button><button class="btn fant petit" id="bTest">🧪 Mode test</button>`;
  $('accBtns').innerHTML=h;
@@ -90,11 +97,12 @@ const ACT={
  lv:x=>{SEL.lv=x;rendre();},
  camp:x=>{const [cid,k]=x.split(':');if(M.acheterCamp(cid,k)){toast('Camp réservé ✅');COTEvider();sauver();if(!$('modal').classList.contains('cache')&&$('pPlans'))preCombat(cid);else rendre();}else toast('Pas assez d\'argent');},
  sponsor:()=>{},
+ gala:()=>{const e=M.organiserGala();if(e){toast('Gala programmé ! 🎪');sauver();VUE='ecurie';rendre();}else toast('Impossible pour le moment');},
  pre2:cid=>{const t=M.trouverCombat(cid);if(t&&t.c.ok)preparerCamp(cid);},
  voirGP:()=>{VUE='ligues';SEL.lv='gp';rendre();},voirPrix:()=>{VUE='ligues';SEL.lv='prix';rendre();}
 };
 /* ---------- vue Écurie ---------- */
-function affiche(c,e,o={}){const A=G.F[c.a],B=G.F[c.b],O=ORGc(e.org);
+function affiche(c,e,o={}){const A=G.F[c.a],B=G.F[c.b],O=OE(e);
  return `<div class="affiche" ${o.click?`data-act="${o.act||'pre'}" data-x="${c.id}"`:''}><div class="fond" style="background:radial-gradient(circle at 50% 120%,${O.c1}55,transparent 60%),linear-gradient(115deg,#7a0d18 0%,#16070a 48%,#06102a 52%,#0b2a7a 100%)"></div>
  <div class="bandeau"><span style="width:30px;height:30px;display:inline-block">${embleme(O)}</span><b class="t" style="font-size:20px">${e.nom}</b><span class="doux">${esc(e.ville)} · ${M.date(e.sem)}</span>${c.titre?`<span class="puce" style="margin-left:auto;background:#3a2c08;border-color:#e9c46a;color:#ffe39a">${ceinture()} TITRE</span>`:c.gp!=null?`<span class="puce" style="margin-left:auto;background:#3a0a10;border-color:#ff5a66;color:#ffc4c9">🏆 GRAND PRIX · ${['QUART','DEMIE','FINALE'][Math.min(2,c.gp)]}</span>`:c.rival?'<span class="puce" style="margin-left:auto;background:#3a1408;border-color:#ff8a3a;color:#ffd0b0">😠 REVANCHE</span>':c.main?'<span class="puce" style="margin-left:auto">TÊTE D\'AFFICHE</span>':''}</div>
  <div class="duo"><div class="por" data-f="${A.id}">${Portrait.svg(A,{nobg:true,rim:'#ff4d5e'})}</div><div class="vs">VS</div><div class="por" data-f="${B.id}" style="transform:scaleX(-1)">${Portrait.svg(B,{nobg:true,rim:'#5aa0ff'})}</div></div>
@@ -109,8 +117,8 @@ function vEcurie(){const ms=M.mes();const S=M.SALLES[G.salle.niv];let h='';
  <div><b>${G.stats.v}-${G.stats.d}</b><span>Bilan des combats</span></div><div><b class="or-t">${G.stats.titres}</b><span>Ceintures gagnées</span></div><div><b>${Math.round(G.salle.rep)}</b><span>Réputation</span></div></div>`;
  // calendrier des 8 prochaines semaines
  const cal=G.ev.filter(e=>!e.fait&&e.sem>=G.sem&&e.sem<=G.sem+8).sort((a,b)=>a.sem-b.sem);
- if(cal.length)h+=`<div class="sec">CALENDRIER</div><div class="cal">${cal.slice(0,7).map(e=>{const O=ORGc(e.org);const mc=e.combats.find(c=>c.mine&&(c.ok||G.offres.some(o=>o.c===c.id)));const f=mc&&G.F[mc.a];
-  return `<div class="${mc&&mc.ok?'moi':''}" ${mc?`data-act="${mc.ok?'pre2':'voirOff'}" data-x="${mc.id}"`:''}><span class="doux">${e.sem===G.sem?'Cette sem.':'Dans '+(e.sem-G.sem)+' sem.'}</span><span>${orgB(e.org)} <b>${e.nom}</b> · ${esc(e.ville)}</span><span>${mc?(mc.ok?'🥊 '+esc(f.nom):'📨 '+esc(f.nom)):e.combats.some(c=>c.titre)?ceinture(O.c1):''}</span></div>`;}).join('')}</div>`;
+ if(cal.length)h+=`<div class="sec">CALENDRIER</div><div class="cal">${cal.slice(0,7).map(e=>{const O=OE(e);const mc=e.combats.find(c=>c.mine&&(c.ok||G.offres.some(o=>o.c===c.id)));const f=mc&&G.F[mc.a];
+  return `<div class="${mc&&mc.ok?'moi':''}" ${mc?`data-act="${mc.ok?'pre2':'voirOff'}" data-x="${mc.id}"`:''}><span class="doux">${e.sem===G.sem?'Cette sem.':'Dans '+(e.sem-G.sem)+' sem.'}</span><span>${e.maison?'<span class="orgb" style="background:#3a1d08;color:#e9c46a">GALA</span>':orgB(e.org)} <b>${e.nom}</b> · ${esc(e.ville)}</span><span>${mc?(mc.ok?'🥊 '+esc(f.nom):'📨 '+esc(f.nom)):e.combats.some(c=>c.titre)?ceinture(O.c1):''}</span></div>`;}).join('')}</div>`;
  if(G.gp){const gp=G.gp;const m=gp.ids.filter(id=>G.F[id]&&G.F[id].mine);h+=`<div class="carte" style="margin-top:10px;cursor:pointer" data-act="voirGP"><h3>🏆 ${esc(gp.nom)} <small>${M.DIV(gp.div).nom}</small></h3><div class="doux" style="font-size:12.5px">${['Quarts','Demies','Finale'][Math.min(2,gp.ronde)]} · ${gp.vivants.length} en lice${m.length?' · vos combattants : '+m.map(id=>esc(G.F[id].nom)+(gp.vivants.includes(id)?' ✅':' ❌')).join(', '):''}</div></div>`;}
  const sp=(G.spons||[]);if(sp.length)h+=`<div class="sec">SPONSORS · ${fE(sp.reduce((a,x)=>a+x.hebdo,0))} / sem.</div><div class="carte">${sp.map(x=>`<div class="ligne" style="padding:4px 0;font-size:13px">🤝 <b>${esc(x.nom)}</b><span class="doux">${G.F[x.f]?esc(nomC(G.F[x.f])):''}</span><span style="margin-left:auto">${fE(x.hebdo)}/sem. · +${fE(x.bonusV)}/victoire · fin ${M.date(x.fin).split(' · ')[0]}</span></div>`).join('')}</div>`;
  if(G.obj)h+=`<div class="sec">OBJECTIFS ${G.obj.an}</div><div class="carte">${G.obj.L.map(o=>{const D=M.OBJ.find(x=>x.id===o.id);const cible=D&&D.cible1?1:o.c;const pr=Math.min(1,(o.prog||0)/cible);
@@ -220,6 +228,7 @@ function vSalle(){const S=M.SALLES[G.salle.niv],N=M.SALLES[G.salle.niv+1];
  <div class="kpi"><div><b>${S.cap}</b><span>Combattants max</span></div><div><b>×${S.mult.toFixed(2)}</b><span>Progression</span></div><div><b>${fE(S.loyer)}</b><span>Loyer / sem.</span></div></div>
  <div class="doux" style="font-size:12px;margin:8px 0">Adhérents : ${G.salle.membres} / ${S.membres} (12 € par semaine chacun). La réputation attire les adhérents : elle monte avec les victoires et les titres.</div>
  ${N?`<button class="btn or petit" data-act="salle" ${G.argent<N.prix?'disabled':''}>Agrandir : ${N.nom} · ${fE(N.prix)}</button>`:'<span class="puce or-t">Niveau maximal</span>'}</div>`;
+ {const P=M.galaPossible();h+=`<div class="sec">ÉVÉNEMENTS</div><div class="carte" style="background:linear-gradient(120deg,#3a1d08,#12131a 70%);border-color:#6b5520"><h3>🎪 Organiser votre propre gala</h3><p class="doux" style="font-size:12.5px;margin-top:0">Vos combattants de CFR ou HEX (jusqu'à trois) affrontent des adversaires de leur niveau devant votre public, dans quatre semaines. Pas de bourse pour eux, mais toute la billetterie pour l'écurie, et un gros coup de pouce à la réputation. Un gala toutes les dix semaines au plus.</p>${P.ok?`<button class="btn or petit" data-act="gala">Organiser · ${fE(P.cout)}</button>`:`<span class="doux" style="font-size:12px">${esc(P.r)}</span>`}</div>`;}
  h+=`<div class="sec">LE STAFF</div>`+Object.entries(M.COACHS).map(([k,c])=>{const n=G.coachs[k];return `<div class="fl" style="cursor:default"><div style="font-size:30px;width:44px;text-align:center">${c.ic}</div><div style="flex:1"><div class="nm">${c.n}</div><div class="sm">${['Aucun','Bénévole du club','Entraîneur diplômé','Coach de renommée mondiale'][n]} · ${n?fE(M.COACH_PAYE[n])+' / sem.':'gratuit'}</div>
  <div class="sm">${k==='medecin'?'Moins de blessures, récupération plus rapide':'Progression +'+Math.round(n*28)+' % en '+c.a.map(x=>ATTRS.find(y=>y[0]===x)[1].toLowerCase()).join(', ')}</div></div>
  <div style="display:flex;gap:6px;align-items:center"><button class="btn petit" data-act="coach" data-x="${k}:-1" ${n<=0?'disabled':''}>−</button><b class="t" style="font-size:22px;width:20px;text-align:center">${n}</b><button class="btn petit vert" data-act="coach" data-x="${k}:1" ${n>=3?'disabled':''}>+</button></div></div>`;}).join('');
@@ -251,13 +260,21 @@ function vOffres(){let h=`<div class="titreVue"><h1>Offres</h1><small>${G.offres
  return h;}
 /* ---------- menu ---------- */
 function menu(){const N=NUAGE;modal(`<h2>Menu</h2><div class="btns">
- <button class="btn" id="mAcc">🏠 Écran titre</button><button class="btn" id="mBug">🐞 Signaler un problème à Claude</button><button class="btn" id="mBanc">🧪 Mesurer la fluidité (arène 3D)</button>
+ <button class="btn" id="mGuide">📖 Guide du manager</button><button class="btn" id="mAcc">🏠 Écran titre</button><button class="btn" id="mBug">🐞 Signaler un problème à Claude</button><button class="btn" id="mBanc">🧪 Mesurer la fluidité (arène 3D)</button>
  <button class="btn" id="mQual">⚙️ Qualité 3D : ${localStorage.getItem('cg-qual')==='0'?'allégée':'normale'}</button><button class="btn" onclick="fermerModal()">Fermer</button></div>
  <p class="doux" style="font-size:12px;margin-top:12px">☁ Sauvegarde en ligne : ${TEST?'coupée (mode test)':N?(N.ok?'active':N.err?'refusée ('+esc(N.err)+')':'en attente'):'indisponible'}</p>`);
- $('mAcc').onclick=()=>{fermerModal();sauver();accueil();};
+ $('mAcc').onclick=()=>{fermerModal();sauver();accueil();};$('mGuide').onclick=guide;
  $('mBug').onclick=async()=>{toast('Envoi…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé.':'Enregistré sur cet appareil ('+(TK?TK.base:'?')+')',3200);};
  $('mQual').onclick=()=>{localStorage.setItem('cg-qual',localStorage.getItem('cg-qual')==='0'?'1':'0');toast('Pris en compte au prochain lancement');fermerModal();};
  $('mBanc').onclick=banc;}
+function guide(){modal(`<button class="fermer" onclick="fermerModal()">✕</button><h2>Guide du manager</h2><div class="guide">
+<h3>🏟️ Les organisations</h3><p>CFR (régional) → HEX (France) → ECC (Europe) → GLADIUS (monde) → APEX (le sommet). Une organisation vous propose un contrat quand votre combattant est champion, dans le top 3 avec une série de victoires, ou nettement trop fort pour sa ligue. Après plusieurs défaites, il est libéré et redescend.</p>
+<h3>🥊 Les combats</h3><p>Les offres arrivent quelques semaines avant les galas. Regardez les <b>chances estimées</b>, négociez la bourse (+15 % ou +35 %, avec un risque de voir l'offre retirée), puis préparez le <b>camp</b> : étude vidéo, sparrings spécialisés, stage à l'étranger. Le soir du combat, choisissez un <b>plan</b> (l'avis du staff compare les cinq) et changez-le entre les rounds.</p>
+<h3>🧬 Les traits</h3><p>Chaque combattant peut avoir des traits : menton de fer, cardio de machine, diesel, explosif, gaucher, contreur… Touchez un trait pour lire son effet. Certains sont des défauts (mâchoire de verre, fragile).</p>
+<h3>🏋️ L'entraînement</h3><p>Programme et intensité dans la fiche de chaque combattant. L'intensité fait progresser plus vite mais fatigue et blesse. La progression ralentit à l'approche du potentiel (étoiles) et avec l'âge. Les entraîneurs et la taille de la salle accélèrent tout.</p>
+<h3>💰 L'argent</h3><p>Vous touchez une commission sur les bourses (fixée par le contrat de management de chaque combattant, renégocié à son terme), les cotisations des adhérents (attirés par la réputation), les sponsors et les primes d'objectifs. Le loyer, le staff et les allocations sont payés chaque semaine.</p>
+<h3>🏆 Grand Prix et palmarès</h3><p>Chaque année, ECC ou GLADIUS organise un Grand Prix à huit dans une catégorie : placez un combattant dans le top 8 pour y être invité. En fin d'année : combattant, KO et révélation de l'année. Les grandes carrières entrent au temple de la renommée.</p>
+<h3>⚖️ Catégories, rivaux, vétérans</h3><p>On peut changer de catégorie de poids depuis la fiche. Une défaite serrée crée un rival : les revanches paient mieux. Un vétéran en déclin peut raccrocher et devenir entraîneur de l'écurie.</p></div>`,true);}
 function modal(h,large){const m=$('modal');m.innerHTML=`<div class="boite" ${large?'style="max-width:720px"':''}>${h}</div>`;m.classList.remove('cache');m.onclick=e=>{if(e.target===m&&!m.dataset.bloque)fermerModal();};m.querySelector('.boite').scrollTop=0;}
 function fermerModal(){$('modal').classList.add('cache');$('modal').innerHTML='';delete $('modal').dataset.bloque;}
 window.fermerModal=fermerModal;window.fiche=fiche;
@@ -266,7 +283,7 @@ async function avancer(max){if(!G)return;fermerModal();let n=0;
  for(;n<max;n++){const nOff=G.offres.length;const out=M.avancer();if(out.attente)break;
   for(const p of out.popups){await popup(p);}
   if(G.aJouer.length||out.popups.length||(max>1&&G.offres.length>nOff))break;}
- COTEvider();sauver();rendre();
+ COTEvider();sauver();rendre();if(G.nouveauSucces&&G.nouveauSucces.length){G.nouveauSucces.forEach((n,i)=>setTimeout(()=>toast('🎖️ Succès : '+n,3500),i*600));G.nouveauSucces=[];}
  if(G.aJouer.length)setTimeout(()=>preCombat(G.aJouer[0]),250);}
 function COTEvider(){for(const k in COTE)delete COTE[k];}
 function popup(p){return new Promise(res=>{modal(`<div class="doux" style="font-size:12px;letter-spacing:.1em">ÉVÉNEMENT · ${M.date()}</div><h2>${esc(p.t)}</h2><p>${esc(p.d)}</p><div class="btns">${p.ch.map((c,i)=>`<button class="btn ${i===0?'or':''}" data-i="${i}" style="${i===0?'font-size:19px':''}">${esc(c.t)}</button>`).join('')}</div>`);$('modal').dataset.bloque=1;
@@ -286,7 +303,7 @@ function preparerCamp(cid){const t=M.trouverCombat(cid);modal(`<button class="fe
 window.preparerCamp=preparerCamp;
 function preCombat(cid){const t=M.trouverCombat(cid);if(!t)return;const {c,e}=t;const A=G.F[c.a],B=G.F[c.b];c.plan=c.plan||'equi';
  const tale=(l,a,b,fmt=x=>x)=>`<b>${fmt(a)}</b><span>${l}</span><b>${fmt(b)}</b>`;
- const sc=e.combats.filter(x=>x!==c&&x.res&&!x.res.annule&&G.F[x.a]&&G.F[x.b]);const O0=ORGc(e.org);
+ const sc=e.combats.filter(x=>x!==c&&x.res&&!x.res.annule&&G.F[x.a]&&G.F[x.b]);const O0=OE(e);
  const h=`${affiche(c,e)}${sc.length?`<div class="carte" style="margin-top:10px"><h3>La sous-carte <small>déjà disputée ce soir</small></h3>${sc.map(x=>{const a=G.F[x.a],b=G.F[x.b];const w=x.res.w;return `<div class="soiree"><span class="${w===0?'gag':''}">${flag(a.pays)} ${esc(a.nom)}</span><span class="doux">${x.titre?ceinture(O0.c1):'vs'}</span><span class="${w===1?'gag':''}" style="text-align:right">${esc(b.nom)} ${flag(b.pays)}</span><small>${ISSUES[x.res.m]}${['ko','tko','sub'].includes(x.res.m)?' · R'+x.res.r:''}</small></div>`;}).join('')}</div>`:''}<div class="carte" style="margin-top:10px"><h3>Fiche technique</h3><div class="stat3">${tale('Âge',Math.floor(A.age),Math.floor(B.age))}${tale('Palmarès',rec(A),rec(B))}${tale('Note',M.ov(A),M.ov(B))}
  ${ATTRS.map(([k,l])=>tale(l,Math.round(A.at[k]),Math.round(B.at[k]))).join('')}${tale('Style',STYLES[A.style].nom,STYLES[B.style].nom)}${tale('Forme',Math.round(A.forme),Math.round(B.forme??100))}</div></div>
  ${rapportAdv(B,A)}
@@ -304,7 +321,7 @@ function preCombat(cid){const t=M.trouverCombat(cid);if(!t)return;const {c,e}=t;
  $('bSim').onclick=()=>{fermerModal();const sim=M.preparerSim(cid,c.plan,c.changes);resultat(cid,sim);};
  brancher($('modal'));}
 let CB=null;
-function regarder(cid){const t=M.trouverCombat(cid);const {c,e}=t;const A=G.F[c.a],B=G.F[c.b];const O=ORGc(e.org);
+function regarder(cid){const t=M.trouverCombat(cid);const {c,e}=t;const A=G.F[c.a],B=G.F[c.b];const O=OE(e);
  if(!ARENE_OK){const sim=M.preparerSim(cid,c.plan,c.changes);resultat(cid,sim);return;}
  c.changes=c.changes||{};const sim=M.preparerSim(cid,c.plan,c.changes);
  CB={cid,sim,i:0,A,B,O,c,e,vit:1,fini:false,tmr:0};
@@ -349,7 +366,7 @@ function conseilCoin(st){const A=CB.A,B=CB.B;if(st.e[0]<45)return '🧠 Le coach
 function finCombat(saut){if(!CB)return;clearTimeout(CB.tmr);CB.fini=true;const {cid,sim}=CB;resultat(cid,sim,true);}
 function resultat(cid,sim,vu){const t=M.trouverCombat(cid);const {c,e}=t;const A=G.F[c.a],B=G.F[c.b];const avOrg=A.org;const champAv=estChamp(A);
  M.jouerMonCombat(cid,sim);COTEvider();sauver();
- const r=sim.res,W=r.w===0?A:r.w===1?B:null;const moi=r.w===0;const st=r.stats;const O=ORGc(e.org);
+ const r=sim.res,W=r.w===0?A:r.w===1?B:null;const moi=r.w===0;const st=r.stats;const O=OE(e);
  const devientChamp=!champAv&&estChamp(A);
  const h=`<div class="resultat"><div class="doux" style="font-size:12px;letter-spacing:.12em">${e.nom} · ${esc(e.ville)}</div>${W?`<div style="width:130px;margin:10px auto;border-radius:14px;overflow:hidden;border:2px solid ${moi?'#e9c46a':'#555'}">${por(W)}</div>`:''}
  <div class="gagnant">${W?(moi?'VICTOIRE !':'DÉFAITE'):'MATCH NUL'}</div><div style="font-size:16px;font-weight:700">${W?esc(nomC(W))+' l\'emporte':''}</div>

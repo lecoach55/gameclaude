@@ -13,6 +13,7 @@ Artefact publié : slug `c14b9bc8-e782-45aa-b06c-06126bd542d0` (https://claude.a
 ## Outils (`outils/`)
 - `tests/analyze.js N heur` : répétition des actions, événements, **choix dominants** (> 95 %). `JEU=jeu node outils/tests/analyze.js 300 heur`
 - `tests/misstype.js N` : réussite des mandements par type.
+- `tests/frequences.js N` : fréquence de chaque événement par partie et par âge (les copies simulées par le bot ne comptent pas) : repère les événements trop fréquents ou jamais vus.
 - `tests/pass1test.py index.html` : partie complète dans le navigateur + anciennes sauvegardes (`tests/anciennes/engine_v10/13/14.js`).
 - `tests/mock.py index.html` : mode « chronique libre » avec une IA simulée.
 - `tests/explore.py index.html minutes graine` : testeur au doigt (vrais boutons au hasard) : erreurs, blocages, couverture.

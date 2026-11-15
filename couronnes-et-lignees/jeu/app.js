@@ -1216,6 +1216,7 @@ const JOURNAL = [
   ['Revue d\'ensemble', '1 %', '77 %', 'Revue des nouveaux écrans sur téléphone et en mouvement réduit. Le bot qui simule les choix tient désormais compte de la loyauté des proches, des relations avec les voisins, des chantiers et des récits en cours : il voit enfin la valeur des choix à effet différé. Neuf choix trop tranchés rééquilibrés (guérisseuse, pont, enfant prodige, vœu de croisade, amours secrètes, trésor templier). Accords des textes au féminin, guide d\'introduction mis à jour (conseil, tactiques, édifices, éducation).'],
   ['Atelier partagé : mode test et testeurs', '0 %', '75 %', 'Le jeu rejoint l\'atelier commun de vos jeux (dépôt gameclaude) et reprend ses outils. Sur l\'écran titre, 🧪 Mode test lance une partie à part, sans toucher à votre sauvegarde, avec un compteur d\'images par seconde et un banc de mesure. Dans le menu ☰, 🐞 Signaler un problème envoie l\'écran ouvert et l\'état de la partie. Côté fabrication, chaque version passe désormais par un testeur au doigt (600 touches au hasard en 4 minutes, aucune erreur), par 15 captures fixes comparées aux précédentes et par 1 000 parties simulées.'],
   ['Carte plus fluide', '0 %', '75 %', 'Pendant un glissé ou un zoom, la carte n\'est plus redessinée à chaque image : la puce graphique déplace l\'image déjà dessinée, et le dessin précis n\'est refait qu\'à la fin du geste. Sur un téléphone simulé (processeur ralenti 4 fois), le glissé passe de 25 à 54 images par seconde ; ouvrir une fiche de terre prend 12 ms au lieu de 22.'],
+  ['L\'âge des fléaux raconté', '0 %', '78 %', 'Un fil historique traverse le XIVe siècle : la croisade des pastoureaux (1320), la bataille de Cassel (1328), puis la guerre de Cent Ans dont le camp choisi décide de la suite quelques années plus tard (la chevalerie fauchée par les archers, une chevauchée anglaise, ou les pillards des deux camps), et le manque de bras après les épidémies. La Peste noire, qui ne pouvait jamais survenir (elle tombait entre deux tours), arrive enfin en 1347. Chaque fin de partie raconte désormais ce que l\'histoire retiendra de votre maison (conquérants, bâtisseurs, diplomates, saints, dynastes ou marchands) et ce qu\'elle devint après 1350.'],
 ];
 function viewLabo() {
   const C = { victoire: '#2f6b55', extinction: '#6b3a78', revolte: '#a8321f', conquete: '#b98a2e', timeout: '#888' };
@@ -1322,7 +1323,7 @@ function yearsPass(a, b) {
 const ROBE = () => A.arms(S.house).robe;
 function scn(kind, icon, hist, h, extra) { return `<div class="scn" style="--h:${h || 150}px">${SCENE.svg(kind, Object.assign({ flag: ROBE(), seed: S.year * 7 + kind.length, h: h || 150 }, extra || {}))}${icon ? `<div class="medal ${hist ? 'hist' : ''}">${A.icon(icon, 40)}</div>` : ''}</div>`; }
 function sheet(html, dismiss, cls) {
-  $('modal').innerHTML = `<div class="veil" ${dismiss ? 'onclick="if(event.target===this)closeM()"' : ''}><div class="sheet folio ${cls || ''}" role="dialog" aria-modal="true">${html}</div></div>`;
+  $('modal').innerHTML = `<div class="veil" ${dismiss ? 'onclick="if(event.target===this)closeM()"' : ''}><div class="sheet folio ${cls || ''}" role="dialog" aria-modal="true">${dismiss ? '<button class="sx" aria-label="Fermer" onclick="closeM()">✕</button>' : ''}${html}</div></div>`;
   const f = $('modal').querySelector('.choice,.btn'); if (f) f.focus({ preventScroll: true });
 }
 function closeM() { $('modal').innerHTML = ''; document.querySelectorAll('.coach').forEach(e => e.remove()); }
@@ -1553,6 +1554,7 @@ function showEnd() {
   const T = { victoire: 'Victoire', unification: 'Royaume unifié', extinction: 'Extinction', revolte: 'Déposition', conquete: 'Conquête' };
   sheet(`${scn(r.won ? 'chateau' : 'peste', null, false, 120)}<div class="center" style="margin-top:-46px;position:relative">${A.shieldSVG(S.house, 74)}</div><h2 class="frak" style="font-size:34px">${T[r.cause]}</h2>
   <p class="story">${esc(r.msg)}</p>
+  ${r.epi ? `<div class="epi"><div class="sc">${esc(r.epi.t)}</div><p>${esc(r.epi.d)}</p><p class="apres">${esc(r.epi.apres)}</p></div>` : ''}
   <div class="center"><div class="frak" style="font-size:52px;color:var(--lapis);line-height:1">${r.score}</div><div class="sc" style="color:var(--ink2)">${r.won ? D.rank(r.score) : 'Une lignée oubliée'}</div></div>
   <div class="kings" style="margin-top:12px">${S.rulers.map(id => { const p = S.people[id]; return `<div>${mini(p, 44)}<b>${esc(p.title)}</b><span>${esc(p.epithet || '')}</span></div>`; }).join('')}</div>
   <div class="facts"><div><span>Années</span><b>${S.year - S.P.startYear}</b></div><div><span>Domaines</span><b>${S.domains}</b></div><div><span>Ambitions</span><b>${st.ambitions || 0}</b></div><div><span>Naissances</span><b>${st.births}</b></div><div><span>Guerres gagnées</span><b>${st.warsWon}/${st.wars}</b></div><div><span>Invasions repoussées</span><b>${st.invRepelled}/${st.invasions}</b></div></div>

@@ -810,13 +810,25 @@
         { l: 'Réquisitionner les greniers de l\'Église', d: '−8 prestige, −4 stabilité', f: s => { s.prestige -= 8; s.stab -= 4; return 'Les abbés crient au sacrilège.'; } },
         { l: 'Laisser faire', d: '−18 stabilité, la famille souffre', f: s => { s.stab -= 18; famRisk(s, 0.05, 'famine'); return 'Les campagnes se vident.'; } },
       ] },
+    { id: 'pastoureaux', year: 1320, text: () => 'Des bandes de bergers et de gueux affamés, les « pastoureaux », marchent vers le sud en se disant croisés. Ils approchent de vos terres.',
+      choices: [
+        { l: 'Les nourrir et les laisser passer', d: '−20 or, +4 stabilité', f: s => { s.gold -= 20; s.stab += 4; return 'Ils repartent en chantant des psaumes.'; } },
+        { l: 'Les disperser par les armes', d: 'Il faut 30 soldats : +3 stabilité, −4 prestige ; sinon −8 stabilité', f: s => { if (s.army >= 30) { s.army -= 3; s.stab += 3; s.prestige -= 4; return 'Les sergents chargent ; les bergers s\'égaillent dans les bois.'; } s.stab -= 8; return 'Vos hommes trop peu nombreux sont débordés ; des granges brûlent.'; } },
+        { l: 'Les enrôler', d: '+12 soldats, −6 stabilité, −5 prestige', f: s => { s.army += 12; s.stab -= 6; s.prestige -= 5; return 'On arme ces gueux de fourches et de piques.'; } },
+      ] },
+    { id: 'cassel', year: 1328, text: () => 'Les paysans de Flandre se sont soulevés contre leur comte. Le nouveau roi, Philippe de Valois, convoque ses vassaux pour les écraser au mont Cassel.',
+      choices: [
+        { l: 'Envoyer votre ost', d: '−15 % d\'armée, +8 prestige, +1 alliance', f: s => { s.army = Math.round(s.army * 0.85); s.prestige += 8; s.alliances = Math.min(s.P.maxAlliances, s.alliances + 1); return 'La chevalerie écrase les Flamands. Le roi se souviendra de vous.'; } },
+        { l: 'Payer l\'écuage', d: '−25 or, +2 prestige', f: s => { s.gold -= 25; s.prestige += 2; return 'Votre or remplace vos lances.'; } },
+        { l: 'Ignorer la convocation', d: '−6 prestige, +12 menace ; vos paysans retiennent la leçon flamande (−3 stabilité)', f: s => { s.prestige -= 6; s.menace += 12; s.stab -= 3; return 'Le roi note votre absence, et vos serfs l\'exemple de la Flandre.'; } },
+      ] },
     { id: 'centans', year: 1337, text: () => 'Le roi d\'Angleterre revendique la couronne de France. Une guerre commence, que l\'on dira de Cent Ans.',
       choices: [
-        { l: 'Soutenir le roi de France', d: '+10 prestige, +1 alliance, +25 menace', f: s => { s.prestige += 10; s.alliances = Math.min(s.P.maxAlliances, s.alliances + 1); s.menace += 25; return 'Vos bannières rejoignent l\'oriflamme.'; } },
-        { l: 'Rallier l\'Angleterre', d: '+40 or, −10 prestige, −6 stabilité, −20 menace', f: s => { s.gold += 40; s.prestige -= 10; s.stab -= 6; s.menace = Math.max(0, s.menace - 20); return 'L\'or anglais coule, la honte aussi.'; } },
-        { l: 'Rester neutre', d: '+10 menace', f: s => { s.menace += 10; return 'Les deux camps vous méprisent.'; } },
+        { l: 'Soutenir le roi de France', d: '+10 prestige, +1 alliance, +25 menace', f: s => { s.prestige += 10; s.alliances = Math.min(s.P.maxAlliances, s.alliances + 1); s.menace += 25; s.centans = 'france'; (s.chains = s.chains || []).push({ id: 'centans_2', at: s.turn + 2 }); return 'Vos bannières rejoignent l\'oriflamme.'; } },
+        { l: 'Rallier l\'Angleterre', d: '+40 or, −10 prestige, −6 stabilité, −20 menace', f: s => { s.gold += 40; s.prestige -= 10; s.stab -= 6; s.menace = Math.max(0, s.menace - 20); s.centans = 'angleterre'; (s.chains = s.chains || []).push({ id: 'centans_2', at: s.turn + 2 }); return 'L\'or anglais coule, la honte aussi.'; } },
+        { l: 'Rester neutre', d: '+10 menace', f: s => { s.menace += 10; s.centans = 'neutre'; (s.chains = s.chains || []).push({ id: 'centans_2', at: s.turn + 2 }); return 'Les deux camps vous méprisent.'; } },
       ] },
-    { id: 'peste_noire', year: 1348, text: () => 'La Peste noire débarque dans les ports. Elle emportera un tiers de l\'Europe. Elle sera chez vous avant l\'été.',
+    { id: 'peste_noire', year: 1347, text: () => 'La Peste noire débarque dans les ports. Elle emportera un tiers de l\'Europe. Elle sera chez vous avant l\'été.',
       choices: [
         { l: 'Fuir dans un château isolé', d: 'La famille risque moins ; −12 stabilité, −30 % d\'armée', f: s => { famRisk(s, 0.1, 'peste noire'); s.stab -= 12; s.army = Math.round(s.army * 0.7); return 'Les portes sont murées. Dehors, on meurt.'; } },
         { l: 'Rester et organiser les secours', d: 'La famille risque gros ; +10 stabilité, +15 prestige', f: s => { famRisk(s, 0.28, 'peste noire'); s.stab += 10; s.prestige += 15; s.army = Math.round(s.army * 0.7); return 'Le peuple n\'oubliera jamais votre présence.'; } },
@@ -1234,6 +1246,24 @@
         { l: 'Des apanages pour les cadets', d: '−25 or, les cadets +25 loyauté, −2 stabilité', f: s => { s.testament = 'apanages'; s.gold -= 25; s.stab -= 2; for (const p of livingDyn(s)) if (p.parent === s.rulerId && heir(s) && p.id !== heir(s).id) loyalty(s, p, 25); return 'Chaque enfant aura son château ; les barons grincent.'; } },
         { l: 'Un legs à l\'Église', d: '−20 or, +8 prestige', f: s => { s.testament = 'eglise'; s.gold -= 20; s.prestige += 8; return 'Une abbaye priera à jamais pour votre âme.'; } },
       ] },
+    { id: 'centans_2', chain: true, w: 0, cond: ALL,
+      text: s => s.centans === 'france' ? 'La guerre s\'éternise. Le roi de France rassemble toute sa chevalerie contre l\'armée anglaise, forte de ses archers gallois. Il exige votre présence en personne.'
+        : s.centans === 'angleterre' ? 'Une chevauchée anglaise traverse le pays en brûlant tout. Leur capitaine, votre « allié », réclame vivres et passage pour ses routiers.'
+        : 'Ni Anglais ni Français : vos terres neutres attirent les déserteurs des deux camps, qui pillent tout ce qu\'ils trouvent.',
+      choices: [
+        { l: 'Payer de sa personne', d: 'France : 45 % gloire (+20 prestige), sinon désastre ; ailleurs : −10 soldats, +6 stabilité', f: s => { const r = ruler(s);
+          if (s.centans === 'france') { s.army = Math.round(s.army * 0.75); if (rand(s) < 0.45) { s.prestige += 20; s.menace = Math.max(0, s.menace - 15); return 'Votre bannière tient bon quand tout plie : le roi vous appelle son bouclier.'; } s.prestige -= 6; s.stab -= 5; if (rand(s) < 0.2 && age(s, r) >= 16) { kill(s, r, 'tombé sous les flèches anglaises'); return 'Les archers fauchent la chevalerie. Votre souverain ne revient pas.'; } return 'Une pluie de flèches : la chevalerie est fauchée, vous rentrez vivant mais humilié.'; }
+          s.army -= 10; s.stab += 6; return 'Vous chassez vous-même les pillards de vos villages.'; } },
+        { l: 'Négocier', d: 'France : −20 or ; Angleterre : +25 or, −5 stabilité ; neutre : −15 or, +3 stabilité', f: s => { if (s.centans === 'france') { s.gold -= 20; return 'Vous envoyez des chevaliers à votre place, et de l\'or.'; } if (s.centans === 'angleterre') { s.gold += 25; s.stab -= 5; return 'Les Anglais paient bien vos vivres ; les paysans, eux, vous maudissent.'; } s.gold -= 15; s.stab += 3; return 'Une rançon éloigne les bandes.'; } },
+        { l: 'Changer de camp', d: '−8 prestige, la menace change de visage', f: s => { s.prestige -= 8; if (s.centans === 'angleterre') { s.centans = 'france'; s.menace += 15; s.stab += 3; return 'Vous rejoignez l\'oriflamme : les Anglais jurent de se venger.'; } s.centans = 'angleterre'; s.gold += 30; s.menace = Math.max(0, s.menace - 15); return 'L\'or anglais achète votre défection.'; } },
+      ] },
+    { id: 'salaires', w: 3, ew: [0, 0.3, 2], cond: ALL,
+      text: () => 'Tant de bras manquent que les paysans exigent des salaires doublés et quittent les seigneurs avares.',
+      choices: [
+        { l: 'Bloquer les salaires par ordonnance', d: '+12 or, −5 stabilité', f: s => { s.gold += 12; s.stab -= 5; return 'L\'ordonnance est criée sur les places ; on la maudit tout bas.'; } },
+        { l: 'Payer ce qu\'il faut', d: '−2 or par tour pour toujours, +6 stabilité', f: s => { s.corvee = (s.corvee || 0) + 2; s.stab += 6; return 'Les champs sont cultivés, et les paysans restent.'; } },
+        { l: 'Affranchir des serfs contre rachat', d: '+18 or, −5 prestige chez les barons', f: s => { s.gold += 18; s.prestige -= 5; return 'Des hommes libres paient leur liberté au prix fort.'; } },
+      ] },
     { id: 'comete', w: 2, cond: ALL,
       text: () => 'Une comète traverse le ciel nocturne. Les prêcheurs y voient un présage.',
       choices: [
@@ -1479,8 +1509,28 @@
     }
   }
 
+  function epilogue(s) {
+    const st = s.stats, w = { conquerants: (st.warsWon || 0) * 2 + (s.rivalDown ? 6 : 0) + (st.rivalTaken || 0) * 2, batisseurs: s.builds * 1.5 + (s.cathedral ? 5 : 0), diplomates: (st.vassals || 0) * 2.5 + s.alliances * 1.5 + Object.values(s.houses || {}).filter(h => h.rel >= 40).length * 2,
+      devots: Math.max(0, s.prestige - 40) / 12 + (edif(s, 'abbaye') + edif(s, 'universite')) * 1.5, dynastes: s.rulers.length * 1.2 + (st.marriages || 0) * 0.8 + (st.births || 0) * 0.3, marchands: ((s.trade || 0) + edif(s, 'marche') * 3 + edif(s, 'moulin')) / 2 };
+    let k = Object.keys(w).sort((a, b) => w[b] - w[a])[0]; if (w[k] < 5) k = 'modeste';
+    const H = s.house, E = {
+      conquerants: ['Une maison de conquérants', `On dira de la maison ${H} qu'elle tenait le royaume par l'épée : ${st.warsWon || 0} campagne${(st.warsWon || 0) > 1 ? 's' : ''} victorieuse${(st.warsWon || 0) > 1 ? 's' : ''}${s.rivalDown ? ', et une maison rivale rayée des chroniques' : ''}.`],
+      batisseurs: ['Une maison de bâtisseurs', `Des siècles plus tard, les pierres témoignent encore : ${[s.builds ? `${s.builds} édifice${s.builds > 1 ? 's' : ''}` : '', s.cathedral ? 'une cathédrale dont la flèche domine la plaine' : ''].filter(Boolean).join(' et ')}.`],
+      modeste: ['Une maison sans éclat', 'Elle passa sans laisser grand-chose : quelques chartes, un sceau de cire verte, un nom dans le nécrologe d\'une abbaye.'],
+      diplomates: ['Une maison de diplomates', `Plus de serments que de batailles : ${st.vassals || 0} seigneur${(st.vassals || 0) > 1 ? 's' : ''} prêtèrent hommage sans qu'une goutte de sang soit versée, et l'on parlait d'elle dans toutes les cours.`],
+      devots: ['Une maison de saints', `Les moines tinrent sa chronique et prièrent pour elle : ${s.prestige} de prestige, et le pape lui-même citait son nom en exemple.`],
+      dynastes: ['Une maison de dynastes', `${s.rulers.length} souverain${s.rulers.length > 1 ? 's' : ''} se transmirent la couronne, et ${st.births || 0} enfant${(st.births || 0) > 1 ? 's' : ''} naquirent sous ses bannières : son sang coule dans la moitié des cours d'Europe.`],
+      marchands: ['Une maison de marchands', `Ses halles et ses foires la rendirent plus riche que bien des rois : on y comptait l'or plus que les morts.`],
+    }[k];
+    const after = s.result.won ? (s.unified ? 'Le royaume unifié lui survécut longtemps, et ses descendants portèrent la couronne jusqu\'aux guerres d\'Italie.' : 'Elle traversa la fin de la guerre de Cent Ans, diminuée mais debout, et ses armes ornent encore la porte d\'une église de campagne.')
+      : s.result.cause === 'extinction' ? 'Faute d\'héritier, ses terres furent dispersées entre les maisons voisines ; il ne reste d\'elle qu\'un blason sur une pierre tombale.'
+      : s.result.cause === 'revolte' ? 'Les barons partagèrent ses dépouilles ; un lointain cousin garda le nom, sans les terres.'
+      : 'Ses vainqueurs effacèrent son nom des actes, mais les chansons de geste, elles, s\'en souvinrent.';
+    return { k, t: E[0], d: E[1], apres: after };
+  }
   function endGame(s, won, cause, msg) {
     s.over = true; s.result = { won, cause, msg, score: score(s) };
+    try { s.result.epi = epilogue(s); } catch (e) {}
     log(s, msg, won ? 'good' : 'bad');
   }
   function score(s) {
@@ -1529,6 +1579,6 @@
     return sc >= 850 ? 'Empire légendaire' : sc >= 750 ? 'Grande dynastie' : sc >= 650 ? 'Royaume prospère' : sc >= 550 ? 'Maison respectée' : 'Lignée modeste';
   }
 
-  const api = { EDU_PATHS, eduChance, STANCES, TACTICS, stanceOf, scoutReport, tacticMult, ruseBonus, MOODS, houseOf, neighborHouses, relation, relLabel, giftCost, sendGift, COUNCIL, councilOf, seatSkill, councilCandidates, appoint, councilFx, autoCouncil, BUILDINGS, buildTypes, edif, MISSIONS, ISSUERS, rivalAggro, newRivalLord, vassalCost, vassalOdds, rivalCount, mapGeom, borderTargets, campaignOdds, regionEnemy, myRegions, initRegions, syncDomains, TEMPERS, RANKS, marriageMarket, candidateFx, willLeave, applyAI, histDueEvent, markHistDone, AI_BOUNDS, POLICIES, policyFx, setPolicy, ERAS, eraOf, AMBITIONS, ambitionProgress, eff, DEFAULT_P, TRAITS, EVENTS, createGame, getActions, marriageOptions, playTurn, resolveEvent, ruler, heir, successionLine, livingDyn, unmarriedAdults, age, person, fullName, score, rank, rand, childrenOf };
+  const api = { epilogue, EDU_PATHS, eduChance, STANCES, TACTICS, stanceOf, scoutReport, tacticMult, ruseBonus, MOODS, houseOf, neighborHouses, relation, relLabel, giftCost, sendGift, COUNCIL, councilOf, seatSkill, councilCandidates, appoint, councilFx, autoCouncil, BUILDINGS, buildTypes, edif, MISSIONS, ISSUERS, rivalAggro, newRivalLord, vassalCost, vassalOdds, rivalCount, mapGeom, borderTargets, campaignOdds, regionEnemy, myRegions, initRegions, syncDomains, TEMPERS, RANKS, marriageMarket, candidateFx, willLeave, applyAI, histDueEvent, markHistDone, AI_BOUNDS, POLICIES, policyFx, setPolicy, ERAS, eraOf, AMBITIONS, ambitionProgress, eff, DEFAULT_P, TRAITS, EVENTS, createGame, getActions, marriageOptions, playTurn, resolveEvent, ruler, heir, successionLine, livingDyn, unmarriedAdults, age, person, fullName, score, rank, rand, childrenOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Dyn = api;
 })(typeof window !== 'undefined' ? window : this);

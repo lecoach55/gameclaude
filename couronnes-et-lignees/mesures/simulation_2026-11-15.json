@@ -1,0 +1,19 @@
+{
+ "date": "2026-11-15",
+ "heur": {
+  "n": 1000,
+  "victoire": 0.745,
+  "score": 669.939,
+  "causes": {
+   "victoire": 443,
+   "unification": 302,
+   "revolte": 116,
+   "extinction": 110,
+   "conquete": 29
+  }
+ },
+ "hasard": {
+  "n": 400,
+  "victoire": 0.0025
+ }
+}

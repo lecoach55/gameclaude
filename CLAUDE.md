@@ -6,6 +6,13 @@ Réponds à Victor en français. Il joue surtout sur téléphone et sur un MacBo
 ## Outils communs (`outils-communs/`)
 `testkit.js` (🐞 signalement, compteur d'img/s, banc, envoi en base), `atelier.py` (serveur, pages, mesures, captures), `compare.py`. À intégrer dans chaque nouveau jeu.
 
+## Couronnes & Lignées (`couronnes-et-lignees/`)
+Simulation dynastique médiévale en une page HTML (SVG, sans dépendance). Artefact : slug `c14b9bc8-e782-45aa-b06c-06126bd542d0`.
+- Construire : `cd couronnes-et-lignees/jeu && python3 build.py`, publier `index.html`.
+- Équilibre : bot attentif 72-80 % (`node -e "require('./sim.js').run('heur',1000)"`), aucun choix > 95 % (`outils/tests/analyze.js`). Ne pas changer la difficulté sans accord.
+- Avant publication : `outils/tests/pass1test.py` (partie + anciennes sauvegardes), `mock.py` (IA), `explore.py` (au doigt), `mesure/captures.py` + `outils-communs/compare.py` contre `references/`.
+- Voir `couronnes-et-lignees/README.md`.
+
 ## Valdragon — Les Héritiers du Puits (`valdragon/`)
 RPG 3D au tour par tour (Three.js r160). Artefact publié : slug `6899e11c-5894-4f5e-8850-c3f0adb308f6`.
 - Ne JAMAIS changer la difficulté des combats ni le système de respawn (Victor les aime). Vérifier avec `sim.js` + `analyze.js`.

@@ -12,3 +12,6 @@
 3. Le mode test ne touche jamais à la vraie sauvegarde du joueur.
 
 Exemple complet : `valdragon/outils` et le mode test de Valdragon (bouton 🧪 sur l'écran titre).
+
+
+Adaptation pour un jeu sans canvas (DOM/SVG) : voir `couronnes-et-lignees/jeu/app.js` (Testkit intégré sans `export`, `etat()` qui envoie l'écran ouvert et la sauvegarde). Testeur au doigt générique pour ce genre de jeu : `couronnes-et-lignees/outils/tests/explore.py`.

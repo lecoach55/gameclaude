@@ -33,3 +33,9 @@ Lire avec `db_list` (slug du jeu, collection `data/users/<id>`, id donné par `d
 
 ### Méthode qui marche
 Mesurer avant/après chaque changement (perf.py), vérifier visuellement (captures), tester (explore + scen + sauvegarde + hors ligne), puis publier et envoyer un bilan chiffré en français.
+
+## Sedes Petri — Le Trône de Pierre (`sedes-petri/`)
+Jeu de gestion (on incarne le pape, 1073-1517). Artefact : slug `e403381b-4eb6-4956-af79-666fc1dc0712`, publié tel quel depuis `sedes-petri/jeu` (publish_files, mode patch, pas de construction).
+- Sauvegarde en ligne : document `partie` (nuage.js, capacités db + user) ; ne pas casser ce chemin. Le mode test (S.test) n'écrit jamais.
+- Équilibrage vérifié avec `outils/sim2.js` (ne pas le changer sans demander à Victor) ; robustesse avec `outils/fuzz.js`.
+- Avant publication : `perf.py`, `captures.py` + compare, `monkey.py` (ordinateur et mobile), `sauvegarde.py`. Voir `sedes-petri/README.md`.

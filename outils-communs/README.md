@@ -2,7 +2,7 @@
 
 À réutiliser dans chaque jeu de Victor (Valdragon, Hameau, Président de Club, etc.).
 
-- **`testkit.js`** — à intégrer dans le jeu : bouton 🐞 « signaler un problème » (capture, état, erreurs), compteur d'images par seconde, banc de mesure scripté. Les résultats vont dans la base de l'artefact : Claude les lit avec `db_list` sur la collection `data/users/<id>` (documents `mesures_*` et `signalement_*`).
+- **`testkit.js`** — à intégrer dans le jeu : bouton 🐞 « signaler un problème » (capture, état, erreurs), compteur d'images par seconde, banc de mesure scripté. Pour un jeu en scripts classiques (sans `import`), charger `<script type="module" src="testkit.js">` : la trousse est aussi exposée sur `window.Testkit` (exemple : `sedes-petri`). Pour un jeu 2D, le GPU est lu sur un canvas WebGL temporaire. Les résultats vont dans la base de l'artefact : Claude les lit avec `db_list` sur la collection `data/users/<id>` (documents `mesures_*` et `signalement_*`).
 - **`atelier.py`** — fonctions Python communes : serveur local, page neuve (localStorage préparé, temps accéléré), mesure des images, captures.
 - **`compare.py`** — comparaison d'images référence / nouvelle version, tolérante aux petits décalages de caméra. Signale les changements visuels involontaires. `python3 compare.py refs/ nouvelles/ planche.png`
 

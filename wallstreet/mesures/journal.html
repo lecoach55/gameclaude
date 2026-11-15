@@ -45,6 +45,30 @@ a{color:inherit}
 
 <!--NOUVELLES-ENTREES-->
 
+<article id="e-atelier">
+<header><h2>Passe 5 : les outils des autres jeux appliqués à Wall Street</h2><span class="when">15 novembre 2026 <span class="tag gold">publié</span></span></header>
+<p>Le jeu rejoint l'atelier commun (dépôt gameclaude) et reprend les outils mis au point pour Valdragon, Sedes Petri et Couronnes &amp; Lignées.</p>
+<h3>Un vrai bug trouvé sur téléphone</h3>
+<p>En vérifiant le menu sur un écran de 390 pixels, il s'est avéré que le bouton ☰ (et celui du son) étaient <b>cachés sur téléphone depuis le début</b> : une faute de frappe dans une règle de style. Impossible donc, sur mobile, de revenir au menu ou de recommencer une partie. Corrigé.</p>
+<h3>Nouveautés</h3>
+<ul>
+<li><b>Sauvegarde en ligne</b> : la partie est aussi enregistrée (compressée) dans l'espace privé de l'artefact. En ouvrant le jeu sur un autre appareil, le menu propose de reprendre la partie la plus récente. Rien n'est jamais écrasé sans votre accord.</li>
+<li><b>🐞 Signaler un problème</b> (menu ☰) : envoie l'état de la partie, les erreurs éventuelles et votre commentaire, que Claude peut lire directement.</li>
+<li><b>🧪 Mesurer la fluidité</b> (menu ☰) : 30 secondes de mesure sur votre appareil (calcul d'une séance, onglets, lecture auto). La partie est copiée avant et remise exactement à l'identique.</li>
+</ul>
+<h3>Mesures de référence (ordinateur de test, Chrome sans écran)</h3>
+<div class="tw"><table>
+<tr><th>Scène</th><th>Ordinateur</th><th>Téléphone (390 px)</th></tr>
+<tr><td>Séance suivante (calcul + affichage)</td><td>61 ms</td><td>77 ms</td></tr>
+<tr><td>+1 mois (21 séances)</td><td>53 ms</td><td>52 ms</td></tr>
+<tr><td>Onglets au repos</td><td>58–60 img/s</td><td>60 img/s</td></tr>
+<tr><td>Lecture auto</td><td>58 img/s</td><td>59 img/s</td></tr>
+</table></div>
+<p>L'essentiel du temps d'une séance est l'affichage, pas le calcul du marché. Les vraies valeurs sur votre téléphone et votre Mac viendront du bouton 🧪.</p>
+<h3>Testeur au doigt</h3>
+<p>Adapté de Couronnes &amp; Lignées : 3 minutes de touches au hasard sur ordinateur (522 touches, 126 boutons différents) et sur téléphone (464 touches) : aucune erreur, aucun débordement horizontal, aucun montant incohérent. Parties automatiques de 2 ans : toujours sans erreur, environ une interruption pour quatre clics.</p>
+</article>
+
 <article id="e-passe4">
 <header><h2>Passe 4 : le bon moment pour la Recherche Pro, l'équilibre des rivaux, une galerie de trophées</h2><span class="when">12 novembre 2026 <span class="tag gold">publié</span></span></header>
 <h3>Recherche Pro : tout se joue dans le timing</h3>

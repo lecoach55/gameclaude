@@ -1,0 +1,10 @@
+import {NodeIO} from '@gltf-transform/core';
+import {ALL_EXTENSIONS} from '@gltf-transform/extensions';
+import {prune,dedup,quantize,meshopt} from '@gltf-transform/functions';
+import {MeshoptEncoder} from 'meshoptimizer';
+await MeshoptEncoder.ready;
+const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder});
+const doc=await io.read('dl/Xbot.glb');
+for(const a of doc.getRoot().listAnimations())a.dispose();
+await doc.transform(prune(),dedup(),meshopt({encoder:MeshoptEncoder,level:'medium'}));
+await io.write('jeu/xbot.glb',doc);

@@ -10,5 +10,6 @@ Les jeux de Victor créés avec Claude, et les outils de fabrication partagés e
 - `sedes-petri/` — Sedes Petri, le Trône de Pierre (jeu de gestion papale) : `jeu`, `outils`, `mesures`, `references`
 - `trone-de-braise/` — Le Trône de Braise, action-RPG + conquête d’un royaume (jeu, simulateurs, tests, mesures ; version hors ligne dans `build/`)
 - `couronnes-et-lignees/` — Couronnes & Lignées, simulation dynastique (jeu, outils de test et d'équilibrage, captures de référence)
+- `cage-et-gloire/` — Cage & Gloire, management de combattants de MMA (organisations, classements, arène 3D)
 
 Dans une nouvelle conversation, il suffit de dire à Claude : « utilise mon dépôt GitHub lecoach55/gameclaude ».

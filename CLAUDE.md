@@ -87,3 +87,10 @@ Stratégie au tour par tour façon Heroes of Might and Magic avec cartes génér
 - Construire : `python3 bannieres/jeu/build.py`, publier `bannieres/build/bannieres.html` en `index.html` (publish_files).
 - Logique testable sous Node (`outils/charger.js`, `sim_partie.js`, `sim_factions.js` pour l'équilibre des 4 factions) ; avant publication : `parcours.py` (robot à travers l'interface + sauvegarde), `scen.py` (siège, Graal, victoire), `monkey.py` (clics au hasard), `perf.py`, `capt.py` + compare (références dans `references/`), `hors_ligne.py`. Voir `bannieres/README.md`.
 - Ressources reprises de Valdragon : portraits 3D (`outils/studio/portraits.py` + `pack_portraits.py`, dossier préparé `/home/claude/t3d`), bruitages Kenney (`jeu/snd`), bois et pierre (`jeu/tex`), musique générative (sons.js). Les créatures restent dessinées (essai de sprites 3D écarté, voir README).
+- Logique testable sous Node (`outils/charger.js`, `sim_partie.js`) ; avant publication : `parcours.py`, `scen.py`, `perf.py`, `capt.py` + compare, `hors_ligne.py`. Voir `bannieres/README.md`.
+
+## Cage & Gloire (`cage-et-gloire/`)
+Management de combattants de MMA : 5 organisations (CFR → HEX → ECC → GLADIUS → APEX), montées/descentes selon les résultats, combats regardés dans une arène Three.js. Artefact : slug `a54aba6d-7add-42e6-8212-9468f69ceee4` (capacités db + user).
+- Construire : `cd cage-et-gloire && npm i && python3 jeu/build.py /home/claude/cg.html`, publier ce fichier en `index.html` (publish_files).
+- Équilibre : `outils/calib_combat.js`, `outils/sim_monde.js` (repères dans le README) ; ne pas changer sans accord.
+- Avant publication : `outils/parcours.py`, `outils/studio.py` (poses), `outils/bureau.py`. Sauvegardes `cage-gloire-v1` + `partie` : ne jamais les modifier.

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0a0d">
+<title>Cage & Gloire — management de MMA</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="cv3d"></canvas>
+<div id="accueil" class="ecran">
+ <div class="acc-voile"></div>
+ <div class="acc-centre">
+  <div class="acc-titre"><span>CAGE</span><em>&amp;</em><span>GLOIRE</span></div>
+  <div class="acc-sous">Management de combattants de MMA</div>
+  <div class="acc-btns" id="accBtns"></div>
+  <div class="acc-pied">Cinq organisations · huit catégories · des centaines de combattants · arène en 3D</div>
+ </div>
+</div>
+<div id="app" class="cache">
+ <header id="haut"></header>
+ <nav id="nav"></nav>
+ <main id="vue"></main>
+ <div id="barreAction"></div>
+</div>
+<div id="combat" class="cache">
+ <div id="hud"></div>
+ <div id="comm"></div>
+ <div id="ctrl"></div>
+ <div id="coin" class="cache"></div>
+</div>
+<div id="modal" class="cache"></div>
+<div id="toast"></div>
+<script src="data.js"></script>
+<script src="combat.js"></script>
+<script src="moteur.js"></script>
+<script src="portraits.js"></script>
+<script src="testkit.js"></script>
+<script src="nuage.js"></script>
+<script src="arene.bundle.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

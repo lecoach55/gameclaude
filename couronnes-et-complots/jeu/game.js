@@ -139,6 +139,7 @@ function newGame(cfg) {
   log(`<span class="r">Manche 1</span>`);
   log(`Le Conseil des Couronnes examine : <b>${S.edict.name}</b>.`);
   render();
+  focusStart();
   tokEls.forEach((g, i) => { g.style.setProperty("--d", (MAP.centers[i][0] + MAP.centers[i][1]) * .9 + "ms"); g.classList.add("enter"); });
   setTimeout(() => tokEls.forEach(g => g.classList.remove("enter")), 2200);
   startTurn();
@@ -1243,6 +1244,13 @@ function placeShadow() {
   sh.style.left = m.offsetLeft + (W - VB0.w * s0) / 2 + "px"; sh.style.top = m.offsetTop + (H - VB0.h * s0) / 2 + "px";
   sh.style.width = VB0.w * s0 + "px"; sh.style.height = VB0.h * s0 + "px";
 }
+// écran étroit (téléphone, volet latéral) : on démarre zoomé sur la capitale du premier joueur humain
+function focusStart() {
+  if (typeof window === "undefined" || window.innerWidth > 900) { vb = { ...VB0 }; return applyVB(true); }
+  const h = S.players.findIndex(p => !p.ai), o = h >= 0 ? h : 0, [cx, cy] = MAP.centers[P(o).capital];
+  vb = { w: VB0.w / 1.8, h: 0, x: 0, y: 0 }; vb.h = vb.w * VB0.h / VB0.w; vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2;
+  applyVB(true);
+}
 function measureGeo() {
   const m = $("map"), W = m.clientWidth, H = m.clientHeight, r = m.getBoundingClientRect();
   const s0 = Math.min(W / cvb.w, H / cvb.h);
@@ -1302,8 +1310,27 @@ function initZoom() {
   try { bakeTextures(); } catch (e) {}
   const m = $("map");
   m.addEventListener("wheel", e => { e.preventDefault(); const p = svgPt(e.clientX, e.clientY); zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, p.x, p.y); }, { passive: false });
-  m.addEventListener("pointerdown", e => { if (e.button === 0) drag = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y, moved: false }; });
+  // pincement à deux doigts (téléphone, pavé tactile)
+  const ptrs = new Map(); let pinch = null, lastTap = 0;
+  const startPinch = () => {
+    const [a, b] = [...ptrs.values()], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, w0: vb.w, p: svgPt(mx, my) }; drag = null;
+  };
+  m.addEventListener("pointerdown", e => {
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 2) { startPinch(); return; }
+    if (e.button === 0 && ptrs.size === 1) drag = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y, moved: false };
+  });
   window.addEventListener("pointermove", e => {
+    if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      vb.w = clamp(pinch.w0 * pinch.d0 / d, VB0.w / 3.2, VB0.w); vb.h = vb.w * VB0.h / VB0.w;
+      if (!geo) measureGeo();
+      const per = geo.s0 * cvb.w / vb.w;
+      vb.x = pinch.p.x - (mx - geo.left - geo.ox) / per; vb.y = pinch.p.y - (my - geo.top - geo.oy) / per;
+      justDragged = true; applyVB(); return;
+    }
     if (!drag || vb.w >= VB0.w - 1) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (!drag.moved && Math.hypot(dx, dy) < 6) return;
@@ -1312,7 +1339,18 @@ function initZoom() {
     const k = vb.w / (cvb.w * geo.s0);
     vb.x = drag.vx - dx * k; vb.y = drag.vy - dy * k; applyVB();
   });
-  window.addEventListener("pointerup", () => { if (drag && drag.moved) { justDragged = true; setTimeout(() => justDragged = false, 0); } drag = null; m.classList.remove("dragging"); });
+  const up = e => {
+    ptrs.delete(e.pointerId);
+    if (pinch) { if (ptrs.size < 2) { pinch = null; setTimeout(() => justDragged = false, 0); } return; }
+    if (drag && drag.moved) { justDragged = true; setTimeout(() => justDragged = false, 0); }
+    else if (e.pointerType === "touch" && drag) {
+      // double appui au doigt : zoom (le dblclick n'est pas fiable sur écran tactile)
+      const now = performance.now();
+      if (now - lastTap < 300) { const p = svgPt(e.clientX, e.clientY); zoomAt(vb.w < VB0.w / 2.6 ? 3 : 1 / 1.7, p.x, p.y); lastTap = 0; } else lastTap = now;
+    }
+    drag = null; m.classList.remove("dragging");
+  };
+  window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
   m.addEventListener("click", e => { if (justDragged) { e.stopPropagation(); e.preventDefault(); } }, true);
   m.addEventListener("dblclick", e => { const p = svgPt(e.clientX, e.clientY); zoomAt(1 / 1.6, p.x, p.y); });
   $("zIn").onclick = () => zoomCenter(1 / 1.3); $("zOut").onclick = () => zoomCenter(1.3); $("zReset").onclick = () => { vb = { ...VB0 }; applyVB(true); };
@@ -1342,6 +1380,7 @@ async function runBanc() {
   if (S) S.over = true;
   await wait(500);
   TK.modeTest();
+  TK.surSuspension = () => { try { $("tip").style.display = "none"; } catch (e) {} };
   $("speed").value = "320";
   newGame([0, 1, 2, 3].map(i => ({ name: HOUSES[i], ai: true, lvl: "ruse", color: i })));
   let zoomOn = false;
@@ -1351,9 +1390,10 @@ async function runBanc() {
     { nom: "zoom et déplacement", preparer: async () => { zoomOn = true; requestAnimationFrame(loop); } },
     { nom: "carte au repos", preparer: async () => { zoomOn = false; S.over = true; vb = { ...VB0 }; applyVB(true); } },
   ], 5000);
-  const rows = res.res.map(r => `<tr><td>${esc(r.scene)}</td><td>${r.fps ?? "—"}</td><td>${r.bas1 ?? "—"}</td><td>${r.pire ?? "—"} ms</td></tr>`).join("");
+  const rows = res.res.map(r => `<tr><td>${esc(r.scene)}</td><td>${r.fps ?? "—"}</td><td>${r.bas1 ?? "—"}</td><td>${r.pire ?? "—"} ms${r.masquee ? " ⚠" : ""}</td></tr>`).join("");
   await modal(`<h2>Banc de mesure</h2><p class="muted">${esc(res.gpu)} · ${esc(res.ecran)}</p>
     <table class="rt"><tr><th>Scène</th><th>img/s</th><th>1 % les plus lents</th><th>pire image</th></tr>${rows}</table>
+    ${res.res.some(r => r.masquee) ? `<p class="muted">⚠ Le navigateur a suspendu l'affichage pendant une mesure (fenêtre masquée ou en arrière-plan) : garde le jeu visible pendant les 25 secondes du banc.</p>` : ""}
     <p>${res.enregistre ? "Résultats envoyés à Claude ✓" : "Résultats gardés sur cet appareil (envoi impossible ici)."}</p>`, [["Nouvelle partie", true, "primary"]]);
   setupDialog();
 }
@@ -1366,7 +1406,7 @@ function boot(data) {
   $("btnRules").onclick = () => rulesDialog();
   $("btnNew").onclick = () => setupDialog();
   try { soundOn = localStorage.getItem("cc-son") === "1"; } catch (e) {}
-  const sb = $("btnSound"); const paint = () => { sb.textContent = soundOn ? "Son : oui" : "Son : non"; sb.setAttribute("aria-pressed", soundOn); };
+  const sb = $("btnSound"); const paint = () => { sb.textContent = soundOn ? "🔈" : "🔇"; sb.title = soundOn ? "Sons activés (cliquer pour couper)" : "Sons coupés (cliquer pour activer)"; sb.setAttribute("aria-label", sb.title); sb.setAttribute("aria-pressed", soundOn); };
   paint(); sb.onclick = () => { soundOn = !soundOn; try { localStorage.setItem("cc-son", soundOn ? "1" : "0"); } catch (e) {} paint(); sfx("conseil"); };
   document.addEventListener("keydown", e => { if (e.key === "Escape" && S && !cur().ai && $("modal").classList.contains("hidden")) { S.sel = S.tgt = -1; S.mode = null; render(); } });
   window.claude?.hot?.snapshot?.(() => lastSnap ? { S: JSON.parse(lastSnap) } : {});

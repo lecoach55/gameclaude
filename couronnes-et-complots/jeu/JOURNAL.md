@@ -108,3 +108,10 @@ Le jeu, ses outils et ses mesures sont désormais dans lecoach55/gameclaude (dos
 - Bug trouvé par le test en clics réels : un double appui sur « Assaut total » lançait deux assauts simultanés → corrigé.
 - Trousse de test commune intégrée : bouton 🐞 (capture de la carte + état de la partie) et « 🧪 Mode test » dans l'écran d'accueil (banc 5 s : tour d'IA, zoom, repos). Résultats dans la base de l'artefact (capacités db + user). outils-communs/testkit.js étendu aux jeux en SVG (option capture, fonction svgCapture).
 - Non-régression : rusée vs normale 75 %, débutant vs facile 72 % (3J), 0 erreur.
+
+## Cycle 12 (15 nov., 17h) — d'après la première mesure réelle
+Mesure de Victor (MacBook Pro Intel, Iris Plus, application Claude, volet de 483×755 @2) : tour de l'IA 58,3 img/s (1 % les plus lents : 26,7). Zoom et repos : aucune image enregistrée → le navigateur avait suspendu l'affichage (volet masqué ou fenêtre en arrière-plan).
+- Trousse commune (outils-communs/testkit.js) : la mesure attend que la page soit visible ; si l'affichage est suspendu (< 3 img/s enregistrées), elle recommence une fois puis marque la scène `masquee: true`. Le jeu affiche ⚠ et un conseil.
+- Volet étroit / téléphone : la carte n'était plus lisible (largeur minimale de 840 px, défilement horizontal). Désormais ajustée à la largeur, départ zoomé ×1,8 sur la capitale du joueur, pincement à deux doigts, double appui (zoom / dézoom), en-tête compacté (son en icône).
+- Banc perf.py étendu à 483×755 : zoom 55,6 → 58,3 img/s, IA ≈ 57, sans erreur. Références téléphone mises à jour (changement voulu) ; vues ordinateur : 0,0 % de pixels changés.
+- Tests : pincement 584 → 329 unités de largeur, double appui OK (émulation tactile), partie complète en clics réels OK, A/B rusée vs normale 77 %, 0 erreur.

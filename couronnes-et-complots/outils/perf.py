@@ -27,7 +27,7 @@ async def main():
     f=os.path.abspath(sys.argv[1]);out=sys.argv[2]
     async with async_playwright() as p:
         nav=await navigateur(p);res=[]
-        for w,h in [(390,780),(1440,900)]:res.append(await banc(nav,'file://'+f,w,h))
+        for w,h in [(390,780),(483,755),(1440,900)]:res.append(await banc(nav,'file://'+f,w,h))
         await nav.close()
     json.dump(res,open(out,'w'),indent=1);[print(json.dumps(x)) for x in res]
 asyncio.run(main())

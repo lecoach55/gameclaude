@@ -3,7 +3,7 @@
 var Moteur=(function(){
 const _D=typeof module!=='undefined'?require('./data.js'):globalThis;
 const _C=typeof module!=='undefined'?require('./combat.js'):globalThis.Combat;
-const {ORGS,DIVS,STYLES,ATTRS,PAYS,PAYS_TIER,SURNOMS,SURNOMS_F,ISSUES}=_D;
+const {ORGS,DIVS,STYLES,ATTRS,PAYS,PAYS_TIER,SURNOMS,SURNOMS_F,ISSUES,TRAITS,BLESSURES}=_D;
 const COMM=.25,ALLOC=60;
 const SALLES=[
  {nom:'Garage aménagé',cap:4,membres:70,loyer:250,mult:1,prix:0},
@@ -12,7 +12,7 @@ const SALLES=[
  {nom:'Centre de performance',cap:10,membres:480,loyer:3300,mult:1.45,prix:180000},
  {nom:'Académie d\'élite',cap:12,membres:760,loyer:7200,mult:1.62,prix:450000}];
 const COACHS={boxe:{n:'Entraîneur pieds-poings',ic:'🥊',a:['frappe','puiss','def']},lutte:{n:'Entraîneur de lutte',ic:'🤼',a:['lutte']},
- jjb:{n:'Professeur de jiu-jitsu',ic:'🥋',a:['sol']},physique:{n:'Préparateur physique',ic:'🏃',a:['cardio','puiss']},medecin:{n:'Kiné & médecin',ic:'🩺',a:[]}};
+ jjb:{n:'Professeur de jiu-jitsu',ic:'🥋',a:['sol']},physique:{n:'Préparateur physique',ic:'🏃',a:['cardio','puiss']},medecin:{n:'Kiné & médecin',ic:'🩺',a:[]},recruteur:{n:'Recruteur',ic:'🔭',a:[]},media:{n:'Attaché de presse',ic:'📣',a:[]}};
 const COACH_PAYE=[0,220,600,1500];
 const FOCUS={equi:{n:'Équilibré',ic:'⚖️',g:{frappe:.4,puiss:.25,def:.35,lutte:.4,sol:.4,cardio:.4}},
  frappe:{n:'Pieds-poings',ic:'🥊',g:{frappe:1,puiss:.5,def:.6}},lutte:{n:'Lutte',ic:'🤼',g:{lutte:1,cardio:.3,def:.15}},
@@ -42,16 +42,21 @@ function creer(tier,div,o={}){
  const pot=Math.round(cl(o.pot??(base+(age<24?rf(6,22):age<28?rf(2,12):rf(0,4))),base,96));
  const f={id:'f'+(G.nid++),pr:n.pr,nom:n.nom,sur:R()<.55?pk(sexe==='F'?SURNOMS_F:SURNOMS):'',pays,sexe,age:+age.toFixed(2),div,style:st,at,pot,
   forme:100,fat:0,bless:0,moral:70,pop:Math.round(cl(tier*14+rf(0,22),1,99)),v:0,d:0,n:0,ko:0,sub:0,dec:0,serie:0,elo:0,org:o.org??null,
-  histo:[],app:apparence(pays),mine:!!o.mine,dispo:0,prochain:null,train:{f:'equi',i:1},ctr:null,def:0,ret:false};
+  histo:[],app:apparence(pays),mine:!!o.mine,dispo:0,prochain:null,train:{f:'equi',i:1},ctr:null,def:0,ret:false,traits:tirerTraits(o.nbTraits),titres:[],riv:{},carr:[]};
  // palmarès plausible
  if(!o.vierge){const nb=Math.round(cl((age-20)*1.5+tier*2+rf(-2,3),0,30));for(let i=0;i<nb;i++){if(R()<.55+tier*.04){f.v++;const m=wpk({ko:3,sub:2,dec:5});f[m]++;}else f.d++;}
   if(R()<.15)f.n=1;f.serie=Math.min(f.v,ri(-1,4));}
  f.elo=Math.round(1000+ov(f)*10+(f.v-f.d)*4);
  return f;}
+function tirerTraits(n){if(n==null)n=wpk({0:3,1:5,2:2})*1;const L=[];const ks=Object.keys(TRAITS);let k=0;
+ while(L.length<n&&k++<40){const t=pk(ks);if(L.includes(t))continue;if((t==='verre'&&L.includes('menton_fer'))||(t==='menton_fer'&&L.includes('verre'))||(t==='diesel'&&L.includes('explosif'))||(t==='explosif'&&L.includes('diesel')))continue;L.push(t);}return L;}
+const a_=(f,t)=>f&&f.traits&&f.traits.includes(t);
+function blesser(f,grave){const L=BLESSURES.filter(b=>grave?true:!b.grave);let b=pk(L);if(!grave&&R()<.04)b=pk(BLESSURES.filter(x=>x.grave));
+ let w=ri(b.s[0],b.s[1]);if(a_(f,'fragile'))w=Math.round(w*1.2);w=Math.max(1,Math.round(w*(1-(G?G.coachs.medecin:0)*.08)));f.bless=Math.max(f.bless,w);f.blessT=b.n;return b;}
 function nouvellePartie(o={}){
  G={v:1,rs:(o.graine||Math.floor(Math.random()*1e9))>>>0,graine:o.graine||0,sem:1,an0:2027,argent:15000,nom:o.nom||'Team Phénix',nid:1,
-  salle:{niv:0,membres:52,rep:10},coachs:{boxe:0,lutte:0,jjb:0,physique:0,medecin:0},F:{},orgs:{},offres:[],news:[],ev:[],aJouer:[],recrues:[],
-  hist:[],stats:{v:0,d:0,titres:0,bourses:0},trophees:[],noff:1,nev:1,tuto:1,diff:o.diff||1};
+  salle:{niv:0,membres:52,rep:10},coachs:{boxe:0,lutte:0,jjb:0,physique:0,medecin:0,recruteur:0,media:0},F:{},orgs:{},offres:[],news:[],ev:[],aJouer:[],recrues:[],
+  hist:[],stats:{v:0,d:0,titres:0,bourses:0,ko:0,sub:0},trophees:[],noff:1,nev:1,tuto:1,diff:o.diff||1,spons:[],gp:null,gps:[],prix:[],hof:[],succes:{},nspo:1};
  setRng();
  for(const O of ORGS){G.orgs[O.id]={num:ri(8,40)*(O.tier+1),ch:{},defs:{},dernierTitre:{},off:ri(0,O.freq-1),rel:60};
   for(const d of DIVS){const n=d.s==='F'?Math.round(O.max*.75):O.max;
@@ -59,7 +64,7 @@ function nouvellePartie(o={}){
    const L=roster(O.id,d.id);const c=L.sort((a,b)=>b.elo-a.elo)[0];G.orgs[O.id].ch[d.id]=c.id;c.pop+=10;}}
  // l'écurie du joueur : 3 jeunes espoirs
  const dv=o.divs||['le','mm','fc'];
- dv.forEach((dd,i)=>{const f=creer(0,dd,{org:'cfr',mine:true,lv:[47,45,46][i]+rf(-1,2),age:rf(20,24),pot:[80,74,84][i]+ri(-3,3),pays:i===2?'FR':pk(['FR','FR','FR','BE','MA']),vierge:true});
+ dv.forEach((dd,i)=>{const f=creer(0,dd,{org:'cfr',mine:true,nbTraits:i===1?2:1,lv:[47,45,46][i]+rf(-1,2),age:rf(20,24),pot:[80,74,84][i]+ri(-3,3),pays:i===2?'FR':pk(['FR','FR','FR','BE','MA']),vierge:true});
   f.v=ri(2,4);f.d=ri(0,1);f.serie=f.v;['ko','sub','dec'].forEach(k=>f[k]=0);for(let k=0;k<f.v;k++)f[pk(['ko','sub','dec'])]++;f.pop=ri(4,10);f.elo=Math.round(1000+ov(f)*10);
   f.ctr={org:'cfr',rest:4,show:Math.round(ORG('cfr').show*.6)};G.F[f.id]=f;});
  recruesMaj();
@@ -76,7 +81,7 @@ function mes(){return Object.values(G.F).filter(f=>f.mine&&!f.ret);}
 function news(ic,t,c){G.news.unshift({s:G.sem,ic,t,c:c||''});if(G.news.length>80)G.news.length=80;}
 function date(s){s=s??G.sem;const an=G.an0+Math.floor((s-1)/52),w=(s-1)%52;const mois=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
  return 'Sem. '+(w+1)+' · '+mois[Math.floor(w/52*12)]+' '+an;}
-function dispo(f,s){return !f.ret&&!f.prochain&&f.bless<=0&&f.dispo<=s&&f.org;}
+function dispo(f,s){return !f.ret&&!f.prochain&&f.bless<=0&&f.dispo<=s&&f.org&&!f.inGP;}
 function bourse(f,org,titre,main){const O=ORG(org);let r=rang(f);r=r==null?12:r;
  return Math.round(O.show*(.55+f.pop/110)*(titre?2.2:1)*(main?1.35:1)*(1+Math.max(0,10-r)/25)/50)*50;}
 /* ---------- événements ---------- */
@@ -92,11 +97,13 @@ function creerEvent(O,s){const go=G.orgs[O.id];go.num++;
   if(chId===f.id){const c=L.filter(x=>rang(x)<=4);if(c.length)adv=c[0];titre=true;go.dernierTitre[f.div]=s;}
   else if(chId&&rf_>=1&&(rf_<=2||(rf_<=3&&f.serie>=2))&&s-(go.dernierTitre[f.div]||-99)>=8){const C=G.F[chId];if(C&&dispo(C,s)&&!usage.has(chId)){adv=C;titre=true;go.dernierTitre[f.div]=s;}}
   else if(chId===adv.id)titre=true;
+  let rival=false;if(!titre){const rv=Object.keys(f.riv||{}).map(id=>G.F[id]).filter(x=>x&&x.org===O.id&&x.div===f.div&&dispo(x,s)&&!usage.has(x.id));if(rv.length&&R()<.45){adv=rv[0];rival=true;}}
   usage.add(f.id);usage.add(adv.id);
-  const c={id:ev.id+'c'+ev.combats.length,a:f.id,b:adv.id,div:f.div,titre,mine:true,ok:false,res:null};ev.combats.push(c);f.prochain=c.id;adv.prochain=c.id;
-  const sh=bourse(f,O.id,titre,false);
-  G.offres.push({id:'o'+(G.noff++),type:'combat',f:f.id,ev:ev.id,c:c.id,adv:adv.id,show:sh,win:sh,exp:s-3,titre});
+  const c={id:ev.id+'c'+ev.combats.length,a:f.id,b:adv.id,div:f.div,titre,mine:true,ok:false,res:null,rival};ev.combats.push(c);f.prochain=c.id;adv.prochain=c.id;
+  const sh=Math.round(bourse(f,O.id,titre,false)*(rival?1.3:1)/50)*50;
+  G.offres.push({id:'o'+(G.noff++),type:'combat',f:f.id,ev:ev.id,c:c.id,adv:adv.id,show:sh,win:sh,exp:s-3,titre,rival});
  }
+ reserverGP(O,ev,s,usage);
  for(const dv of divs){if(ev.combats.length>=nbF)break;
   const L=classement(O.id,dv).filter(x=>dispo(x,s)&&!usage.has(x.id)&&!x.mine);if(L.length<2)continue;
   const ch=G.orgs[O.id].ch[dv];let a,b,titre=false;
@@ -107,7 +114,7 @@ function creerEvent(O,s){const go=G.orgs[O.id];go.num++;
  // tête d'affiche
  let best=null,bs=-1;for(const c of ev.combats){const sc=(c.titre?1000:0)+G.F[c.a].pop+G.F[c.b].pop;if(sc>bs){bs=sc;best=c;}}if(best)best.main=true;
  G.ev.push(ev);return ev;}
-function rounds(c,O){return c.titre||(c.main&&O.tier>=1)?5:3;}
+function rounds(c,O){return c.titre||(c.gp===2)||(c.main&&O.tier>=1)?5:3;}
 function planIA(f,adv){const s=f.style,a=f.at,b=adv.at;if((s==='lutteur'||s==='sambo'||s==='grappler')&&(b.frappe>a.frappe-3))return 'sol';
  if((s==='striker'||s==='cogneur'||s==='muay')&&b.lutte>a.lutte-2)return 'debout';if(a.frappe>b.frappe+8&&a.cardio>65)return 'pression';return 'equi';}
 function trouverCombat(cid){for(const e of G.ev)for(const c of e.combats)if(c.id===cid)return {e,c};return null;}
@@ -115,37 +122,41 @@ function trouverCombat(cid){for(const e of G.ev)for(const c of e.combats)if(c.id
 function preparerSim(cid,planJ,changes){const {e,c}=trouverCombat(cid);const A=G.F[c.a],B=G.F[c.b];const O=ORG(e.org);
  const pa=A.mine?(planJ||'equi'):planIA(A,B),pb=B.mine?(planJ||'equi'):planIA(B,A);
  if(!c.seed)c.seed=ri(1,2e9);
- return _C.simuler([A,B],{seed:c.seed,rounds:rounds(c,O),plans:[pa,pb],changes});}
+ const bc=bonusCamp(c);A.bonusCamp=bc;
+ const sim=_C.simuler([A,B],{seed:c.seed,rounds:rounds(c,O),plans:[pa,pb],changes});delete A.bonusCamp;return sim;}
 function appliquer(cid,sim){const {e,c}=trouverCombat(cid);if(c.res)return;const O=ORG(e.org);const A=G.F[c.a],B=G.F[c.b];const res=sim.res;
  c.res={w:res.w,m:res.m,r:res.r,t:res.temps,tech:res.tech||'',st:res.stats,cards:res.cards};
  const F=[A,B];const ea=1/(1+Math.pow(10,(B.elo-A.elo)/400));const fin=['ko','tko','sub'].includes(res.m);const K=fin?46:36;
  const sa=res.w===0?1:res.w===1?0:.5;A.elo=Math.round(A.elo+K*(sa-ea));B.elo=Math.round(B.elo+K*((1-sa)-(1-ea)));
  F.forEach((f,i)=>{const adv=F[1-i];const w=res.w===i,l=res.w===1-i;
-  if(w){f.v++;f[res.m==='tko'?'ko':['ud','sd','md'].includes(res.m)?'dec':res.m]++;f.serie=f.serie>0?f.serie+1:1;f.pop=cl(f.pop+(fin?5:3)+(c.main?3:0)+(c.titre?6:0)+O.tier*.6,0,100);f.moral=cl(f.moral+10,0,100);}
-  else if(l){f.d++;f.serie=f.serie<0?f.serie-1:-1;f.pop=cl(f.pop-(fin?3:1.5),0,100);f.moral=cl(f.moral-12,0,100);if(res.m==='ko'||res.m==='tko'){f.at.menton=Math.max(20,f.at.menton-(res.m==='ko'?1.5:.7));f.bless=Math.max(f.bless,R()<.3?ri(2,6):0);}}
+  if(w){f.v++;f[res.m==='tko'?'ko':['ud','sd','md'].includes(res.m)?'dec':res.m]++;f.serie=f.serie>0?f.serie+1:1;f.pop=cl(f.pop+((fin?5:3)+(c.main?3:0)+(c.titre?6:0)+(c.rival?4:0)+(c.gp!=null?4:0)+O.tier*.6)*(a_(f,'showman')?1.5:1)*(f.mine?1+G.coachs.media*.15:1),0,100);f.moral=cl(f.moral+10*(a_(f,'tete_brulee')?1.5:1),0,100);}
+  else if(l){f.d++;f.serie=f.serie<0?f.serie-1:-1;f.pop=cl(f.pop-(fin?3:1.5),0,100);f.moral=cl(f.moral-12*(a_(f,'tete_brulee')?1.5:1),0,100);if(res.m==='ko'||res.m==='tko'){f.at.menton=Math.max(20,f.at.menton-(res.m==='ko'?1.5:.7));if(R()<.3)blesser(f);}}
   else{f.n++;f.serie=0;}
   f.prochain=null;f.dispo=G.sem+ri(5,8)+(l&&fin?3:0);f.fat=cl(f.fat+25,0,100);f.forme=cl(100-f.fat*.6,30,100);
-  if(R()<.12)f.bless=Math.max(f.bless,ri(1,4));
+  if(R()<(a_(f,'fragile')?.2:.1))blesser(f);
+  if(f.mine&&!adv.mine&&(l||(['sd','md','dr'].includes(res.m)))){f.riv=f.riv||{};f.riv[adv.id]=(f.riv[adv.id]||0)+1;}
+  if(c.rival&&f.riv&&w)delete f.riv[adv.id];
   // l'expérience fait progresser
   const k=pk(ATTRS)[0];f.at[k]=cl(f.at[k]+(w?.9:.5)*(f.age<30?1:.4),20,f.pot+12);
-  f.histo.unshift({s:G.sem,adv:adv.id,an:adv.pr+' '+adv.nom,ap:adv.pays,r:w?'V':l?'D':'N',m:res.m,rd:res.r,t:res.temps,tech:res.tech||'',org:e.org,ev:e.nom,titre:!!c.titre});
+  f.histo.unshift({s:G.sem,adv:adv.id,an:adv.pr+' '+adv.nom,ap:adv.pays,r:w?'V':l?'D':'N',m:res.m,rd:res.r,t:res.temps,tech:res.tech||'',org:e.org,ev:e.nom,titre:!!c.titre,main:!!c.main,gp:c.gp,tier:O.tier});
   if(!f.mine&&f.histo.length>25)f.histo.length=25;
   if(f.ctr&&f.ctr.org===e.org)f.ctr.rest--;
  });
  // titre
  const go=G.orgs[e.org];if(c.titre){const ch=go.ch[c.div];const W=res.w>=0?F[res.w]:null;
-  if(W&&W.id!==ch){go.ch[c.div]=W.id;go.defs[c.div]=0;W.pop=cl(W.pop+8,0,100);
+  if(W&&W.id!==ch){go.ch[c.div]=W.id;go.defs[c.div]=0;W.pop=cl(W.pop+8,0,100);W.titres=W.titres||[];W.titres.push(O.court);
    news('🏆',W.pr+' '+W.nom+' devient '+(W.sexe==='F'?'championne':'champion')+' '+O.court+' des '+DIV(c.div).nom.toLowerCase().replace(' (f)','')+' !',O.c1);
    if(W.mine){G.stats.titres++;G.trophees.push({s:G.sem,f:W.id,org:e.org,div:c.div});G.salle.rep=cl(G.salle.rep+6+O.tier*5,0,100);}}
   else if(W&&W.id===ch){go.defs[c.div]=(go.defs[c.div]||0)+1;W.def=(W.def||0)+1;}}
  // argent et nouvelles pour mes combattants
  F.forEach((f,i)=>{if(!f.mine)return;const w=res.w===i;const sh=c.show||bourse(f,e.org,c.titre,c.main);let tot=sh+(w?(c.win||sh):0);
   let bonus=0;if(w&&fin&&R()<(c.main?.55:.35)){bonus=Math.round(O.show*1.5/50)*50;tot+=bonus;}
-  const com=Math.round(tot*COMM);G.argent+=com;G.stats.bourses+=com;if(w)G.stats.v++;else if(res.w===1-i)G.stats.d++;
+  const com=Math.round(tot*COMM);G.argent+=com;G.stats.bourses+=com;if(w){G.stats.v++;if(res.m==='ko'||res.m==='tko')G.stats.ko=(G.stats.ko||0)+1;if(res.m==='sub')G.stats.sub=(G.stats.sub||0)+1;for(const sp of G.spons||[])if(sp.f===f.id&&sp.fin>=G.sem&&sp.bonusV){G.argent+=sp.bonusV;c.gain=(c.gain||0)+sp.bonusV;}}else if(res.w===1-i)G.stats.d++;
   G.salle.rep=cl(G.salle.rep+(w?1.2+O.tier*.8+(fin?.6:0):-.6),0,100);
   c.gain=(c.gain||0)+com;c.bonus=bonus;
   const adv=F[1-i];news(w?'✅':res.w<0?'➖':'❌',f.pr+' '+f.nom+(w?' bat ':res.w<0?' fait match nul contre ':' s\'incline face à ')+adv.pr+' '+adv.nom+' ('+ISSUES[res.m]+(fin?', R'+res.r:'')+') — '+e.nom+'. Commission : '+fmtE(com)+(bonus?' (dont bonus de performance)':''),w?'#2fbf71':'#e8344a');});
- if(!A.mine&&!B.mine&&c.titre&&res.w>=0&&O.tier>=2&&R()<.5){}
+ if(c.gp!=null)gpResultat(c,e,res);
+ verifierSucces();
 }
 function fmtE(x){x=Math.round(x);return (x<0?'−':'')+Math.abs(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g,' ')+' €';}
 /* ---------- semaine ---------- */
@@ -155,10 +166,12 @@ function avancer(){
  // économie hebdomadaire
  const S=SALLES[G.salle.niv];const cible=S.membres*cl(.55+G.salle.rep/110,.5,1.25);G.salle.membres=Math.round(G.salle.membres+(cible-G.salle.membres)*.08+rf(-1,1));
  const rec=G.salle.membres*12;let dep=S.loyer+mes().length*ALLOC;for(const k in G.coachs)dep+=COACH_PAYE[G.coachs[k]];
- G.argent+=rec-dep;G.hist.push({s,rec,dep,a:Math.round(G.argent)});if(G.hist.length>104)G.hist.shift();G.semRec=rec;G.semDep=dep;
+ let spo=0;G.spons=(G.spons||[]).filter(sp=>{if(sp.fin<s||!G.F[sp.f]||(sp.f&&!G.F[sp.f].mine)){news('📄','Fin du contrat de sponsoring '+sp.nom+'.');return false;}spo+=sp.hebdo;return true;});
+ G.argent+=rec-dep+spo;G.semSpo=spo;G.hist.push({s,rec:rec+spo,dep,a:Math.round(G.argent)});if(G.hist.length>104)G.hist.shift();G.semRec=rec;G.semDep=dep;
  G.salle.rep=cl(G.salle.rep-.04,0,100);
  // entraînement de mes combattants
  for(const f of mes())entrainer(f);
+ if(mes().some(f=>a_(f,'leader')))mes().forEach(f=>f.moral=cl(f.moral+.6,0,100));
  // vieillissement
  for(const id in G.F){const f=G.F[id];if(f.ret)continue;f.age+=1/52;if(f.bless>0)f.bless--;if(!f.mine){f.fat=Math.max(0,f.fat-6);f.forme=cl(100-f.fat*.6,30,100);}}
  // offres expirées
@@ -170,9 +183,13 @@ function avancer(){
   e.fait=!G.aJouer.some(id=>id.startsWith(e.id+'c'));out.evts.push(e.id);
   const m=e.combats.find(c=>c.main&&c.res&&!c.mine);if(m&&ORG(e.org).tier>=2&&m.res.w>=0){const W=G.F[[m.a,m.b][m.res.w]],L=G.F[[m.a,m.b][1-m.res.w]];news(ORG(e.org).tier===4?'🌟':'📰',e.nom+' ('+e.ville+') : '+W.pr+' '+W.nom+' bat '+L.pr+' '+L.nom+' par '+ISSUES[m.res.m].toLowerCase()+(m.titre?' — combat pour le titre':'')+'.',ORG(e.org).c1);}}
  G.ev=G.ev.filter(e=>!e.fait||s-e.sem<10);
- if(s%4===0)mercato();
+ if(s%4===0){mercato();for(const f of mes()){f.carr=f.carr||[];f.carr.push({s,o:ov(f)});if(f.carr.length>160)f.carr.shift();}}
+ if(s%52===8)demarrerGP();
+ if(s%52===0)prixAnnuels();
+ verifierSucces();
  if(s%4===2)recruesMaj();
- const p=evenementAleatoire();if(p)out.popups.push(p);
+ for(const O of ORGS)for(const d of DIVS){const L=classement(O.id,d.id);const ch=G.orgs[O.id].ch[d.id];L.forEach((f,i)=>{const r=f.id===ch?0:(ch?i:i+1);if(f.rpS!==s){f.rp0=f.rp??r;f.rp=r;f.rpS=s;}});}
+ gpVerifier();const p=evenementAleatoire();if(p)out.popups.push(p);
  if(G.argent<-15000&&!G.faillite){G.faillite=1;out.popups.push({id:'faillite',t:'Les huissiers à la porte',d:'Votre écurie accumule les dettes. Vendez du matériel, baissez les dépenses ou trouvez un sponsor !',ch:[{t:'Compris'}]});}
  if(G.argent>0)G.faillite=0;
  return out;}
@@ -211,6 +228,7 @@ function mercato(){
   for(const d of DIVS){const L=classement(O.id,d.id);
    L.forEach((f,i)=>{if(f.mine||f.prochain)return;const champ=G.orgs[O.id].ch[d.id]===f.id;
     if((champ&&(f.def>=1||f.serie>=3))||(i<=2&&f.serie>=3)||f.serie>=5){if(R()<.55){monter(f,U.id);}}});}}
+ {const O=ORGS[0];for(const d of DIVS){const max=d.s==='F'?Math.round(O.max*.75):O.max;const L=classement(O.id,d.id).filter(f=>!f.mine&&!f.prochain&&!f.inGP&&G.orgs[O.id].ch[d.id]!==f.id).sort((a,b)=>(a.elo-a.age*3)-(b.elo-b.age*3));let ex=roster(O.id,d.id).length-max-2;while(ex-->0&&L.length){const f=L.shift();f.ret=true;}}}
  for(let t=1;t<=4;t++){const O=ORGS[t];for(const d of DIVS){const L=classement(O.id,d.id);const max=d.s==='F'?Math.round(O.max*.75):O.max;
    // trop de monde : les plus faibles redescendent
    let extra=L.length-max;const cand=L.filter(f=>!f.mine&&!f.prochain&&G.orgs[O.id].ch[d.id]!==f.id).sort((a,b)=>(a.elo+a.serie*15)-(b.elo+b.serie*15));
@@ -226,8 +244,8 @@ function mercato(){
   if(O.tier>=1&&(f.serie<=-3||(f.serie<=-2&&r>=classement(f.org,f.div).length-2))&&!f.prochain)libere(f);
   else if(f.ctr&&f.ctr.rest<=0&&!f.prochain&&!G.offres.some(x=>x.f===f.id&&x.type==='contrat'&&x.org===f.org))offreContrat(f,f.org,'renouvellement',true);}
  // retraites
- for(const id in G.F){const f=G.F[id];if(f.ret||f.mine||f.prochain)continue;if(f.age>39||(f.age>34&&R()<.035*(f.age-33))||(f.d>f.v+6&&R()<.2)){f.ret=true;if(G.orgs[f.org]&&G.orgs[f.org].ch[f.div]===f.id){G.orgs[f.org].ch[f.div]=null;}}}
- for(const f of mes())if(f.age>=40&&!f.prochain){f.ret=true;news('🎗️',f.pr+' '+f.nom+' prend sa retraite à 40 ans. Merci champion !');}
+ for(const id in G.F){const f=G.F[id];if(f.ret||f.mine||f.prochain||f.inGP)continue;if(f.age>39||(f.age>34&&R()<.035*(f.age-33))||(f.d>f.v+6&&R()<.2)){f.ret=true;temple(f);if(G.orgs[f.org]&&G.orgs[f.org].ch[f.div]===f.id){G.orgs[f.org].ch[f.div]=null;}}}
+ for(const f of mes())if(f.age>=40&&!f.prochain){f.ret=true;temple(f);news('🎗️',f.pr+' '+f.nom+' prend sa retraite à 40 ans. Merci champion !');}
  // renforts : chaque organisation reste pleine
  for(const O of ORGS)for(const d of DIVS){const max=d.s==='F'?Math.round(O.max*.75):O.max;let L=roster(O.id,d.id);
   while(L.length<max){let f=null;if(O.tier>0){const B=classement(ORGS[O.tier-1].id,d.id).filter(x=>!x.mine&&!x.prochain&&G.orgs[x.org].ch[d.id]!==x.id);if(B.length&&R()<.5)f=B[0];}
@@ -250,15 +268,16 @@ function entrainer(f){
  else{const ageF=f.age<23?1.3:f.age<27?1.1:f.age<30?.85:f.age<33?.55:.3;
   for(const k in Fc.g){let co=1;for(const c in COACHS)if(COACHS[c].a.includes(k))co+=G.coachs[c]*.28;
    const cap=f.pot+(STYLES[f.style].b[k]||0)*.8;const room=cl((cap-f.at[k])/18,.04,1);
-   f.at[k]=cl(f.at[k]+.55*Fc.g[k]*I.m*S.mult*co*ageF*room*(.75+f.moral/280)*rf(.7,1.3),20,99);}
+   f.at[k]=cl(f.at[k]+.55*Fc.g[k]*I.m*S.mult*co*ageF*room*(.75+f.moral/280)*(a_(f,'bosseur')?1.2:1)*rf(.7,1.3),20,99);}
   f.fat=cl(f.fat+I.f-6-G.coachs.medecin*1.5-G.coachs.physique*.8,0,100);
-  const pB=.0045*I.b*(1+f.fat/35)*(1-G.coachs.medecin*.2);if(R()<pB){const w=ri(2,8);f.bless=w;news('🤕',f.pr+' '+f.nom+' se blesse à l\'entraînement ('+w+' sem.).','#e8344a');}}
+  const pB=.0045*I.b*(1+f.fat/35)*(1-G.coachs.medecin*.2)*(a_(f,'fragile')?1.8:1);if(R()<pB){const b=blesser(f);news('🤕',f.pr+' '+f.nom+' se blesse à l\'entraînement : '+b.n.toLowerCase()+' ('+f.bless+' sem.).','#e8344a');}}
  if(f.age>32){for(const k of ['cardio','puiss','frappe','lutte','def'])f.at[k]=Math.max(20,f.at[k]-.035*(f.age-32));}
  f.forme=cl(100-f.fat*.6,30,100);f.moral=cl(f.moral+(70-f.moral)*.03,0,100);}
 /* ---------- recrutement ---------- */
 function recruesMaj(){G.recrues=G.recrues.filter(f=>G.F[f]&&!G.F[f].mine&&R()<.4);
- while(G.recrues.length<6){const tier=wpk({0:6,1:3,2:1.2,3:.4});const d=pk(DIVS).id;const jeune=R()<.65;
-  const f=creer(tier,d,{age:jeune?rf(19,23):rf(24,31),lv:[42,51,59,66][tier]+rf(-4,3),pot:jeune?[58,64,70,76][tier]+rf(0,20):undefined});
+ const nr=G.coachs.recruteur||0;while(G.recrues.length<6+nr){const tier=wpk({0:6,1:3,2:1.2+nr*.4,3:.4+nr*.3});const d=pk(DIVS).id;const jeune=R()<.65;
+  const f=creer(tier,d,{age:jeune?rf(19,23):rf(24,31),lv:[42,51,59,66][tier]+rf(-4,3),pot:jeune?[58,64,70,76][tier]+rf(0,20)+nr*2:undefined});
+  f.potVu=Math.round(f.pot+rf(-1,1)*[12,8,4,1.5][nr]);
   f.libre=true;f.prime=Math.round((ov(f)*ov(f)*1.8*(1+(f.pot-ov(f))/30)+f.pop*120)/100)*100;G.F[f.id]=f;G.recrues.push(f.id);}}
 function signer(id){const f=G.F[id];if(!f||G.argent<f.prime||mes().length>=SALLES[G.salle.niv].cap)return false;G.argent-=f.prime;f.mine=true;f.libre=false;G.recrues=G.recrues.filter(x=>x!==id);
  news('🤝',f.pr+' '+f.nom+' rejoint '+G.nom+' !','#e9c46a');let t=0;for(let k=4;k>=0;k--){if(ov(f)>=medianeOv(ORGS[k].id,f.div)-2){t=k;break;}}offreContrat(f,ORGS[t].id,'nouvelle recrue');return true;}
@@ -267,9 +286,9 @@ function ameliorerSalle(){const n=G.salle.niv+1;if(n>=SALLES.length||G.argent<SA
 function coach(k,niv){if(niv<0||niv>3)return;G.coachs[k]=niv;}
 /* ---------- petits événements aléatoires ---------- */
 const EVENTS=[
- {id:'sponsor',p:1.2,cond:()=>mes().length>0,make:()=>{const f=pk(mes());const m=Math.round((600+f.pop*f.pop*4+ORG(f.org||'cfr').tier*1500)/100)*100;return {f:f.id,m};},
-  t:x=>'Un sponsor pour '+nomF(x.f),d:x=>'Une marque locale de boissons énergétiques veut afficher son logo sur le short de '+nomF(x.f)+'. Elle propose '+fmtE(x.m)+'.',
-  ch:[{t:'Accepter',f:x=>{G.argent+=x.m;}},{t:'Refuser (le combattant garde son image)',f:x=>{G.F[x.f].moral+=6;}}]},
+ {id:'sponsor',p:1.3,cond:()=>mes().some(f=>!(G.spons||[]).some(sp=>sp.f===f.id)),make:()=>{const f=pk(mes().filter(f=>!(G.spons||[]).some(sp=>sp.f===f.id)));return offreSponsor(f);},
+  t:x=>'Un sponsor pour '+nomF(x.f),d:x=>'La marque '+x.nom+' veut habiller '+nomF(x.f)+' : '+fmtE(x.hebdo)+' par semaine pendant '+x.duree+' semaines, plus '+fmtE(x.bonusV)+' par victoire.',
+  ch:[{t:'Signer le contrat',f:x=>{signerSponsor(x);}},{t:'Refuser (il garde son image)',f:x=>{G.F[x.f].moral=Math.min(100,G.F[x.f].moral+6);}}]},
  {id:'portes',p:.7,cond:()=>G.argent>2000,make:()=>({}),t:()=>'Journée portes ouvertes',d:()=>'Organiser une journée portes ouvertes avec démonstrations (coût 900 €) pourrait attirer de nouveaux adhérents.',
   ch:[{t:'Organiser (−900 €)',f:()=>{G.argent-=900;G.salle.membres+=ri(8,22);G.salle.rep+=1.5;}},{t:'Pas cette fois'}]},
  {id:'moral',p:.9,cond:()=>mes().some(f=>f.serie<0),make:()=>({f:pk(mes().filter(f=>f.serie<0)).id}),t:x=>'Coup de blues',d:x=>nomF(x.f)+' doute après sa défaite. Il passe ses soirées seul devant les vidéos de son combat.',
@@ -295,6 +314,26 @@ const EVENTS=[
  {id:'gala',p:.4,cond:()=>G.salle.rep>20,make:()=>({m:Math.round((1500+G.salle.rep*120)/100)*100}),t:()=>'Gala de charité',d:x=>'La mairie vous invite à un gala de charité. Vos combattants signent des autographes ; la soirée rapporte une subvention de '+fmtE(x.m)+'.',ch:[{t:'Super',f:x=>{G.argent+=x.m;G.salle.rep+=1;}}]},
  {id:'poids',p:.35,cond:()=>mes().some(f=>f.prochain&&trouverCombat(f.prochain)?.c.ok),make:()=>({f:pk(mes().filter(f=>f.prochain&&trouverCombat(f.prochain)?.c.ok)).id}),t:()=>'Coupe de poids difficile',d:x=>nomF(x.f)+' a du mal à faire le poids pour son prochain combat.',
   ch:[{t:'Engager un nutritionniste (700 €)',f:x=>{G.argent-=700;}},{t:'Il se débrouillera au sauna',f:x=>{const f=G.F[x.f];f.fat=Math.min(100,f.fat+22);f.forme=Math.max(30,100-f.fat*.6);}}]},
+ {id:'viral',p:.6,cond:()=>mes().length>0,make:()=>({f:pk(mes()).id}),t:()=>'Vidéo virale !',d:x=>'Une vidéo de '+nomF(x.f)+' cassant des planches au tibia fait des millions de vues.',
+  ch:[{t:'Surfer sur la vague',f:x=>{const f=G.F[x.f];f.pop=Math.min(100,f.pop+7);G.salle.membres+=ri(5,15);}}]},
+ {id:'fete',p:.5,cond:()=>mes().some(f=>f.prochain),make:()=>({f:pk(mes().filter(f=>f.prochain)).id}),t:()=>'Une soirée de trop',d:x=>nomF(x.f)+' a été aperçu en boîte de nuit à trois heures du matin, à quelques semaines de son combat.',
+  ch:[{t:'Le recadrer sévèrement',f:x=>{const f=G.F[x.f];f.moral=Math.max(0,f.moral-10);}},{t:'Il a le droit de souffler',f:x=>{const f=G.F[x.f];f.moral=Math.min(100,f.moral+8);f.fat=Math.min(100,f.fat+15);f.forme=Math.max(30,100-f.fat*.6);}}]},
+ {id:'tv',p:.3,cond:()=>G.salle.rep>30,make:()=>({m:Math.round((3000+G.salle.rep*150)/100)*100}),t:()=>'Une chaîne de télé frappe à la porte',d:x=>'Une chaîne sportive veut diffuser vos entraînements chaque semaine. Elle propose '+fmtE(x.m)+'.',
+  ch:[{t:'Signer',f:x=>{G.argent+=x.m;G.salle.rep+=2;}},{t:'Pas question, on garde nos secrets',f:()=>{mes().forEach(f=>f.moral=Math.min(100,f.moral+4));}}]},
+ {id:'conflit',p:.4,cond:()=>mes().length>=3,make:()=>{const L=mes().slice().sort(()=>R()-.5);return {a:L[0].id,b:L[1].id};},t:()=>'Ça chauffe au vestiaire',d:x=>'Un sparring entre '+nomF(x.a)+' et '+nomF(x.b)+' a dégénéré. Ils ne se parlent plus.',
+  ch:[{t:'Les réunir pour s\'expliquer',f:x=>{G.F[x.a].moral=Math.min(100,G.F[x.a].moral+5);G.F[x.b].moral=Math.min(100,G.F[x.b].moral+5);}},{t:'Les séparer aux entraînements',f:x=>{G.F[x.a].moral-=6;G.F[x.b].moral-=6;}}]},
+ {id:'augment',p:.45,cond:()=>mes().some(f=>f.pop>35),make:()=>{const f=pk(mes().filter(f=>f.pop>35));return {f:f.id,m:Math.round((800+f.pop*60)/100)*100};},t:()=>'Il réclame plus',d:x=>nomF(x.f)+' estime qu\'il mérite une prime pour tout ce qu\'il apporte à l\'écurie : '+fmtE(x.m)+'.',
+  ch:[{t:'Payer la prime',f:x=>{G.argent-=x.m;G.F[x.f].moral=Math.min(100,G.F[x.f].moral+15);}},{t:'Refuser',f:x=>{G.F[x.f].moral=Math.max(0,G.F[x.f].moral-15);}}]},
+ {id:'mentor',p:.3,cond:()=>Object.values(G.coachs).some(n=>n<2),make:()=>{const k=pk(Object.keys(G.coachs).filter(k=>G.coachs[k]<2&&k!=='media'&&k!=='recruteur'));return k?{k}:null;},t:()=>'Un ancien champion veut transmettre',d:x=>'Un ancien champion du monde, jeune retraité, propose de rejoindre votre staff ('+COACHS[x.k].n.toLowerCase()+') pour un salaire symbolique.',
+  ch:[{t:'L\'engager',f:x=>{G.coachs[x.k]=Math.max(G.coachs[x.k],2);G.argent-=1500;}},{t:'Décliner',f:()=>{}}]},
+ {id:'journaliste',p:.5,cond:()=>mes().length>0,make:()=>({f:pk(mes()).id}),t:()=>'Interview exclusive',d:x=>'Un grand magazine sportif veut faire le portrait de '+nomF(x.f)+'.',
+  ch:[{t:'Parler de l\'écurie',f:x=>{G.salle.rep+=2;G.salle.membres+=ri(3,10);}},{t:'Mettre le combattant en avant',f:x=>{G.F[x.f].pop=Math.min(100,G.F[x.f].pop+6);}}]},
+ {id:'cage',p:.3,cond:()=>G.argent>8000,make:()=>({m:6000}),t:()=>'Une vraie cage pour la salle',d:()=>'Un fournisseur propose une cage octogonale d\'occasion, comme en compétition, pour 6 000 €.',
+  ch:[{t:'L\'acheter',f:x=>{G.argent-=x.m;G.salle.rep+=3;mes().forEach(f=>f.at.lutte=Math.min(f.pot+8,f.at.lutte+.8));G.salle.membres+=ri(5,12);}},{t:'Trop cher',f:()=>{}}]},
+ {id:'remplacant',p:.4,cond:()=>mes().some(f=>{const t=f.prochain&&trouverCombat(f.prochain);return t&&t.c.ok&&!t.c.titre&&t.c.gp==null&&t.e.sem-G.sem>=2;}),make:()=>{const f=pk(mes().filter(f=>{const t=f.prochain&&trouverCombat(f.prochain);return t&&t.c.ok&&!t.c.titre&&t.c.gp==null&&t.e.sem-G.sem>=2;}));const t=trouverCombat(f.prochain);
+   const L=classement(t.e.org,f.div).filter(x=>!x.mine&&dispo(x,t.e.sem)&&x.id!==t.c.b);if(!L.length)return null;return {f:f.id,c:t.c.id,nv:L[L.length-1].id,old:t.c.b};},
+  t:()=>'Changement d\'adversaire',d:x=>nomF(x.old)+' s\'est blessé et doit déclarer forfait. L\'organisation propose '+nomF(x.nv)+' ('+ov(G.F[x.nv])+' de note) en remplacement.',
+  ch:[{t:'Accepter le remplaçant',f:x=>{const t=trouverCombat(x.c);if(!t)return;const o=G.F[x.old],n=G.F[x.nv];if(o.prochain===x.c)o.prochain=null;blesser(o);t.c.b=x.nv;n.prochain=x.c;t.c.seed=0;}},{t:'Annuler le combat',f:x=>{const t=trouverCombat(x.c);if(t){blesser(G.F[x.old]);annuler(t.c);}}}]},
  {id:'doc',p:.25,cond:()=>mes().some(f=>f.pop>50),make:()=>({}),t:()=>'Un documentaire sur l\'écurie',d:()=>'Une plateforme de streaming veut tourner une série documentaire dans votre salle pendant six semaines.',ch:[{t:'Action !',f:()=>{G.argent+=4000;G.salle.rep+=4;mes().forEach(f=>f.pop=Math.min(100,f.pop+4));}},{t:'Trop de caméras',f:()=>{}}]}
 ];
 function evenementAleatoire(){if(G.sem<3||R()>.3)return null;const ok=EVENTS.filter(e=>e.cond());if(!ok.length)return null;let s=0;ok.forEach(e=>s+=e.p);let x=R()*s;let E=ok[0];for(const e of ok){x-=e.p;if(x<=0){E=e;break;}}
@@ -307,8 +346,108 @@ function combatPiedLeve(x){const f=G.F[x.f],adv=G.F[x.adv],O=ORG(x.org);const ev
 function apresPied(cid){const t=trouverCombat(cid);if(!t||!t.c.pied)return;const f=G.F[t.c.a];if(t.c.res&&t.c.res.w===0)offreContrat(f,t.e.org,'victoire au pied levé');}
 function jouerMonCombat(cid,sim){appliquer(cid,sim);apresPied(cid);G.aJouer=G.aJouer.filter(x=>x!==cid);const t=trouverCombat(cid);if(t&&!G.aJouer.some(id=>id.startsWith(t.e.id+'c')))t.e.fait=true;}
 function prochainEvent(){let best=null;for(const e of G.ev)if(!e.fait&&e.combats.some(c=>c.mine&&c.ok)&&(!best||e.sem<best.sem))best=e;return best;}
+/* ---------- camp d'entraînement ---------- */
+const CAMP={etude:{n:'Étude vidéo de l\'adversaire',ic:'🎬',b:1.2,c:t=>300+t*500,d:'Le staff décortique ses derniers combats.'},
+ spar:{n:'Partenaires d\'entraînement spécialisés',ic:'🥊',b:1.3,c:t=>500+t*900,d:'Des sparrings qui imitent son style.'},
+ stage:{n:'Stage à l\'étranger',ic:'✈️',b:2,c:t=>1500+t*2600,d:'Trois semaines dans une grande académie. Moral en hausse.'}};
+function bonusCamp(c){let b=0;for(const k in (c.camp||{}))if(c.camp[k]&&CAMP[k])b+=CAMP[k].b;return b;}
+function acheterCamp(cid,k){const t=trouverCombat(cid);if(!t)return false;const {c,e}=t;c.camp=c.camp||{};if(c.camp[k])return false;const prix=CAMP[k].c(ORG(e.org).tier);if(G.argent<prix)return false;
+ G.argent-=prix;c.camp[k]=1;if(k==='stage'){const f=G.F[c.a];f.moral=cl(f.moral+10,0,100);}return true;}
+/* ---------- changement de catégorie ---------- */
+function categorieVoisine(f,dir){const L=DIVS.filter(d=>d.s===DIV(f.div).s);const i=L.findIndex(d=>d.id===f.div);return L[i+dir]||null;}
+function changerCategorie(id,dir){const f=G.F[id];const d=categorieVoisine(f,dir);if(!d||f.prochain)return false;
+ const go=f.org&&G.orgs[f.org];if(go&&go.ch[f.div]===f.id){go.ch[f.div]=null;news('👑',f.pr+' '+f.nom+' laisse sa ceinture vacante pour changer de catégorie.');}
+ G.offres=G.offres.filter(o=>!(o.f===f.id&&o.type==='combat'));
+ if(dir>0){f.at.puiss=Math.max(20,f.at.puiss-2);f.at.frappe+=0;f.at.cardio+=1.5;}else{f.at.cardio=Math.max(20,f.at.cardio-3);f.at.puiss+=1.5;f.fat=cl(f.fat+15,0,100);}
+ f.div=d.id;if(f.org)f.elo=eloEntree(f.org,d.id);f.serie=0;f.riv={};news('⚖️',f.pr+' '+f.nom+' passe en '+d.nom.toLowerCase()+' ('+d.kg+' kg).','#e9c46a');return true;}
+/* ---------- négociation ---------- */
+function negocier(oid,pct){const o=G.offres.find(x=>x.id===oid);if(!o||o.nego)return null;const f=G.F[o.f];o.nego=1;
+ const r=o.type==='combat'?rang(f):3;let p=.82-pct*1.7+(f.pop-30)/140+(r!=null&&r<=3?.12:0)+((G.orgs[o.org||G.ev.find(e=>e.id===o.ev)?.org]?.rel??60)-60)/150+(G.coachs.media||0)*.04;
+ if(o.titre)p+=.1;p=cl(p,.05,.95);
+ if(R()<p){if(o.type==='combat'){o.show=Math.round(o.show*(1+pct)/50)*50;o.win=Math.round(o.win*(1+pct)/50)*50;}else{o.show=Math.round(o.show*(1+pct)/50)*50;if(o.prime)o.prime=Math.round(o.prime*(1+pct)/50)*50;}return {ok:true,p};}
+ if(R()<.35+pct){refuser(oid);return {ok:false,retire:true,p};}return {ok:false,p};}
+function chanceNego(oid,pct){const o=G.offres.find(x=>x.id===oid);if(!o)return 0;const f=G.F[o.f];const r=o.type==='combat'?rang(f):3;
+ return cl(.82-pct*1.7+(f.pop-30)/140+(r!=null&&r<=3?.12:0)+((G.orgs[o.org||G.ev.find(e=>e.id===o.ev)?.org]?.rel??60)-60)/150+(G.coachs.media||0)*.04+(o.titre?.1:0),.05,.95);}
+/* ---------- sponsors ---------- */
+const MARQUES=['Iron Fuel','Volta Energy','Karbon Gear','Rhino Wraps','Nordik Tape','Atlas Nutrition','Pulse Wear','Titan Drinks','Kodiak Gloves','Blackline','Méduse Paris','Fenrir Apparel','Lumen Watches','Saber Mouthguards'];
+function offreSponsor(f){const t=f.org?ORG(f.org).tier:0;const heb=Math.round((40+f.pop*f.pop*.18+t*t*90)*(1+(G.coachs.media||0)*.15)/10)*10;return {nom:pk(MARQUES),f:f.id,hebdo:heb,bonusV:Math.round(heb*4/50)*50,duree:ri(16,40)};}
+function signerSponsor(x){G.spons=G.spons||[];G.spons.push({id:'sp'+(G.nspo=(G.nspo||1)+1),nom:x.nom,f:x.f,hebdo:x.hebdo,bonusV:x.bonusV,fin:G.sem+x.duree});news('🤝',x.nom+' sponsorise '+nomF(x.f)+' : '+fmtE(x.hebdo)+' par semaine pendant '+x.duree+' semaines (+'+fmtE(x.bonusV)+' par victoire).','#e9c46a');}
+/* ---------- Grand Prix ---------- */
+function demarrerGP(){if(G.gp)return;const an=G.an0+Math.floor((G.sem-1)/52);const O=ORGS[[2,3][an%2]];
+ const cand=DIVS.filter(d=>roster(O.id,d.id).length>=10);let d=cand.find(d=>mes().some(f=>f.org===O.id&&f.div===d.id&&rang(f)<=8&&rang(f)>0))||pk(cand);if(!d)return;
+ const L=classement(O.id,d.id).filter(f=>G.orgs[O.id].ch[d.id]!==f.id&&f.bless<=0&&!f.ret).slice(0,8);if(L.length<8)return;
+ const ids=[L[0],L[7],L[3],L[4],L[1],L[6],L[2],L[5]].map(f=>f.id);ids.forEach(id=>{G.F[id].inGP=true;});
+ // annuler les offres et combats déjà prévus des participants
+ for(const id of ids){const f=G.F[id];if(f.prochain){const t=trouverCombat(f.prochain);if(t&&!t.c.res){annuler(t.c);G.offres=G.offres.filter(o=>o.c!==t.c.id);}}}
+ const prix=[0,0,60000,150000][O.tier];
+ G.gp={org:O.id,div:d.id,an,ronde:0,ids,vivants:ids.slice(),prochain:G.sem+3,prix,nom:'Grand Prix '+O.court+' '+an};
+ news('🏆','Le '+G.gp.nom+' des '+d.nom.toLowerCase()+' est lancé : huit combattants, trois tours, '+fmtE(prix)+' pour le vainqueur !',O.c1);
+ const m=ids.filter(id=>G.F[id].mine);if(m.length)news('🔥',m.map(nomF).join(' et ')+' participe'+(m.length>1?'nt':'')+' au '+G.gp.nom+' !','#e9c46a');}
+function reserverGP(O,ev,s,usage){const gp=G.gp;if(!gp||gp.org!==O.id||gp.reserve||s<gp.prochain)return;
+ gp.vivants=gp.vivants.filter(id=>G.F[id]&&!G.F[id].ret);const V=gp.vivants;if(V.length<2){gpVerifier();return;}const paires=[];for(let i=0;i+1<V.length;i+=2)paires.push([V[i],V[i+1]]);
+ if(V.length%2)paires.length=paires.length;// le dernier passe directement
+ gp.reserve=true;gp.ev=ev.id;let n=0;
+ for(const [a,b] of paires){const A=G.F[a],B=G.F[b];
+  if(A.bless>0||B.bless>0||A.prochain||B.prochain){const L=(A.bless>0||A.prochain)?A:B;gp.vivants=gp.vivants.filter(id=>id!==L.id);gp.elim=gp.elim||{};gp.elim[L.id]=gp.ronde;L.inGP=false;news('🚑',L.pr+' '+L.nom+' déclare forfait au '+gp.nom+'.');continue;}
+  n++;let x=A,y=B;if(B.mine&&!A.mine){x=B;y=A;}
+  const c={id:ev.id+'c'+ev.combats.length,a:x.id,b:y.id,div:gp.div,titre:false,mine:!!x.mine,ok:true,res:null,gp:gp.ronde,main:gp.ronde===2};
+  if(x.mine){c.show=Math.round(bourse(x,O.id,false,gp.ronde===2)*1.4/50)*50;c.win=c.show;}
+  ev.combats.push(c);x.prochain=c.id;y.prochain=c.id;usage.add(a);usage.add(b);
+  if(x.mine)news('📅',gp.nom+' — '+['quart de finale','demi-finale','finale'][Math.min(2,gp.ronde)]+' : '+nomF(x.id)+' contre '+nomF(y.id)+' à '+ev.nom+' ('+date(ev.sem)+').',O.c1);}
+ if(!n){gp.reserve=false;gpAvance();}}
+function gpAvance(){const gp=G.gp;if(!gp)return;if(gp.vivants.length<=1){gpFin();return;}gp.ronde++;gp.reserve=false;gp.prochain=G.sem+4;}
+function gpResultat(c,e,res){const gp=G.gp;if(!gp)return;const W=res.w===1?c.b:c.a;const L=W===c.a?c.b:c.a;// nul : avantage au premier nommé
+ gp.vivants=gp.vivants.filter(id=>id!==L);gp.elim=gp.elim||{};gp.elim[L]=gp.ronde;if(G.F[L])G.F[L].inGP=false;
+ const tours=e.combats.filter(x=>x.gp===gp.ronde);if(tours.every(x=>x.res))gpAvance();}
+function gpFin(){const gp=G.gp;if(!gp)return;const v=G.F[gp.vivants[0]];G.gp=null;if(!v)return;v.inGP=false;v.pop=cl(v.pop+15,0,100);v.titres=v.titres||[];v.titres.push('GP '+ORG(gp.org).court);
+ G.gps=G.gps||[];G.gps.push({nom:gp.nom,div:gp.div,v:v.id,vn:v.pr+' '+v.nom,org:gp.org,an:gp.an});
+ news('🏆',v.pr+' '+v.nom+' remporte le '+gp.nom+' !',ORG(gp.org).c1);
+ if(v.mine){G.argent+=Math.round(gp.prix*COMM);G.stats.gp=(G.stats.gp||0)+1;G.salle.rep=cl(G.salle.rep+8,0,100);G.trophees.push({s:G.sem,f:v.id,org:gp.org,div:gp.div,gp:1});news('💰','Prime du Grand Prix : votre commission de '+fmtE(gp.prix*COMM)+' !','#e9c46a');
+  const U=ORGS[ORG(gp.org).tier+1];if(U)offreContrat(v,U.id,'vainqueur du Grand Prix');}}
+function gpTableau(){return G.gp;}
+// sécurité : un participant blessé est remplacé par forfait
+function gpVerifier(){const gp=G.gp;if(!gp||gp.reserve)return;gp.vivants=gp.vivants.filter(id=>G.F[id]&&!G.F[id].ret);if(gp.vivants.length<=1)gpFin();
+ if(G.gp&&G.sem-gp.prochain>12){gp.vivants.forEach(id=>{if(G.F[id])G.F[id].inGP=false;});G.gp=null;news('⚠️','Le '+gp.nom+' est annulé.');}}
+/* ---------- classement toutes catégories, prix annuels, temple ---------- */
+function p4p(n=15){const L=[];for(const id in G.F){const f=G.F[id];if(f.ret||!f.org)continue;const O=ORG(f.org);const ch=G.orgs[f.org].ch[f.div]===f.id;
+ L.push({f,s:f.elo+O.tier*140+(ch?70:0)+Math.max(0,f.serie)*8});}return L.sort((a,b)=>b.s-a.s).slice(0,n).map(x=>x.f);}
+function prixAnnuels(){const an=G.an0+Math.floor((G.sem-1)/52);const s0=G.sem-51;let best=null,bs=-1,ko=null,kos=-1,rev=null,rs=-1;
+ for(const id in G.F){const f=G.F[id];if(!f.histo)continue;let sc=0,vic=0;for(const h of f.histo){if(h.s<s0)break;if(h.r==='V'){vic++;sc+=1+(h.tier||0)*1.2+(h.titre?3:0)+(h.gp!=null?1.5:0)+(['ko','tko','sub'].includes(h.m)?.5:0);
+   if((h.m==='ko'||h.m==='tko')){const k=(h.tier||0)*10+(h.titre?8:0)+(h.main?4:0)+(h.rd===1?3:0)+R();if(k>kos){kos=k;ko={f:f.id,n:f.pr+' '+f.nom,adv:h.an,ev:h.ev,rd:h.rd,t:h.t,tech:h.tech};}}}else if(h.r==='D')sc-=.7;}
+  if(sc>bs){bs=sc;best=f;}if(f.age<25&&vic>0&&sc>rs){rs=sc;rev=f;}}
+ const P={an,cdla:best&&{f:best.id,n:best.pr+' '+best.nom},ko,rev:rev&&{f:rev.id,n:rev.pr+' '+rev.nom}};G.prix=G.prix||[];G.prix.push(P);
+ const lots=[['cdla','Combattant de l\'année',15000],['ko','KO de l\'année',6000],['rev','Révélation de l\'année',5000]];
+ for(const [k,lib,m] of lots){const x=P[k];if(!x)continue;const f=G.F[x.f];if(f){f.pop=cl(f.pop+(k==='cdla'?10:5),0,100);f.trophees=f.trophees||[];f.trophees.push(lib+' '+an);}
+  news('🏅',lib+' '+an+' : '+x.n+(k==='ko'?' contre '+x.adv+' ('+x.ev+')':'')+'.','#e9c46a');if(f&&f.mine){G.argent+=m;G.salle.rep=cl(G.salle.rep+4,0,100);news('💰','Votre écurie touche '+fmtE(m)+' de primes pour ce trophée.','#e9c46a');}}
+ return P;}
+function temple(f){const t=(f.titres||[]).filter(x=>!x.startsWith('GP'));const top=t.filter(x=>x==='APEX'||x==='GLADIUS').length;
+ if(top>=1||(f.v>=30&&f.v>f.d*2.4)||t.length>=4||f.mine&&(f.titres||[]).length){G.hof=G.hof||[];G.hof.unshift({n:f.pr+' '+f.nom,pays:f.pays,rec:f.v+'-'+f.d+(f.n?'-'+f.n:''),titres:f.titres||[],an:G.an0+Math.floor((G.sem-1)/52),mine:!!f.mine,div:f.div});
+  if(G.hof.length>60)G.hof.length=60;news('🏛️',f.pr+' '+f.nom+' entre au temple de la renommée.','#e9c46a');}}
+/* ---------- succès ---------- */
+const SUCCES=[
+ {id:'v1',n:'Première victoire',d:'Gagner un premier combat.',t:()=>G.stats.v>=1},
+ {id:'ko1',n:'Lumières éteintes',d:'Gagner par KO ou TKO.',t:()=>(G.stats.ko||0)>=1},
+ {id:'sub1',n:'Il a tapé !',d:'Gagner par soumission.',t:()=>(G.stats.sub||0)>=1},
+ {id:'v10',n:'Machine à gagner',d:'10 victoires pour l\'écurie.',t:()=>G.stats.v>=10},
+ {id:'v50',n:'Écurie redoutée',d:'50 victoires pour l\'écurie.',t:()=>G.stats.v>=50},
+ {id:'ceint',n:'Ceinturé',d:'Remporter une ceinture.',t:()=>G.stats.titres>=1},
+ {id:'hex',n:'Le meilleur de France',d:'Avoir un combattant sous contrat HEX.',t:()=>mes().some(f=>f.org&&ORG(f.org).tier>=1)},
+ {id:'ecc',n:'Conquête de l\'Europe',d:'Avoir un combattant sous contrat ECC.',t:()=>mes().some(f=>f.org&&ORG(f.org).tier>=2)},
+ {id:'gla',n:'Gladiateur',d:'Avoir un combattant sous contrat GLADIUS.',t:()=>mes().some(f=>f.org&&ORG(f.org).tier>=3)},
+ {id:'apx',n:'Le sommet',d:'Avoir un combattant sous contrat APEX.',t:()=>mes().some(f=>f.org&&ORG(f.org).tier>=4)},
+ {id:'chapx',n:'Roi du monde',d:'Avoir un champion APEX.',t:()=>mes().some(f=>f.org==='apx'&&G.orgs.apx.ch[f.div]===f.id)},
+ {id:'double',n:'Double champion',d:'Avoir deux champions en même temps.',t:()=>mes().filter(f=>f.org&&G.orgs[f.org].ch[f.div]===f.id).length>=2},
+ {id:'gp',n:'Vainqueur de Grand Prix',d:'Remporter un Grand Prix.',t:()=>(G.stats.gp||0)>=1},
+ {id:'p4p',n:'Livre pour livre',d:'Placer un combattant dans le top 15 toutes catégories.',t:()=>p4p().some(f=>f.mine)},
+ {id:'salle',n:'Académie d\'élite',d:'Agrandir la salle au niveau maximal.',t:()=>G.salle.niv>=4},
+ {id:'riche',n:'Millionnaire',d:'Atteindre 1 000 000 € de trésorerie.',t:()=>G.argent>=1e6},
+ {id:'equipe',n:'Grande famille',d:'Avoir 8 combattants dans l\'écurie.',t:()=>mes().length>=8},
+ {id:'serie',n:'Invaincu',d:'Une série de 8 victoires pour un de vos combattants.',t:()=>mes().some(f=>f.serie>=8)},
+ {id:'prix',n:'Récompensé',d:'Gagner un prix de fin d\'année.',t:()=>(G.prix||[]).some(P=>['cdla','ko','rev'].some(k=>P[k]&&G.F[P[k].f]&&G.F[P[k].f].mine))},
+ {id:'hof',n:'Immortel',d:'Faire entrer un de vos combattants au temple de la renommée.',t:()=>(G.hof||[]).some(h=>h.mine)}];
+function verifierSucces(){G.succes=G.succes||{};for(const x of SUCCES)if((x.id!=='p4p'||G.sem%4===0)&&!G.succes[x.id]&&x.t()){G.succes[x.id]=G.sem;news('🎖️','Succès débloqué : '+x.n+' — '+x.d,'#e9c46a');G.nouveauSucces=(G.nouveauSucces||[]);G.nouveauSucces.push(x.n);}}
 function charger(g){G=g;setRng();return G;}
 return {get G(){return G;},nouvellePartie,charger,avancer,classement,rang,rangTxt,mes,ov,date,fmtE,ORG,DIV,SALLES,COACHS,COACH_PAYE,FOCUS,INTENS,COMM,ALLOC,
- accepterCombat,accepterContrat,refuser,preparerSim,jouerMonCombat,trouverCombat,signer,liberer,ameliorerSalle,coach,choisir,bourse,prochainEvent,rounds,medianeOv,nomF,planIA,roster,dispo};
+ EVENTS,accepterCombat,accepterContrat,refuser,CAMP,bonusCamp,acheterCamp,categorieVoisine,changerCategorie,negocier,chanceNego,p4p,SUCCES,verifierSucces,prixAnnuels,gpTableau,offreSponsor,signerSponsor,MARQUES,preparerSim,jouerMonCombat,trouverCombat,signer,liberer,ameliorerSalle,coach,choisir,bourse,prochainEvent,rounds,medianeOv,nomF,planIA,roster,dispo};
 })();
 if(typeof module!=='undefined')module.exports=Moteur;

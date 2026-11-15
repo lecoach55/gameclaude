@@ -70,3 +70,25 @@ var SURNOMS_F=['La Comète','Furie','La Sentinelle','Rubis','L\'Ouragan','Mamba'
 var ISSUES={ko:'KO',tko:'TKO',sub:'Soumission',ud:'Décision unanime',sd:'Décision partagée',md:'Décision majoritaire',dr:'Match nul',dq:'Disqualification'};
 var SOUMS=['étranglement arrière','guillotine','clé de bras','triangle','kimura','étranglement d\'Arcé','clé de cheville','anaconda','étranglement en bras-tête','heel hook'];
 if(typeof module!=='undefined')module.exports={ORGS,DIVS,STYLES,ATTRS,PAYS,PAYS_TIER,SURNOMS,SURNOMS_F,ISSUES,SOUMS};
+var TRAITS={
+ menton_fer:{n:'Menton de fer',ic:'🪨',d:'Encaisse beaucoup mieux les coups à la tête.',bon:1},
+ verre:{n:'Mâchoire de verre',ic:'🥚',d:'Tombe plus facilement sur un coup propre.',bon:0},
+ machine:{n:'Cardio de machine',ic:'🫁',d:'Se fatigue nettement moins vite.',bon:1},
+ finisseur:{n:'Finisseur',ic:'🎯',d:'Frappe plus fort quand l\'adversaire est touché.',bon:1},
+ tueur:{n:'Instinct de tueur',ic:'🐺',d:'Conclut plus souvent après un knockdown.',bon:1},
+ diesel:{n:'Diesel',ic:'🚂',d:'Lent au démarrage, redoutable dans les derniers rounds.',bon:1},
+ explosif:{n:'Explosif',ic:'💣',d:'Terrible au premier round, s\'essouffle ensuite.',bon:1},
+ gaucher:{n:'Gaucher',ic:'🫲',d:'Sa garde inversée gêne les droitiers.',bon:1},
+ contreur:{n:'Contreur',ic:'🔁',d:'Punit les erreurs en contre.',bon:1},
+ pressing:{n:'Pressing',ic:'⏩',d:'Avance sans cesse et impose le rythme.',bon:1},
+ cage:{n:'Lutte contre la cage',ic:'🧱',d:'Redoutable pour amener au sol depuis le corps à corps.',bon:1},
+ gardes:{n:'Garde dangereuse',ic:'🕸️',d:'Cherche la soumission même sur le dos.',bon:1},
+ rapide:{n:'Vitesse de main',ic:'⚡',d:'Ses jabs et directs partent plus vite.',bon:1},
+ showman:{n:'Showman',ic:'🎤',d:'Gagne beaucoup plus de popularité.',bon:1,hors:1},
+ bosseur:{n:'Gros bosseur',ic:'🏋️',d:'Progresse plus vite à l\'entraînement.',bon:1,hors:1},
+ fragile:{n:'Fragile',ic:'🩹',d:'Se blesse plus souvent.',bon:0,hors:1},
+ leader:{n:'Leader',ic:'🧭',d:'Son moral rejaillit sur toute l\'écurie.',bon:1,hors:1},
+ tete_brulee:{n:'Tête brûlée',ic:'🔥',d:'Moral en dents de scie, adore les gros combats.',bon:0,hors:1}
+};
+var BLESSURES=[{n:'Coupure à l\'arcade',s:[2,3]},{n:'Côte fêlée',s:[3,6]},{n:'Main fracturée',s:[5,9]},{n:'Entorse du genou',s:[4,8]},{n:'Épaule luxée',s:[6,10]},{n:'Commotion',s:[4,7]},{n:'Ligament croisé',s:[18,30],grave:1},{n:'Hernie discale',s:[10,16],grave:1}];
+if(typeof module!=='undefined'){module.exports.TRAITS=TRAITS;module.exports.BLESSURES=BLESSURES;}

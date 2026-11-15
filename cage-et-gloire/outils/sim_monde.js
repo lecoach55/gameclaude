@@ -24,6 +24,6 @@ for(let g=1;g<=N;g++){
  console.log('— graine',g,'titres',G.stats.titres,'V-D',G.stats.v+'-'+G.stats.d,'max tier',maxT,'erreurs',err,'effectifs',JSON.stringify(nb),'combattants',Object.keys(G.F).length);
  log.forEach(l=>console.log('  ',l));
  tot.titres+=G.stats.titres;if(maxT>=4)tot.apex++;if(G.argent<0)tot.fail++;
- console.log('   trophées:',G.trophees.map(t=>M.ORG(t.org).court+'@'+(Math.floor(t.s/52)+1)).join(' '));
+ console.log('   GP:',(G.gps||[]).map(x=>x.org+(G.F[x.v]&&G.F[x.v].mine?'*':'')).join(' '),'succès',Object.keys(G.succes||{}).length,'spons',(G.spons||[]).length,'prix',(G.prix||[]).length,'hof',(G.hof||[]).length);console.log('   trophées:',G.trophees.map(t=>M.ORG(t.org).court+'@'+(Math.floor(t.s/52)+1)).join(' '));
 }
 console.log('TOTAL',JSON.stringify(tot),((Date.now()-t0)/1000).toFixed(1)+'s');

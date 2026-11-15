@@ -51,28 +51,30 @@ const T={
 };
 function txt(r,arr,o){let s=arr[Math.floor(r()*arr.length)];return s.replace(/\{(\w)\}/g,(m,k)=>o[k]??'');}
 function cf(a){return 1-((a.cardio??a.e.cardio)-65)/150;}
-function eff(f,plan,j){const a=f.at,fo=cl((f.forme??100)/100,.4,1);const m=-(1-fo)*18+(j||0);
+function eff(f,plan,j){const a=f.at,fo=cl((f.forme??100)/100,.4,1);const m=-(1-fo)*18+(j||0)+(f.bonusCamp||0);
  return {frappe:a.frappe+m,puiss:a.puiss+m,def:a.def+(PLANS[plan].def||0)+m,lutte:a.lutte+m,sol:a.sol+m,cardio:a.cardio+m,menton:a.menton};}
 /* simule un combat ; F = [combattant0, combattant1], o = {rounds, plans:[p0,p1], seed} */
 function simuler(F,o){
  o=o||{};const r=rngOf(o.seed||Math.floor(Math.random()*1e9));const R=o.rounds||3;const plans=o.plans||['equi','equi'];
  const nm=F.map(f=>f.nom);
  const jr=F.map(()=>(r()+r()+r()-1.5)*7);
- const S=F.map((f,i)=>({e:eff(f,plans[i],jr[i]),st:f.style||'complet',hd:0,bd:0,lg:0,sta:100,kd:0,
-   hp:92+(f.at.menton-60)*.45,stats:{sig:0,sigT:0,td:0,tdT:0,kd:0,sub:0,ctrl:0,tete:0,corps:0,jambe:0},rp:[]}));
+ const TR=F.map(f=>{const t={};(f.traits||[]).forEach(k=>t[k]=1);return t;});
+ const S=F.map((f,i)=>({e:eff(f,plans[i],jr[i]),st:f.style||'complet',hd:0,bd:0,lg:0,sta:100,kd:0,tr:TR[i],
+   hp:(92+(f.at.menton-60)*.45)*(TR[i].menton_fer?1.12:TR[i].verre?.9:1),stats:{sig:0,sigT:0,td:0,tdT:0,kd:0,sub:0,ctrl:0,tete:0,corps:0,jambe:0},rp:[]}));
  const ev=[];let pos='S',top=-1,res=null;let changes=o.changes||{};
  const B=20;
  function rnd(a,b){return a+(b-a)*r();}
  function mob(i){const s=S[i];return 1-cl(s.lg/45,0,.35);}
  function fsta(i){return (100-S[i].sta)*.28;}
  for(let rd=1;rd<=R&&!res;rd++){
-  if(changes[rd])for(const k in changes[rd]){plans[k]=changes[rd][k];S[k].e=eff(F[k],plans[k],jr[k]);}
+  if(changes[rd])for(const k in changes[rd]){plans[k]=changes[rd][k];}
+  S.forEach((s,k)=>{const t=s.tr;const rm=(t.diesel?(rd===1?-3:rd>=3?4:0):0)+(t.explosif?(rd===1?7:rd>=3?-2:0):0);s.e=eff(F[k],plans[k],jr[k]+rm);});
   const rp=[{p:0},{p:0}];
   ev.push({r:rd,b:0,k:'round',t:'Début du round '+rd+' !',pos:'S',sta:S.map(s=>s.sta),hd:S.map(s=>s.hd)});
   pos='S';top=-1;let gb=0;
   for(let b=1;b<=B&&!res;b++){
    const tsec=b*15-rnd(0,14);let E=null;
-   const ag=S.map((s,i)=>PLANS[plans[i]].agg*(.6+.4*s.sta/100)*(.8+(s.e.frappe+s.e.lutte)/250));
+   const ag=S.map((s,i)=>PLANS[plans[i]].agg*(.6+.4*s.sta/100)*(.8+(s.e.frappe+s.e.lutte)/250)*(s.tr.pressing?1.2:1));
    if(pos==='S'||pos==='C'){
     const A=r()<ag[0]/(ag[0]+ag[1])?0:1,D=1-A;const a=S[A].e,d=S[D].e,fa=fsta(A),fd=fsta(D);
     const sty=S[A].st;
@@ -91,7 +93,7 @@ function simuler(F,o){
     }
     else if(act==='t'){
      S[A].stats.tdT++;S[A].sta-=3.5*cf(a);
-     const p=sig(((a.lutte-fa)-(d.lutte-fd)*.9-d.sol*.08)/14+(pos==='C'?.25:-.45)+(S[D].lg>20?.3:0));
+     const p=sig(((a.lutte-fa)-(d.lutte-fd)*.9-d.sol*.08)/14+(pos==='C'?.25+(S[A].tr.cage?.8:0):-.45)+(S[D].lg>20?.3:0));
      if(r()<p){pos='G';top=A;gb=0;S[A].stats.td++;rp[A].p+=5;E={k:'td',a:A,h:1,t:txt(r,T.td,{A:nm[A],D:nm[D]})};}
      else{S[A].sta-=2;E={k:'tdf',a:A,h:0,t:txt(r,T.tdf,{A:nm[A],D:nm[D]})};if(r()<.04+d.lutte/2500){pos='G';top=D;gb=0;E.t+=' '+nm[D]+' finit au-dessus !';}}
     }
@@ -99,17 +101,17 @@ function simuler(F,o){
      const rep=Object.assign({},REP[sty]||REP.complet);if(pos==='C'){rep.knee=3;rep.headkick=0;rep.spin=0;rep.bodykick=0;}
      const tk=pick(r,rep),tc=TECH[tk];
      S[A].stats.sigT++;S[A].sta-=(tc.dmg>6?1.6:.9)*cf(a)*(PLANS[plans[A]].sta||1);
-     const p=sig(((a.frappe-fa)-(d.def-fd)*mob(D))/17+tc.acc-.1);
+     const p=sig(((a.frappe-fa)-(d.def-fd)*mob(D))/17+tc.acc-.1+(S[A].tr.gaucher&&!S[D].tr.gaucher?.15:0)+(S[A].tr.rapide&&(tk==='jab'||tk==='cross')?.2:0));
      if(r()<p){
-      let dm=tc.dmg*(1.03+(a.puiss-d.menton)/110)*(1-fa/120)*rnd(.55,1.45);if(r()<.05)dm*=1.8;
+      let dm=tc.dmg*(1.03+(a.puiss-d.menton)/110)*(1-fa/120)*rnd(.55,1.45);if(r()<.05)dm*=1.8;if(S[A].tr.finisseur&&S[D].hd>S[D].hp*.45)dm*=1.2;
       S[A].stats.sig++;S[A].stats[tc.z]++;rp[A].p+=dm;
       if(tc.z==='jambe')S[D].lg+=dm*1.15;else if(tc.z==='corps'){S[D].bd+=dm;S[D].sta-=dm*.7;}else S[D].hd+=dm;
       E={k:tk,a:A,h:1,z:tc.z,dm,t:txt(r,T.hit[tc.z],{A:nm[A],D:nm[D],t:tc.n})};
       if(tc.z!=='jambe'){
-       const crit=dm*(.6+S[D].hd/45+S[D].bd/160);const th=13.4+(S[D].e.menton-60)*.06;
+       const crit=dm*(.6+S[D].hd/45+S[D].bd/160);const th=13.4+(S[D].e.menton-60)*.06+(S[D].tr.menton_fer?2:S[D].tr.verre?-2.5:0);
        if(crit>th*rnd(1,2.1)){// knockdown
         S[D].kd++;S[A].stats.kd++;S[D].hd+=6;rp[A].p+=14;
-        const pf=.3+(a.puiss-d.menton)/160+S[D].hd/(S[D].hp*2.2)+S[D].kd*.12;
+        const pf=.3+(a.puiss-d.menton)/160+S[D].hd/(S[D].hp*2.2)+S[D].kd*.12+(S[A].tr.tueur?.28:0);
         if(r()<pf){res={w:A,m:crit>th*1.75?'ko':'tko',r:rd,t:tsec,tech:tc.n};E={k:'ko',a:A,h:1,t:txt(r,T.kd,{A:nm[A],D:nm[D],t:tc.n})+' '+txt(r,res.m==='ko'?T.ko:T.tko,{A:nm[A],D:nm[D]})};}
         else{E={k:'kd',a:A,h:1,t:txt(r,T.kd,{A:nm[A],D:nm[D],t:tc.n})};if(r()<.5){pos='G';top=A;gb=0;E.t+=' '+nm[A]+' fond sur lui !';}}
        }else if(crit>th*.75)E.t=txt(r,T.big,{A:nm[A],D:nm[D],t:tc.n});
@@ -117,11 +119,11 @@ function simuler(F,o){
       if(!res&&S[D].hd>=S[D].hp){res={w:A,m:'tko',r:rd,t:tsec};E.k='ko';E.t+=' '+txt(r,T.tko,{A:nm[A],D:nm[D]});}
      }else{
       E={k:tk,a:A,h:0,z:tc.z,t:txt(r,T.miss,{A:nm[A],D:nm[D],t:tc.n})};
-      if(pos==='S'&&r()<cl(.13+(d.frappe-a.frappe)/150,.04,.3)*(plans[D]==='contre'?1.7:1)){// contre
+      if(pos==='S'&&r()<cl(.13+(d.frappe-a.frappe)/150,.04,.3)*(plans[D]==='contre'?1.7:1)*(S[D].tr.contreur?1.6:1)){// contre
        const ct=r()<.5?'cross':'hook',c2=TECH[ct];S[D].stats.sigT++;
        if(r()<sig((d.frappe-a.def*.9)/12)){const dm=c2.dmg*(1.03+(d.puiss-a.menton)/110)*rnd(.6,1.5);S[A].hd+=dm;S[D].stats.sig++;S[D].stats.tete++;rp[D].p+=dm;
         E={k:'counter',a:D,ct,h:1,z:'tete',dm,t:txt(r,T.counter,{A:nm[A],D:nm[D],t:c2.n})};
-        const crit=dm*(.55+S[A].hd/55);const th=13.4+(a.menton-60)*.06;
+        const crit=dm*(.55+S[A].hd/55);const th=13.4+(a.menton-60)*.06+(S[A].tr.menton_fer?2:S[A].tr.verre?-2.5:0);
         if(crit>th*rnd(1,2.1)){S[A].kd++;S[D].stats.kd++;rp[D].p+=14;S[A].hd+=6;
          if(r()<.32+(d.puiss-a.menton)/160+S[A].hd/(S[A].hp*2.2)){res={w:D,m:'ko',r:rd,t:tsec,tech:c2.n};E.k='ko';E.a=D;E.t+=' '+txt(r,T.ko,{A:nm[D],D:nm[A]});}
          else{E.k='kd';E.a=D;E.t+=' '+txt(r,T.kd,{A:nm[D],D:nm[A],t:c2.n});}}
@@ -136,9 +138,9 @@ function simuler(F,o){
     if(r()<pE*.8){
      if(r()<.15+cl((d.sol-a.sol)/120,0,.25)){top=D;gb=0;E={k:'sweep',a:D,t:txt(r,T.sweep,{A:nm[A],D:nm[D]})};}
      else{pos='S';top=-1;E={k:'esc',a:D,t:txt(r,T.esc,{A:nm[A],D:nm[D]})};}
-    }else if(r()<.07*(d.sol/a.sol)*PLANS[plans[D]].sub&&d.sol>a.sol+4){// soumission depuis le dos
+    }else if(r()<.07*(d.sol/a.sol)*PLANS[plans[D]].sub*(S[D].tr.gardes?2:1)&&(d.sol>a.sol+4||S[D].tr.gardes)){// soumission depuis le dos
      const s=SOUMS_C[Math.floor(r()*3)+3];S[D].stats.sub++;rp[D].p+=3;
-     if(r()<sig(((d.sol-fd)-(a.sol-fa))/11-3)){res={w:D,m:'sub',r:rd,t:tsec,tech:s};E={k:'subw',a:D,s,t:txt(r,T.gard,{A:nm[D],D:nm[A],s})+' '+txt(r,T.subW,{A:nm[D],D:nm[A],s})};}
+     if(r()<sig(((d.sol-fd)-(a.sol-fa))/11-3+(S[D].tr.gardes?.4:0))){res={w:D,m:'sub',r:rd,t:tsec,tech:s};E={k:'subw',a:D,s,t:txt(r,T.gard,{A:nm[D],D:nm[A],s})+' '+txt(r,T.subW,{A:nm[D],D:nm[A],s})};}
      else E={k:'suba',a:D,s,t:txt(r,T.gard,{A:nm[D],D:nm[A],s})+' '+txt(r,T.subE,{A:nm[D],D:nm[A]})};
     }else{
      const w={g:2.2+(a.puiss-d.menton)/60,s:cl(.55+(a.sol-d.sol)/30,.1,1.4)*PLANS[plans[A]].sub,c:1};const act=pick(r,w);
@@ -155,7 +157,7 @@ function simuler(F,o){
     }
     S[D].sta-=.9*cf(d);
    }
-   S.forEach((s,i)=>{s.sta-=.45*(PLANS[plans[i]].sta||1)*cf(s.e);s.sta=cl(s.sta,4,100);});
+   S.forEach((s,i)=>{s.sta-=.45*(PLANS[plans[i]].sta||1)*cf(s.e)*(s.tr.explosif&&rd>=3?1.25:1);if(s.tr.machine)s.sta+=.3;s.sta=cl(s.sta,4,100);});
    if(E){E.r=rd;E.b=b;E.ts=tsec;E.pos=pos==='G'?'G'+top:pos;E.sta=S.map(s=>Math.round(s.sta));E.hd=S.map(s=>+(s.hd/s.hp).toFixed(3));ev.push(E);}
   }
   S.forEach((s,i)=>{s.rp.push(rp[i].p);});

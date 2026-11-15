@@ -22,7 +22,12 @@ function embleme(O,big){const id='em'+O.id+(big?'b':'');const st='★'.repeat(O.
 const ceinture=(c='#e9c46a')=>`<svg class="ceinture" viewBox="0 0 52 28"><rect x="0" y="9" width="52" height="10" rx="3" fill="#1a1a1a"/><rect x="14" y="2" width="24" height="24" rx="6" fill="${c}" stroke="#fff6d0" stroke-width="1.5"/><circle cx="26" cy="14" r="6" fill="#fff3c4" opacity=".7"/><rect x="5" y="11" width="6" height="6" rx="1" fill="${c}"/><rect x="41" y="11" width="6" height="6" rx="1" fill="${c}"/></svg>`;
 const orgB=id=>{if(!id)return '<span class="orgb" style="background:#333;color:#ccc">LIBRE</span>';const O=ORGc(id);return `<span class="orgb" style="background:${O.c2};color:${O.c1};border:1px solid ${O.c1}55">${O.court}</span>`;};
 const por=(f,o={})=>Portrait.svg(f,Object.assign({bg:f.org?ORGc(f.org).c2:'#23252e',rim:f.org?ORGc(f.org).c1:null},o));
-const etoiles=f=>{const n=Math.max(1,Math.min(5,Math.round((f.pot-40)/10)));return '★'.repeat(n)+'<span style="opacity:.25">'+'★'.repeat(5-n)+'</span>';};
+const etoiles=f=>{const pv=(!f.mine&&f.potVu!=null)?f.potVu:f.pot;const n=Math.max(1,Math.min(5,Math.round((pv-40)/10)));return '★'.repeat(n)+'<span style="opacity:.25">'+'★'.repeat(5-n)+'</span>';};
+const traitsH=(f,grand)=>(f.traits||[]).map(k=>{const t=TRAITS[k];return t?`<span class="trait ${t.bon?'':'mauvais'}" title="${esc(t.d)}" data-trait="${k}">${t.ic} ${t.n}</span>`:'';}).join('');
+function courbe(f){const C=(f.carr||[]).slice(-60);if(C.length<2)return '<p class="doux" style="font-size:12px">La courbe de progression apparaîtra après quelques mois.</p>';
+ const W=320,H=90,mn=Math.min(...C.map(x=>x.o))-3,mx=Math.max(...C.map(x=>x.o),f.pot)+2;const px=i=>i/(C.length-1)*W,py=v=>H-6-(v-mn)/(mx-mn||1)*(H-12);
+ const pts=C.map((x,i)=>px(i).toFixed(1)+','+py(x.o).toFixed(1)).join(' ');
+ return `<svg viewBox="0 0 ${W} ${H}" class="graph" style="height:90px" preserveAspectRatio="none"><line x1="0" x2="${W}" y1="${py(f.pot)}" y2="${py(f.pot)}" stroke="#e9c46a" stroke-dasharray="4 4" opacity=".5"/><polyline points="${pts}" fill="none" stroke="#ff5a66" stroke-width="2.4" vector-effect="non-scaling-stroke"/></svg><div class="ligne doux" style="font-size:11px;justify-content:space-between"><span>${M.date(C[0].s)}</span><span>pointillés : potentiel</span><span>note ${C[C.length-1].o}</span></div>`;}
 function estChamp(f){return f.org&&G.orgs[f.org].ch[f.div]===f.id;}
 /* ---------- sauvegarde ---------- */
 function sauver(){if(TEST||!G)return;try{G.savedAt=Date.now();localStorage.setItem(CLE,JSON.stringify(G));}catch(e){toast('Sauvegarde locale impossible : '+e.message);}if(NUAGE)NUAGE.push();}
@@ -46,7 +51,10 @@ function nouvelle(){modal(`<h2>Nouvelle carrière</h2><p class="doux">Vous dirig
  <div class="btns"><button class="btn or" id="bGo">Ouvrir l'écurie</button></div>`);
  $('bGo').onclick=()=>{const n=($('iNom').value||'').trim()||'Team Phénix';fermerModal();G=M.nouvellePartie({nom:n});TEST=false;lancer(true);};}
 function modeTest(){TEST=true;TK&&TK.modeTest();G=M.nouvellePartie({graine:7,nom:'Équipe Test'});lancer();toast('🧪 Mode test : rien n\'est sauvegardé');}
-function completer(g){g.offres=g.offres||[];g.news=g.news||[];g.aJouer=g.aJouer||[];g.trophees=g.trophees||[];g.stats=g.stats||{v:0,d:0,titres:0,bourses:0};}
+function completer(g){g.offres=g.offres||[];g.news=g.news||[];g.aJouer=g.aJouer||[];g.trophees=g.trophees||[];g.stats=g.stats||{v:0,d:0,titres:0,bourses:0};
+ g.spons=g.spons||[];g.succes=g.succes||{};g.prix=g.prix||[];g.hof=g.hof||[];g.gps=g.gps||[];if(g.gp===undefined)g.gp=null;g.coachs.recruteur=g.coachs.recruteur||0;g.coachs.media=g.coachs.media||0;
+ const tk=Object.keys(TRAITS).filter(k=>!['verre','fragile','tete_brulee'].includes(k));let h=7;
+ for(const id in g.F){const f=g.F[id];if(!f.traits){h=(h*31+id.length+(f.app?.seed||1))%100003;f.traits=h%3===0?[]:[tk[h%tk.length]];}f.titres=f.titres||[];f.riv=f.riv||{};f.carr=f.carr||[];}}
 function lancer(nouv){$('accueil').classList.add('cache');$('app').classList.remove('cache');Arene.arreter&&Arene.arreter();$('cv3d').style.display='none';VUE='ecurie';rendre();sauver();
  if(nouv)setTimeout(()=>modal(`<h2>Bienvenue, patron</h2><p>Chaque semaine :</p><ul style="padding-left:18px;line-height:1.6"><li><b>Entraînez</b> vos combattants (fiche → programme et intensité).</li><li><b>Acceptez les combats</b> proposés dans 📨 Offres : regardez les chances estimées.</li><li>Les soirs de combat, <b>regardez-les en 3D</b> et donnez vos consignes entre les rounds.</li><li>Gagnez pour <b>monter de ligue</b> : CFR → HEX → ECC → GLADIUS → APEX. Trop de défaites et l'organisation vous libère.</li><li>Vous touchez ${Math.round(M.COMM*100)} % des bourses, plus les cotisations de la salle.</li></ul><div class="btns"><button class="btn or" onclick="fermerModal()">C'est parti</button></div>`),300);}
 /* ---------- rendu général ---------- */
@@ -63,7 +71,8 @@ function rendre(){if(!G)return;
  if(G.aJouer.length){$('barreAction').innerHTML=`<button class="btn rouge" id="bSoir" style="font-family:var(--t);font-size:22px;letter-spacing:.05em">🥊 Soirée de combat : entrer dans la cage</button>`;$('bSoir').onclick=()=>preCombat(G.aJouer[0]);}
  else{$('barreAction').innerHTML=`<button class="btn fant" id="bAuto" title="Avancer jusqu'au prochain événement">⏩</button><button class="btn or" id="bSem">Semaine suivante ▶</button>`;$('bSem').onclick=()=>avancer(1);$('bAuto').onclick=()=>avancer(12);}}
 function brancher(el){el.querySelectorAll('[data-f]').forEach(x=>x.onclick=e=>{e.stopPropagation();fiche(x.dataset.f);});
- el.querySelectorAll('[data-act]').forEach(x=>x.onclick=e=>{e.stopPropagation();ACT[x.dataset.act](x.dataset.x,x);});}
+ el.querySelectorAll('[data-act]').forEach(x=>x.onclick=e=>{e.stopPropagation();ACT[x.dataset.act](x.dataset.x,x);});
+ el.querySelectorAll('[data-trait]').forEach(x=>x.onclick=e=>{e.stopPropagation();const t=TRAITS[x.dataset.trait];toast(t.ic+' '+t.n+' : '+t.d,3500);});}
 const ACT={
  accC:id=>{M.accepterCombat(id);toast('Combat accepté ✍️');sauver();rendre();},
  refO:id=>{M.refuser(id);sauver();rendre();},
@@ -73,23 +82,37 @@ const ACT={
  coach:(x)=>{const [k,d]=x.split(':');M.coach(k,G.coachs[k]+(+d));sauver();rendre();},
  signer:id=>{const f=G.F[id];if(M.mes().length>=M.SALLES[G.salle.niv].cap){toast('Salle pleine : agrandissez-la');return;}if(G.argent<f.prime){toast('Pas assez d\'argent');return;}M.signer(id);toast(nomC(f)+' rejoint l\'écurie !');sauver();rendre();},
  voirOff:()=>{VUE='offres';rendre();},tri:x=>{SEL.tri=x;rendre();},
- pre:cid=>preCombat(cid)
+ pre:cid=>preCombat(cid),
+ nego:x=>{const [id,p]=x.split(':');const r=M.negocier(id,+p);if(!r)return;toast(r.ok?'Accepté ! L\'offre est revalorisée 💪':r.retire?'Vexée, l\'organisation retire son offre…':'Refusé : l\'offre reste sur la table.',3000);COTEvider();sauver();rendre();},
+ cat:x=>{const [id,d]=x.split(':');const f=G.F[id];const v=M.categorieVoisine(f,+d);modal(`<h2>Changer de catégorie ?</h2><p>${esc(nomC(f))} passera en <b>${v.nom}</b> (${v.kg} kg).</p><p class="doux">${+d>0?'Moins de puissance relative, mais plus de cardio.':'Coupe de poids éprouvante : cardio en baisse, fatigue, mais il sera plus lourd que ses adversaires.'} Son classement repart du bas${estChamp(f)?' et il laisse sa ceinture':''}.</p><div class="btns"><button class="btn or" id="bCat">Confirmer</button><button class="btn" onclick="fiche('${id}')">Annuler</button></div>`);$('bCat').onclick=()=>{M.changerCategorie(id,+d);sauver();fiche(id);rendre();};},
+ lv:x=>{SEL.lv=x;rendre();},
+ camp:x=>{const [cid,k]=x.split(':');if(M.acheterCamp(cid,k)){toast('Camp réservé ✅');COTEvider();sauver();if(!$('modal').classList.contains('cache')&&$('pPlans'))preCombat(cid);else rendre();}else toast('Pas assez d\'argent');},
+ sponsor:()=>{},
+ pre2:cid=>{const t=M.trouverCombat(cid);if(t&&t.c.ok)preparerCamp(cid);},
+ voirGP:()=>{VUE='ligues';SEL.lv='gp';rendre();},voirPrix:()=>{VUE='ligues';SEL.lv='prix';rendre();}
 };
 /* ---------- vue Écurie ---------- */
 function affiche(c,e,o={}){const A=G.F[c.a],B=G.F[c.b],O=ORGc(e.org);
- return `<div class="affiche" ${o.click?`data-act="pre" data-x="${c.id}"`:''}><div class="fond" style="background:radial-gradient(circle at 50% 120%,${O.c1}55,transparent 60%),linear-gradient(115deg,#7a0d18 0%,#16070a 48%,#06102a 52%,#0b2a7a 100%)"></div>
- <div class="bandeau"><span style="width:30px;height:30px;display:inline-block">${embleme(O)}</span><b class="t" style="font-size:20px">${e.nom}</b><span class="doux">${esc(e.ville)} · ${M.date(e.sem)}</span>${c.titre?`<span class="puce" style="margin-left:auto;background:#3a2c08;border-color:#e9c46a;color:#ffe39a">${ceinture()} TITRE</span>`:c.main?'<span class="puce" style="margin-left:auto">TÊTE D\'AFFICHE</span>':''}</div>
+ return `<div class="affiche" ${o.click?`data-act="${o.act||'pre'}" data-x="${c.id}"`:''}><div class="fond" style="background:radial-gradient(circle at 50% 120%,${O.c1}55,transparent 60%),linear-gradient(115deg,#7a0d18 0%,#16070a 48%,#06102a 52%,#0b2a7a 100%)"></div>
+ <div class="bandeau"><span style="width:30px;height:30px;display:inline-block">${embleme(O)}</span><b class="t" style="font-size:20px">${e.nom}</b><span class="doux">${esc(e.ville)} · ${M.date(e.sem)}</span>${c.titre?`<span class="puce" style="margin-left:auto;background:#3a2c08;border-color:#e9c46a;color:#ffe39a">${ceinture()} TITRE</span>`:c.gp!=null?`<span class="puce" style="margin-left:auto;background:#3a0a10;border-color:#ff5a66;color:#ffc4c9">🏆 GRAND PRIX · ${['QUART','DEMIE','FINALE'][Math.min(2,c.gp)]}</span>`:c.rival?'<span class="puce" style="margin-left:auto;background:#3a1408;border-color:#ff8a3a;color:#ffd0b0">😠 REVANCHE</span>':c.main?'<span class="puce" style="margin-left:auto">TÊTE D\'AFFICHE</span>':''}</div>
  <div class="duo"><div class="por" data-f="${A.id}">${Portrait.svg(A,{nobg:true,rim:'#ff4d5e'})}</div><div class="vs">VS</div><div class="por" data-f="${B.id}" style="transform:scaleX(-1)">${Portrait.svg(B,{nobg:true,rim:'#5aa0ff'})}</div></div>
  <div class="noms"><div>${flag(A.pays)} ${esc(nomC(A))}<small>${rec(A)} · ${M.rangTxt(A)} · note ${M.ov(A)}</small></div><div>${esc(nomC(B))} ${flag(B.pays)}<small>${rec(B)} · ${M.rangTxt(B)} · note ${M.ov(B)}</small></div></div></div>`;}
 function vEcurie(){const ms=M.mes();const S=M.SALLES[G.salle.niv];let h='';
  // soirée à jouer / prochain combat
  const aj=G.aJouer[0];if(aj){const t=M.trouverCombat(aj);h+=`<div class="sec">CE SOIR</div>`+affiche(t.c,t.e,{click:1});}
- else{const pe=M.prochainEvent();if(pe){const c=pe.combats.find(c=>c.mine&&c.ok);h+=`<div class="sec">PROCHAIN COMBAT · dans ${pe.sem-G.sem} sem.</div>`+affiche(c,pe);}
+ else{const pe=M.prochainEvent();if(pe){const c=pe.combats.find(c=>c.mine&&c.ok);h+=`<div class="sec">PROCHAIN COMBAT · dans ${pe.sem-G.sem} sem. · touchez pour préparer le camp</div>`+affiche(c,pe,{click:1,act:'pre2'});}
   else h+=`<div class="carte" style="text-align:center"><h3 style="justify-content:center">Aucun combat programmé</h3><p class="doux">Les organisations vous proposent des combats dans l'onglet Offres.</p>${G.offres.length?`<button class="btn or petit" data-act="voirOff">Voir les ${G.offres.length} offre(s)</button>`:''}</div>`;}
  const bilan=(G.semRec||0)-(G.semDep||0);
  h+=`<div class="sec">L'ÉCURIE</div><div class="kpi"><div><b class="${G.argent<0?'neg':''}">${fE(G.argent)}</b><span>Trésorerie</span></div><div><b class="${bilan>=0?'pos':'neg'}">${bilan>=0?'+':''}${fE(bilan)}</b><span>Bilan / semaine</span></div><div><b>${G.salle.membres}</b><span>Adhérents</span></div>
  <div><b>${G.stats.v}-${G.stats.d}</b><span>Bilan des combats</span></div><div><b class="or-t">${G.stats.titres}</b><span>Ceintures gagnées</span></div><div><b>${Math.round(G.salle.rep)}</b><span>Réputation</span></div></div>`;
+ // calendrier des 8 prochaines semaines
+ const cal=G.ev.filter(e=>!e.fait&&e.sem>=G.sem&&e.sem<=G.sem+8).sort((a,b)=>a.sem-b.sem);
+ if(cal.length)h+=`<div class="sec">CALENDRIER</div><div class="cal">${cal.slice(0,7).map(e=>{const O=ORGc(e.org);const mc=e.combats.find(c=>c.mine&&(c.ok||G.offres.some(o=>o.c===c.id)));const f=mc&&G.F[mc.a];
+  return `<div class="${mc&&mc.ok?'moi':''}" ${mc?`data-act="${mc.ok?'pre2':'voirOff'}" data-x="${mc.id}"`:''}><span class="doux">${e.sem===G.sem?'Cette sem.':'Dans '+(e.sem-G.sem)+' sem.'}</span><span>${orgB(e.org)} <b>${e.nom}</b> · ${esc(e.ville)}</span><span>${mc?(mc.ok?'🥊 '+esc(f.nom):'📨 '+esc(f.nom)):e.combats.some(c=>c.titre)?ceinture(O.c1):''}</span></div>`;}).join('')}</div>`;
+ if(G.gp){const gp=G.gp;const m=gp.ids.filter(id=>G.F[id]&&G.F[id].mine);h+=`<div class="carte" style="margin-top:10px;cursor:pointer" data-act="voirGP"><h3>🏆 ${esc(gp.nom)} <small>${M.DIV(gp.div).nom}</small></h3><div class="doux" style="font-size:12.5px">${['Quarts','Demies','Finale'][Math.min(2,gp.ronde)]} · ${gp.vivants.length} en lice${m.length?' · vos combattants : '+m.map(id=>esc(G.F[id].nom)+(gp.vivants.includes(id)?' ✅':' ❌')).join(', '):''}</div></div>`;}
+ const sp=(G.spons||[]);if(sp.length)h+=`<div class="sec">SPONSORS · ${fE(sp.reduce((a,x)=>a+x.hebdo,0))} / sem.</div><div class="carte">${sp.map(x=>`<div class="ligne" style="padding:4px 0;font-size:13px">🤝 <b>${esc(x.nom)}</b><span class="doux">${G.F[x.f]?esc(nomC(G.F[x.f])):''}</span><span style="margin-left:auto">${fE(x.hebdo)}/sem. · +${fE(x.bonusV)}/victoire · fin ${M.date(x.fin).split(' · ')[0]}</span></div>`).join('')}</div>`;
  h+=`<div class="sec">MES COMBATTANTS · ${ms.length}/${S.cap}</div>`+ms.sort((a,b)=>M.ov(b)-M.ov(a)).map(ligneF).join('');
+ h+=`<div class="carte" style="margin-top:10px;cursor:pointer" data-act="voirPrix"><h3>🎖️ Succès <small>${Object.keys(G.succes||{}).length}/${M.SUCCES.length}</small></h3><div class="barre"><i style="width:${Object.keys(G.succes||{}).length/M.SUCCES.length*100}%;background:var(--or)"></i></div></div>`;
  if(G.trophees.length)h+=`<div class="sec">SALLE DES TROPHÉES</div><div class="carte"><div style="display:flex;flex-wrap:wrap;gap:10px">${G.trophees.slice().reverse().map(t=>{const O=ORGc(t.org),f=G.F[t.f];return `<div style="text-align:center;width:88px">${ceinture(O.c1)}<div class="t" style="font-size:15px">${O.court}</div><div style="font-size:11px" class="doux">${f?esc(f.nom):''} · ${M.DIV(t.div).kg} kg</div></div>`;}).join('')}</div></div>`;
  h+=`<div class="sec">ACTUALITÉS</div><div class="carte news">${G.news.slice(0,14).map(n=>`<div><i>${n.ic}</i><span>${esc(n.t)}</span><small>S${(n.s-1)%52+1}</small></div>`).join('')}</div>`;
  return h;}
@@ -119,17 +142,22 @@ function fiche(id){const f=G.F[id];if(!f)return;const O=f.org?ORGc(f.org):null;c
  <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${orgB(f.org)} ${ch?`<span class="puce" style="background:#3a2c08;border-color:#e9c46a;color:#ffe39a">${ceinture(O.c1)} CHAMPION</span>`:`<span class="puce">${M.rangTxt(f)}</span>`}</div></div></div>
  <div class="carte"><div class="ligne" style="justify-content:space-between"><div><div class="rec">${rec(f)}</div><div class="doux" style="font-size:12px">${f.ko} KO/TKO · ${f.sub} soum. · ${f.dec} déc. · série ${f.serie>0?'+'+f.serie:f.serie}</div></div>
  <div class="note" style="text-align:center"><b style="color:${noteCol(M.ov(f))};font-size:44px">${M.ov(f)}</b><span>NOTE GLOBALE</span><div class="etoiles">${etoiles(f)}</div></div></div>
- <div class="doux" style="font-size:12px;margin-top:6px">${M.DIV(f.div).nom} (${M.DIV(f.div).kg} kg) · ${STYLES[f.style].ic} ${STYLES[f.style].nom} · popularité ${Math.round(f.pop)}</div></div>
+ <div class="doux" style="font-size:12px;margin-top:6px">${M.DIV(f.div).nom} (${M.DIV(f.div).kg} kg) · ${STYLES[f.style].ic} ${STYLES[f.style].nom} · popularité ${Math.round(f.pop)}</div>${(f.traits||[]).length?`<div class="traits">${traitsH(f)}</div>`:''}${(f.titres||[]).length||(f.trophees||[]).length?`<div class="traits">${(f.titres||[]).map(t=>`<span class="trait or">🏆 ${t}</span>`).join('')}${(f.trophees||[]).map(t=>`<span class="trait or">🏅 ${esc(t)}</span>`).join('')}</div>`:''}</div>
  <div class="grille g2"><div class="carte"><h3>Qualités</h3>${ATTRS.map(([k,l])=>{const v=Math.round(f.at[k]);return `<div class="attr"><span>${l}</span><div class="barre"><i style="width:${v}%;background:linear-gradient(90deg,${noteCol(v)}88,${noteCol(v)})"></i></div><b style="color:${noteCol(v)}">${v}</b></div>`;}).join('')}</div>
  <div class="carte" style="display:flex;align-items:center;justify-content:center">${radar(f)}</div></div>`;
  if(f.mine){h+=`<div class="carte"><h3>État physique</h3>${[['Forme',f.forme,'#2fbf71'],['Fatigue',f.fat,'#e63946'],['Moral',f.moral,'#3d7bff']].map(([l,v,c])=>`<div class="attr"><span>${l}</span><div class="barre"><i style="width:${v}%;background:${c}"></i></div><b>${Math.round(v)}</b></div>`).join('')}
-  ${f.bless>0?`<p style="color:#ff9aa2">🚑 Blessé : encore ${f.bless} semaine(s).</p>`:''}</div>
+  ${f.bless>0?`<p style="color:#ff9aa2">🚑 ${esc(f.blessT||'Blessé')} : encore ${f.bless} semaine(s).</p>`:''}</div>
+  <div class="carte"><h3>Progression</h3>${courbe(f)}</div>
   <div class="carte"><h3>Programme d'entraînement</h3><div class="choix" id="cFocus">${Object.entries(M.FOCUS).map(([k,x])=>`<button data-k="${k}" class="${f.train.f===k?'on':''}">${x.ic} ${x.n}</button>`).join('')}</div>
   <div class="doux" style="font-size:12px;margin:10px 0 6px">Intensité</div><div class="choix" id="cInt">${M.INTENS.map((x,i)=>`<button data-k="${i}" class="${f.train.i===i?'on':''}">${['🟢','🟠','🔴'][i]} ${x.n}</button>`).join('')}</div>
   <p class="doux" style="font-size:12px;margin-bottom:0">${conseil(f)}</p></div>
   <div class="carte"><h3>Contrat</h3>${f.ctr&&f.org?`${orgB(f.org)} ${O.nom} · encore <b>${Math.max(0,f.ctr.rest)}</b> combat(s)${f.ctr.show?` · bourse ${fE(f.ctr.show)} + ${fE(f.ctr.show)} si victoire`:''}`:'<span class="doux">Sans contrat : en attente d\'une offre.</span>'}
-  <div style="margin-top:10px"><button class="btn petit fant" id="bLib">Rompre avec ce combattant</button></div></div>`;}
- else if(f.libre)h+=`<div class="carte"><h3>Agent libre</h3><p>Prime de signature : <b>${fE(f.prime)}</b></p><button class="btn vert" data-act="signer" data-x="${f.id}">Signer dans l'écurie</button></div>`;
+  ${(G.spons||[]).filter(sp=>sp.f===f.id).map(sp=>`<div class="doux" style="font-size:12px;margin-top:6px">🤝 Sponsor ${esc(sp.nom)} : ${fE(sp.hebdo)}/sem. jusqu'à la ${M.date(sp.fin)}</div>`).join('')}</div>
+  <div class="carte"><h3>Catégorie de poids</h3><p class="doux" style="font-size:12px;margin-top:0">Monter coûte un peu de puissance ; descendre coûte du cardio et fatigue. Le classement repart du bas et une ceinture est abandonnée.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${[[-1,'⬇️'],[1,'⬆️']].map(([d,ic])=>{const v=M.categorieVoisine(f,d);return v?`<button class="btn petit" data-act="cat" data-x="${f.id}:${d}" ${f.prochain?'disabled':''}>${ic} ${v.nom} (${v.kg} kg)</button>`:'';}).join('')}</div></div>
+  ${Object.keys(f.riv||{}).filter(id=>G.F[id]).length?`<div class="carte"><h3>Rivaux</h3>${Object.keys(f.riv).filter(id=>G.F[id]).map(id=>{const x=G.F[id];return `<div class="ligne" style="padding:4px 0" data-f="${id}">😠 ${flag(x.pays)} <b>${esc(nomC(x))}</b> <span class="doux">${rec(x)} · ${orgB(x.org)}</span></div>`;}).join('')}<p class="doux" style="font-size:12px;margin-bottom:0">Les organisations aiment programmer les revanches : bourse majorée.</p></div>`:''}
+  <div class="carte"><button class="btn petit fant" id="bLib">Rompre avec ce combattant</button></div>`;}
+ else if(f.libre)h+=`<div class="carte"><h3>Agent libre</h3><p>Prime de signature : <b>${fE(f.prime)}</b></p><p class="doux" style="font-size:12px">Potentiel estimé par votre recruteur : ${f.potVu??f.pot} (${['±12','±8','±4','±1'][G.coachs.recruteur||0]})</p><button class="btn vert" data-act="signer" data-x="${f.id}">Signer dans l'écurie</button></div>`;
  h+=`<div class="carte"><h3>Derniers combats</h3><div class="histo">${f.histo.slice(0,12).map(x=>`<div><span class="vd ${x.r}">${x.r}</span><span>${flag(x.ap)} ${esc(x.an)} ${x.titre?ceinture():''}<br><small class="doux">${x.ev} · ${ISSUES[x.m]}${['ko','tko','sub'].includes(x.m)?' R'+x.rd+' '+x.t:''}${x.tech?' ('+esc(x.tech)+')':''}</small></span>${x.adv&&G.F[x.adv]?`<button class="btn petit fant" data-f="${x.adv}">👁</button>`:'<span></span>'}</div>`).join('')||'<p class="doux">Aucun combat professionnel pour l\'instant.</p>'}</div></div></div>`;
  modal(h,true);
  if(f.mine){$('cFocus').querySelectorAll('button').forEach(b=>b.onclick=()=>{f.train.f=b.dataset.k;sauver();fiche(id);rendre();});
@@ -142,14 +170,32 @@ function conseil(f){const a=f.at,s=f.style;const fai=ATTRS.map(([k])=>k).filter(
  if(f.prochain)return '📅 Combat en vue : une intensité normale garde la forme pour le jour J.';
  return '🧠 Point faible : '+ATTRS.find(x=>x[0]===fai)[1].toLowerCase()+' ('+Math.round(a[fai])+'). Programme conseillé : '+nom+'.';}
 /* ---------- vue Ligues ---------- */
-function vLigues(){const O=ORGc(SEL.org);const go=G.orgs[O.id];
- let h=`<div class="orgs">${ORGS.map(o=>`<button class="${o.id===O.id?'on':''}" data-act="org" data-x="${o.id}">${embleme(o)}<span>${o.court}</span></button>`).join('')}</div>`;
+function segLigues(){const L=[['org','Organisations'],['p4p','Top 15'],['gp','Grand Prix'],['prix','Palmarès']];SEL.lv=SEL.lv||'org';
+ return `<div class="seg">${L.map(([k,n])=>`<button class="${SEL.lv===k?'on':''}" data-act="lv" data-x="${k}">${n}</button>`).join('')}</div>`;}
+function vP4P(){const L=M.p4p(15);return `<div class="carte" style="padding:6px 10px"><h3 style="padding:8px 0 0">Classement toutes catégories <small>tous combattants, toutes organisations</small></h3>${L.map((f,i)=>{const O=ORGc(f.org);const c=estChamp(f);
+ return `<div class="rang ${f.mine?'moi':''}" data-f="${f.id}"><div class="n" style="${i<3?'color:var(--or)':''}">${i+1}</div><div class="p">${Portrait.svg(f,{mini:1,bg:O.c2})}</div><div style="min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${flag(f.pays)} ${esc(nomC(f))} ${c?ceinture(O.c1):''}</div><div class="doux" style="font-size:12px">${orgB(f.org)} ${M.DIV(f.div).nom.replace('Poids ','')} · ${rec(f)}</div></div><div class="note"><b style="color:${noteCol(M.ov(f))};font-size:24px">${M.ov(f)}</b></div></div>`;}).join('')}</div>`;}
+function vGP(){const gp=G.gp;let h='';
+ if(gp){const O=ORGc(gp.org);const tour=['Quarts de finale','Demi-finales','Finale'];
+  h+=`<div class="carte" style="background:linear-gradient(120deg,${O.c2},#0d0d12 70%);border-color:${O.c1}66"><div class="orghead"><div style="width:64px;height:64px;flex:0 0 auto">${embleme(O)}</div><div><h2 style="font-size:28px;line-height:1">${esc(gp.nom)}</h2><div class="doux">${M.DIV(gp.div).nom} · prime ${fE(gp.prix)} · ${tour[Math.min(2,gp.ronde)]}${gp.reserve?' programmés':' dans '+Math.max(0,gp.prochain-G.sem)+' sem.'}</div></div></div></div>`;
+  const el=gp.elim||{};const atteint=(id,r)=>r===0||(el[id]!=null?el[id]>=r:gp.vivants.includes(id)&&gp.ronde>=r);
+  h+=`<div class="tableau">`+[0,1,2].map(r=>`<div class="tcol"><div class="ttit">${['QUARTS','DEMIES','FINALE'][r]}</div>${gp.ids.filter(id=>atteint(id,r)).map(id=>{const f=G.F[id];if(!f)return '';const out=el[id]===r;return `<div class="tcase ${f.mine?'moi':''} ${out?'out':''}" data-f="${id}">${flag(f.pays)} ${esc(f.nom)}</div>`;}).join('')}</div>`).join('')+`</div>`;}
+ else h+=`<div class="carte doux">Aucun Grand Prix en cours. Chaque année, à la semaine 8, ECC ou GLADIUS lance un tournoi à huit dans une catégorie. Placez un combattant dans le top 8 pour y être invité !</div>`;
+ const P=(G.gps||[]).slice().reverse();if(P.length)h+=`<div class="sec">VAINQUEURS</div><div class="carte">${P.map(x=>`<div class="ligne" style="padding:5px 0;border-bottom:1px solid #20232c" ${G.F[x.v]?`data-f="${x.v}"`:''}>🏆 <b>${esc(x.nom)}</b><span class="doux" style="margin-left:auto">${esc(x.vn)}${G.F[x.v]&&G.F[x.v].mine?' ⭐':''}</span></div>`).join('')}</div>`;
+ return h;}
+function vPrix(){let h='';const S=M.SUCCES;const ok=Object.keys(G.succes||{}).length;
+ h+=`<div class="sec">SUCCÈS · ${ok}/${S.length}</div><div class="grille g2">${S.map(x=>{const d=(G.succes||{})[x.id];return `<div class="fl" style="cursor:default;${d?'':'opacity:.45'}"><div style="font-size:26px;width:36px;text-align:center">${d?'🎖️':'🔒'}</div><div><div class="nm">${x.n}</div><div class="sm">${x.d}</div></div></div>`;}).join('')}</div>`;
+ const P=(G.prix||[]).slice().reverse();h+=`<div class="sec">PRIX DE FIN D'ANNÉE</div>`+(P.length?P.map(p=>`<div class="carte" style="margin-bottom:8px"><h3>${p.an}</h3>${[['cdla','🥇 Combattant de l\'année'],['ko','💥 KO de l\'année'],['rev','🌱 Révélation']].map(([k,l])=>p[k]?`<div class="ligne" style="padding:3px 0" ${G.F[p[k].f]?`data-f="${p[k].f}"`:''}><span>${l}</span><b style="margin-left:auto">${esc(p[k].n)}${G.F[p[k].f]&&G.F[p[k].f].mine?' ⭐':''}</b></div>`:'').join('')}</div>`).join(''):'<div class="carte doux">Décernés à la dernière semaine de chaque année.</div>');
+ const H=G.hof||[];h+=`<div class="sec">TEMPLE DE LA RENOMMÉE</div>`+(H.length?`<div class="carte">${H.map(x=>`<div style="padding:6px 0;border-bottom:1px solid #20232c"><b>${flag(x.pays)} ${esc(x.n)}</b>${x.mine?' ⭐':''} <span class="doux">· ${x.rec} · intronisé en ${x.an}</span><div class="doux" style="font-size:12px">${x.titres.join(' · ')||'—'}</div></div>`).join('')}</div>`:'<div class="carte doux">Les grandes carrières y entrent à la retraite.</div>');
+ return h;}
+function vLigues(){if(SEL.lv&&SEL.lv!=='org')return segLigues()+({p4p:vP4P,gp:vGP,prix:vPrix}[SEL.lv])();const O=ORGc(SEL.org);const go=G.orgs[O.id];
+ let h=segLigues()+`<div class="orgs">${ORGS.map(o=>`<button class="${o.id===O.id?'on':''}" data-act="org" data-x="${o.id}">${embleme(o)}<span>${o.court}</span></button>`).join('')}</div>`;
  h+=`<div class="carte" style="background:linear-gradient(120deg,${O.c2},#0d0d12 70%);border-color:${O.c1}55"><div class="orghead">${embleme(O,1)}<div><h2 style="font-size:30px;line-height:1">${O.nom}</h2><div style="color:${O.c1};font-family:var(--t);letter-spacing:.1em">${O.devise.toUpperCase()}</div>
  <div class="doux" style="font-size:12px;margin-top:4px">Niveau ${O.tier+1}/5 · un gala toutes les ${O.freq} semaines · bourses dès ${fE(O.show*.55)}</div></div></div></div>`;
  h+=`<div class="onglets" style="margin-top:12px">${DIVS.map(d=>`<button class="${SEL.div===d.id?'on':''}" data-act="div" data-x="${d.id}">${d.nom.replace('Poids ','')} · ${d.kg}</button>`).join('')}</div>`;
  const L=M.classement(O.id,SEL.div);const ch=go.ch[SEL.div];
  h+=`<div class="carte" style="padding:6px 10px">${L.map((f,i)=>{const c=f.id===ch;const n=c?ceinture(O.c1):(ch?i:i+1);
-  return `<div class="rang ${f.mine?'moi':''} ${c?'champ':''}" data-f="${f.id}"><div class="n">${n}</div><div class="p">${Portrait.svg(f,{mini:1,bg:O.c2})}</div><div style="min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${flag(f.pays)} ${esc(nomC(f))}${f.mine?' <span class="puce" style="color:var(--or)">VOUS</span>':''}</div>
+  const fl=(f.rp0!=null&&f.rp!=null&&f.rp0!==f.rp&&!c)?(f.rp<f.rp0?'<i class="fl-up">▲</i>':'<i class="fl-dn">▼</i>'):'';
+  return `<div class="rang ${f.mine?'moi':''} ${c?'champ':''}" data-f="${f.id}"><div class="n">${n}${fl}</div><div class="p">${Portrait.svg(f,{mini:1,bg:O.c2})}</div><div style="min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${flag(f.pays)} ${esc(nomC(f))}${f.mine?' <span class="puce" style="color:var(--or)">VOUS</span>':''}</div>
   <div class="doux" style="font-size:12px">${rec(f)} · ${STYLES[f.style].ic} ${STYLES[f.style].nom} · ${f.serie>1?'🔥'+f.serie:f.serie<-1?'❄️'+(-f.serie):''}</div></div><div class="note"><b style="color:${noteCol(M.ov(f))};font-size:24px">${M.ov(f)}</b></div></div>`;}).join('')}</div>`;
  const evs=G.ev.filter(e=>e.org===O.id&&!e.fait).sort((a,b)=>a.sem-b.sem);
  if(evs.length)h+=`<div class="sec">PROCHAINS GALAS</div>`+evs.slice(0,3).map(e=>`<div class="carte" style="margin-bottom:8px"><h3>${e.nom} <small>${esc(e.ville)} · ${M.date(e.sem)}</small></h3>${e.combats.filter(c=>!c.res||!c.res.annule).map(c=>{const A=G.F[c.a],B=G.F[c.b];if(!A||!B)return '';return `<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;font-size:12.5px;padding:4px 0;border-bottom:1px solid #20232c"><span data-f="${A.id}" style="${A.mine?'color:var(--or);font-weight:700':''}">${flag(A.pays)} ${esc(A.nom)}</span><span class="doux">${c.titre?ceinture(O.c1):'vs'}</span><span data-f="${B.id}" style="text-align:right;${B.mine?'color:var(--or);font-weight:700':''}">${esc(B.nom)} ${flag(B.pays)}</span></div>`;}).join('')}</div>`).join('');
@@ -179,7 +225,7 @@ function vSalle(){const S=M.SALLES[G.salle.niv],N=M.SALLES[G.salle.niv+1];
 /* ---------- vue Offres ---------- */
 const COTE={};
 function cote(cid,plan){const k=cid+plan;if(COTE[k]!=null)return COTE[k];const t=M.trouverCombat(cid);if(!t)return .5;const A=G.F[t.c.a],B=G.F[t.c.b];const R=M.rounds(t.c,ORGc(t.e.org));
- let w=0,n=0;for(let i=1;i<=140;i++){const s=Combat.simuler([A,B],{seed:i*7919+3,rounds:R,plans:[plan,M.planIA(B,A)]});if(s.res.w===0)w++;else if(s.res.w===-1)w+=.5;n++;}COTE[k]=w/n;return COTE[k];}
+ A.bonusCamp=M.bonusCamp(t.c);let w=0,n=0;for(let i=1;i<=140;i++){const s=Combat.simuler([A,B],{seed:i*7919+3,rounds:R,plans:[plan,M.planIA(B,A)]});if(s.res.w===0)w++;else if(s.res.w===-1)w+=.5;n++;}delete A.bonusCamp;COTE[k]=w/n;return COTE[k];}
 function vOffres(){let h=`<div class="titreVue"><h1>Offres</h1><small>${G.offres.length} en attente</small></div>`;
  if(!G.offres.length)h+=`<div class="carte doux" style="text-align:center">Pas d'offre pour le moment. Les organisations proposent des combats quelques semaines avant leurs galas.</div>`;
  h+=`<div class="lst-off">`+G.offres.map(o=>{const f=G.F[o.f];if(!f)return '';
@@ -189,11 +235,13 @@ function vOffres(){let h=`<div class="titreVue"><h1>Offres</h1><small>${G.offres
    <div style="text-align:right"><div class="doux" style="font-size:11px">CHANCES ESTIMÉES</div><b class="t" style="font-size:30px;color:${p>.6?'#2fbf71':p>.4?'#e9c46a':'#e63946'}">${Math.round(p*100)} %</b></div></div>
    <div class="cote"><i style="width:${p*100}%"></i><i style="flex:1"></i></div>
    <div class="doux" style="font-size:12px">Réponse avant la ${M.date(o.exp)} · ${M.rounds(t.c,ORGc(t.e.org))} rounds · forme de ${esc(f.pr)} : ${Math.round(f.forme)}${f.bless>0?' · 🚑 blessé !':''}</div>
+   ${o.nego?'<div class="doux" style="font-size:12px;margin-top:6px">Négociation déjà tentée.</div>':`<div class="nego"><span class="doux">Négocier :</span><button class="btn petit" data-act="nego" data-x="${o.id}:0.15">+15 % <small>${Math.round(M.chanceNego(o.id,.15)*100)} %</small></button><button class="btn petit" data-act="nego" data-x="${o.id}:0.35">+35 % <small>${Math.round(M.chanceNego(o.id,.35)*100)} %</small></button></div>`}
    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn vert" style="flex:1" data-act="accC" data-x="${o.id}">Accepter</button><button class="btn" data-f="${adv.id}">👁 Adversaire</button><button class="btn fant" data-act="refO" data-x="${o.id}">Refuser</button></div></div></div>`;}
   const O=ORGc(o.org);const cur=f.org?ORGc(f.org):null;const up=!cur||O.tier>cur.tier;
   return `<div class="carte" style="background:linear-gradient(120deg,${O.c2},#101117 70%);border-color:${O.c1}66"><div class="ligne"><div style="width:62px;height:62px;flex:0 0 auto">${embleme(O)}</div><div style="flex:1"><div class="doux" style="font-size:11px">${up&&cur?'⬆️ PROMOTION':o.renouv?'RENOUVELLEMENT':'CONTRAT'} · ${esc(o.raison||'')}</div><h3 style="font-size:24px;margin:0">${O.nom}</h3><div>pour <b data-f="${f.id}" style="text-decoration:underline">${esc(nomC(f))}</b> ${cur?'('+cur.court+' actuellement)':''}</div></div></div>
   <div class="kpi" style="margin-top:10px"><div><b>${o.nb}</b><span>Combats</span></div><div><b>${fE(o.show)}</b><span>Bourse + victoire</span></div><div><b>${o.prime?fE(o.prime):'—'}</b><span>Prime</span></div></div>
   ${cur&&f.org!==o.org&&estChamp(f)?'<p style="color:#ffb3b9;font-size:12px">⚠️ Signer libère sa ceinture '+cur.court+'.</p>':''}${f.prochain&&f.org!==o.org?'<p style="color:#ffb3b9;font-size:12px">⚠️ Son combat déjà prévu sera annulé.</p>':''}
+  ${o.nego?'':`<div class="nego"><span class="doux">Négocier :</span><button class="btn petit" data-act="nego" data-x="${o.id}:0.15">+15 % <small>${Math.round(M.chanceNego(o.id,.15)*100)} %</small></button><button class="btn petit" data-act="nego" data-x="${o.id}:0.35">+35 % <small>${Math.round(M.chanceNego(o.id,.35)*100)} %</small></button></div>`}
   <div style="display:flex;gap:8px;margin-top:10px"><button class="btn or" style="flex:1;font-size:19px" data-act="accK" data-x="${o.id}">Signer</button><button class="btn fant" data-act="refO" data-x="${o.id}">Refuser</button></div><div class="doux" style="font-size:11px;margin-top:6px">Expire la ${M.date(o.exp)}</div></div>`;}).join('')+`</div>`;
  return h;}
 /* ---------- menu ---------- */
@@ -220,10 +268,15 @@ function popup(p){return new Promise(res=>{modal(`<div class="doux" style="font-
  $('modal').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{if(p.id!=='faillite')M.choisir(+b.dataset.i);fermerModal();res();});});}
 /* ---------- soirée de combat ---------- */
 const PLANS_D={equi:'Rester adaptable, saisir les occasions',debout:'Défendre les amenées, boxer',sol:'Chercher les amenées et la soumission',pression:'Avancer, frapper beaucoup (fatigue)',contre:'Attendre l\'erreur, contrer'};
+function campH(cid){const t=M.trouverCombat(cid);const {c,e}=t;const tier=ORGc(e.org).tier;c.camp=c.camp||{};
+ return `<div class="carte"><h3>Camp d'entraînement <small>bonus actuel +${M.bonusCamp(c).toFixed(1)}</small></h3><div class="camp">${Object.entries(M.CAMP).map(([k,x])=>`<button class="${c.camp[k]?'on':''}" ${c.camp[k]?'':`data-act="camp" data-x="${cid}:${k}"`}><span style="font-size:24px">${x.ic}</span><div><b>${x.n}</b><span>${x.d} · +${x.b} à toutes les qualités le jour du combat</span></div><b style="margin-left:auto;white-space:nowrap">${c.camp[k]?'✅':fE(x.c(tier))}</b></button>`).join('')}</div></div>`;}
+function preparerCamp(cid){const t=M.trouverCombat(cid);modal(`<button class="fermer" onclick="fermerModal()">✕</button>${affiche(t.c,t.e)}<div style="margin-top:10px">${campH(cid)}</div><p class="doux" style="font-size:12px">Le plan de combat se choisit le soir du combat.</p>`,true);brancher($('modal'));}
+window.preparerCamp=preparerCamp;
 function preCombat(cid){const t=M.trouverCombat(cid);if(!t)return;const {c,e}=t;const A=G.F[c.a],B=G.F[c.b];c.plan=c.plan||'equi';
  const tale=(l,a,b,fmt=x=>x)=>`<b>${fmt(a)}</b><span>${l}</span><b>${fmt(b)}</b>`;
  const h=`${affiche(c,e)}<div class="carte" style="margin-top:10px"><h3>Fiche technique</h3><div class="stat3">${tale('Âge',Math.floor(A.age),Math.floor(B.age))}${tale('Palmarès',rec(A),rec(B))}${tale('Note',M.ov(A),M.ov(B))}
  ${ATTRS.map(([k,l])=>tale(l,Math.round(A.at[k]),Math.round(B.at[k]))).join('')}${tale('Style',STYLES[A.style].nom,STYLES[B.style].nom)}${tale('Forme',Math.round(A.forme),Math.round(B.forme??100))}</div></div>
+ ${campH(cid)}
  <div class="carte"><h3>Plan de combat</h3><div class="plans" id="pPlans">${Object.entries(Combat.PLANS).map(([k,p])=>`<button data-k="${k}" class="${c.plan===k?'on':''}"><b>${p.n}</b><span>${PLANS_D[k]}</span></button>`).join('')}</div>
  <div class="ligne" style="justify-content:space-between;margin-top:10px"><span class="doux">Chances estimées avec ce plan</span><b class="t" id="pCote" style="font-size:28px"></b></div><div class="cote"><i id="pCoteB"></i><i style="flex:1"></i></div></div>
  <div class="btns"><button class="btn rouge" id="bVoir" style="font-family:var(--t);font-size:24px;letter-spacing:.05em">🎥 Regarder le combat en 3D</button><button class="btn" id="bSim">⚡ Résultat immédiat</button></div>`;
@@ -240,25 +293,27 @@ function regarder(cid){const t=M.trouverCombat(cid);const {c,e}=t;const A=G.F[c.
  c.changes=c.changes||{};const sim=M.preparerSim(cid,c.plan,c.changes);
  CB={cid,sim,i:0,A,B,O,c,e,vit:1,fini:false,tmr:0};
  $('app').classList.add('cache');$('cv3d').style.display='block';$('combat').classList.remove('cache');$('coin').classList.add('cache');$('comm').innerHTML='';
- Arene.preparer(O,[A,B]);Arene.vitesse=1;Arene.demarrer();
+ Arene.preparer(O,[A,B]);Arene.vitesse=1;Arene.demarrer();try{Son.reveil();Son.demarrerFoule();}catch(e){}
  const plaque=(f,cote)=>`<div class="plaque ${cote}"><div class="n">${cote==='g'?flag(f.pays)+' ':''}${esc(f.nom.toUpperCase())}${cote==='d'?' '+flag(f.pays):''}</div><div class="s">${rec(f)} · ${M.rangTxt(f)} ${f.mine?'· VOUS':''}</div><div class="jauge vie"><i id="v${cote}" style="width:100%"></i></div><div class="jauge sta"><i id="s${cote}" style="width:100%"></i></div></div>`;
  $('hud').innerHTML=plaque(A,'g')+`<div class="horloge"><span id="hRd">${e.nom}</span><b id="hT">5:00</b><span id="hR">ROUND 1/${M.rounds(c,O)}</span></div>`+plaque(B,'d');
  ctrlCombat();
- comm(`${c.titre?'Combat pour la ceinture '+O.court+' ! ':''}${e.nom} — ${esc(e.ville)}`,'gros');
- setTimeout(()=>comm('Dans le coin rouge : '+esc(nomC(A))+(A.sur?' « '+esc(A.sur)+' »':'')+' !'),1300);
- setTimeout(()=>comm('Dans le coin bleu : '+esc(nomC(B))+(B.sur?' « '+esc(B.sur)+' »':'')+' !'),2800);
- CB.tmr=setTimeout(etape,4300);}
-function ctrlCombat(){$('ctrl').innerHTML=[1,2,4].map(v=>`<button class="btn petit ${CB.vit===v?'on':''}" data-v="${v}">×${v}</button>`).join('')+`<button class="btn petit" id="cFin">⏭ Résultat</button>`;
+ banniere(c.titre?'COMBAT POUR LE TITRE':c.gp!=null?esc(G.gp?G.gp.nom:'GRAND PRIX'):e.nom,esc(e.ville)+' · '+(c.titre?'5 rounds':M.rounds(c,O)+' rounds'),2200);
+ const pres=(f,i,coin)=>{Arene.intro(i);const p=$('presente');p.className='pres '+coin;p.innerHTML=`<div class="pres-p">${por(f)}</div><div><div class="pres-coin">COIN ${coin==='r'?'ROUGE':'BLEU'}</div>${f.sur?`<div class="pres-sur">« ${esc(f.sur)} »</div>`:''}<div class="pres-nom">${esc(f.pr)} <b>${esc(f.nom.toUpperCase())}</b></div><div class="pres-inf">${flag(f.pays)} ${PAYS[f.pays].lib} · ${Math.floor(f.age)} ans · ${rec(f)} · ${M.rangTxt(f)}</div><div class="traits">${traitsH(f)}</div></div>`;
+  comm('Dans le coin '+(coin==='r'?'rouge':'bleu')+' : '+nomC(f)+(f.sur?' « '+f.sur+' »':'')+' !');try{Son.clameur(.6);}catch(e){}};
+ CB.tmr=setTimeout(()=>{pres(A,0,'r');CB.tmr=setTimeout(()=>{pres(B,1,'b');CB.tmr=setTimeout(()=>{$('presente').classList.add('cache');Arene.intro(null);comm('L\'arbitre donne ses consignes… Combattez !','gros');CB.tmr=setTimeout(etape,1600);},3000);},3000);},1800);}
+function banniere(t,s,ms=1600){const b=$('banniere');b.innerHTML=`<div><b>${t}</b>${s?`<span>${s}</span>`:''}</div>`;b.className='on';clearTimeout(banniere.t);banniere.t=setTimeout(()=>b.className='',ms);}
+function ctrlCombat(){$('ctrl').innerHTML=[1,2,4].map(v=>`<button class="btn petit ${CB.vit===v?'on':''}" data-v="${v}">×${v}</button>`).join('')+`<button class="btn petit" id="cSon">${Son.actif?'🔊':'🔇'}</button><button class="btn petit" id="cFin">⏭ Résultat</button>`;$('cSon').onclick=()=>{const a=Son.basculer();if(a){Son.reveil();Son.demarrerFoule();}ctrlCombat();};
  $('ctrl').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{CB.vit=+b.dataset.v;Arene.vitesse=CB.vit;ctrlCombat();});$('cFin').onclick=()=>finCombat(true);}
 function comm(t,cl){const d=document.createElement('div');if(cl)d.className=cl;d.textContent=t;const c=$('comm');[...c.children].forEach(x=>x.classList.add('vieux'));c.appendChild(d);while(c.children.length>3)c.firstChild.remove();}
-function majHud(e){if(!e.sta)return;['g','d'].forEach((s,i)=>{const v=$('v'+s),st=$('s'+s);if(v)v.style.width=Math.max(0,100-(e.hd[i]||0)*100)+'%';if(st)st.style.width=e.sta[i]+'%';});
+function majHud(e){if(!e.sta)return;try{[0,1].forEach(i=>Arene.degats(i,e.hd[i]||0,e.sta[i]));}catch(x){}['g','d'].forEach((s,i)=>{const v=$('v'+s),st=$('s'+s);if(v)v.style.width=Math.max(0,100-(e.hd[i]||0)*100)+'%';if(st)st.style.width=e.sta[i]+'%';});
  const R=M.rounds(CB.c,CB.O);if($('hR'))$('hR').textContent='ROUND '+e.r+'/'+R;if($('hT'))$('hT').textContent=e.k==='fin'?'0:00':Combat.fmt(300-(e.ts||e.b*15));}
 function etape(){if(!CB||CB.fini)return;const e=CB.sim.ev[CB.i++];if(!e){finCombat();return;}
- majHud(e);let d=Arene.action(e);
+ majHud(e);let d=Arene.action(e);if(e.k==='round')banniere('ROUND '+e.r,e.r===M.rounds(CB.c,CB.O)?'dernier round':'',1500);
  if(e.k==='res'){CB.fini=true;const r=e.res;if(r.w>=0&&!['ko','tko','sub'].includes(r.m)){comm('Nous allons aux cartes des juges…');setTimeout(()=>comm('Victoire de '+nomC(r.w===0?CB.A:CB.B)+' par '+ISSUES[r.m].toLowerCase()+' !','gros'),1400/CB.vit);}else if(r.w<0)comm('Match nul !','gros');
   setTimeout(()=>finCombat(),3300/CB.vit);return;}
  if(e.t)comm(e.t,['kd','ko','gnpko','subw'].includes(e.k)?'gros':'');
  if(e.k==='fin'&&e.r<M.rounds(CB.c,CB.O)){setTimeout(()=>coin(e.r),900/CB.vit);return;}
+ if(['ko','gnpko','subw'].includes(e.k)&&CB.vit<4){CB.tmr=setTimeout(()=>{banniere('🔁 RALENTI','',1800);const d2=Arene.replay();CB.tmr=setTimeout(()=>{Arene.finReplay();Arene.vitesse=CB.vit;etape();},d2*1000+600);},d*1000+300);return;}
  const pause=['ko','gnpko','subw'].includes(e.k)?d*1000+400:Math.max(650,d*1000+(e.k==='feint'?100:260)/CB.vit);
  CB.tmr=setTimeout(etape,pause);}
 function coin(rd){const A=CB.A,B=CB.B;const st=statsJusqua(rd);const cur=planCourant(rd+1);
@@ -289,10 +344,11 @@ function resultat(cid,sim,vu){const t=M.trouverCombat(cid);const {c,e}=t;const A
  <b>${st[0].sig}/${st[0].sigT}</b><span>Frappes</span><b>${st[1].sig}/${st[1].sigT}</b><b>${st[0].td}/${st[0].tdT}</b><span>Amenées</span><b>${st[1].td}/${st[1].tdT}</b><b>${st[0].kd}</b><span>Knockdowns</span><b>${st[1].kd}</b><b>${st[0].sub}</b><span>Soumissions</span><b>${st[1].sub}</b><b>${Combat.fmt(st[0].ctrl)}</b><span>Contrôle</span><b>${Combat.fmt(st[1].ctrl)}</b></div></div>
  <div class="kpi"><div><b class="or-t">+${fE(c.gain||0)}</b><span>Commission</span></div><div><b>${rec(A)}</b><span>Palmarès</span></div><div><b>${M.rangTxt(A)}</b><span>Classement ${A.org?ORGc(A.org).court:''}</span></div></div>
  ${c.bonus?`<p class="or-t">💰 Bonus de performance de la soirée : ${fE(c.bonus)} !</p>`:''}
+ ${(()=>{const L=e.combats.filter(x=>x!==c&&x.res&&!x.res.annule&&G.F[x.a]&&G.F[x.b]);if(!L.length)return '';return `<div class="carte" style="text-align:left"><h3>Résultats de la soirée <small>${e.nom}</small></h3>${L.map(x=>{const a=G.F[x.a],b=G.F[x.b];const w=x.res.w;return `<div class="soiree"><span class="${w===0?'gag':''}">${flag(a.pays)} ${esc(a.nom)}</span><span class="doux">${x.titre?ceinture(O.c1):'vs'}</span><span class="${w===1?'gag':''}" style="text-align:right">${esc(b.nom)} ${flag(b.pays)}</span><small>${ISSUES[x.res.m]}${['ko','tko','sub'].includes(x.res.m)?' · R'+x.res.r:''}</small></div>`;}).join('')}</div>`;})()}
  <div class="btns"><button class="btn or" id="rOk">Continuer</button></div></div>`;
  modal(h);$('modal').dataset.bloque=1;
  $('rOk').onclick=()=>{fermerModal();quitterCombat();if(G.aJouer.length)setTimeout(()=>preCombat(G.aJouer[0]),200);};}
-function quitterCombat(){if(CB)clearTimeout(CB.tmr);CB=null;Arene.arreter&&Arene.arreter();$('combat').classList.add('cache');$('cv3d').style.display='none';$('app').classList.remove('cache');rendre();}
+function quitterCombat(){if(CB)clearTimeout(CB.tmr);try{Son.arreterFoule();}catch(e){}$('presente').classList.add('cache');CB=null;Arene.arreter&&Arene.arreter();$('combat').classList.add('cache');$('cv3d').style.display='none';$('app').classList.remove('cache');rendre();}
 /* ---------- banc de mesure ---------- */
 async function banc(){if(!TK){toast('Trousse de test indisponible');return;}fermerModal();toast('Mesure en cours (≈ 25 s)…',4000);
  const sauv=G;const copie=JSON.parse(JSON.stringify(G));const testAv=TEST;TEST=true;

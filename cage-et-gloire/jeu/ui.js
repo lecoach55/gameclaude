@@ -42,16 +42,17 @@ async function charge(){try{const z=localStorage.getItem(CLE+'z');if(z&&window.D
 /* ---------- accueil ---------- */
 async function accueil(){$('accueil').classList.remove('cache');$('app').classList.add('cache');$('combat').classList.add('cache');$('cv3d').style.display='block';
  const s=await charge();let h='';
- if(s)h+=`<button class="btn or" id="bCont">Continuer · ${esc(s.nom)}</button><div class="doux" style="font-size:12px;margin-top:-4px">${esc(M.date.call?dateDe(s):'')}</div>`;
+ if(s){const ms=Object.values(s.F).filter(f=>f.mine&&!f.ret).sort((p,q)=>(q.v-q.d)-(p.v-p.d)).slice(0,4);h+=`<button class="btn or" id="bCont">Continuer · ${esc(s.nom)}</button><div class="acc-sauv"><div>${ms.map(f=>`<span>${Portrait.svg(f,{mini:1,nobg:true})}</span>`).join('')}</div><small>${esc(dateDe(s))} · ${M.fmtE(s.argent)} · ${s.stats.v}-${s.stats.d} · ${s.stats.titres} ceinture(s)</small></div>`;}
  h+=`<button class="btn ${s?'':'or'}" id="bNouv">Nouvelle carrière</button><button class="btn fant" id="bNuage" style="display:none">☁ Reprendre la partie d'un autre appareil</button><button class="btn fant petit" id="bTest">🧪 Mode test</button>`;
  $('accBtns').innerHTML=h;
  if(s)$('bCont').onclick=()=>{G=M.charger(s);completer(G);lancer();};
  $('bNouv').onclick=nouvelle;$('bTest').onclick=modeTest;
  if(NUAGE){NUAGE.get().then(m=>{if(m&&(!s||m.t>(s.savedAt||0)+60000)){const b=$('bNuage');if(!b)return;b.style.display='';b.textContent='☁ Reprendre la partie de l\'autre appareil ('+(m.nom||'')+', '+(m.date||'')+')';b.onclick=async()=>{b.disabled=true;const t=await NUAGE.full(m);if(t){G=M.charger(JSON.parse(t));completer(G);lancer();}else{toast('Lecture impossible');b.disabled=false;}};}});}
- if(ARENE_OK)fondAccueil();}
+ if(ARENE_OK)fondAccueil(s);}
 function dateDe(s){const an=s.an0+Math.floor((s.sem-1)/52),w=(s.sem-1)%52;return 'Semaine '+(w+1)+', '+an;}
-function fondAccueil(){const O=ORGS[4];const mk=(i)=>({id:'acc'+i,sexe:'H',div:'mm',app:{peau:[1,4][i],chev:[2,0][i],cc:0,short:['#c1121f','#1d4ed8'][i],gant:'#111'}});
- try{Arene.preparer(O,[mk(0),mk(1)]);Arene.demarrer();const st=Arene.ST;st.pos='S';st.dist=1.5;st.ang=.3;Arene.placer();Arene.cam('moyen');Arene.perso().forEach(h=>{h.idle=null;});
+function fondAccueil(sv){let O=ORGS[4];const mk=(i)=>({id:'acc'+i,sexe:'H',div:'mm',app:{peau:[1,4][i],chev:[2,0][i],cc:0,short:['#c1121f','#1d4ed8'][i],gant:'#111'}});let duo=[mk(0),mk(1)];
+ if(sv){const ms=Object.values(sv.F).filter(f=>f.mine&&!f.ret&&f.org).sort((p,q)=>M.ORG(q.org).tier-M.ORG(p.org).tier);if(ms[0]){O=M.ORG(ms[0].org);duo[0]=ms[0];const adv=Object.values(sv.F).find(f=>f.org===ms[0].org&&f.div===ms[0].div&&!f.mine&&!f.ret);if(adv)duo[1]=adv;}}
+ try{Arene.preparer(O,duo);Arene.demarrer();const st=Arene.ST;st.pos='S';st.dist=1.5;st.ang=.3;Arene.placer();Arene.cam('moyen');Arene.perso().forEach(h=>{h.idle=null;});
   clearInterval(fondAccueil.t);fondAccueil.t=setInterval(()=>{if($('accueil').classList.contains('cache')){clearInterval(fondAccueil.t);return;}const ks=['jab','cross','lowkick','feint','hook','bodykick','feint','combo'];const k=ks[Math.floor(Math.random()*ks.length)];Arene.action({k,a:Math.random()<.5?0:1,h:Math.random()<.6,z:k==='lowkick'?'jambe':k==='bodykick'?'corps':'tete',pos:'S'});},1500);}catch(e){console.error(e);}}
 function nouvelle(){modal(`<h2>Nouvelle carrière</h2><p class="doux">Vous dirigez une petite écurie de MMA avec trois jeunes espoirs. Faites-les progresser, négociez leurs combats et menez-les des galas régionaux jusqu'au sommet du monde : l'APEX.</p>
  <label class="doux" style="font-size:12px">Nom de votre écurie</label><input id="iNom" value="Team Phénix" maxlength="28" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--bord);background:var(--p3);color:var(--txt);font:inherit;margin:6px 0 4px;user-select:text;-webkit-user-select:text">

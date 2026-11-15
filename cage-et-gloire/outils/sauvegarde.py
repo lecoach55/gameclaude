@@ -15,7 +15,7 @@ async def main():
     await pg.wait_for_timeout(800)
     av=await pg.evaluate("JSON.stringify({sem:G.sem,arg:Math.round(G.argent),n:Object.keys(G.F).length})")
     taille=await pg.evaluate("(localStorage.getItem('cage-gloire-v1z')||'').length")
-    await pg.reload();await pg.wait_for_timeout(3500)
+    await pg.reload();await pg.wait_for_timeout(3500);await pg.screenshot(path='/tmp/acc_sauv.png')
     await pg.click('#bCont');await pg.wait_for_timeout(500)
     ap=await pg.evaluate("JSON.stringify({sem:G.sem,arg:Math.round(G.argent),n:Object.keys(G.F).length})")
     print('avant',av,'après',ap,'identique',av==ap,'taille compressée',taille,'erreurs',errs[:4]);await b.close()

@@ -12,6 +12,9 @@ Graine fixe : `index.html?graine=7`. Sauvegarde locale `tdb-v1` (ne pas changer 
 Objectifs récompensés (14, `OBJECTIFS` dans royaume.js), talents passifs (6 par classe, 3 rangs), compagnons (écuyer, arbalétrière, prêtresse ; solde 6 or/saison), autels (5 bonus), gobelin voleur, cadavres persistants, nouveaux monstres (rat, golem, cultiste) et boss Reine des Toiles, infobulle des objets au sol, éducation des héritiers (+1 niveau/an, 8 or/saison), Faille de Braise (paliers sans fin à la capitale), nouvelles de la saison avec flèches de toutes les batailles, 8 nouveaux événements, prêt bancaire. L'IA ne prend plus les terres libres voisines du joueur avant la saison 8.
 Anciennes sauvegardes : `completer(G)` ajoute les champs manquants (format v2).
 
+## Version 3 — nouvelle interface (15/11/2026)
+Direction « table de guerre à la chandelle » : encre de nuit et lapis, filets d’or, braise pour l’action. Polices libres (OFL) intégrées en base64 par build.py : Grenze Gotisch (titres) et Alegreya Sans (texte), fichiers dans `jeu/polices/`. Ruban de ressources, tiroir de province (feuille du bas sur mobile), dock d’icônes, sceau de cire « Fin de saison » qui respire quand il n’y a plus d’ordres, fenêtres encadrées d’or, caméra de carte animée (zoom et recentrage doux), fondu entre les écrans, HUD de donjon avec orbes cerclées et radar circulaire.
+
 ## Outils (`outils/`)
 - `sim_donjon.js classe nivHeros nivDonjon N [depart|magique] [compagnon]` : expéditions jouées par le robot. Avec un compagnon au départ : ~60 à 85 % de réussite. Repères 15/11/2026 : départ niveau 1 → 33 à 83 % de réussite selon la classe ; équipement magique au même niveau → 60 à 100 %.
 - `sim_royaume.js N saisons` : parties complètes du royaume. Repère v2 : robot naïf couronné dans ~45 à 67 % des parties en ~43 saisons, ~5 % de défaites.

@@ -171,15 +171,15 @@ function rendreDonjon(A, cv, ctx, lum, lctx) {
   const X = ox + m.x * TS, Y = oy + (m.y - m.r - .55) * TS;
   if (X < 0 || Y < 0 || X > cw || Y > ch) continue;
   if (m.pv < m.pvmax || m.elite) { const w = TS * (m.elite ? 1 : .7); ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(X - w / 2 - 1, Y - 1, w + 2, TS * .09 + 2); ctx.fillStyle = m.elite ? '#ffb030' : '#c62020'; ctx.fillRect(X - w / 2, Y, w * clamp(m.pv / m.pvmax, 0, 1), TS * .09); }
-  if (m.elite) { ctx.font = `600 ${Math.round(TS * .26)}px Georgia, serif`; ctx.fillStyle = '#ffc860'; ctx.fillText(`${m.aff.join(' ')} ${m.M.nom}`, X, Y - TS * .1); }
+  if (m.elite) { ctx.font = `600 ${Math.round(TS * .26)}px 'Alegreya Sans', sans-serif`; ctx.fillStyle = '#ffc860'; ctx.fillText(`${m.aff.join(' ')} ${m.M.nom}`, X, Y - TS * .1); }
  }
  for (const tx of A.textes) {
   const X = ox + tx.x * TS, Y = oy + (tx.y - tx.t * .9) * TS; ctx.globalAlpha = clamp(1.4 - tx.t * 1.4, 0, 1);
-  ctx.font = `${tx.gros ? 800 : 700} ${Math.round(TS * (tx.gros ? .5 : .34))}px Georgia, serif`; ctx.lineWidth = 3 * RENDU.q; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.strokeText(tx.s, X, Y); ctx.fillStyle = tx.coul; ctx.fillText(tx.s, X, Y);
+  ctx.font = `${tx.gros ? 800 : 700} ${Math.round(TS * (tx.gros ? .5 : .34))}px 'Alegreya Sans', sans-serif`; ctx.lineWidth = 3 * RENDU.q; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.strokeText(tx.s, X, Y); ctx.fillStyle = tx.coul; ctx.fillText(tx.s, X, Y);
  }
  ctx.globalAlpha = 1;
  // noms des objets au sol (proches)
- ctx.font = `600 ${Math.round(TS * .27)}px Georgia, serif`;
+ ctx.font = `600 ${Math.round(TS * .27)}px 'Alegreya Sans', sans-serif`;
  for (const l of A.loot) if (l.obj && Math.hypot(l.x - P.x, l.y - P.y) < 6) { const X = ox + l.x * TS, Y = oy + (l.y - .35) * TS; const w = ctx.measureText(l.obj.nom).width + 10; ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(X - w / 2, Y - TS * .3, w, TS * .38); ctx.fillStyle = RARETES.find(r => r.id === l.obj.rar).coul; ctx.fillText(l.obj.nom, X, Y); }
 }
 function hexa(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }

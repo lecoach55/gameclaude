@@ -8,8 +8,8 @@ let G = null, MODE = 'accueil', A = null, XP = null, TK = null, TEST = false;
 const UI = { sel: null, cibles: null, amis: null, survol: null, fleches: [], mode: null, de: null, auto: false };
 const nf = n => Math.round(n).toLocaleString('fr-FR');
 const esc = s => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
-function montrer(id) { document.querySelectorAll('.ecran').forEach(e => e.classList.toggle('on', e.id === id)); MODE = id; if (id === 'royaume') { redim(); AUDIO.musiqueDe('royaume'); } if (id === 'donjon') { redim(); AUDIO.musiqueDe('donjon'); } if (id === 'accueil') AUDIO.musiqueDe(null); }
-function toast(s, d = 2600) { const t = $('#toast'); t.innerHTML = s; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, d); }
+function montrer(id) { if (id !== MODE) { const f = $('#fondu'); f.style.transition = 'none'; f.classList.add('on'); void f.offsetWidth; f.style.transition = ''; requestAnimationFrame(() => f.classList.remove('on')); } document.querySelectorAll('.ecran').forEach(e => e.classList.toggle('on', e.id === id)); MODE = id; if (id === 'royaume') { redim(); AUDIO.musiqueDe('royaume'); } if (id === 'donjon') { redim(); AUDIO.musiqueDe('donjon'); } if (id === 'accueil') AUDIO.musiqueDe(null); }
+function toast(s, d = 2600) { const t = $('#toast'); t.innerHTML = s; t.style.opacity = 1; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = 0; t.classList.remove('on'); }, d); }
 document.addEventListener('pointerdown', () => AUDIO.init(), { once: true });
 document.addEventListener('keydown', () => AUDIO.init(), { once: true });
 if ('ontouchstart' in window || navigator.maxTouchPoints > 1) document.body.classList.add('tact');
@@ -89,53 +89,61 @@ function redim() {
  if (G) CARTE.ajuster(cvC.width, cvC.height);
 }
 addEventListener('resize', () => { redim(); });
-function entrerRoyaume() { CARTE.V.init = false; montrer('royaume'); majBarre(); panneau(); majObjectif(); traiterFile(); }
+function entrerRoyaume() { CARTE.V.init = false; CARTE.V.tz = undefined; montrer('royaume'); cadrerDepart(); majBarre(); panneau(); majObjectif(); traiterFile(); }
 function majBarre() {
  const J = G.maisons.joueur, rev = revenus(G, 'joueur') - entretien(G, 'joueur');
- $('#barre').innerHTML = `<span class="maison">${blason('joueur', 26)}${esc(J.nom)}</span>
-  <span class="res" title="Or (revenu net par saison)">🪙 <b>${nf(J.or)}</b> <small style="color:${rev >= 0 ? '#9c9' : '#e88'}">${rev >= 0 ? '+' : ''}${rev}</small></span>
-  <span class="res" title="Troupes">⚔️ <b>${troupesDe(G, 'joueur')}</b></span>
-  <span class="res" title="Prestige">✨ <b>${J.prestige}</b></span>
-  <span class="res" title="Influence (complots)">🕯️ <b>${J.influence}</b></span>
-  <span class="res" title="Provinces">🏰 <b>${provincesDe(G, 'joueur').length}</b>/10</span>
+ $('#barre').innerHTML = `<span class="maison">${blason('joueur', 28)}${esc(J.nom)}</span>
+  <span class="res" title="Or (revenu net par saison)"><span class="ico">🪙</span><b>${nf(J.or)}</b><small style="color:${rev >= 0 ? '#8fd08f' : '#f08a7a'}">${rev >= 0 ? '+' : ''}${rev}</small></span>
+  <span class="res" title="Troupes"><span class="ico">⚔️</span><b>${troupesDe(G, 'joueur')}</b></span>
+  <span class="res" title="Prestige"><span class="ico">✨</span><b>${J.prestige}</b></span>
+  <span class="res" title="Influence (pour les complots)"><span class="ico">🕯️</span><b>${J.influence}</b></span>
+  <span class="res" title="Provinces tenues (10 et Haute-Braise pour la couronne)"><span class="ico">🏰</span><b>${provincesDe(G, 'joueur').length}</b>/10</span>
   <span class="esp"></span>
   <span class="saison">${SAISONS[G.saison]} de l’an ${G.an}</span>
-  <span class="ordres" title="Ordres restants">${[...Array(ordresMax(G))].map((_, i) => `<i class="${i < G.ordres ? '' : 'vide'}"></i>`).join('')}</span>`;
- $('#barre').querySelector('.maison').style.color = '';
+  <span class="ordres" title="Ordres restants cette saison">${[...Array(ordresMax(G))].map((_, i) => `<i class="${i < G.ordres ? '' : 'vide'}"></i>`).join('')}</span>`;
+ $('#finSaison').classList.toggle('pret', G.ordres === 0);
+ const pts = G.joueur.heros.points; $('#bArm').innerHTML = '🛡️' + (pts ? `<span class="pastille">${pts}</span>` : '');
 }
 function relTxt(v) { return v >= 60 ? 'amicale' : v >= 25 ? 'cordiale' : v > -25 ? 'neutre' : v > -60 ? 'hostile' : 'haineuse'; }
 function etatMaison(m) { if (m === 'joueur' || m === 'rebelles') return ''; const J = G.maisons.joueur; return enGuerre(G, 'joueur', m) ? '<span class="etiq g">guerre</span>' : J.alliance[m] ? '<span class="etiq a">alliance</span>' : '<span class="etiq p">paix</span>'; }
+let dernierSel = undefined;
 function panneau() {
- const el = $('#panneau'); majBarre();
- if (!UI.sel) { el.innerHTML = `<div class="info" style="margin:0">Touchez une province pour la gérer.<br><span style="color:#9a8">☠ = donjon (niveau) · bannière = troupes</span></div>`; return; }
+ const el = $('#panneau'); majBarre(); $('#royaume').classList.toggle('avecsel', !!UI.sel);
+ if (dernierSel !== UI.sel) { el.classList.remove('anim'); void el.offsetWidth; el.classList.add('anim'); dernierSel = UI.sel; }
+ if (!UI.sel) { el.innerHTML = `<div class="pvide"><b>${esc(G.maisons.joueur.nom)}</b>Touchez une province de la carte pour la gérer : recruter, bâtir, attaquer ou partir en expédition dans son donjon.<div class="legende"><span>☠ donjon et son niveau</span><span>🛡 bannière : troupes</span><span>♛ capitale</span></div></div>`; return; }
  const p = prov(G, UI.sel), M = G.maisons[p.o], mien = p.o === 'joueur';
  const voisinsMiens = voisinsDe(p.id).map(id => prov(G, id)).filter(q => q.o === 'joueur');
  const proche = mien || voisinsMiens.length > 0;
  const D = DONJONS[p.donjon];
- const bat = Object.keys(p.bat).filter(k => p.bat[k]).map(k => ({ marche: 'Marché', caserne: 'Caserne', temple: 'Temple' }[k]));
- let h = `<h3>${blason(p.o, 26)}${esc(p.nom)}${p.capitale ? ' ♛' : ''}</h3>
-  <div class="info">${p.o === 'rebelles' ? 'Terres libres (brigands, insoumis)' : `Maison <b>${esc(M.nom)}</b> ${etatMaison(p.o)}${!mien ? ` · relation ${relTxt(M.rel.joueur)} (${Math.round(M.rel.joueur)})` : ''}`}<br>
-  ⚔️ Troupes : <b>${p.t}</b> · 🏰 Château : ${p.c ? 'niveau ' + p.c : 'aucun'}<br>
-  🌾 Prospérité : ${'★'.repeat(p.p)}${'☆'.repeat(5 - p.p)} · 🪙 ${Math.round(revenuProv(G, p))}/saison<br>
-  Loyauté <div class="jauge"><i style="width:${clamp(p.loy, 0, 100)}%"></i></div>
-  ${bat.length ? '🏛️ ' + bat.join(', ') + '<br>' : ''}
-  ☠ ${D.nom} : ${p.nettoye ? `<span style="color:#9c9">purgé</span> (le mal reviendra dans ~${p.nettoye} saison${p.nettoye > 1 ? 's' : ''})` : `<b style="color:#ffb080">niveau ${p.dniv}</b>`}</div><div class="acts">`;
+ const bat = Object.keys(p.bat).filter(k => p.bat[k]).map(k => ({ marche: 'marché', caserne: 'caserne', temple: 'temple' }[k]));
+ let h = `<div class="ptete" style="--c1:${M.c1}"><h3>${blason(p.o, 34)}<span>${esc(p.nom)}${p.capitale ? ' ♛' : ''}</span></h3>
+  <div class="qui">${p.o === 'rebelles' ? 'Terres libres : brigands et insoumis' : `Maison ${esc(M.nom)} ${etatMaison(p.o)}${!mien ? `<br>Relation ${relTxt(M.rel.joueur)} (${Math.round(M.rel.joueur)})` : ''}`}</div></div>
+  <div class="pcorps"><div class="grille-info">
+   <div class="gi"><small>Troupes</small><b>⚔️ ${p.t}</b></div>
+   <div class="gi"><small>Château</small><b>${p.c ? '🏰 niveau ' + p.c : '—'}</b></div>
+   <div class="gi"><small>Prospérité</small><span class="etoiles">${'★'.repeat(p.p)}${'☆'.repeat(5 - p.p)}</span></div>
+   <div class="gi"><small>Revenu</small><b>🪙 ${Math.round(revenuProv(G, p))}</b></div></div>
+   <div class="loyaute"><span>Loyauté</span><span>${Math.round(p.loy)} %</span></div><div class="jauge"><i style="width:${clamp(p.loy, 0, 100)}%"></i></div>
+   ${bat.length ? `<div class="batis">🏛️ ${bat.join(', ')}</div>` : ''}
+   <div class="donjon-l ${p.nettoye ? 'purge' : ''}"><span class="crane">${p.nettoye ? '🕯️' : '☠'}</span><div><b>${D.nom}</b><small>${p.nettoye ? `Purgé — le mal reviendra dans ~${p.nettoye} saison${p.nettoye > 1 ? 's' : ''}` : `Niveau ${p.dniv} · trois étages et un maître`}</small></div></div>
+  </div><div class="acts">`;
  const o = G.ordres > 0, J = G.maisons.joueur, combat = !G.joueur.blesse && !G.joueur.regence;
- const b = (txt, act, ok = true, cls = '') => `<button class="btn ${cls}" data-a="${act}" ${ok ? '' : 'disabled'}>${txt}</button>`;
+ const b = (ic, lb, sous, ct, act, ok = true, cls = '') => `<button class="act ${cls}" data-a="${act}" ${ok ? '' : 'disabled'}><span class="ic">${ic}</span><span class="lb">${lb}${sous ? `<small>${sous}</small>` : ''}</span><span class="ct">${ct || ''}</span></button>`;
+ if (proche && !p.nettoye) h += b('☠', 'Expédition', `${D.nom}, niveau ${p.dniv}`, '1 ordre', 'expedition', o && combat, 'dore');
  if (mien) {
-  h += b(`➕ Recruter (${4 + (p.bat.caserne ? 2 : 0) + (p.capitale ? 2 : 0)}) · 30🪙`, 'recruter', o && J.or >= 30);
-  h += b('🚶 Déplacer', 'deplacer', p.t > 1 && !G.dejaBouge[p.id] && voisinsMiens.length > 0);
-  h += b('⚔️ Attaquer…', 'attaquerDepuis', o && p.t > 1 && voisinsDe(p.id).some(id => prov(G, id).o !== 'joueur'), 'rouge');
-  h += b('🔨 Bâtir…', 'batir', o);
+  h += b('➕', `Recruter ${4 + (p.bat.caserne ? 2 : 0) + (p.capitale ? 2 : 0)} hommes`, 'Lever des troupes ici', '30 🪙', 'recruter', o && J.or >= 30);
+  h += b('⚔️', 'Attaquer une voisine', 'Choisir la cible sur la carte', '1 ordre', 'attaquerDepuis', o && p.t > 1 && voisinsDe(p.id).some(id => prov(G, id).o !== 'joueur'), 'chaud');
+  h += b('🚶', 'Déplacer des troupes', G.dejaBouge[p.id] ? 'Déjà en marche cette saison' : 'Vers une de vos provinces', 'gratuit', 'deplacer', p.t > 1 && !G.dejaBouge[p.id] && voisinsMiens.length > 0);
+  h += b('🔨', 'Bâtir', 'Marché, caserne, temple, murailles', '', 'batir', o);
  } else if (proche) {
-  h += b('⚔️ Attaquer', 'attaquer', o && voisinsMiens.some(q => q.t > 1), 'rouge');
-  if (p.o !== 'rebelles') h += b('🕯️ Fomenter une révolte (3)', 'revolte', o && J.influence >= 3);
+  h += b('⚔️', 'Attaquer', `Depuis ${voisinsMiens.filter(q => q.t > 1).map(q => q.nom).join(', ') || '—'}`, '1 ordre', 'attaquer', o && voisinsMiens.some(q => q.t > 1), 'chaud');
+  if (p.o !== 'rebelles') h += b('🕯️', 'Fomenter une révolte', 'Complot : réduit la garnison', '3 🕯️', 'revolte', o && J.influence >= 3);
  }
- if (proche) h += b(`☠ Expédition (niv ${p.dniv})`, 'expedition', o && !p.nettoye && combat, 'or');
- if (!mien && p.o !== 'rebelles') h += b('🤝 Diplomatie', 'diplo');
- if (p.capitale && mien && failleOuverte(G)) h += b(`🔥 Faille de Braise (palier ${G.faille.palier})`, 'faille', o && combat, 'rouge');
+ if (!mien && p.o !== 'rebelles') h += b('🤝', 'Diplomatie', `Maison ${M.nom}`, '', 'diplo');
+ if (p.capitale && mien && failleOuverte(G)) h += b('🔥', `Faille de Braise`, `Palier ${G.faille.palier} · record ${G.faille.record}`, '1 ordre', 'faille', o && combat, 'chaud');
  h += '</div>';
- if (!combat && proche && !p.nettoye) h += `<div class="info" style="color:#e9a">${G.joueur.regence ? 'Votre héritier est trop jeune pour combattre.' : `Vous êtes blessé(e) : encore ${G.joueur.blesse} saison(s) de repos.`}</div>`;
+ if (!combat && proche && !p.nettoye) h += `<div class="pinfo" style="padding:0 18px 14px;color:#f0a8a0">${G.joueur.regence ? 'Votre héritier est trop jeune pour combattre.' : `Vous êtes blessé(e) : encore ${G.joueur.blesse} saison(s) de repos.`}</div>`;
+ if (!proche) h += `<div class="pinfo" style="padding:0 18px 16px">Trop loin de vos terres pour agir. Étendez-vous jusqu’à sa frontière.</div>`;
  el.innerHTML = h;
  el.querySelectorAll('button[data-a]').forEach(bt => bt.onclick = () => { SON('clic'); actionProv(p, bt.dataset.a); });
 }
@@ -229,20 +237,23 @@ function afficherBataille(b, avant, ok) {
    const avant = pts.get(e.pointerId); pts.set(e.pointerId, p);
    if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); zoomer(z0 * d / dist0 / CARTE.V.z, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); glisse = true; return; }
    if (Math.hypot(p[0] - dep[0], p[1] - dep[1]) > 8 * (cvC.q || 1)) glisse = true;
-   if (glisse) { CARTE.V.x += p[0] - avant[0]; CARTE.V.y += p[1] - avant[1]; borner(); }
+   if (glisse) { const V = cam(); V.tx += p[0] - avant[0]; V.ty += p[1] - avant[1]; borner(); V.x = V.tx; V.y = V.ty; }
   } else { const [mx, my] = CARTE.versCarte(p[0], p[1]); const q = CARTE.provinceA(G, mx, my); UI.survol = q && q.id; infoProv(q, e.offsetX, e.offsetY); }
  });
  const fin = e => { const avait = pts.has(e.pointerId); pts.delete(e.pointerId); if (avait && !glisse && pts.size === 0 && e.type === 'pointerup') clicCarte(pos(e)); };
  cvC.addEventListener('pointerup', fin); cvC.addEventListener('pointercancel', fin);
  cvC.addEventListener('wheel', e => { e.preventDefault(); const p = pos(e); zoomer(e.deltaY < 0 ? 1.12 : 1 / 1.12, p[0], p[1]); }, { passive: false });
 })();
-function zoomer(k, cx, cy) { const V = CARTE.V, nz = clamp(V.z * k, V.base * .9, V.base * 3.2); k = nz / V.z; V.x = cx - (cx - V.x) * k; V.y = cy - (cy - V.y) * k; V.z = nz; borner(); }
-function borner() { const V = CARTE.V, w = cvC.width, h = cvC.height; V.x = clamp(V.x, w - 1000 * V.z - w * .3, w * .3); V.y = clamp(V.y, h - 680 * V.z - h * .3, h * .3); }
+function cam() { const V = CARTE.V; if (V.tz === undefined) { V.tz = V.z; V.tx = V.x; V.ty = V.y; } return V; }
+function zoomer(k, cx, cy) { const V = cam(), nz = clamp(V.tz * k, V.base * .9, V.base * 3.2); k = nz / V.tz; V.tx = cx - (cx - V.tx) * k; V.ty = cy - (cy - V.ty) * k; V.tz = nz; borner(); }
+function borner() { const V = cam(), w = cvC.width, h = cvC.height; V.tx = clamp(V.tx, w - 1000 * V.tz - w * .3, w * .3); V.ty = clamp(V.ty, h - 680 * V.tz - h * .3, h * .3); }
+function centrerSur(p) { const V = cam(), q = cvC.q || 1, large = innerWidth > 820, w = cvC.width - (large ? 380 * q : 0), h = large ? cvC.height : cvC.height * .5; const x = V.x + p.x * V.z, y = V.y + p.y * V.z; if (x > 40 * q && x < w - 40 * q && y > 90 * q && y < h - 40 * q) return; V.tx = w / 2 - p.x * V.tz; V.ty = (large ? h / 2 : h * .55) - p.y * V.tz; borner(); }
+function animerCamera(dt) { const V = cam(), k = Math.min(1, dt * 9); if (Math.abs(V.tx - V.x) + Math.abs(V.ty - V.y) + Math.abs(V.tz - V.z) * 400 < .3) { V.x = V.tx; V.y = V.ty; V.z = V.tz; return; } V.x += (V.tx - V.x) * k; V.y += (V.ty - V.y) * k; V.z += (V.tz - V.z) * k; }
 function clicCarte([sx, sy]) {
  const [mx, my] = CARTE.versCarte(sx, sy); const p = CARTE.provinceA(G, mx, my);
  if (UI.mode === 'attaque') { if (p && UI.cibles.includes(p.id)) { const src = prov(G, UI.de); UI.mode = null; UI.cibles = null; fenetreAttaque([src], p); return; } UI.mode = null; UI.cibles = null; }
  if (UI.mode === 'deplacer') { if (p && UI.amis.includes(p.id)) { const src = prov(G, UI.de); UI.mode = null; UI.amis = null; fenetreDeplacer(src, p); return; } UI.mode = null; UI.amis = null; }
- UI.sel = p ? p.id : null; SON('clic'); panneau();
+ UI.sel = p ? p.id : null; SON('clic'); panneau(); if (p) centrerSur(p);
 }
 function fenetreDeplacer(src, dst) {
  let n = src.t - 1;
@@ -267,7 +278,7 @@ function traiterFile() {
  const o = ouvrirEvt(G, e);
  const icones = { intro: '🏰', mort_roi: '👑', couronnement: '👑', naissance: '👶', declaration: '⚔️', offre_paix: '🕊️', offre_alliance: '🤝', attaque_subie: '🔥', retour_mal: '☠', tournoi: '🏇', bandits: '🗡️', duel: '⚔️', crypte_decouverte: '⚰️', dragon: '🐉', marchand: '💰', famine: '🌾', peste: '☣', prophete: '🔥', espion: '🕵️', vassal_rebelle: '😠', mariage_offre: '💍', enfant_malade: '🤒', mine_or: '⛏️', comete: '☄️', deserteurs: '🛡️', heretique: '🔮', chevalier_errant: '🐎', grande_foire: '🎪', trahison_alliee: '✉️', relique: '✝', recrue_heros: '🤺', corbeaux: '🐦‍⬛', inondation: '🌊', heritier_fugue: '🐎', tresor_royal: '💎', loups: '🐺', pelerins: '🚶', banquier: '🏦', statue: '🗿', raid_champion: '🪖', ecole: '📚', oracle: '👁️', faille_gronde: '🔥', cache_compagnon: '🍺' };
  SON('page');
- fenetre(o.titre, `<div class="illus" style="background:radial-gradient(circle at 50% 60%,#5a3a1a,#1a100a);display:flex;align-items:center;justify-content:center;font-size:62px">${icones[e.id] || '📜'}</div><p>${o.texte}</p>`, o.choix.map(c => ({ t: c.t, ok: c.ok, f: () => {
+ fenetre(o.titre, `<div class="illus" style="background:${teinteEvt(e.id)}"><span>${icones[e.id] || '📜'}</span></div><p>${o.texte}</p>`, o.choix.map(c => ({ t: c.t, ok: c.ok, f: () => {
   const r = choisirEvt(G, e, c.i);
   if (r.combat) {
    fermer(); const cb = r.combat;
@@ -324,7 +335,7 @@ function fenetreMaisons(focus) {
   const M = G.maisons[m]; if (M.elim) continue;
   const g = enGuerre(G, 'joueur', m), al = J.alliance[m];
   const b = (t, a, ok) => `<button class="btn petit" data-m="${m}" data-a="${a}" ${ok ? '' : 'disabled'}>${t}</button>`;
-  html += `<div class="mais" ${focus === m ? 'style="border-color:var(--or)"' : ''}>${blason(m, 40)}<div><b style="color:var(--or2)">${esc(M.nom)}</b> ${etatMaison(m)}<br><span class="rel">« ${esc(M.devise)} » · ${M.chef ? esc(M.chef.nom + ' ' + (M.chef.surnom || '')) + ', ' + M.chef.age + ' ans' : ''}${M.chef && M.chef.roi ? ' — roi' : ''}<br>${provincesDe(G, m).length} provinces · ${troupesDe(G, m)} troupes · relation <b>${relTxt(M.rel.joueur)}</b> (${Math.round(M.rel.joueur)})</span></div>
+  html += `<div class="mais" ${focus === m ? 'style="border-color:var(--or)"' : ''}>${blason(m, 40)}<div><span class="nomm">${esc(M.nom)}</span> ${etatMaison(m)}<br><span class="rel">« ${esc(M.devise)} » · ${M.chef ? esc(M.chef.nom + ' ' + (M.chef.surnom || '')) + ', ' + M.chef.age + ' ans' : ''}${M.chef && M.chef.roi ? ' — roi' : ''}<br>${provincesDe(G, m).length} provinces · ${troupesDe(G, m)} troupes · relation <b>${relTxt(M.rel.joueur)}</b> (${Math.round(M.rel.joueur)})</span></div>
    <div class="acts">${b('🎁 Présents 50🪙', 'presents', o && J.or >= 50)}${!g && !al ? b('🤝 Alliance', 'alliance', o) : ''}${!G.joueur.conjoint && !g ? b('💍 Mariage', 'mariage', o) : ''}${g ? b('🕊️ Paix', 'paix', o) : b('⚔️ Guerre', 'guerre', o)}${b('🪙 Voler (2🕯️)', 'vol', o && J.influence >= 2)}${b('🗡️ Assassiner (6🕯️)', 'assassinat', o && J.influence >= 6)}</div></div>`;
  }
  html += '</div>';
@@ -530,15 +541,20 @@ function hud(dt) {
  infobulleSol();
  const m = $('#hMsg'); m.textContent = A.msg || ''; m.style.opacity = A.msgT > 0 ? 1 : 0;
  $('#hAction').classList.toggle('on', !!A.surEscalier);
- miniT -= .08; if (miniT <= 0) { miniT = .3; minicarte(); }
+ miniT -= .08; if (miniT <= 0) { miniT = .16; minicarte(); }
 }
 function minicarte() {
- const c = $('#minicarte'), g = c.getContext('2d'); const k = 150 / Math.max(A.W, A.H);
- g.clearRect(0, 0, 150, 150);
- for (let y = 0; y < A.H; y++) for (let x = 0; x < A.W; x++) { const i = y * A.W + x; if (!A.vu[i]) continue; const v = A.carte.t[i]; if (v === MUR) continue; g.fillStyle = v === ESC ? '#ffd84a' : v === PIL ? '#555' : 'rgba(190,170,140,.55)'; g.fillRect(x * k, y * k, k + .3, k + .3); }
- for (const m of A.mobs) if (!m.mort && !m.objet && A.vu[(m.y | 0) * A.W + (m.x | 0)] && Math.hypot(m.x - A.p.x, m.y - A.p.y) < 10) { g.fillStyle = m.boss ? '#ff4020' : m.elite ? '#ffa030' : '#c03030'; g.fillRect(m.x * k - 1, m.y * k - 1, 2.5, 2.5); }
- if (A.portail) { g.fillStyle = '#8ab8ff'; g.fillRect(A.portail.x * k - 2, A.portail.y * k - 2, 4, 4); }
- g.fillStyle = '#fff'; g.beginPath(); g.arc(A.p.x * k, A.p.y * k, 2.5, 0, 6.28); g.fill();
+ const c = $('#minicarte'); if (c.width !== 160) { c.width = 160; c.height = 160; } const g = c.getContext('2d'), k = 2.8, P = A.p, cx = 80 - P.x * k, cy = 80 - P.y * k;
+ g.clearRect(0, 0, 160, 160);
+ const x0 = Math.max(0, (P.x - 30) | 0), x1 = Math.min(A.W, (P.x + 30) | 0), y0 = Math.max(0, (P.y - 30) | 0), y1 = Math.min(A.H, (P.y + 30) | 0);
+ g.fillStyle = 'rgba(200,180,140,.5)';
+ for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = y * A.W + x; if (!A.vu[i] || A.carte.t[i] === MUR) continue; g.fillRect(cx + x * k, cy + y * k, k + .3, k + .3); }
+ for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = y * A.W + x; if (A.vu[i] && A.carte.t[i] === ESC) { g.fillStyle = '#ffd84a'; g.fillRect(cx + x * k - 1, cy + y * k - 1, k + 2, k + 2); } }
+ for (const a of A.autels || []) if (!a.pris && A.vu[(a.y | 0) * A.W + (a.x | 0)]) { g.fillStyle = AUTELS[a.k].coul; g.beginPath(); g.arc(cx + a.x * k, cy + a.y * k, 3, 0, 6.28); g.fill(); }
+ for (const m of A.mobs) if (!m.mort && !m.objet && A.vu[(m.y | 0) * A.W + (m.x | 0)] && Math.hypot(m.x - P.x, m.y - P.y) < 11) { g.fillStyle = m.boss ? '#ff4020' : m.elite ? '#ffa030' : m.k === 'gobelin' ? '#9cff5a' : '#d03030'; g.beginPath(); g.arc(cx + m.x * k, cy + m.y * k, m.boss ? 4 : 2, 0, 6.28); g.fill(); }
+ if (A.portail) { g.fillStyle = '#8ab8ff'; g.beginPath(); g.arc(cx + A.portail.x * k, cy + A.portail.y * k, 4, 0, 6.28); g.fill(); }
+ if (A.allie) { g.fillStyle = '#5ac85a'; g.beginPath(); g.arc(cx + A.allie.x * k, cy + A.allie.y * k, 2.5, 0, 6.28); g.fill(); }
+ g.save(); g.translate(80, 80); g.rotate(P.ang); g.fillStyle = '#fff'; g.beginPath(); g.moveTo(6, 0); g.lineTo(-4, -4); g.lineTo(-2, 0); g.lineTo(-4, 4); g.closePath(); g.fill(); g.restore();
 }
 
 /* ---------- boucle principale ---------- */
@@ -550,8 +566,8 @@ function boucle(t) {
   if (!A.pause && !A.fini) { majDonjon(A, dt, lireEntree()); if (A.fini) finEtage(); }
   rendreDonjon(A, cvJ, ctxJ, lum, lctx); hud(dt);
  } else if (MODE === 'royaume' && G) {
-  carteT -= dt;
-  if (carteT <= 0) {
+  animerCamera(dt); carteT -= dt;
+  if (carteT <= 0 || CARTE.V.x !== CARTE.V.tx) {
    carteT = 1 / 30; const V = CARTE.V;
    const cle = [V.x, V.y, V.z, cvC.width, UI.sel, UI.survol, UI.mode, G.tour, G.ordres, UI.fleches.length, G.provinces.map(p => p.o + p.t + p.c + p.nettoye + p.dniv).join('')].join('|');
    if (cle !== UI.cleCarte || UI.cibles || UI.amis) { UI.cleCarte = cle; CARTE.dessiner(G, cvC, ctxC, UI); }
@@ -580,6 +596,7 @@ async function banc() {
  } else if (n < 100) setTimeout(() => attendreTK(n + 1), 100);
 })();
 try { RENDU.haute = localStorage.getItem('tdb-qualite') === '1'; } catch (e) { }
+try { Promise.all([document.fonts.load("700 20px 'Grenze Gotisch'"), document.fonts.load("500 20px 'Grenze Gotisch'"), document.fonts.load("800 12px 'Alegreya Sans'")]).then(() => { CARTE.raz(); UI.cleCarte = null; }); } catch (e) { }
 initAccueil();
 window.JEU = { get G() { return G; }, get A() { return A; }, get XP() { return XP; }, UI, lancerExpedition, entrerRoyaume, act, finSaison, montrer };
 
@@ -621,4 +638,18 @@ function infoProv(p, x, y) {
  const M = G.maisons[p.o];
  el.innerHTML = `<b style="color:${p.o === 'joueur' ? '#f2d7a0' : '#e8d6a8'}">${esc(p.nom)}</b> — ${esc(M.nom)} ${p.o !== 'joueur' ? etatMaison(p.o) : ''}<br>⚔️ ${p.t} troupes · 🏰 ${p.c ? 'château ' + p.c : 'sans château'}<br>☠ ${DONJONS[p.donjon].nom} ${p.nettoye ? '(purgé)' : 'niv. ' + p.dniv}`;
  el.style.display = 'block'; el.style.left = Math.min(innerWidth - 250, x + 16) + 'px'; el.style.top = (y + 16) + 'px';
+}
+
+function teinteEvt(id) {
+ const T = { guerre: ['#6a1a10', '#1a0806'], famille: ['#5a2a4a', '#160a14'], mystere: ['#3a2a6a', '#0c0a1a'], or: ['#6a4a14', '#1a1006'], nature: ['#2a4a2a', '#0a140a'], couronne: ['#7a5a1a', '#1a1206'] };
+ const c = { declaration: 'guerre', attaque_subie: 'guerre', bandits: 'guerre', duel: 'guerre', raid_champion: 'guerre', tournoi: 'guerre', naissance: 'famille', mariage_offre: 'famille', enfant_malade: 'famille', heritier_fugue: 'famille', prophete: 'mystere', comete: 'mystere', heretique: 'mystere', oracle: 'mystere', faille_gronde: 'mystere', dragon: 'mystere', crypte_decouverte: 'mystere', retour_mal: 'mystere', relique: 'mystere', marchand: 'or', mine_or: 'or', banquier: 'or', grande_foire: 'or', tresor_royal: 'or', deserteurs: 'or', famine: 'nature', inondation: 'nature', loups: 'nature', peste: 'nature', pelerins: 'nature', mort_roi: 'couronne', couronnement: 'couronne', intro: 'couronne' }[id];
+ const [a, b] = T[c] || ['#2b4a7d', '#0e131b'];
+ return `radial-gradient(70% 90% at 50% 70%,${a},${b})`;
+}
+
+function cadrerDepart() {
+ const V = cam(); if (cvC.height <= cvC.width) return;
+ const mes = provincesDe(G, 'joueur'); if (!mes.length) return;
+ const mx = mes.reduce((s, p) => s + p.x, 0) / mes.length, my = mes.reduce((s, p) => s + p.y, 0) / mes.length;
+ V.z = V.tz = clamp(cvC.width / 520, V.base, V.base * 3.2); V.x = V.tx = cvC.width / 2 - mx * V.z; V.y = V.ty = cvC.height * .3 - my * V.z; borner(); V.x = V.tx; V.y = V.ty;
 }

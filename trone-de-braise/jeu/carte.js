@@ -62,8 +62,6 @@ const CARTE = (() => {
   // rose des vents
   rose(g, 930, 600, 38);
   // cartouche
-  g.fillStyle = 'rgba(30,20,10,.55)'; g.fillRect(24, 20, 230, 46); g.strokeStyle = '#c9a227'; g.lineWidth = 1.5; g.strokeRect(28, 24, 222, 38);
-  g.fillStyle = '#e8d6a8'; g.font = 'italic 600 21px Georgia, serif'; g.textAlign = 'center'; g.fillText('Royaume d’Esterre', 139, 50);
   // navires
   for (const [x, y] of [[60, 150], [960, 240], [610, 650], [230, 640]]) navire(g, x, y);
   fond = c;
@@ -73,7 +71,7 @@ const CARTE = (() => {
 
  /* ---------- Rendu dynamique ---------- */
  const V = { z: 1, x: 0, y: 0 }; // zoom et décalage (coordonnées carte)
- function ajuster(cw, ch) { const z = Math.min(cw / 1000, ch / 680); V.base = z; if (!V.init) { V.z = z; V.x = (cw - 1000 * z) / 2; V.y = (ch - 680 * z) / 2; V.init = true; } }
+ function ajuster(cw, ch) { const z = Math.min(cw / 1000, ch / 680); V.base = z; if (!V.init) { V.z = V.tz = z; V.x = V.tx = (cw - 1000 * z) / 2; V.y = V.ty = (ch - 680 * z) / 2; V.init = true; } }
  function versCarte(sx, sy) { return [(sx - V.x) / V.z, (sy - V.y) / V.z]; }
  function provinceA(G, mx, my) { const gx = mx / K | 0, gy = my / K | 0; if (gx < 0 || gy < 0 || gx >= W || gy >= H) return null; const i = grille[gy * W + gx]; return i >= 0 ? G.provinces[i] : null; }
  function dessiner(G, cv, ctx, ui) {
@@ -113,14 +111,14 @@ const CARTE = (() => {
    const M = G.maisons[p.o];
    chateau(ctx, p.x, p.y - 6, p.c, p.capitale, M);
    // donjon
-   if (!p.nettoye) { const dx = p.x + 26, dy = p.y + 8; ctx.fillStyle = 'rgba(20,10,10,.8)'; ctx.beginPath(); ctx.arc(dx, dy, 8.5, 0, 6.28); ctx.fill(); ctx.strokeStyle = '#b04030'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.fillStyle = '#eadfcf'; ctx.font = '9px sans-serif'; ctx.fillText('☠', dx, dy + 3.2); ctx.fillStyle = '#ffcc88'; ctx.font = 'bold 8px Georgia'; ctx.fillText(p.dniv, dx + 10, dy - 6); }
+   if (!p.nettoye) { const dx = p.x + 26, dy = p.y + 8; ctx.fillStyle = 'rgba(20,10,10,.8)'; ctx.beginPath(); ctx.arc(dx, dy, 8.5, 0, 6.28); ctx.fill(); ctx.strokeStyle = '#b04030'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.fillStyle = '#eadfcf'; ctx.font = '9px sans-serif'; ctx.fillText('☠', dx, dy + 3.2); ctx.fillStyle = '#ffcc88'; ctx.font = "800 9px 'Alegreya Sans', sans-serif"; ctx.fillText(p.dniv, dx + 10, dy - 6); }
    else { ctx.fillStyle = 'rgba(120,200,120,.7)'; ctx.font = '9px sans-serif'; ctx.fillText('✓', p.x + 26, p.y + 11); }
    // troupes
    const tx = p.x - 24, ty = p.y + 8;
    ctx.fillStyle = M.c1; ctx.strokeStyle = M.c2; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(tx - 9, ty - 9); ctx.lineTo(tx + 9, ty - 9); ctx.lineTo(tx + 9, ty + 5); ctx.lineTo(tx, ty + 10); ctx.lineTo(tx - 9, ty + 5); ctx.closePath(); ctx.fill(); ctx.stroke();
-   ctx.fillStyle = M.c2; ctx.font = 'bold 10px Georgia'; ctx.fillText(p.t, tx, ty + 2);
+   ctx.fillStyle = M.c2; ctx.font = "800 11px 'Alegreya Sans', sans-serif"; ctx.fillText(p.t, tx, ty + 2.5);
    // nom
-   ctx.font = `${p.capitale ? 'bold ' : ''}italic 12px Georgia, serif`; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(240,225,190,.85)'; ctx.strokeText(p.nom, p.x, p.y + 30); ctx.fillStyle = '#2a1a0c'; ctx.fillText(p.nom, p.x, p.y + 30);
+   ctx.font = `${p.capitale ? 700 : 500} ${p.capitale ? 17 : 15}px 'Grenze Gotisch', Georgia, serif`; ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(240,225,190,.85)'; ctx.strokeText(p.nom, p.x, p.y + 30); ctx.fillStyle = '#2a1a0c'; ctx.fillText(p.nom, p.x, p.y + 30);
    if (G.dejaBouge[p.id] && p.o === 'joueur') { ctx.fillStyle = '#5a3a1a'; ctx.font = '9px sans-serif'; ctx.fillText('⏸', tx + 12, ty - 8); }
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -141,7 +139,7 @@ const CARTE = (() => {
   if (cap) { ctx.fillStyle = '#ffd84a'; ctx.font = '11px serif'; ctx.textAlign = 'center'; ctx.fillText('♛', 0, -24); }
   ctx.restore();
  }
- return { dessiner, ajuster, versCarte, provinceA, V };
+ return { dessiner, ajuster, versCarte, provinceA, V, raz: () => { fond = null; cache = null; } };
 })();
 
 /* ---------- Blasons (SVG) ---------- */

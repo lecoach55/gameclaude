@@ -12,6 +12,15 @@ async def main():
         nav=await navigateur(p);pg=await page(nav,base+'index.html?graine=7&taille=36&joueurs=2',1100,760)
         await pg.wait_for_function("()=>ECRAN==='aventure'",timeout=120000);await pg.wait_for_timeout(800)
         await pg.evaluate("()=>{ACCEL=8;}")
+        # 1b. le Graal : carte complète, on creuse, on rapporte
+        r=await pg.evaluate('''async()=>{const p=G.joueurs[0];p.obel=G.objs.filter(o=>o.b==='obelisque').map(o=>o.id);let h=herosDe(0)[0];if(!h){const v=villesDe(0)[0];h=creerHeros('chevalier',0,v.x,v.y,true);index();}
+          const [gx,gy]=xy(G.carte.graal);poserHeros(h,gx,gy);revele(0,gx,gy,6);h.mp=mvtMax(h);V.sel={t:'heros',id:h.id};centrer(gx,gy);V.fogDirty=true;
+          const c=creuser(h);const v=villesDe(0)[0];if(!v)return {c,v:null};poserHeros(h,v.x,v.y+2);const ch=chemin(h,idx(v.x,v.y),{toutVoir:true});h.mp=3000;window._dep=deplacer(h,ch.ch);return {c:c.msg,graal:G.graalPris};}''')
+        for k in range(10):
+            await pg.evaluate(FERMER);await pg.wait_for_timeout(300)
+        bilan['graal']=r;bilan['merveille']=await pg.evaluate("()=>{const v=villesDe(0)[0];return v&&!!v.bat.graal}")
+        await pg.evaluate("()=>{if(VI)VI.fermer();ouvrirVille(villesDe(0)[0]);}");await pg.wait_for_timeout(1200);await capturer(pg,f'{out}/merveille.png');await pg.evaluate("()=>VI&&VI.fermer()")
+        await pg.evaluate("()=>{carteGraal();}");await pg.wait_for_timeout(600);await capturer(pg,f'{out}/carte_graal.png');await pg.evaluate(FERMER)
         # 1. siège : un héros IA fort à côté de la ville humaine, garnison humaine + héros humain absent
         await pg.evaluate("""()=>{const v=villesDe(0)[0];const h0=herosDe(0)[0];poserHeros(h0,h0.x,h0.y);G.hpos[idx(h0.x,h0.y)]=0;h0.x=v.x+3;h0.y=v.y+3;G.hpos[idx(h0.x,h0.y)]=h0.id;
           v.garn[0]={c:'piquier',n:30};v.garn[1]={c:'archer',n:12};

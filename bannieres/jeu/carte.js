@@ -76,8 +76,9 @@ function genererCarte(o){
  // ---- 8. routes et passages (A*)
  const route=new Uint8Array(N*N);
  const ancre=z=>z.ville?I(z.ville.x,z.ville.y+1):I(Math.round(z.x),Math.round(z.y));
- const coutR=j=>obs[j]===OBS.STRUCT?Infinity:(route[j]?.6:0)+(ter[j]===EAU?30:obs[j]?7:1);
- const tracer=(a,b,mk)=>{const ch=aEtoile(N,a,b,coutR);if(!ch)return;for(const j of ch){if(obs[j]!==OBS.STRUCT)obs[j]=0;if(ter[j]===EAU)ter[j]=TER.indexOf(Z[zone[j]].ter);if(mk)route[j]=1;}};
+ const coutR=j=>obs[j]===OBS.STRUCT?Infinity:(route[j]?.3:(ter[j]===EAU?30:obs[j]?7:1));
+ const segs=new Set();
+ const tracer=(a,b,mk)=>{const ch=aEtoile(N,a,b,coutR);if(!ch)return;for(let k=0;k<ch.length;k++){const j=ch[k];if(obs[j]!==OBS.STRUCT)obs[j]=0;if(ter[j]===EAU)ter[j]=TER.indexOf(Z[zone[j]].ter);if(mk){route[j]=1;if(k)segs.add(Math.min(j,ch[k-1])+'_'+Math.max(j,ch[k-1]));}}};
  for(const e of liens){const [g,h]=e.g;const mk=!!e.mst;tracer(ancre(Z[e.a]),g,mk);tracer(g,h,mk);tracer(h,ancre(Z[e.b]),mk);}
  for(const v of villes){const i=I(v.x,v.y+1);obs[i]=0;route[i]=1;obs[I(v.x,v.y)]=0;}
  // ---- 9. objets
@@ -118,6 +119,12 @@ function genererCarte(o){
    for(let k=0;k<n+1;k++){const i=choisir(z,D,2,maxd,{});if(i>=0)mkMonstre(valGarde(z)*.7,i%N,(i/N)|0);}
    if(z.ville&&z.ville.prop<0){const v=z.ville;v.garnisonInit=valGarde(z)*1.2*mult;}
   }}
+ // obélisques et emplacement du Graal (dans une région neutre éloignée des joueurs)
+ const nObel=N<=36?3:N<=54?4:5;const neutres=Z.filter(z=>z.joueur==null&&z.cases.length>20).sort((a,b)=>b.r-a.r);let graal=-1;
+ let nPose=0;for(let k=0;k<neutres.length*2&&nPose<nObel;k++){const z=neutres[(k*2+1)%neutres.length];const D=bfsZone(z);if(poser(z,D,'bat',{b:'obelisque'},1,Math.max(...D.values(),4),{}))nPose++;}
+ for(const z of Z){if(nPose>=nObel)break;if(z.joueur==null)continue;const D=bfsZone(z);if(poser(z,D,'bat',{b:'obelisque'},6,Math.max(...D.values(),8),{ecart:1}))nPose++;}
+ if(graal<0||nPose<2)for(let t=0;t<200&&nPose<2;t++){const z=R.pick(Z);const D=bfsZone(z);if(poser(z,D,'bat',{b:'obelisque'},3,Math.max(...D.values(),6),{ecart:1}))nPose++;}
+ for(const z of neutres.concat(Z)){const cand=z.cases.filter(i=>libre(i)&&!route[i]&&sur(i%N,(i/N)|0));if(cand.length){graal=R.pick(cand);break;}}
  // gardiens des passages
  for(const e of liens){const [g]=e.g;const x=g%N,y=(g/N)|0;if(occ[g]||obs[g])continue;const r=(Z[e.a].r+Z[e.b].r)/2;const pp=Z[e.a].joueur!=null&&Z[e.b].joueur!=null;mkMonstre((pp?4000:500+4800*Math.pow(r,1.2))*(o.difPassage||1),x,y,{passage:1});}
  // ---- 10. connexité : toute case libre doit être accessible depuis la ville du joueur 1
@@ -136,8 +143,11 @@ function genererCarte(o){
  const ROC={herbe:.15,terre:.45,rude:.65,neige:.3,sable:.55,marais:.15,lave:.8};
  for(let i=0;i<N*N;i++)if(obs[i]===1){const t=TER[ter[i]];const h=(Math.sin(i*12.9898)*43758.5453)%1;if(Math.abs(h)<ROC[t]*.7)obs[i]=OBS.ROC;}
  const vivants=objs.filter(b=>!b.mort);
+ if(graal>=0&&(obs[graal]||ter[graal]===EAU||vivants.some(o=>I(o.x,o.y)===graal)))graal=-1;
  // renumérote proprement
- const carte={N,ter:Array.from(ter),obs:Array.from(obs),route:Array.from(route),zone:Array.from(zone),zones:Z.map(z=>({x:z.x,y:z.y,joueur:z.joueur,ter:z.ter,r:z.r}))};
+ for(const v of villes){const a=I(v.x,v.y),b=I(v.x,v.y+1);segs.add(Math.min(a,b)+'_'+Math.max(a,b));}
+ const nbObel=vivants.filter(o=>o.b==='obelisque').length;if(!nbObel)graal=-1;
+ const carte={N,graal,nObel:nbObel,routeSeg:[...segs].map(s=>s.split('_').map(Number)).filter(([a,b])=>route[a]&&route[b]),ter:Array.from(ter),obs:Array.from(obs),route:Array.from(route),zone:Array.from(zone),zones:Z.map(z=>({x:z.x,y:z.y,joueur:z.joueur,ter:z.ter,r:z.r}))};
  return{carte,objs:vivants,villes:villes.filter(v=>!v.mort)};
 }
 if(typeof module!=='undefined')module.exports={};

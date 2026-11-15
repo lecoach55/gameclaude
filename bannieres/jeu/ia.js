@@ -39,12 +39,14 @@ function iaValeur(h,o,dist){const p=G.joueurs[h.j];const fh=forceArmee(h.armee,h
   case 'coffre':return 1600;
   case 'artefact':return 1800*ARTS[o.art].rang;
   case 'mine':return o.prop===h.j?0:MINE_PROD[o.res]*RES_VAL[o.res]*(o.res==='or'?14:12)*(o.prop>=0?1.4:1);
-  case 'bat':{const b=o.b,v=h.visites[o.id];switch(b){case 'moulin':return o.pris?0:700;case 'puits':return h.mana<manaMax(h)/2&&h.sorts.length&&!h.bonus.puits?300:0;case 'autel':return v?0:1600;case 'pierre':return v?0:1100;case 'arbre':return v?0:2600;case 'tour':return h.visites['t'+o.id]?0:250;case 'sanctuaire':return v?0:700;case 'ecurie':return h.bonus.ecurie?0:350;case 'feu':return 1300;case 'fontaine':return h.bonus.fontaine?0:150;case 'habitation':{const c=CRE[o.cre];const n=Math.min(o.dispo||0,peutPayer(p.res,c.cout));return n*c.val*.7;}}return 0;}
+  case 'bat':{const b=o.b,v=h.visites[o.id];switch(b){case 'moulin':return o.pris?0:700;case 'puits':return h.mana<manaMax(h)/2&&h.sorts.length&&!h.bonus.puits?300:0;case 'autel':return v?0:1600;case 'pierre':return v?0:1100;case 'arbre':return v?0:2600;case 'tour':return h.visites['t'+o.id]?0:250;case 'sanctuaire':return v?0:700;case 'ecurie':return h.bonus.ecurie?0:350;case 'feu':return 1300;case 'fontaine':return h.bonus.fontaine?0:150;case 'obelisque':return(G.joueurs[h.j].obel||[]).includes(o.id)||G.graalPris?0:1100;case 'habitation':{const c=CRE[o.cre];const n=Math.min(o.dispo||0,peutPayer(p.res,c.cout));return n*c.val*.7;}}return 0;}
   case 'ville':{if(o.prop===h.j){let s=0;for(let n=0;n<7;n++)if(o.dispo[n]){const c=CRE[FAC[o.fac].crea[n]];s+=Math.min(o.dispo[n],peutPayer(p.res,c.cout))*c.val;}s+=forceArmee(o.garn);return s*.6+(h.mana<manaMax(h)/2&&o.bat.guilde1?200:0);}
    if(o.prop>=0&&G.joueurs[o.prop].humain&&G.jour<iaTreve(h.j))return 0;const fv=forceVille(o);if(fh<fv*1.1)return 0;const dh=heroPar(G.hpos[idx(o.x,o.y)]);const r=dh?iaRisque(h,null,dh,{siege:niveauFort(o)}):(o.garn.some(Boolean)?iaRisque(h,o.garn,null,{siege:niveauFort(o)}):0);return r<.45?9000*(1-r):0;}
   case 'monstre':{const fm=forceArmee(pileMonstre(o));if(fh<fm*.8)return 0;const r=iaRisque(h,pileMonstre(o));if(r>.3)return 0;return(200+CRE[o.cre].pv*o.n*.6+(o.passage?1500:0))*(1-r*2);}
  }return 0;}
 async function iaHeros(h){const p=G.joueurs[h.j];const exclus=new Set();
+ // le Graal : creuser si l'on est dessus en début de journée, le rapporter si on le porte
+ if(graalConnu(h.j)&&idx(h.x,h.y)===G.carte.graal&&h.mp>=mvtMax(h)*.99){creuser(h);return;}
  for(let it=0;it<14&&heroPar(h.id)&&h.mp>60&&!G.fini;it++){
   const D=distances(h);const fh=forceArmee(h.armee,h);const mm=mvtMax(h);let best=null,bs=0;
   const consid=o=>{const i=idx(o.x,o.y);if(exclus.has(i))return;const d=D[i];if(d===Infinity)return;let v=iaValeur(h,o,d);if(v<=0)return;
@@ -53,7 +55,10 @@ async function iaHeros(h){const p=G.joueurs[h.j];const exclus=new Set();
    const jours=d/mm;const s=v/(1+jours*1.6)*(d<=h.mp?1.4:1);if(s>bs){bs=s;best={i,o};}};
   for(const o of G.objs)consid(o);
   for(const e of G.heros){if(e.j===h.j)continue;if(G.joueurs[e.j].humain&&G.jour<iaTreve(h.j))continue;const i=idx(e.x,e.y);const d=D[i];if(d===Infinity)continue;const fe=forceArmee(e.armee,e)*(villeSous(e)?1.3:1);if(fh>fe*1.1&&iaRisque(h,null,e,{siege:villeSous(e)&&villeSous(e).prop===e.j?niveauFort(villeSous(e)):0})<.4){const s=6000/(1+d/mm*1.6)*(d<=h.mp?1.4:1);if(s>bs){bs=s;best={i,o:null};}}}
+  if(graalConnu(h.j)){const i=G.carte.graal;const d=D[i];if(d<Infinity){const s=14000/(1+d/mm*1.6);if(s>bs){bs=s;best={i,o:null};}}}
+  if(h.arts.includes('graal')){for(const v of villesDe(h.j)){const i=idx(v.x,v.y);const d=D[i];if(d<Infinity&&!v.bat.graal){const s=20000/(1+d/mm*1.6);if(s>bs){bs=s;best={i,o:v};}}}}
   if(!best)break;
+  if(best.i===idx(h.x,h.y))break;
   const ch=chemin(h,best.i,{toutVoir:true});if(!ch){exclus.add(best.i);continue;}
   const avant=idx(h.x,h.y),mpAv=h.mp;await deplacer(h,ch.ch);
   if(!heroPar(h.id))return;

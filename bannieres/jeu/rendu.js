@@ -7,7 +7,7 @@ function estMobile(){return innerWidth<=860;}
 function tailleT(){return Math.round((estMobile()?42:50)*V.zoom);}
 function vueJoueur(){// joueur dont on montre le brouillard : le joueur humain courant (ou le premier humain)
  const c=G.joueurs[G.courant];if(c&&c.humain)return G.courant;const h=G.joueurs.find(p=>p.humain&&!p.elim);return h?h.id:G.courant;}
-function initRendu(){V.sol=peindreSol(G.carte);V.fog=mkC(G.carte.N,G.carte.N);V.mini=document.getElementById('minicarte');V.fogDirty=true;V.miniDirty=true;V.sel=null;V.chemin=null;redim();}
+function initRendu(){V.sol=peindreSol(Object.assign({graine:G.graine},G.carte),G.objs);V.fog=mkC(G.carte.N,G.carte.N);V.mini=document.getElementById('minicarte');V.fogDirty=true;V.miniDirty=true;V.sel=null;V.chemin=null;redim();}
 function redim(){const cv=document.getElementById('carte');V.dpr=Math.min(2,devicePixelRatio||1);cv.width=innerWidth*V.dpr;cv.height=innerHeight*V.dpr;V.mini.width=V.mini.height=Math.min(440,G?G.carte.N*4:220);V.miniDirty=true;}
 function zoneVue(){// zone utile de la carte (hors panneaux)
  if(estMobile()){const bas=document.getElementById('panneau').offsetHeight||96;return{x:0,y:28,w:innerWidth,h:innerHeight-28-bas};}
@@ -48,6 +48,8 @@ function dessiner(){if(!G)return;V.t=performance.now()/1000;V.images++;const cv=
    if(y>0&&G.carte.obs[i-N]===OBS.MONT){const s=spriteObstacle(OBS.MONT,TER[G.carte.ter[i-N]],(x*5+y*11)%7);const w=s.width*T/TS,h=s.height*T/TS;g.drawImage(s,ox+(x+1)*T-w/2,oy+(y+1)*T-h+T*.06,w,h);}}
   for(const o of objPar[y]||[])dessinerObjet(g,o,T,ox,oy);
   for(const h of hpar[y]||[]){const [hx,hy]=posHeros(h);const s=spriteHeros(h,128);const w=T*1.25;g.drawImage(s,ox+(hx+.5)*T-w/2,oy+(hy+1)*T-w*.98,w,w);}}
+ // croix du Graal quand la carte est complète
+ if(graalConnu(vueJoueur())){const [gx,gy]=xy(G.carte.graal);const px=ox+(gx+.5)*T,py=oy+(gy+.5)*T;g.save();g.translate(px,py);g.lineCap='round';for(const [lw,col] of [[7,'rgba(40,10,4,.8)'],[4,'#e83a2a']]){g.lineWidth=lw;g.strokeStyle=col;g.beginPath();g.moveTo(-T*.22,-T*.22);g.lineTo(T*.22,T*.22);g.moveTo(T*.22,-T*.22);g.lineTo(-T*.22,T*.22);g.stroke();}g.restore();}
  // brouillard
  if(V.fogDirty)majFog();g.save();g.imageSmoothingEnabled=true;g.drawImage(V.fog,0,0,N,N,ox-T*.5,oy-T*.5,N*T,N*T);
  // bords hors carte

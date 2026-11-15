@@ -91,6 +91,7 @@ var BAT={
  guilde1:{nom:'Guilde des mages I',cout:{or:2000,bois:5,minerai:5},desc:'Enseigne 3 sorts du 1er cercle. Recharge le mana des héros.'},
  guilde2:{nom:'Guilde des mages II',cout:{or:1000,bois:5,minerai:5,mercure:4,soufre:4,cristal:4,gemmes:4},req:['guilde1'],desc:'Enseigne 2 sorts du 2e cercle.'},
  guilde3:{nom:'Guilde des mages III',cout:{or:1000,bois:5,minerai:5,mercure:6,soufre:6,cristal:6,gemmes:6},req:['guilde2'],desc:'Enseigne 2 sorts du 3e cercle (Sagesse requise).'},
+ graal:{nom:'Merveille du Graal',cout:{},desc:'+5000 or par jour et croissance des créatures +50 %. Se bâtit avec le Saint Graal.',special:1},
  hab1:{cout:{or:300,bois:5},req:['fort'],niv:1},
  hab2:{cout:{or:800,bois:5,minerai:5},req:['hab1'],niv:2},
  hab3:{cout:{or:1000,minerai:5},req:['hab1'],niv:3},
@@ -100,7 +101,8 @@ var BAT={
  hab7:{cout:{or:8000,minerai:10,rare:15},req:['hab5','hab6','citadelle'],niv:7},
 };
 var BAT_ORDRE=['conseil','mairie','hotelville','capitole','fort','citadelle','chateau','taverne','marche','silo','guilde1','guilde2','guilde3','hab1','hab2','hab3','hab4','hab5','hab6','hab7'];
-function batNom(b,fac){return BAT[b].niv?FAC[fac].hab[BAT[b].niv-1]:BAT[b].nom;}
+var GRAAL_NOM={bastion:'Colosse de lumière',sylve:'Arbre-monde',necro:'Sceau des ténèbres'};
+function batNom(b,fac){if(b==='graal')return GRAAL_NOM[fac];return BAT[b].niv?FAC[fac].hab[BAT[b].niv-1]:BAT[b].nom;}
 function batCout(b,fac){const c={};for(const r in BAT[b].cout){const k=r==='rare'?FAC[fac].rare:r;c[k]=(c[k]||0)+BAT[b].cout[r];}return c;}
 
 // ---------- sorts ----------
@@ -117,6 +119,8 @@ var SORTS={
  fureur:{nom:'Fureur',niv:2,mana:8,cible:'allie',type:'buff',effet:'fureur',desc:'+4 attaque.'},
  boulefeu:{nom:'Boule de feu',niv:3,mana:15,cible:'zone',type:'degats',base:15,par:10,desc:'Dégâts sur la case et ses 6 voisines : 15 + 10 × Puissance.'},
  priere:{nom:'Prière',niv:3,mana:16,cible:'allie',type:'buff',effet:'priere',desc:'+2 attaque, défense et vitesse.'},
+ vision:{nom:'Vision lointaine',niv:1,mana:4,cible:'aventure',type:'aventure',desc:'Sur la carte : dévoile les terres dans un grand rayon autour du héros.'},
+ portail:{nom:'Portail de ville',niv:3,mana:16,cible:'aventure',type:'aventure',desc:'Sur la carte : ramène le héros dans votre ville la plus proche (coûte 300 points de mouvement).'},
  chaine:{nom:'Chaîne d’éclairs',niv:3,mana:24,cible:'ennemi',type:'chaine',base:25,par:40,desc:'25 + 40 × Puissance, puis frappe 3 autres troupes (moitié à chaque saut).'},
 };
 var SORTS_NIV=[[],['fleche','soin','benediction','hate','bouclier','lenteur'],['eclair','malediction','pierre','fureur'],['boulefeu','priere','chaine']];
@@ -148,8 +152,8 @@ var CLASSES={
  necromancien:{nom:'Nécromancien',fac:'necro',base:[1,0,2,2],prob:[15,15,35,35],comp:{necromancie:1},sorts:['lenteur'],ch:{necromancie:2,sagesse:7,sorcellerie:6,logistique:3,armure:3,eclaireur:4,pistage:3,intendance:3,offense:2,archerie:2}},
 };
 var HEROS_NOMS={
- chevalier:['Aldric','Gauvain','Roland','Mélisende'],clerc:['Bérénice','Isolde','Tristan','Clothilde'],
- rodeur:['Thalion','Faelan','Sylvara','Oren'],druide:['Elwyn','Ysoria','Liriel','Maëlis'],
+ chevalier:['Aldric','Gauvain','Roland','Mélisende'],clerc:['Bérénice','Isolde','Clothilde','Tristan'],
+ rodeur:['Sylvara','Elanor','Faelan','Thalia'],druide:['Ysoria','Liriel','Maëlis','Elwyn'],
  chevmort:['Corbin','Lazare','Séverine','Ambroise'],necromancien:['Malachie','Ombeline','Morgane','Nérée'],
 };
 var XP_NIV=[0,0,1000,2000,3200,4600,6200,8000,10000,12200,14700,17500,20600,24320,28784,34140,40567,48279,57533,68637,81961,97949,117134,140156,167782,200933];
@@ -173,6 +177,7 @@ var ARTS={
  sceptre:{nom:'Sceptre du souverain',b:{att:3,def:3,pou:3,con:3},rang:3},
 };
 var ARTS_RANG=[[],[],[],[]];for(const k in ARTS)ARTS_RANG[ARTS[k].rang].push(k);
+ARTS.graal={nom:'Saint Graal',b:{},rang:4,desc:'Rapportez-le dans une de vos villes pour y bâtir une merveille.'};
 
 // ---------- objets de la carte ----------
 var BATIMENTS_CARTE={
@@ -187,6 +192,7 @@ var BATIMENTS_CARTE={
  feu:{nom:'Campement abandonné',desc:'Or et ressources, à ramasser une fois.'},
  habitation:{nom:'Habitation',desc:'Des créatures s’y installent chaque semaine.'},
  fontaine:{nom:'Fontaine de fortune',desc:'+1 moral et +1 chance pour le prochain combat.'},
+ obelisque:{nom:'Obélisque',desc:'Révèle un fragment de la carte du Graal.'},
 };
 var STAT_NOM=['Attaque','Défense','Puissance','Connaissance'];
 

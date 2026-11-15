@@ -12,7 +12,7 @@ function creerCombat(A,D,o){o=o||{};const rng=creeRng(o.graine||12345);
  const C={piles:[],obst:new Set(),tour:1,fin:null,evts:[],cotes:[A,D],sort:[false,false],mana:[0,0],rng,terrain:o.terrain||'herbe',siege:o.siege||0,ville:o.ville||null,pid:1,moralBonus:[0,0],chance:[0,0],stats:[null,null]};
  // caractéristiques des camps
  for(let k=0;k<2;k++){const s=C.cotes[k];const h=s.heros;
-  C.stats[k]=h?{att:statH(h,'att'),def:statH(h,'def'),pou:Math.max(1,statH(h,'pou')),comp:h.comp,sorts:h.sorts.slice(),nom:h.nom}:{att:0,def:0,pou:1,comp:{},sorts:[],nom:null};
+  C.stats[k]=h?{att:statH(h,'att'),def:statH(h,'def'),pou:Math.max(1,statH(h,'pou')),comp:h.comp,sorts:h.sorts.filter(s=>SORTS[s].type!=='aventure'),nom:h.nom}:{att:0,def:0,pou:1,comp:{},sorts:[],nom:null};
   C.mana[k]=h?h.mana:0;C.moralBonus[k]=h?moralH(h):0;C.chance[k]=h?chanceH(h):0;}
  if(C.siege)C.stats[1].def+=[0,2,4,6][C.siege];
  // piles

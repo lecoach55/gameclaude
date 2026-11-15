@@ -2,7 +2,8 @@
 
 Jeu de stratégie au tour par tour façon *Heroes of Might and Magic* : carte d'aventure, héros, villes à bâtir, créatures sur 7 niveaux, combats tactiques sur grille hexagonale, sorts, IA rivales. **Chaque partie se joue sur une carte générée au hasard** (taille, eau, monstres, 2 à 4 royaumes, graine rejouable).
 Artefact publié : slug `c14c3c85-7570-4c24-845c-42239cee0f6a` (capacités db + user). Une seule page, sans dépendance, jouable hors ligne : `build/bannieres.html`.
-Graphismes entièrement dessinés par le code (inspirés des captures fournies par Victor, sans les reproduire).
+Graphismes dessinés par le code (inspirés des captures fournies par Victor, sans les reproduire), plus des ressources reprises de Valdragon :
+portraits des héros rendus en 3D (personnages Mixamo), bruitages Kenney (CC0), textures Poly Haven (CC0) pour le bois de l'interface et la pierre des murs.
 
 ## Code (`jeu/`)
 `data.js` (3 factions × 7 créatures + neutres, bâtiments, sorts, compétences, artefacts) · `carte.js` (générateur : zones Voronoï déformées, terrains, lacs, murs de relief, passages gardés, routes A*, mines/trésors/lieux, connexité) · `regles.js` (aventure, économie, héros, sauvegarde) · `combat.js` (combat hexagonal 15×11 + IA de combat) · `ia.js` (IA des royaumes, prédiction des combats par simulation) — ces 5 fichiers tournent sous Node.
@@ -15,6 +16,11 @@ Sauvegarde locale `bannieres-v1` (ne pas changer la clé) + document en ligne `p
 - `parcours.py jours [l h] [captures]` : le joueur humain est joué par le robot à travers la vraie interface (fenêtres, villes, combats), puis sauvegarde → aller-retour identique → rechargement « Continuer ».
 - `scen.py` : siège d'une ville humaine par l'IA (combat interactif en défense), victoire.
 - `fumee.py`, `capt.py dossier [l h]` (vues fixes, références dans `references/`, à comparer avec `outils-communs/compare.py`), `perf.py` (référence `mesures/perf_base.json`), `hors_ligne.py`.
+
+## Studio 3D (`outils/studio/`)
+Réutilise le dossier préparé de Valdragon (`sh valdragon/outils/preparer.sh /home/claude/t3d`) :
+- `portraits.py dossier` : portraits des héros (une variante par nom, genre respecté), puis conversion en `jeu/portraits3d.js` (voir l'historique git du 16/11/2026).
+- `studio.py dossier [ids]` + `pack.py` + `planche.py` : créatures pré-rendues en 3D (repos, attaque, blessure, mort). **Essai écarté le 16/11/2026** : à la taille d'un combat, les modèles réalistes sombres se lisaient moins bien que les créatures dessinées et juraient avec elles ; les quadrupèdes construits par le code faisaient « jouets ». Le moteur sait encore les afficher (`SPR3D`, `dessiner3D`) si l'on veut y revenir.
 
 ## Équilibre
 Trêve des rivaux envers le joueur humain : jour 29 (paisibles), 15 (ambitieux), aucune (impitoyables). Ne pas changer la difficulté sans demander à Victor.

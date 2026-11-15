@@ -3,8 +3,9 @@
    BANNIÈRES & SORTILÈGES — écran de ville : panorama, construction, recrutement, marché, taverne, guilde
    ========================================================= */
 var VI=null;
-function ouvrirVille(v){return new Promise(res=>{bulle(null);VI={v,res,survol:null,dirty:true};ecran('ville');majVille();redimVille();
- VI.fermer=()=>{const r=VI.res;VI=null;ecran('aventure');V.fogDirty=true;V.miniDirty=true;majUI();r();};});}
+function ouvrirVille(v){if(!v)return Promise.resolve();SON.porte(1);return new Promise(res=>{bulle(null);VI={v,res,survol:null,dirty:true};
+ VI.fermer=()=>{SON.porte(0);const r=VI.res;VI=null;ecran('aventure');V.fogDirty=true;V.miniDirty=true;majUI();r();};
+ ecran('ville');majVille();redimVille();});}
 function herosVille(){const v=VI.v;const h=heroPar(G.hpos[idx(v.x,v.y)]);return h&&h.j===v.prop?h:null;}
 function redimVille(){if(!VI)return;const cv=$('cvVille');const d=Math.min(2,devicePixelRatio||1);const bas=document.querySelector('.ville-bas').offsetHeight;const H=Math.max(160,innerHeight-bas);cv.style.height=H+'px';cv.width=innerWidth*d;cv.height=H*d;VI.dpr=d;VI.W=innerWidth;VI.H=H;VI.dirty=true;}
 function dessinerVille(){if(!VI)return;const cv=$('cvVille');const g=cv.getContext('2d');
@@ -40,7 +41,7 @@ async function fenRecruter(niv){const v=VI.v,p=G.joueurs[v.prop];const h=herosVi
  const lignes=cr.map((c,n)=>{if(!v.bat['hab'+(n+1)])return'';const C=CRE[c];const maxN=Math.min(v.dispo[n],peutPayer(p.res,C.cout));return`<div class="carte-b ${v.dispo[n]?'ok':'non'}" data-n="${n}" style="display:flex;gap:8px;align-items:center"><canvas width="64" height="64" data-cre="${c}"></canvas><div><b>${C.pl}</b>Disponibles : <b>${v.dispo[n]}</b> (abordables : ${maxN})${txtCout(C.cout,p.res)}</div></div>`;}).join('');
  await fenetre(`<h2>Recruter</h2><p style="font-size:13px;text-align:center">Les recrues rejoignent ${h?esc(h.nom):'la garnison'}. Croissance hebdomadaire ${v.bat.chateau?'+100 %':v.bat.citadelle?'+50 %':'normale'}.</p><div class="grille">${lignes||'<p>Aucune habitation construite.</p>'}</div>`,[{t:'Tout recruter'},{t:'Fermer',or:true}].map((b,i)=>i===0?Object.assign(b,{f:()=>{let tot=0;for(let n=6;n>=0;n--)if(v.dispo[n])tot+=recruter(v,n,v.dispo[n],h?h.armee:v.garn)||recruter(v,n,v.dispo[n],v.garn);majVille();toast(tot?`${tot} créatures recrutées.`:'Rien à recruter (ou pas assez de ressources / de place).');}}):b),
   {init:(f,fermer)=>{const go=async n=>{const C=CRE[cr[n]];const maxN=Math.min(v.dispo[n],peutPayer(p.res,C.cout));if(!maxN){toast('Pas assez de ressources.');return;}
-   const q=await choisirNombre(`Recruter des ${C.pl.toLowerCase()}`,`Coût unitaire :`+txtCout(C.cout),maxN,maxN,C.id);if(q>0){const r=recruter(v,n,q,h?h.armee:v.garn)||recruter(v,n,q,v.garn);if(!r)toast('Plus de place dans l’armée !');else{SON.piece();toast(`${r} ${C.pl.toLowerCase()} recrutés.`);}majVille();fermer(1);fenRecruter();}};
+   const q=await choisirNombre(`Recruter des ${C.pl.toLowerCase()}`,`Coût unitaire :`+txtCout(C.cout),maxN,maxN,C.id);if(q>0){const r=recruter(v,n,q,h?h.armee:v.garn)||recruter(v,n,q,v.garn);if(!r)toast('Plus de place dans l’armée !');else{SON.recrue();toast(`${r} ${C.pl.toLowerCase()} recrutés.`);}majVille();fermer(1);fenRecruter();}};
    f.querySelectorAll('.carte-b.ok').forEach(d=>d.onclick=()=>go(+d.dataset.n));if(niv!=null&&v.dispo[niv]&&v.bat['hab'+(niv+1)]){setTimeout(()=>go(niv),50);}}});}
 async function fenMarche(){const v=VI.v,p=G.joueurs[v.prop];let de='bois',vers='or';
  const rendu=f=>{const taux=prixMarche(p.id,de,vers);const lab=vers==='or'?`1 ${RES_NOM[de].toLowerCase()} → ${Math.floor(taux)} or`:`${(Math.ceil(taux*10)/10)} ${RES_NOM[de].toLowerCase()} → 1 ${RES_NOM[vers].toLowerCase()}`;

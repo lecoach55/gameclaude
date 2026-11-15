@@ -15,7 +15,8 @@ async def main():
         for fac in ['bastion','sylve','necro']:
             await pg.evaluate("(f)=>{const v=villesDe(0)[0];v.fac=f;for(const b of BAT_ORDRE)if(!BAT[b].unique)v.bat[b]=1;ouvrirVille(v);}",fac);await pg.wait_for_timeout(1200)
             await capturer(pg,f'{out}/ville_{fac}.png');await pg.evaluate("()=>VI.fermer()")
-        await pg.evaluate("()=>{const h=herosDe(0)[0];combatInteractif({heros:h,armee:['griffon','cavalier','ange','moine','croise','archer','piquier'].map(c=>({c,n:5})),joueur:0},{heros:null,armee:['dragonvert','licorne','treant','dragonos','vampire','liche','chevnoir'].map(c=>({c,n:4})),joueur:-1},{terrain:'neige',banc:true});setTimeout(()=>{CB.auto=false;},10)}")
+        await pg.evaluate("()=>{const h=herosDe(0)[0];combatInteractif({heros:h,armee:['griffon','cavalier','ange','moine','croise','archer','piquier'].map(c=>({c,n:5})),joueur:0},{heros:null,armee:['dragonvert','licorne','treant','dragonos','vampire','liche','chevnoir'].map(c=>({c,n:4})),joueur:-1},{terrain:(window._ter||'herbe'),banc:true});setTimeout(()=>{CB.auto=false;},10)}")
         await pg.wait_for_timeout(1500);await capturer(pg,f'{out}/combat.png')
+        await pg.evaluate("()=>{CB.auto=true;CB.banc=false;ACCEL=2;if(CB.attente)CB.attente(iaCombat(CB.C));}");await pg.wait_for_timeout(9000);await capturer(pg,f'{out}/combat_suite.png')
         await nav.close()
 asyncio.run(main())

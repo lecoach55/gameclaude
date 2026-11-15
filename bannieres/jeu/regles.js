@@ -33,7 +33,7 @@ function nouvellePartie(o){
 function initVille(v){const f=v.fac;v.nom=nomVille(v);v.bat={conseil:1,fort:1,hab1:1};if(v.prop>=0){v.bat.taverne=1;}else{v.bat.hab2=1;if(alea()<.5)v.bat.hab3=1;}
  v.dispo=[0,0,0,0,0,0,0];v.garn=[null,null,null,null,null,null,null];v.construit=false;
  // guilde : sorts tirés au hasard
- v.guilde=[[],R.melange(SORTS_NIV[1].slice()).slice(0,3),R.melange(SORTS_NIV[2].slice()).slice(0,2),R.melange(SORTS_NIV[3].slice()).slice(0,2)];
+ v.guilde=[[],R.melange(SORTS_NIV[1].slice()).slice(0,3),R.melange(SORTS_NIV[2].slice()).slice(0,2),R.melange(SORTS_NIV[3].slice()).slice(0,2)];v.guilde[1].push('vision');v.guilde[3].push('portail');
  croissance(v,true);
  if(v.prop<0){// garnison neutre
   const val=v.garnisonInit||2500;const cr=FAC[f].crea;let rest=val;for(let k=0;k<3;k++){const c=CRE[cr[Math.min(6,k*2+ (alea()<.5?0:1))]];const n=Math.max(1,Math.round(rest/3/c.val*1.2));v.garn[k*2]={c:c.id,n};}}
@@ -124,7 +124,7 @@ async function visiter(h,o){const p=G.joueurs[h.j];
   retirerObjet(o);if(k===0)gain(h.j,'or',v);else await gagnerXp(h,v-500);await HOOK.anim('ramasse',h,o);break;}
  case 'artefact':{retirerObjet(o);h.arts.push(o.art);await HOOK.message(h.j,'Artefact',`${h.nom} trouve : ${ARTS[o.art].nom} (${txtBonus(ARTS[o.art].b)}).`,{art:o.art});break;}
  case 'mine':{if(o.prop!==h.j){o.prop=h.j;await HOOK.message(h.j,MINE_NOM[o.res],`${MINE_NOM[o.res]} passe sous votre bannière : +${MINE_PROD[o.res]} ${RES_NOM[o.res].toLowerCase()} par jour.`,{res:o.res});}break;}
- case 'ville':{if(o.prop===h.j){apprendreSorts(h,o);if(o.bat.guilde1)h.mana=Math.max(h.mana,manaMax(h));await HOOK.ville(o,h);}break;}
+ case 'ville':{if(o.prop===h.j){if(h.arts.includes('graal')&&!o.bat.graal){poserGraal(h,o);await HOOK.message(h.j,GRAAL_NOM[o.fac],`Le Graal est installé à ${o.nom} : la merveille « ${GRAAL_NOM[o.fac]} » s’élève ! (+5000 or par jour, créatures +50 %)`);}apprendreSorts(h,o);if(o.bat.guilde1)h.mana=Math.max(h.mana,manaMax(h));await HOOK.ville(o,h);}break;}
  case 'bat':await visiterBat(h,o);break;
  }
  HOOK.maj();}
@@ -141,10 +141,27 @@ async function visiterBat(h,o){const B=BATIMENTS_CARTE[o.b];const deja=h.visites
  case 'ecurie':{h.bonus.ecurie=1;h.mp+=400;await HOOK.message(h.j,B.nom,'Des chevaux frais : +400 mouvement jusqu’à la fin de la semaine.');break;}
  case 'feu':{const r=R.pick(['bois','minerai','mercure','soufre','cristal','gemmes']);const q=aleaI(4,6),orr=aleaI(4,6)*100;gain(h.j,r,q);gain(h.j,'or',orr);retirerObjet(o);await HOOK.message(h.j,B.nom,`Parmi les cendres : ${orr} or et ${q} ${RES_NOM[r].toLowerCase()}.`);break;}
  case 'fontaine':{h.bonus.fontaine=1;await HOOK.message(h.j,B.nom,'+1 moral et +1 chance pour votre prochain combat.');break;}
+ case 'obelisque':{const p=G.joueurs[h.j];p.obel=p.obel||[];if(p.obel.includes(o.id)){await HOOK.message(h.j,B.nom,'Vous avez déjà déchiffré cet obélisque.');break;}p.obel.push(o.id);const n=p.obel.length,t=G.carte.nObel||4;
+  await HOOK.message(h.j,B.nom,n>=t?'Le dernier fragment ! La carte du Graal est complète : l’emplacement est marqué d’une croix sur votre carte. Creusez-y avec un héros qui n’a pas encore bougé de la journée.':`Un fragment de la carte du Graal se dévoile (${n}/${t}). Consultez-la depuis le menu ☰.`,{graal:1});break;}
  case 'habitation':{const c=CRE[o.cre];if(!o.dispo){await HOOK.message(h.j,`Habitation : ${c.pl}`,'Aucune créature à recruter cette semaine.');break;}
   const maxN=Math.min(o.dispo,peutPayer(G.joueurs[h.j].res,c.cout));
   const n=await HOOK.recruter?await HOOK.recruter(h,o,c,maxN):maxN;if(n>0&&ajouterTroupe(h.armee,o.cre,n)){payer(h.j,c.cout,n);o.dispo-=n;}break;}
  }}
+
+// ---------- sorts d'aventure ----------
+function sortsAventure(h){return h.sorts.filter(s=>SORTS[s].type==='aventure');}
+function lancerAventure(h,s){const S=SORTS[s];if(!h.sorts.includes(s)||h.mana<S.mana)return{ok:false,msg:'Pas assez de mana.'};
+ if(s==='vision'){h.mana-=S.mana;revele(h.j,h.x,h.y,12+3*(h.comp.eclaireur||0));return{ok:true,msg:'Les terres alentour se dévoilent.'};}
+ if(s==='portail'){if(h.mp<300)return{ok:false,msg:'Il faut au moins 300 points de mouvement.'};let best=null,bd=1e9;for(const v of villesDe(h.j)){const i=idx(v.x,v.y);if(G.hpos[i]&&G.hpos[i]!==h.id)continue;const d=Math.hypot(v.x-h.x,v.y-h.y);if(d<bd){bd=d;best=v;}}
+  if(!best)return{ok:false,msg:'Aucune ville libre où se rendre.'};if(best.x===h.x&&best.y===h.y)return{ok:false,msg:'Vous y êtes déjà.'};h.mana-=S.mana;h.mp-=300;poserHeros(h,best.x,best.y);revele(h.j,h.x,h.y,visionH(h));apprendreSorts(h,best);if(best.bat.guilde1)h.mana=Math.max(h.mana,manaMax(h));return{ok:true,msg:`${h.nom} franchit le portail et arrive à ${best.nom}.`,ville:best};}
+ return{ok:false,msg:'Sort inconnu.'};}
+
+// ---------- le Graal ----------
+function graalConnu(j){const p=G.joueurs[j];return G.carte.graal>=0&&!G.graalPris&&(p.obel||[]).length>=(G.carte.nObel||4);}
+function creuser(h){if(h.mp<mvtMax(h)*.99)return{ok:false,msg:'Il faut une journée complète de mouvement pour creuser.'};h.mp=0;
+ if(!G.graalPris&&idx(h.x,h.y)===G.carte.graal){G.graalPris=1;h.arts.push('graal');return{ok:true,graal:true,msg:`${h.nom} déterre le Saint Graal ! Rapportez-le dans l’une de vos villes.`};}
+ return{ok:true,msg:'Rien que de la terre et des cailloux…'};}
+function poserGraal(h,v){const k=h.arts.indexOf('graal');if(k<0||v.prop!==h.j||v.bat.graal)return false;h.arts.splice(k,1);v.bat.graal=1;return true;}
 
 // ---------- économie ----------
 function peutPayer(res,cout,n=1){let m=1e9;for(const r in cout)m=Math.min(m,Math.floor((res[r]||0)/(cout[r]*1)));return Math.max(0,Math.min(m,1e9));}
@@ -154,7 +171,7 @@ function ajouterTroupe(armee,c,n){for(const s of armee)if(s&&s.c===c){s.n+=n;ret
 function revenus(j){const r={};for(const k of RES)r[k]=0;for(const v of villesDe(j)){r.or+=revenuVille(v);if(v.bat.silo){r[FAC[v.fac].rare]++;r.minerai++;}}
  for(const o of G.objs)if(o.t==='mine'&&o.prop===j)r[o.res]+=MINE_PROD[o.res];for(const h of herosDe(j)){const i=h.comp.intendance||0;r.or+=[0,125,250,500][i];}return r;}
 function niveauFort(v){return v.bat.chateau?3:v.bat.citadelle?2:v.bat.fort?1:0;}
-function croissance(v,init){const f=FAC[v.fac];const k=v.bat.chateau?2:v.bat.citadelle?1.5:1;for(let n=1;n<=7;n++)if(v.bat['hab'+n]){const c=CRE[f.crea[n-1]];v.dispo[n-1]+=Math.floor(c.cr*k);}}
+function croissance(v,init){const f=FAC[v.fac];const k=(v.bat.chateau?2:v.bat.citadelle?1.5:1)+(v.bat.graal?.5:0);for(let n=1;n<=7;n++)if(v.bat['hab'+n]){const c=CRE[f.crea[n-1]];v.dispo[n-1]+=Math.floor(c.cr*k)+(!init&&G.semaine&&G.semaine.cre===c.id?G.semaine.bonus:0);}}
 function batDisponible(v,b){const B=BAT[b];if(v.bat[b])return{ok:false,raison:'Déjà construit'};
  for(const r of B.req||[])if(!v.bat[r])return{ok:false,raison:'Requiert '+batNom(r,v.fac)};
  if(B.unique&&villesDe(v.prop).some(w=>w.bat[b]))return{ok:false,raison:'Un seul par royaume'};
@@ -167,7 +184,8 @@ function construire(v,b){const c=batCout(b,v.fac);const p=G.joueurs[v.prop];if(v
  if(b.startsWith('guilde')){const h=heroPar(G.hpos[idx(v.x,v.y)]);if(h)apprendreSorts(h,v);}
  return true;}
 // revenu : seul le meilleur bâtiment de la lignée compte
-function revenuVille(v){if(v.bat.capitole)return 4000;if(v.bat.hotelville)return 2000;if(v.bat.mairie)return 1000;return 500;}
+function revenuVille(v){return revenuVille0(v)+(v.bat.graal?5000:0);}
+function revenuVille0(v){if(v.bat.capitole)return 4000;if(v.bat.hotelville)return 2000;if(v.bat.mairie)return 1000;return 500;}
 function revenusNets(j){return revenus(j);}
 function recruter(v,niv,n,armee){const c=CRE[FAC[v.fac].crea[niv]];const p=G.joueurs[v.prop];n=Math.min(n,v.dispo[niv],peutPayer(p.res,c.cout));if(n<=0)return 0;if(!ajouterTroupe(armee,c.id,n))return 0;payer(v.prop,c.cout,n);v.dispo[niv]-=n;return n;}
 function apprendreSorts(h,v){const maxN=h.comp.sagesse?3:2;for(let n=1;n<=3;n++)if(v.bat['guilde'+n]&&n<=maxN)for(const s of v.guilde[n])if(!h.sorts.includes(s))h.sorts.push(s);}
@@ -234,7 +252,8 @@ function nouveauJour(){G.jour++;const semaine=(G.jour-1)%7===0;
   if(semaine)tavernePiocher(p);}
  for(const h of G.heros){h.bonus.puits=0;if(semaine)h.bonus.ecurie=0;h.mp=mvtMax(h);const v=villeSous(h);if(v&&v.prop===h.j&&v.bat.guilde1)h.mana=Math.max(h.mana,manaMax(h));else h.mana=Math.min(manaMax(h),h.mana+1+(h.comp.sagesse||0));}
  for(const o of G.objs){if(o.t==='ville')o.construit=false;}
- if(semaine){for(const o of G.objs){if(o.t==='ville')croissance(o);if(o.t==='moulin'||(o.t==='bat'&&o.b==='moulin'))o.pris=0;if(o.t==='bat'&&o.b==='habitation')o.dispo=(o.dispo||0)+CRE[o.cre].cr;if(o.t==='monstre'&&!o.passage)o.n=Math.round(o.n*1.06+.4);}}
+ if(semaine){const pool=[];for(const f of FACS)FAC[f].crea.slice(0,5).forEach((c,i)=>pool.push(c));const c=R.pick(pool);G.semaine={cre:c,bonus:CRE[c].niv<=2?5:CRE[c].niv<=4?3:2};
+  for(const o of G.objs){if(o.t==='ville')croissance(o);if(o.t==='moulin'||(o.t==='bat'&&o.b==='moulin'))o.pris=0;if(o.t==='bat'&&o.b==='habitation')o.dispo=(o.dispo||0)+CRE[o.cre].cr;if(o.t==='monstre'&&!o.passage)o.n=Math.round(o.n*1.06+.4);}}
  const vivants=G.joueurs.filter(q=>!q.elim);if(vivants.length===1&&!G.fini)G.fini={gagnant:vivants[0].id};}
 function dateTxt(){const d=G.jour-1;return`Mois ${Math.floor(d/28)+1}, semaine ${Math.floor(d%28/7)+1}, jour ${d%7+1}`;}
 
@@ -242,6 +261,7 @@ function dateTxt(){const d=G.jour-1;return`Mois ${Math.floor(d/28)+1}, semaine $
 function vuEnTexte(a){let s='',run=0,cur=a[0];const out=[];for(let i=0;i<a.length;i++){if(a[i]===cur&&run<9999)run++;else{out.push(cur+':'+run);cur=a[i];run=1;}}out.push(cur+':'+run);return out.join(',');}
 function texteEnVu(s,N){const a=new Uint8Array(N*N);let i=0;for(const p of s.split(',')){const [v,n]=p.split(':').map(Number);a.fill(v,i,i+n);i+=n;}return a;}
 function serialiser(){const c=G.carte;return JSON.stringify(Object.assign({},G,{occ:undefined,oi:undefined,zoc:undefined,hpos:undefined,rs:R.s,carte:Object.assign({},c,{zone:undefined}),joueurs:G.joueurs.map(p=>Object.assign({},p,{vu:vuEnTexte(p.vu)}))}));}
-function deserialiser(s){const g=JSON.parse(s);g.joueurs.forEach(p=>p.vu=texteEnVu(p.vu,g.carte.N));G=g;R=creeRng(1);R.s=g.rs>>>0;delete G.rs;index();return G;}
+function completer(g){for(const o of g.objs)if(o.t==='ville'&&o.guilde){if(!o.guilde[1].includes('vision'))o.guilde[1].push('vision');if(!o.guilde[3].includes('portail'))o.guilde[3].push('portail');}}
+function deserialiser(s){const g=JSON.parse(s);g.joueurs.forEach(p=>p.vu=texteEnVu(p.vu,g.carte.N));completer(g);G=g;R=creeRng(1);R.s=g.rs>>>0;delete G.rs;index();return G;}
 
 if(typeof module!=='undefined')module.exports={};

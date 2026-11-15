@@ -4,18 +4,29 @@ var SON=(()=>{let ac=null,maitre=null,musG=null,mus=null,actif=true,musique=true
  const ctx=()=>{if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();maitre=ac.createGain();maitre.gain.value=.5;maitre.connect(ac.destination);musG=ac.createGain();musG.gain.value=.22;musG.connect(maitre);}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac;};
  const note=(f,t,d,type='triangle',v=.3,dest)=>{const a=ctx();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(dest||maitre);o.start(t);o.stop(t+d+.05);};
  const bruit=(t,d,v=.3,f=1200)=>{const a=ctx();if(!a)return;const b=a.createBuffer(1,a.sampleRate*d,a.sampleRate);const x=b.getChannelData(0);for(let i=0;i<x.length;i++)x[i]=(Math.random()*2-1)*(1-i/x.length);const s=a.createBufferSource();s.buffer=b;const fl=a.createBiquadFilter();fl.type='bandpass';fl.frequency.value=f;const g=a.createGain();g.gain.value=v;s.connect(fl);fl.connect(g);g.connect(maitre);s.start(t);};
+ // échantillons (bruitages Kenney, CC0) : intégrés dans la page construite, sinon chargés depuis snd/
+ const ECH={},ENC={};
+ const charger=n=>{if(ECH[n]||ENC[n])return;const a=ctx();if(!a)return;ENC[n]=1;const el=document.getElementById('snd-'+n);
+  const p=el?Promise.resolve(Uint8Array.from(atob(el.textContent.trim()),c=>c.charCodeAt(0)).buffer):fetch('snd/'+n+'.mp3').then(r=>r.arrayBuffer());
+  p.then(b=>a.decodeAudioData(b)).then(buf=>{ECH[n]=buf;}).catch(()=>{});};
+ const LISTE=['footstep00','footstep01','footstep02','footstep03','handleCoins','handleCoins2','knifeSlice','knifeSlice2','chop','drawKnife1','bookOpen','bookFlip1','bookClose','doorOpen_1','doorClose_1','metalLatch','metalClick','cloth1','dropLeather','metalPot1','beltHandle1'];
+ const ech=(l,v=.5,pv=.06)=>{if(!actif)return false;const a=ctx();if(!a)return false;const n=Array.isArray(l)?l[(Math.random()*l.length)|0]:l;if(!ECH[n]){charger(n);return false;}
+  const s=a.createBufferSource();s.buffer=ECH[n];s.playbackRate.value=1+(Math.random()*2-1)*pv;const g=a.createGain();g.gain.value=v;s.connect(g);g.connect(maitre);s.start();return true;};
  const S={
-  clic(){if(!actif)return;const a=ctx();if(!a)return;note(880,a.currentTime,.06,'square',.06);},
-  pas(){if(!actif)return;const a=ctx();if(!a)return;bruit(a.currentTime,.07,.12,500);},
-  piece(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;note(1320,t,.12,'square',.08);note(1760,t+.07,.2,'square',.07);},
-  coup(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;bruit(t,.18,.5,900);note(110,t,.15,'sawtooth',.15);},
+  precharger(){LISTE.forEach(charger);},
+  porte(o){ech(o?'doorOpen_1':'doorClose_1',.45);},livre(o){ech(o?'bookOpen':'bookClose',.5);},page(){ech('bookFlip1',.45);},
+  recrue(){ech(['beltHandle1','cloth1'],.55);},objet(){ech('dropLeather',.6);},
+  clic(){if(!actif)return;if(ech('metalClick',.25,.1))return;const a=ctx();if(!a)return;note(880,a.currentTime,.06,'square',.06);},
+  pas(){if(!actif)return;if(ech(['footstep00','footstep01','footstep02','footstep03'],.28,.08))return;const a=ctx();if(!a)return;bruit(a.currentTime,.07,.12,500);},
+  piece(){if(!actif)return;if(ech(['handleCoins','handleCoins2'],.55))return;const a=ctx();if(!a)return;const t=a.currentTime;note(1320,t,.12,'square',.08);note(1760,t+.07,.2,'square',.07);},
+  coup(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;if(ech(['knifeSlice','knifeSlice2','chop'],.6)){note(90,t,.12,'sine',.18);return;}bruit(t,.18,.5,900);note(110,t,.15,'sawtooth',.15);},
   tir(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;bruit(t,.12,.25,3000);},
   sort(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;for(let i=0;i<6;i++)note(660*Math.pow(1.26,i),t+i*.05,.3,'sine',.08);},
   mort(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;note(220,t,.4,'sawtooth',.08);note(165,t+.12,.5,'sawtooth',.07);},
   fanfare(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;[523,659,784,1047,784,1047].forEach((f,i)=>note(f,t+i*.14,.35,'square',.09));},
   defaite(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;[392,349,311,262].forEach((f,i)=>note(f,t+i*.25,.5,'triangle',.12));},
   jour(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;note(784,t,.9,'sine',.12);note(1175,t+.02,.9,'sine',.06);},
-  construire(){if(!actif)return;const a=ctx();if(!a)return;const t=a.currentTime;for(let i=0;i<3;i++){bruit(t+i*.15,.08,.4,700);}},
+  construire(){if(!actif)return;ech('metalLatch',.5);ech('chop',.4);const a=ctx();if(!a)return;const t=a.currentTime;for(let i=0;i<3;i++){bruit(t+i*.15,.08,.4,700);}},
  };
  // musique : arpèges de luth sur une gamme modale, plus vive en combat
  let pas=0,mode='carte',timer=null;const GAM={carte:[0,2,3,5,7,9,10],combat:[0,1,3,5,7,8,10]};
@@ -26,5 +37,5 @@ var SON=(()=>{let ac=null,maitre=null,musG=null,mus=null,actif=true,musique=true
  S.musique=m=>{mode=m||mode;if(!timer&&musique&&actif)boucle();};
  S.basculerSon=()=>{actif=!actif;try{localStorage.setItem('bs-son',actif?'1':'0');}catch(e){}if(actif)S.musique();return actif;};
  S.basculerMusique=()=>{musique=!musique;try{localStorage.setItem('bs-mus',musique?'1':'0');}catch(e){}if(musique)S.musique();return musique;};
- S.etat=()=>({actif,musique});S.debloquer=()=>ctx();
+ S.etat=()=>({actif,musique});S.debloquer=()=>{const a=ctx();if(a)S.precharger();return a;};
  return S;})();

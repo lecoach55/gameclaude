@@ -10,7 +10,10 @@ function teinte(hex,k){// k>0 éclaircit, k<0 assombrit
 function rgba(hex,a){let c=hex.replace('#','');if(c.length===3)c=c.split('').map(x=>x+x).join('');return`rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${a})`;}
 var TRAIT='rgba(24,14,6,.78)';
 // forme remplie avec dégradé vertical, contour sombre
-function peint(g,chemin,coul,opt={}){g.beginPath();chemin(g);const gr=g.createLinearGradient(0,opt.y0==null?0:opt.y0,opt.dx||0,opt.y1==null?100:opt.y1);gr.addColorStop(0,teinte(coul,opt.clair==null?.28:opt.clair));gr.addColorStop(.55,coul);gr.addColorStop(1,teinte(coul,opt.sombre==null?-.38:opt.sombre));g.fillStyle=gr;g.fill();if(opt.trait!==false){g.lineWidth=opt.lw||1.6;g.strokeStyle=opt.trait||TRAIT;g.stroke();}}
+var MOTIF=null;(function(){if(typeof MOTIF_PIERRE_URI==='undefined'||typeof document==='undefined')return;const im=new Image();im.onload=()=>{MOTIF=im;for(const k in SPR_CACHE)if(/^(v|l|mi|fc)/.test(k))delete SPR_CACHE[k];if(typeof VI!=='undefined'&&VI)VI.dirty=true;};im.src=MOTIF_PIERRE_URI;})();
+function motifPierre(g,ech){if(!MOTIF)return null;const p=g.createPattern(MOTIF,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix().scale(ech,ech));return p;}
+function peint(g,chemin,coul,opt={}){g.beginPath();chemin(g);const gr=g.createLinearGradient(0,opt.y0==null?0:opt.y0,opt.dx||0,opt.y1==null?100:opt.y1);gr.addColorStop(0,teinte(coul,opt.clair==null?.28:opt.clair));gr.addColorStop(.55,coul);gr.addColorStop(1,teinte(coul,opt.sombre==null?-.38:opt.sombre));g.fillStyle=gr;g.fill();
+ if(opt.pierre&&MOTIF){const p=motifPierre(g,opt.pierre);if(p){g.save();g.globalCompositeOperation='multiply';g.globalAlpha=.85;g.fillStyle=p;g.fill();g.restore();}}if(opt.trait!==false){g.lineWidth=opt.lw||1.6;g.strokeStyle=opt.trait||TRAIT;g.stroke();}}
 function boule(g,x,y,r,coul,opt={}){g.beginPath();g.arc(x,y,r,0,Math.PI*2);const gr=g.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);gr.addColorStop(0,teinte(coul,.35));gr.addColorStop(.6,coul);gr.addColorStop(1,teinte(coul,-.35));g.fillStyle=gr;g.fill();if(opt.trait!==false){g.lineWidth=opt.lw||1.4;g.strokeStyle=opt.trait||TRAIT;g.stroke();}}
 function ell(g,x,y,rx,ry,coul,opt={}){g.beginPath();g.ellipse(x,y,rx,ry,opt.rot||0,0,Math.PI*2);const gr=g.createRadialGradient(x-rx*.3,y-ry*.45,1,x,y,Math.max(rx,ry));gr.addColorStop(0,teinte(coul,.3));gr.addColorStop(.6,coul);gr.addColorStop(1,teinte(coul,-.38));g.fillStyle=gr;g.fill();if(opt.trait!==false){g.lineWidth=opt.lw||1.5;g.strokeStyle=TRAIT;g.stroke();}}
 function ombreSol(g,x,y,rx,ry,a=.35){g.save();g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);const gr=g.createRadialGradient(x,y,1,x,y,rx);gr.addColorStop(0,`rgba(0,0,0,${a})`);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fill();g.restore();}
@@ -153,8 +156,20 @@ function dessAnge(g,d){g.save();g.shadowColor='#fff6c8';g.shadowBlur=14;ailes(g,
  g.save();g.strokeStyle='#ffe58a';g.lineWidth=2;g.shadowColor='#ffe58a';g.shadowBlur=8;g.beginPath();g.ellipse(50,12,9,3,0,0,7);g.stroke();g.restore();}
 
 var SPR_CACHE={};
+// ---------- créatures pré-rendues en 3D (sprites3d.js) ----------
+var IMG3D={};
+function charger3D(){if(typeof SPR3D==='undefined')return;for(const id in SPR3D){const im=new Image();im.onload=()=>{IMG3D[id]=im;for(const k in SPR_CACHE)if(k.startsWith(id+':')||k.startsWith('m'+id+':'))delete SPR_CACHE[k];if(typeof V!=='undefined')V.miniDirty=true;};im.src=SPR3D[id].img;}}
+function a3d(id){return IMG3D[id]?SPR3D[id]:null;}
+// image k de l'animation an (idle, atk, hit, die) : [image, sx, sy, sw, sh]
+function cadre3D(id,an,k){const D=SPR3D[id];const ord=['idle','atk','hit','die'];let o=0;for(const a of ord){if(a===an)break;o+=D.n[a]||0;}const n=D.n[an]||D.n.idle;k=Math.max(0,Math.min(n-1,k|0));return[IMG3D[id],(o+k)*D.w,0,D.w,D.h];}
+// dessine la créature : pied au point (x,y), echelle = pixels par unité du monde, miroir = regarde à gauche
+function dessiner3D(g,id,an,k,x,y,ppu,miroir){const D=SPR3D[id];const [im,sx,sy,sw,sh]=cadre3D(id,an,k);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
+charger3D();
 // sprite d'une créature (face à droite), taille S, avec ombre
-function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
+function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);
+ if(a3d(id)){const D=SPR3D[id];const g=c.getContext('2d');ombreSol(g,S*.5,S*.896,S*.3,S*.06,.4);// même cadrage que les créatures dessinées : sol à 0,896 S
+  let ppu=S*.62/1.7;const [im,sx,sy,sw,sh]=cadre3D(id,'idle',0);const e0=ppu/D.pxu;const larg=Math.max(D.ax,sw-D.ax)*2*e0,haut=D.ay*e0;const f=Math.min(1,S*.98/larg,S*.86/haut);ppu*=f;
+  dessiner3D(g,id,'idle',0,S*.5,S*.896,ppu,false);SPR_CACHE[k]=c;return c;}const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
  ombreSol(g,50,91,30,6,.4);
  ({hum:dessHum,squel:dessSquel,spectre:dessSpectre,cheval:dessCheval,cavalier:dessCavalier,centaure:dessCentaure,griffon:dessGriffon,loup:dessLoup,treant:dessTreant,dragon:dessDragon,ange:dessAnge})[d.t](g,d);
  SPR_CACHE[k]=c;return c;}
@@ -177,7 +192,12 @@ function spriteHeros(h,S){const k='h'+h.classe+':'+h.j+':'+S;if(SPR_CACHE[k])ret
  SPR_CACHE[k]=c;return c;}
 
 // ---------- portraits ----------
-function portrait(h,S=64){const k='p'+h.id+':'+h.portrait+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);const g=c.getContext('2d');g.scale(S/64,S/64);const r=creeRng(h.portrait+7);
+var IMGP={};(function(){if(typeof POR3D==='undefined')return;for(const c in POR3D)POR3D[c].forEach((u,i)=>{const im=new Image();im.onload=()=>{IMGP[c+i]=im;for(const k in SPR_CACHE)if(k[0]==='p')delete SPR_CACHE[k];};im.src=u;});})();
+function portrait(h,S=64){const k='p'+h.id+':'+h.portrait+':'+S+(IMGP[h.classe+0]?'3':'');if(SPR_CACHE[k])return SPR_CACHE[k];
+ const ni=Math.max(0,HEROS_NOMS[h.classe].indexOf(h.nom));const ip=IMGP[h.classe+(ni>=0?ni:h.portrait%4)];
+ if(ip){const c=mkC(S,S);const g=c.getContext('2d');const fac=FAC[h.fac];const bg=g.createRadialGradient(S*.45,S*.35,S*.05,S*.5,S*.5,S*.75);bg.addColorStop(0,teinte(fac.coul.drap,.3));bg.addColorStop(1,teinte(fac.coul.drap,-.6));g.fillStyle=bg;g.fillRect(0,0,S,S);
+  g.drawImage(ip,0,0,S,S);const v=g.createRadialGradient(S/2,S/2,S*.35,S/2,S/2,S*.75);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.45)');g.fillStyle=v;g.fillRect(0,0,S,S);
+  g.strokeStyle='#c09a48';g.lineWidth=Math.max(1.5,S/32);g.strokeRect(g.lineWidth/2,g.lineWidth/2,S-g.lineWidth,S-g.lineWidth);SPR_CACHE[k]=c;return c;}const c=mkC(S,S);const g=c.getContext('2d');g.scale(S/64,S/64);const r=creeRng(h.portrait+7);
  const fac=FAC[h.fac];const mag=['clerc','druide','necromancien'].includes(h.classe);const fem=/[ae]$/.test(h.nom)&&!['Tristan','Corbin','Lazare','Ambroise','Nérée','Oren','Faelan','Thalion','Elwyn'].includes(h.nom)||['Isolde','Mélisende','Ysoria','Liriel','Maëlis','Séverine','Ombeline','Morgane','Sylvara','Bérénice','Clothilde'].includes(h.nom);
  const bg=g.createRadialGradient(28,22,4,32,32,44);bg.addColorStop(0,teinte(fac.coul.drap,.35));bg.addColorStop(1,teinte(fac.coul.drap,-.55));g.fillStyle=bg;g.fillRect(0,0,64,64);
  const peaux=h.fac==='necro'?['#d8d0c8','#c8c0c0','#e0d6cc']:['#f0c8a0','#e3b58c','#c99470','#a87650','#f6d8b8'];const peau=r.pick(peaux);

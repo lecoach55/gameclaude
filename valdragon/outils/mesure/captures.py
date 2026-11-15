@@ -6,7 +6,7 @@ SK="()=>{const s=document.getElementById('story');if(s&&s.style.display==='block
 SCN=[('explo_F2','explo',2),('explo_F6','explo',6),('explo_F10','explo',10),('explo_F14','explo',14),('combat_F6','battle',6),('boss_F8','boss',8)]
 async def one(b,out,lvl,tag,kind,F):
     pg=await b.new_page(viewport={'width':390,'height':780})
-    await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','%d')}catch(e){}"%lvl)
+    await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','%d')}catch(e){}window.__noAutoQ=1;"%lvl)
     await pg.goto('http://localhost:8765/index_local.html',timeout=180000);await pg.wait_for_timeout(1500)
     await pg.click('#nw',timeout=120000);await pg.wait_for_function("window.VD&&VD.P",timeout=60000);await pg.wait_for_timeout(2500)
     for i in range(4): await pg.evaluate(SK);await pg.wait_for_timeout(300)

@@ -20,7 +20,7 @@ async def main():
                 if only and not any(o in tag for o in only): continue
                 pg=await b.new_page(viewport={'width':390,'height':780},device_scale_factor=1)
                 pg.on('pageerror',lambda e:errs.append(str(e)[:200]))
-                await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','%d')}catch(e){}"%lvl)
+                await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','%d')}catch(e){}window.__noAutoQ=1;"%lvl)
                 await pg.goto('http://localhost:8765/index_local.html',timeout=180000);await pg.wait_for_timeout(1500)
                 await pg.click('#nw',timeout=120000);await pg.wait_for_function("window.VD&&VD.P",timeout=60000);await pg.wait_for_timeout(2500)
                 for i in range(4): await pg.evaluate(SK);await pg.wait_for_timeout(300)

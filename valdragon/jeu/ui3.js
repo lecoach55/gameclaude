@@ -20,7 +20,7 @@ let AC=null,muted=false;try{muted=localStorage.getItem('vd_mute')==='1';}catch(e
 const QN=['Économie','Normale','Haute','Maximale'],QI=['▫️','✦','✨','💎'];let qMax=3,qAuto=true,hiQ=true;try{const s=localStorage.getItem('vd_q2');if(s!==null){qMax=+s;qAuto=false;}}catch(e){}
 const mobile=(matchMedia&&matchMedia('(pointer:coarse)').matches)||Math.min(innerWidth,innerHeight)<600;let qCur=Math.min(qMax,mobile?1:2);function qSet(l){qCur=l;G3.setLevel(l);$('fxq').innerHTML=uiIco('q'+l,22);hiQ=l>=1;}qSet(qCur);
 $('fxq').onclick=()=>{const n=(qCur+3)%4;qMax=n;qAuto=false;try{localStorage.setItem('vd_q2',String(n))}catch(e){}qSet(n);toast('Qualité '+QN[n]+(n===0?' : la plus fluide.':n===3?' : tous les effets, pour les téléphones puissants.':'.'));};
-const perf={t:0,n:0,bad:0,good:0,told:false};function perfTick(dt){perf.t+=dt;perf.n++;if(perf.t>2){const fps=perf.n/perf.t;perf.t=0;perf.n=0;
+const perf={t:0,n:0,bad:0,good:0,told:false};function perfTick(dt){if(window.__noAutoQ)return;perf.t+=dt;perf.n++;if(perf.t>2){const fps=perf.n/perf.t;perf.t=0;perf.n=0;
  perf.bad=fps<42?perf.bad+1:0;perf.good=fps>58?perf.good+1:0;
  if(perf.bad>=2&&qCur>0){qSet(qCur-1);perf.bad=0;perf.drops=(perf.drops||0)+1;if(!perf.told){perf.told=true;toast('Qualité ajustée automatiquement pour rester fluide.');}}
  else if(qAuto&&perf.good>=6&&qCur<qMax&&(perf.drops||0)<2){qSet(qCur+1);perf.good=0;}}}
@@ -421,3 +421,4 @@ $('bugb').onclick=()=>report();
 async function report(){const b=$('tbug')||$('bugb');b.disabled=true;const bt=b.textContent;b.textContent='…';let img='';try{const d=G3._d();d.composer.render(.016);const c=document.createElement('canvas');const src=d.renderer.domElement;const k=Math.min(1,480/src.width);c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}catch(e){}
  const st={test:TEST,date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,mode,F:VD.F,pos:VD.P&&[+VD.P.x.toFixed(2),+VD.P.y.toFixed(2)],combat:VD.B?{round:VD.B.round,foes:VD.B.foes.map(f=>f.k+':'+Math.round(f.hp)),boss:!!VD.B.boss}:null,heros:VD.P&&VD.P.heroes.map(h=>h.n+' '+Math.round(h.hp)+'/'+h.s.mhp),qualite:QN[qCur],img_s:(stats(TF.ft.slice(-60))||{}).fps,erreurs:ERRS.slice(),capture:img};
  const ok=await cloudPut('signalement_'+Date.now(),st);try{localStorage.setItem('valdragon_signalement',JSON.stringify(st));}catch(e){}b.disabled=false;b.textContent=bt;toast(ok?'Signalement envoyé à Claude ✓':'Signalement gardé sur cet appareil');}
+addEventListener('vd-save',()=>{try{save();}catch(e){}});

@@ -113,9 +113,13 @@ function purgeObj(root,seen=new Set()){root.traverse(o=>{if(o===pts||o.userData.
 function purge(sc){if(sc===scW&&EX.key&&EX.key.shadow.map){EX.key.shadow.map.dispose();EX.key.shadow.map=null;}if(sc===scB&&BT.key&&BT.key.shadow.map){BT.key.shadow.map.dispose();BT.key.shadow.map=null;}purgeObj(sc);while(sc.children.length)sc.remove(sc.children[0]);}
 function keepAll(){if(!K.ok)return;Object.values(K.g).forEach(gl=>gl.scene.traverse(o=>{if(o.geometry)o.geometry.userData.keep=1;[].concat(o.material||[]).forEach(m=>{m.userData.keep=1;TEXK.forEach(k=>{if(m[k])m[k].userData.keep=1;});});}));Object.values(K.geo).forEach(p=>{if(p&&p.geo)p.geo.userData.keep=1;});}
 /* ---------- initialisation ---------- */
-function init(container){renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(1.75,devicePixelRatio||1));
+function init(container){renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(1.75,devicePixelRatio||1));renderer.debug.checkShaderErrors=false;
  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  renderer.domElement.style.cssText='position:fixed;inset:0;width:100%;height:100%;z-index:0';container.prepend(renderer.domElement);
+ // Perte de l'affichage 3D (GPU saturé, mise en veille…) : on demande au navigateur de le rendre, on recompile, et sinon on propose de relancer
+ {const cv=renderer.domElement;let lostT=null;const box=()=>{let d=document.getElementById('glLost');if(!d){d=document.createElement('div');d.id='glLost';d.style.cssText='position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:rgba(5,3,8,.82);color:#f0e0c0;font:16px Georgia,serif;text-align:center;padding:20px';d.innerHTML='<div>L\'affichage 3D s\'est interrompu.<br>Ta partie est sauvegardée.</div><button style="font:16px Georgia,serif;padding:10px 18px;border-radius:10px;border:1px solid #c9a050;background:#2a1c10;color:#ffe0a0">Relancer l\'affichage</button>';d.querySelector('button').onclick=()=>location.reload();document.body.appendChild(d);}return d;};
+  cv.addEventListener('webglcontextlost',e=>{e.preventDefault();G3.lost=(G3.lost||0)+1;try{window.dispatchEvent(new Event('vd-save'));}catch(_){}clearTimeout(lostT);lostT=setTimeout(()=>{box().style.display='flex';},3000);},false);
+  cv.addEventListener('webglcontextrestored',()=>{clearTimeout(lostT);const d=document.getElementById('glLost');if(d)d.style.display='none';hold=0;needComp=1;renderer.shadowMap.needsUpdate=true;},false);}
  cam=new THREE.PerspectiveCamera(42,1,.1,200);scW=new THREE.Scene();scB=new THREE.Scene();
  // MSAA dans la chaîne d'effets : sans cela l'anticrénelage du renderer est perdu (bords en escalier)
  composer=new EffectComposer(renderer,new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,samples:4}));rp=new RenderPass(scW,cam);composer.addPass(rp);bloom=new UnrealBloomPass(new THREE.Vector2(256,256),.85,.5,.82);composer.addPass(bloom);grade=gradePass();composer.addPass(grade);/* une seule passe finale (tonalité + sRGB + étalonnage) */
@@ -144,6 +148,8 @@ function updParticles(dt){let n=0;for(let i=pData.length-1;i>=0;i--){const p=pDa
 // scintillement irrégulier (bruit 1D) plutôt qu'une sinusoïde régulière
 const _fh=n=>{const s=Math.sin(n*127.1)*43758.5453;return s-Math.floor(s);};const vn1=x=>{const i=Math.floor(x),f=x-i,u=f*f*(3-2*f);return _fh(i)*(1-u)+_fh(i+1)*u;};
 const flick=(t,i)=>.78+.16*vn1(t*6.3+i*17.1)+.08*vn1(t*17.7+i*5.3)-.05*(vn1(t*1.3+i*3.1)>.82?1:0);
+// Nombre FIXE de lumières ponctuelles par scène : sinon chaque scène (étage, combat, marchand) recompile tous les shaders.
+const NPL=6;function padPL(sc){let n=0;sc.traverse(o=>{if(o.isPointLight)n++;});for(;n<NPL;n++){const l=new THREE.PointLight(0,0,1,2);l.position.set(0,-50,0);sc.add(l);}}
 function lightPool(scene,n){const L=[];for(let i=0;i<n;i++){const l=new THREE.PointLight(0xffa050,0,6,2);l.userData.dec=10;scene.add(l);L.push(l);}return L;}
 
 /* ===================== EXPLORATION ===================== */
@@ -189,7 +195,7 @@ function buildFloor(VD){endTitle();mode='explo';needComp=1;EX.lavas=[];EX.bats=n
  EX.party=VD.P.heroes.map(h=>{const R=heroM(h.cls,eqOf(h));R.root.scale.multiplyScalar(EXS());scW.add(R.root);return R;});EX.trail=[];
   EX.packs=new Map();EX.packList=VD.E.slice();VD.E.forEach(addPackModel);_bf2(VD,B);
 }
-function addPackModel(e){{const R=monM(e.boss?'boss':e.k,{el:e.el});if(renderer&&!needComp){const v=R.root.visible;R.root.visible=true;try{renderer.compile(R.root,cam,scW);}catch(_){}R.root.visible=v;}if(e.boss)R.root.scale.setScalar(R.scale*.8);else R.root.scale.multiplyScalar(e.elite?1.15:1);R.root.scale.multiplyScalar(EXS());scW.add(R.root);EX.packs.set(e,R);
+function addPackModel(e){{const R=monM(e.boss?'boss':e.k,{el:e.el});if(!needComp)warm(R.root,scW);if(e.boss)R.root.scale.setScalar(R.scale*.8);else R.root.scale.multiplyScalar(e.elite?1.15:1);R.root.scale.multiplyScalar(EXS());scW.add(R.root);EX.packs.set(e,R);
   if(e.elite){const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.55,24),new THREE.MeshBasicMaterial({color:{rapide:0x7fe0ff,blinde:0xd0d0d0,vampire:0xff3a5a,ardent:0xff8a2a}[e.elite],transparent:true,opacity:.8,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.02;R.root.add(ring);}R.root.visible=false;return R;}}
 function _bf2(VD,B){
  // lumière du groupe (projecteur avec ombres) + lanterne
@@ -197,7 +203,7 @@ function _bf2(VD,B){
  EX.lan=new THREE.PointLight(0xffc690,3.0,7.5,1.7);
  scW.add(pts);pData.length=0;scW.add(smokeSys());smokeClear();
  if(K.ok){EX.fogP=groundFog(26,new THREE.Color(B.fog).lerp(new THREE.Color(B.acc),.25).offsetHSL(0,0,.12),.28);EX.fogP.visible=hiQ;scW.add(EX.fogP);}else EX.fogP=null;
- EX.yaw=EX.yaw||0;EX.seenN=0;rp.scene=scW;}
+ EX.yaw=EX.yaw||0;EX.seenN=0;padPL(scW);rp.scene=scW;}
 
 /* ---------- donjon modulaire (KayKit) ---------- */
 const KFLOOR=[[['floor_tile_large',.94],['floor_tile_large_rocks',.045],['floor_tile_big_grate',.015]],[['floor_dirt_large',.85],['floor_dirt_large_rocky',.15]],[['floor_tile_large',.92],['floor_tile_big_grate',.03],['floor_tile_large_rocks',.05]],[['floor_tile_large',.93],['floor_tile_large_rocks',.07]]];
@@ -425,8 +431,8 @@ function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);ke
   [[3.4,-3.4,1.4,2.3,.09],[-3.6,-4.8,1.2,2.0,.08]].forEach(([x,z,r0,r1,op])=>{const ry=lightRay(x,z,11,r0*.35,r1,new THREE.Color(Bi.light).lerp(new THREE.Color(0xffffff),.5),op);ry.rotation.z=x*.03;scB.add(ry);BT.rays.push(ry);});
   if(tier===2)for(let i=0;i<5;i++){const a=hr(i,40)*TAU,r=4.5+hr(i,41)*2.5;const l=lavaDecal(2.4,1.6,i*13);l.position.set(Math.cos(a)*r,.03,Math.sin(a)*r-1);l.rotation.z=hr(i,42)*3;scB.add(l);BT.lavas.push(l);}}
  else BT.fogP=null;
- if(K.ok){const fill=new THREE.PointLight(0xffd8b0,18,11,1.6);fill.position.set(0,3.2,.6);scB.add(fill);}const rim=new THREE.DirectionalLight(Bi.acc,.9);rim.position.set(-3,4,-8);scB.add(rim);
- BT.flash=lightPool(scB,2);BT.flash.forEach(l=>{l.decay=1.6;l.distance=8;});
+ if(K.ok){const fill=new THREE.PointLight(0xffd8b0,18,11,1.6);fill.position.set(0,3.2,.6);scB.add(fill);}/* contre-jour : lumière ponctuelle lointaine sans atténuation (= directionnelle, mais même famille de shaders que l'exploration) */const rim=new THREE.PointLight(Bi.acc,.9,0,0);rim.position.set(-30,40,-80);scB.add(rim);
+ BT.flash=lightPool(scB,1);BT.flash.forEach(l=>{l.decay=1.6;l.distance=8;});
  // décor du pourtour : pas d'ombre projetée (elle tomberait hors de l'arène) ; seuls les personnages en projettent
  scB.traverse(o=>{if(o.isMesh&&!o.isSkinnedMesh)o.castShadow=false;});
  // unités
@@ -435,7 +441,7 @@ function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);ke
  const place=(arr,z,sp)=>arr.forEach((f,i)=>addUnit(f,(i-(arr.length-1)/2)*sp,z));
  if(B.boss){addUnit(B.foes.find(f=>f.boss),0,-3.6);place(foes,-1.2,1.6);}else{place(fr,-1.3,Math.min(1.9,7/fr.length));place(bk,-3.5,Math.min(2.1,7.5/Math.max(1,bk.length)));if(bk.length&&fr.length&&bk.length===fr.length){bk.forEach(f=>{const R=BT.units.get(f);if(R){R.home.x+=.85;R.root.position.x=R.home.x;}});}}
  [['mage',-2.2,3.1],['guerrier',0,2.4],['rodeuse',2.2,3.1]].forEach(([c,x,z])=>addUnit(VD.P.heroes.find(h=>h.cls===c),x,z));
- scB.add(pts);pData.length=0;rp.scene=scB;BT.camT=0;BT.intro=1;BT.vic=null;BT.focus=null;BT.cine=B.boss?{t:0}:null;}
+ scB.add(pts);pData.length=0;padPL(scB);rp.scene=scB;BT.camT=0;BT.intro=1;BT.vic=null;BT.focus=null;BT.cine=B.boss?{t:0}:null;}
 function addUnit(u,x,z){const R=u.side==='h'?heroM(u.cls,eqOf(u)):monM(u.boss?'boss':u.k,{el:u.el});if(u.elite)R.root.scale.multiplyScalar(1.15);
  R.root.position.set(x,0,z);R.root.rotation.y=u.side==='h'?Math.PI:0;R.home={x,z};R.st={walk:0,act:null,p:0,hit:0,dead:0,phase:Math.random()*5};R.off=new THREE.Vector3();
  if(u.elite){const ring=new THREE.Mesh(new THREE.RingGeometry(.5,.62,28),new THREE.MeshBasicMaterial({color:{rapide:0x7fe0ff,blinde:0xd0d0d0,vampire:0xff3a5a,ardent:0xff8a2a}[u.mods[0]],transparent:true,opacity:.9,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.03;R.root.add(ring);R.eRing=ring;}
@@ -530,8 +536,15 @@ function shake(v){camShake=Math.max(camShake,v);}
 function zoom(u,z,d){const p=u?worldPos(u,.8):new THREE.Vector3(0,.8,1);const o={z:1,x:p.x,y:p.y,zz:p.z};BT.zoom=o;fxAdd({d,upd:q=>{const e=q<.25?q/.25:1-(q-.25)/.75;o.z=1+(z-1)*e*e*(3-2*e);},end:()=>{o.z=1;}});}
 function setTarget(fn){for(const[u,R]of BT.units)R.selTarget=fn?fn(u):false;}
 // précompile tous les matériaux de la scène (même cachés par le brouillard) juste après sa construction
-let needComp=0;function precompile(sc){const hid=[];sc.traverse(o=>{if(!o.visible){hid.push(o);o.visible=true;}});try{renderer.compile(sc,cam);}catch(e){}hid.forEach(o=>o.visible=false);}
-function render(t,dt){if(!renderer.shadowMap.autoUpdate&&(++shN%shEvery===0||needComp))renderer.shadowMap.needsUpdate=true;if(needComp&&rp&&rp.scene){needComp++;if(needComp===2||needComp===20)precompile(rp.scene);if(needComp>20)needComp=0;}if(grade){const G=GRADE.tier[(mode==='battle'?BT.tier:mode==='title'?0:EX.tier)||0];grade.uniforms.tint.value.set(...G.tint);grade.uniforms.sat.value=G.sat;grade.uniforms.con.value=G.con;grade.uniforms.vig.value=G.vig*(mode==='battle'?1.1:1);grade.uniforms.t.value=(t*7)%100;grade.uniforms.asp.value=W/H;flashV=Math.max(0,flashV-(dt||.016)*3.5);grade.uniforms.flash.value=flashV;}composer.render(dt);}
+// Préparation des shaders SANS bloquer : compileAsync lance la compilation (en parallèle si le GPU le permet),
+// et on n'affiche pas la nouvelle scène tant qu'elle n'est pas prête (au plus 4 s) -> plus de gel de plusieurs secondes.
+let needComp=0,hold=0,holdT=0;
+function precompile(sc,block){const hid=[];sc.traverse(o=>{if(!o.visible&&!o.isLight){hid.push(o);o.visible=true;}});let p=null;
+ try{p=renderer.compileAsync?renderer.compileAsync(sc,cam):(renderer.compile(sc,cam),null);}catch(e){}hid.forEach(o=>o.visible=false);
+ if(p&&block){const id=++hold;holdT=performance.now();p.catch(()=>{}).then(()=>{if(hold===id)hold=0;});}}
+function warm(obj,sc){if(!renderer)return;const v=obj.visible;obj.visible=true;try{const p=renderer.compileAsync(obj,cam,sc);p&&p.catch(()=>{});}catch(_){}obj.visible=v;}
+function render(t,dt){if(!renderer.shadowMap.autoUpdate&&(++shN%shEvery===0||needComp))renderer.shadowMap.needsUpdate=true;if(needComp&&rp&&rp.scene){needComp++;if(needComp===2)precompile(rp.scene,true);else if(needComp===20&&!hold)precompile(rp.scene,false);if(needComp>20&&!hold)needComp=0;}
+ if(hold){if(performance.now()-holdT<4000)return;hold=0;}if(grade){const G=GRADE.tier[(mode==='battle'?BT.tier:mode==='title'?0:EX.tier)||0];grade.uniforms.tint.value.set(...G.tint);grade.uniforms.sat.value=G.sat;grade.uniforms.con.value=G.con;grade.uniforms.vig.value=G.vig*(mode==='battle'?1.1:1);grade.uniforms.t.value=(t*7)%100;grade.uniforms.asp.value=W/H;flashV=Math.max(0,flashV-(dt||.016)*3.5);grade.uniforms.flash.value=flashV;}composer.render(dt);}
 function flash(v){flashV=Math.max(flashV,v);}
 function setBloom(s){bloom.strength=s;}
 let qLvl=-1,shFix=null,shEvery=1,shN=0;function setLevel(l){l=Math.max(0,Math.min(3,l));const shOld=renderer.shadowMap.enabled;qLvl=l;hiQ=l>=1;const dpr=devicePixelRatio||1;

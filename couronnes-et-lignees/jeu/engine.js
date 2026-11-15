@@ -552,9 +552,10 @@
       }
       case 'construire': {
         s.gold -= bcost(s); s.builds++; s.prestige += P.buildPrest;
-        { const mine = myRegions(s); const rg = arg != null && s.regions[arg] && s.regions[arg].owner === 'me' ? s.regions[arg] : mine.slice().sort((a, b) => a.builds - b.builds)[0]; if (rg) rg.builds++; }
+        { const mine = myRegions(s); const rg = arg != null && s.regions[arg] && s.regions[arg].owner === 'me' ? s.regions[arg] : mine.slice().sort((a, b) => a.builds - b.builds)[0]; if (rg) { rg.builds++; s._bReg = rg.i; } else s._bReg = null; }
         const types = buildTypes(s), k = types.includes(arg2) ? arg2 : pick(s, types), Bt = BUILDINGS[k];
         s.edif = s.edif || {}; s.edif[k] = (s.edif[k] || 0) + 1;
+        if (s._bReg != null && s.regions[s._bReg]) { const R = s.regions[s._bReg]; (R.bl = R.bl || []).push(k); }
         if (k === 'moulin') s.stab += 3;
         if (k === 'abbaye') s.prestige += 3;
         if (k === 'donjon') { const rg = arg != null && s.regions[arg] ? s.regions[arg] : myRegions(s).find(x => x.cap) || myRegions(s)[0]; if (rg) rg.def = (rg.def || 0) + 12; }

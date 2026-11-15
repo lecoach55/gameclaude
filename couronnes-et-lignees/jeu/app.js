@@ -629,6 +629,29 @@ const MAP2 = (() => {
     let s = ''; for (let k = 0; k < n; k++) { const dx = (k - (n - 1) / 2) * 6, dy = (k % 2) * 3; s += `<g transform="translate(${F(x + dx)} ${F(y + dy)})"><rect x="-2.4" y="-2" width="4.8" height="4" fill="#efe2c6" stroke="#5a4024" stroke-width=".5"/><path d="M-3.2 -2 L0 -5 L3.2 -2 Z" fill="#a8743c" stroke="#5a4024" stroke-width=".5"/></g>`; }
     return `<g pointer-events="none">${s}</g>`;
   }
+  // édifices dessinés à la main (un par chantier, à côté du château)
+  const INK = '#3b2a18', WALL = '#f1e6cc', ROOF = '#8c3a2c';
+  function edifice(k, x, y) {
+    const o = `<g transform="translate(${F(x)} ${F(y)}) scale(1.15)" pointer-events="none"><ellipse cy="5.5" rx="8" ry="2" fill="#000" opacity=".15"/>`;
+    switch (k) {
+      case 'moulin': return o + `<path d="M-3.5 5 L-2.4 -6 L2.4 -6 L3.5 5 Z" fill="${WALL}" stroke="${INK}" stroke-width=".6"/><path d="M-2.8 -6 L0 -9 L2.8 -6 Z" fill="${ROOF}" stroke="${INK}" stroke-width=".5"/><path d="M-.8 5 v-2.4 q.8 -1.2 1.6 0 v2.4" fill="${INK}"/>
+        <g class="mill" style="transform-origin:0px -6px"><path d="M0 -6 L-7 -12 M0 -6 L6 -13 M0 -6 L7 0 M0 -6 L-6 1" stroke="${INK}" stroke-width=".7"/><path d="M-7 -12 l1.6 -1.4 l3.4 4 l-1.6 1.4 Z M6 -13 l1.4 1.6 l-4 3.4 l-1.4 -1.6 Z M7 0 l-1.6 1.4 l-3.4 -4 l1.6 -1.4 Z M-6 1 l-1.4 -1.6 l4 -3.4 l1.4 1.6 Z" fill="#efe6cf" stroke="${INK}" stroke-width=".4"/></g><circle cy="-6" r=".9" fill="${INK}"/></g>`;
+      case 'marche': return o + `<rect x="-8" y="-1" width="16" height="6" fill="#d9c08a" stroke="${INK}" stroke-width=".5"/><path d="M-9.5 -1 L-6 -6 L6 -6 L9.5 -1 Z" fill="#9c5a2e" stroke="${INK}" stroke-width=".6"/><path d="M-6 5 v-6 M-2 5 v-6 M2 5 v-6 M6 5 v-6" stroke="${INK}" stroke-width=".6"/><path d="M-8 -1 h16 l-1 2 h-2.3 l-1-2 l-1 2 h-2.4 l-1 -2 l-1 2 h-2.4 l-1 -2 l-1 2 h-2.3 Z" fill="#c43d2a" opacity=".85"/><circle cx="-4" cy="3.6" r="1.2" fill="#b98a2e"/><rect x="2.5" y="2.3" width="2.4" height="2.4" fill="#7a5a30"/></g>`;
+      case 'abbaye': return o + `<rect x="-7" y="-3" width="10" height="8" fill="${WALL}" stroke="${INK}" stroke-width=".6"/><path d="M-8 -3 L-2 -7 L4 -3 Z" fill="#6f6a7e" stroke="${INK}" stroke-width=".5"/><rect x="3" y="-9" width="4.5" height="14" fill="${WALL}" stroke="${INK}" stroke-width=".6"/><path d="M2.4 -9 L5.25 -13.5 L8.1 -9 Z" fill="#6f6a7e" stroke="${INK}" stroke-width=".5"/><path d="M5.25 -13.5 v-3 M4 -15.3 h2.5" stroke="${INK}" stroke-width=".6"/><path d="M-5 5 v-3 q1 -1.6 2 0 v3 M4.5 -5 q.75 -1 1.5 0 v1.5 h-1.5 Z" fill="${INK}"/><circle cx="-2" cy="-.6" r="1.1" fill="#2c4f8a" stroke="${INK}" stroke-width=".3"/></g>`;
+      case 'donjon': return o + `<rect x="-4.5" y="-10" width="9" height="15" fill="#d9ccb0" stroke="${INK}" stroke-width=".7"/><path d="M-5.5 -10 v-2.5 h2 v1.4 h2 v-1.4 h2 v1.4 h2 v-1.4 h2 v2.5 Z" fill="#d9ccb0" stroke="${INK}" stroke-width=".6"/><path d="M-4.5 -4 h9 M-4.5 1 h9 M-1.5 -10 v6 M1.8 -4 v5" stroke="#9c8a68" stroke-width=".35"/><rect x="-.8" y="-8.2" width="1.6" height="2.6" fill="${INK}"/><path d="M-1.5 5 v-2.8 q1.5 -2 3 0 v2.8" fill="${INK}"/></g>`;
+      case 'lices': return o + `<path d="M-9 4 h18 M-9 1.5 h18" stroke="#7a5a30" stroke-width=".8"/><path d="M-9 5 v-5 M-4.5 5 v-5 M0 5 v-5 M4.5 5 v-5 M9 5 v-5" stroke="#5a4024" stroke-width=".7"/><path d="M-6 0 v-10 M6 0 v-10" stroke="${INK}" stroke-width=".6"/><path d="M-6 -10 l4 1.4 l-4 1.4 Z" fill="#c43d2a"/><path d="M6 -10 l-4 1.4 l4 1.4 Z" fill="#2c4f8a"/><path d="M-2 -1 l4 -3" stroke="#6b5230" stroke-width=".7"/></g>`;
+      case 'universite': return o + `<rect x="-8" y="-4" width="16" height="9" fill="${WALL}" stroke="${INK}" stroke-width=".6"/><path d="M-9 -4 L0 -8.5 L9 -4 Z" fill="#3c5a7a" stroke="${INK}" stroke-width=".5"/><path d="M-5.5 1 v-3 q.9 -1.4 1.8 0 v3 Z M-1 1 v-3 q.9 -1.4 1.8 0 v3 Z M3.5 1 v-3 q.9 -1.4 1.8 0 v3 Z" fill="#2c3f5e"/><path d="M-8 5 h16" stroke="${INK}" stroke-width=".6"/><path d="M0 -8.5 v-2.6" stroke="${INK}" stroke-width=".5"/><path d="M0 -11 l2.4 .8 l-2.4 .8 Z" fill="#b98a2e"/></g>`;
+      case 'hopital': return o + `<rect x="-8" y="-3" width="16" height="8" fill="${WALL}" stroke="${INK}" stroke-width=".6"/><path d="M-9 -3 L-5 -7.5 L5 -7.5 L9 -3 Z" fill="#7a6a58" stroke="${INK}" stroke-width=".5"/><rect x="-1.8" y="-1.6" width="3.6" height="3.6" fill="#fff" stroke="${INK}" stroke-width=".3"/><path d="M0 -1.1 v2.6 M-1.3 .2 h2.6" stroke="#c4302a" stroke-width=".9"/><path d="M-6 5 v-2.5 q.8 -1.2 1.6 0 v2.5 M4.4 5 v-2.5 q.8 -1.2 1.6 0 v2.5" fill="${INK}"/></g>`;
+    }
+    return '';
+  }
+  function cathedral(x, y, done) {
+    return `<g transform="translate(${F(x)} ${F(y)})" pointer-events="none"><ellipse cy="6" rx="14" ry="2.6" fill="#000" opacity=".16"/>
+      <rect x="-10" y="-6" width="20" height="12" fill="#efe4c8" stroke="${INK}" stroke-width=".7"/><path d="M-11 -6 L0 -12 L11 -6 Z" fill="#5d6577" stroke="${INK}" stroke-width=".6"/>
+      ${done ? `<rect x="-10" y="-20" width="5" height="26" fill="#efe4c8" stroke="${INK}" stroke-width=".7"/><rect x="5" y="-20" width="5" height="26" fill="#efe4c8" stroke="${INK}" stroke-width=".7"/><path d="M-10.6 -20 L-7.5 -29 L-4.4 -20 Z M4.4 -20 L7.5 -29 L10.6 -20 Z" fill="#5d6577" stroke="${INK}" stroke-width=".6"/><path d="M-7.5 -29 v-3 M7.5 -29 v-3" stroke="${INK}" stroke-width=".6"/>`
+        : `<rect x="-10" y="-14" width="5" height="20" fill="#efe4c8" stroke="${INK}" stroke-width=".7"/><path d="M-12 -18 v22 M-3 -18 v22 M-12 -16 h9 M-12 -10 h9 M-12 -4 h9 M-12 -16 l9 6 M-3 -10 l-9 6" stroke="#8a6a40" stroke-width=".5"/><path d="M6 -6 v-14 l5 2" stroke="${INK}" stroke-width=".6" fill="none"/><path d="M11 -18 v5" stroke="${INK}" stroke-width=".4"/>`}
+      <circle cy="-1" r="2.6" fill="#2c4f8a" stroke="${INK}" stroke-width=".4"/><path d="M0 -3.6 v5.2 M-2.6 -1 h5.2" stroke="#e8c15a" stroke-width=".4"/><path d="M-2 6 v-3.5 q2 -2.5 4 0 v3.5" fill="${INK}"/></g>`;
+  }
   // mer, navire, rose des vents
   function sea(g) {
     let s = '';
@@ -648,7 +671,7 @@ const MAP2 = (() => {
       <path d="M-11 -11 L2 -2 L11 11 L-2 2 Z" fill="#b98a2e" opacity=".8"/><path d="M11 -11 L2 2 L-11 11 L-2 -2 Z" fill="#b98a2e" opacity=".8"/><circle r="2.2" fill="#f0cf72" stroke="#6b5230" stroke-width=".5"/>
       <text y="-25" text-anchor="middle" font-family="UnifrakturMaguntia" font-size="10" fill="#5a1d14">N</text></g>`;
   }
-  return { wpath, decor, castle, tower, hamlet, sea, ship, serpent, compass, inPoly, rng, hs };
+  return { wpath, decor, castle, tower, hamlet, edifice, cathedral, sea, ship, serpent, compass, inPoly, rng, hs };
 })();
 
 // ---------- Scènes peintes (en-têtes d'événements, écran-titre) ----------
@@ -814,7 +837,10 @@ function boardSVG() {
     const R = S.regions[i], o = own(i), [x, y] = c.c;
     if (o === 'me') {
       s += R.cap ? MAP2.castle(x, y - 6, me.robe, true) : MAP2.castle(x, y - 4, me.robe, false);
-      if (R.builds) s += MAP2.hamlet(x + 16, y + 4, Math.min(3, R.builds));
+      { const bl = (R.bl || []).slice(-3), spots = R.cap ? [[-21, 13], [-48, 13], [-62, -4]] : [[-20, 6], [20, 6], [-33, 2]];
+        bl.forEach((k, j) => { s += MAP2.edifice(k, x + spots[j][0], y + spots[j][1]); });
+        const rest = Math.min(3 - bl.length, (R.builds || 0) - (R.bl || []).length); if (rest > 0) s += MAP2.hamlet(x + spots[bl.length][0], y + spots[bl.length][1] - 2, rest); }
+      if (R.cap && (S.cathedral || S.chantier)) s += MAP2.cathedral(x - 36, y - 8, !!S.cathedral);
     } else {
       s += MAP2.tower(x, y - 4, o === 'rival' ? '#7a1e12' : A.arms(o).robe);
       s += `<g pointer-events="none">${nestedShield(ownerArms(o), x + 13, y - 8, o === 'rival' ? 16 : 12)}</g>`;
@@ -1217,6 +1243,7 @@ const JOURNAL = [
   ['Atelier partagé : mode test et testeurs', '0 %', '75 %', 'Le jeu rejoint l\'atelier commun de vos jeux (dépôt gameclaude) et reprend ses outils. Sur l\'écran titre, 🧪 Mode test lance une partie à part, sans toucher à votre sauvegarde, avec un compteur d\'images par seconde et un banc de mesure. Dans le menu ☰, 🐞 Signaler un problème envoie l\'écran ouvert et l\'état de la partie. Côté fabrication, chaque version passe désormais par un testeur au doigt (600 touches au hasard en 4 minutes, aucune erreur), par 15 captures fixes comparées aux précédentes et par 1 000 parties simulées.'],
   ['Carte plus fluide', '0 %', '75 %', 'Pendant un glissé ou un zoom, la carte n\'est plus redessinée à chaque image : la puce graphique déplace l\'image déjà dessinée, et le dessin précis n\'est refait qu\'à la fin du geste. Sur un téléphone simulé (processeur ralenti 4 fois), le glissé passe de 25 à 54 images par seconde ; ouvrir une fiche de terre prend 12 ms au lieu de 22.'],
   ['L\'âge des fléaux raconté', '0 %', '78 %', 'Un fil historique traverse le XIVe siècle : la croisade des pastoureaux (1320), la bataille de Cassel (1328), puis la guerre de Cent Ans dont le camp choisi décide de la suite quelques années plus tard (la chevalerie fauchée par les archers, une chevauchée anglaise, ou les pillards des deux camps), et le manque de bras après les épidémies. La Peste noire, qui ne pouvait jamais survenir (elle tombait entre deux tours), arrive enfin en 1347. Chaque fin de partie raconte désormais ce que l\'histoire retiendra de votre maison (conquérants, bâtisseurs, diplomates, saints, dynastes ou marchands) et ce qu\'elle devint après 1350.'],
+  ['Vos édifices sur la carte', '0 %', '76 %', 'Chaque chantier apparaît désormais sur la carte, dessiné à la main à côté du château de la terre où il a été bâti : moulin aux ailes qui tournent, halle marchande à l\'auvent rayé, abbaye et son clocher, donjon de pierre, lices aux fanions, collège de maîtres, hôtel-Dieu à la croix rouge. La cathédrale se dresse près de la capitale, d\'abord dans ses échafaudages, puis avec ses deux flèches.'],
 ];
 function viewLabo() {
   const C = { victoire: '#2f6b55', extinction: '#6b3a78', revolte: '#a8321f', conquete: '#b98a2e', timeout: '#888' };

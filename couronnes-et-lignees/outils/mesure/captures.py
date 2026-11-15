@@ -19,6 +19,7 @@ VUES = [
  ('lignee', "closeM();setTab('lignee')"),
  ('chronique', "closeM();setTab('chronique')"),
  ('titres', "closeM();setTab('plateau');titlesSheet()"),
+ ('edifices', "closeM();setTab('plateau');S.gold=5000;const cap=S.regions.find(r=>r.cap),o=D.myRegions(S).find(r=>!r.cap);for(const [k,r] of [['moulin',o],['marche',o],['abbaye',o],['donjon',cap],['lices',cap]]){D.playTurn(S,'construire',r.i,k);if(S.event)D.resolveEvent(S,0);}S.event=null;S.cathedral=true;render();const c=D.mapGeom(S.seed).cells[cap.i].c;view={x:c[0]-75,y:c[1]-150,w:150,h:150*844/390};applyView()"),
 ]
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])

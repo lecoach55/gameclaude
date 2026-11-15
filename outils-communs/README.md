@@ -4,6 +4,7 @@
 
 - **`testkit.js`** — à intégrer dans le jeu : bouton 🐞 « signaler un problème » (capture, état, erreurs), compteur d'images par seconde, banc de mesure scripté. Pour un jeu en scripts classiques (sans `import`), charger `<script type="module" src="testkit.js">` : la trousse est aussi exposée sur `window.Testkit` (exemple : `sedes-petri`). Pour un jeu 2D, le GPU est lu sur un canvas WebGL temporaire. Les résultats vont dans la base de l'artefact : Claude les lit avec `db_list` sur la collection `data/users/<id>` (documents `mesures_*` et `signalement_*`).
 - **`atelier.py`** — fonctions Python communes : serveur local, page neuve (localStorage préparé, temps accéléré), mesure des images, captures.
+- **`sauvegarde-en-ligne.js`** — sauvegarde dans la base de l'artefact pour les grosses parties (gzip + découpage en morceaux), avec reprise proposée quand un autre appareil a une partie plus récente. Utilisée par Wall Street.
 - **`compare.py`** — comparaison d'images référence / nouvelle version, tolérante aux petits décalages de caméra. Signale les changements visuels involontaires. `python3 compare.py refs/ nouvelles/ planche.png`
 
 ## Règle d'or
@@ -15,3 +16,7 @@ Exemple complet : `valdragon/outils` et le mode test de Valdragon (bouton 🧪 s
 
 
 Adaptation pour un jeu sans canvas (DOM/SVG) : voir `couronnes-et-lignees/jeu/app.js` (Testkit intégré sans `export`, `etat()` qui envoie l'écran ouvert et la sauvegarde). Testeur au doigt générique pour ce genre de jeu : `couronnes-et-lignees/outils/tests/explore.py`.
+
+## Pièges déjà rencontrés
+- Sur téléphone, vérifier que le menu reste accessible : un sélecteur CSS mal orthographié (`.icon-btn` au lieu de `.iconbtn`) cachait le menu de Wall Street depuis le début.
+- Le banc ne doit jamais toucher la vraie partie : copier l'état, couper la sauvegarde (locale ET en ligne), mesurer, puis tout remettre.

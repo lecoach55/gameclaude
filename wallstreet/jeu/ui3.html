@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wall Street, séance par séance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Schibsted+Grotesk:wght@400;500;600;700&family=Azeret+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/*BASECSS*/
+[hidden]{display:none!important}
+/* ---------- couche jeu ---------- */
+.hero{position:relative;z-index:1;height:280px;overflow:hidden;background:#13213f}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-ui{position:absolute;inset:0;max-width:1400px;margin:0 auto;padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;pointer-events:none;color:#fff}
+.hero-ui>*{pointer-events:auto}
+.fortune{text-shadow:0 2px 14px rgba(0,0,0,.55)}
+.fortune .l{font-size:14px;opacity:.85}
+.fortune .v{font:800 52px/1 var(--display);font-variation-settings:"wdth" 78;letter-spacing:-.02em}
+.fortune .v small{font-size:24px;opacity:.8}
+.fortune .s{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;font-size:14px}
+.glass{background:rgba(12,18,32,.55);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:12px 16px;color:#fff}
+.rankbox{min-width:260px;display:grid;gap:6px}
+.rankbox .t{display:flex;align-items:center;gap:10px}
+.rankbox .medal{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#ffe8a8,#c99a33 60%,#8a6418);color:#3b2a05;font:800 16px var(--display);box-shadow:0 0 0 2px rgba(255,255,255,.25)}
+.rankbox b{font:700 18px/1.1 var(--display);font-variation-settings:"wdth" 85;display:block}
+.rankbox small{opacity:.8;font-size:12.5px}
+.xp{height:8px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden}
+.xp i{display:block;height:100%;background:linear-gradient(90deg,#f6d27a,#e0a526);transition:width .6s}
+.podium{display:flex;gap:6px;flex-wrap:wrap;font-size:12.5px}
+.podium span{background:rgba(255,255,255,.12);border-radius:999px;padding:2px 9px}
+.podium span.me{background:#e0a526;color:#2a1d02;font-weight:700}
+.pill.lite{background:rgba(255,255,255,.18);color:#fff}
+.pill.lite.up{background:rgba(69,201,140,.28);color:#c9ffe4}.pill.lite.down{background:rgba(255,109,97,.3);color:#ffe0dc}
+
+.iconbtn{width:38px;height:38px;padding:0;display:inline-grid;place-items:center}
+.lock{display:grid;place-items:center;text-align:center;gap:8px;padding:30px 10px;color:var(--muted)}
+.lock svg{opacity:.6}
+
+/* missions */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.mission{border-radius:14px;background:var(--sunk);padding:14px 16px;display:grid;gap:8px;position:relative;overflow:hidden}
+.mission h4{margin:0;font:700 17px/1.25 var(--display);font-variation-settings:"wdth" 88}
+.mission p{margin:0;color:var(--muted);font-size:14px}
+.mission .prog{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.mission .prog i{display:block;height:100%;background:var(--gold)}
+.mission .rw{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.mission .rw b{color:var(--gold)}
+.mission.done{background:var(--gold-soft)}
+.ranks{display:grid;gap:8px;margin-top:6px}
+.rk{display:grid;grid-template-columns:38px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--sunk)}
+.rk .medal{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:800 14px var(--display);background:var(--line);color:var(--muted)}
+.rk.got .medal{background:radial-gradient(circle at 35% 30%,#ffe8a8,#c99a33 60%,#8a6418);color:#3b2a05}
+.rk.cur{box-shadow:inset 0 0 0 2px var(--gold)}
+.rk small{color:var(--muted)}
+
+/* rivaux */
+.rivals{display:grid;gap:10px}
+.rv{display:grid;grid-template-columns:auto 52px 1fr auto;gap:14px;align-items:center;padding:12px 14px;border-radius:14px;background:var(--sunk)}
+.rv.me{background:var(--gold-soft);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.rv .pos{font:800 26px var(--display);width:30px;text-align:center;color:var(--muted)}
+.face{width:52px;height:52px;border-radius:50%;flex:none}
+.rv b{font:700 17px var(--display);font-variation-settings:"wdth" 88}
+.rv small{color:var(--muted);display:block}
+.rv .val{text-align:right}
+.rv .val b{display:block}
+.chat{display:grid;gap:10px;margin-top:6px}
+.msg{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:start}
+.msg .face{width:40px;height:40px}
+.bubble{background:var(--sunk);border-radius:4px 14px 14px 14px;padding:9px 13px;font-size:14.5px}
+.bubble small{display:block;color:var(--muted);font-size:12px;margin-bottom:2px}
+
+/* boutique */
+.shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.item{border-radius:14px;background:var(--sunk);padding:14px;display:grid;gap:8px;align-content:start}
+.item svg{width:100%;height:84px}
+.item h4{margin:0;font:700 17px var(--display);font-variation-settings:"wdth" 88}
+.item p{margin:0;color:var(--muted);font-size:13.5px}
+.item .pr{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.item.own{background:var(--gold-soft);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.item.locked{opacity:.55}
+
+/* événements */
+.ev-art{height:150px;border-radius:18px 18px 0 0;display:grid;place-items:center;position:relative;overflow:hidden}
+.ev-art svg{width:120px;height:120px}
+.ev-kicker{position:absolute;left:20px;top:16px;font-weight:700;font-size:13px;background:rgba(0,0,0,.35);color:#fff;padding:3px 10px;border-radius:999px}
+.choices{display:grid;gap:10px;margin-top:16px}
+.choice{display:grid;gap:3px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 16px;cursor:pointer}
+.choice:hover{border-color:var(--ink);background:var(--sunk)}
+.choice b{font-size:15.5px}
+.choice small{color:var(--muted)}
+.choice:disabled{opacity:.5;cursor:not-allowed}
+
+/* flash spécial */
+.breaking{position:fixed;left:0;right:0;top:0;z-index:50;display:flex;justify-content:center;pointer-events:none}
+.breaking .in{pointer-events:auto;margin-top:90px;max-width:760px;width:calc(100% - 32px);background:#b3261e;color:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden;animation:bin .45s cubic-bezier(.2,.8,.2,1.2) both;cursor:pointer}
+.breaking .in.gold{background:#1f3a5f}
+.breaking .k{background:rgba(0,0,0,.25);padding:6px 18px;font-weight:800;font-size:13px;display:flex;justify-content:space-between}
+.breaking .k span:first-child{animation:blink 1s steps(2) infinite}
+.breaking h2{font-size:clamp(20px,4vw,30px);line-height:1.1;padding:12px 18px 4px;font-variation-settings:"wdth" 80}
+.breaking p{margin:0;padding:0 18px 16px;opacity:.9}
+@keyframes bin{from{transform:translateY(-140%)}}
+@keyframes blink{50%{opacity:.35}}
+.shake{animation:shake .5s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.redflash::after{content:"";position:fixed;inset:0;background:rgba(200,30,30,.18);pointer-events:none;z-index:45;animation:rf .9s forwards}
+@keyframes rf{to{opacity:0}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:60;width:100%;height:100%}
+
+.recap .big{font-size:44px}
+.recap ul{margin:8px 0 0;padding-left:18px}
+.recap li{margin:3px 0}
+.unl{display:flex;gap:10px;align-items:center;background:var(--gold-soft);border-radius:12px;padding:10px 14px;margin-top:10px}
+
+@media (max-width:720px){
+  .breaking .in{margin-top:70px}.breaking p{font-size:14px}
+  .hero{height:300px}
+  .hero-ui{flex-direction:column;align-items:stretch;justify-content:flex-end;padding:12px 14px}
+  .fortune .v{font-size:40px}
+  .rankbox{min-width:0}
+}
+
+
+.cond{display:grid;gap:8px;background:var(--sunk);border-radius:12px;padding:10px 12px}
+.cond label{font-size:13.5px;font-weight:600}
+.cond input{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 12px;font-weight:600;font-size:16px;min-width:0}
+.olist{display:grid;gap:6px;margin-top:4px}
+.oitem{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13.5px;background:var(--sunk);border-radius:10px;padding:7px 10px}
+.oitem button{border:0;background:none;color:var(--down);cursor:pointer;font-weight:600;font-size:13px}
+.star{border:0;background:none;cursor:pointer;color:var(--muted);padding:2px;line-height:0}
+.star.on{color:var(--gold)}
+.fh .star{margin-left:auto}
+.caps span small{display:block;font:500 12px var(--body);color:var(--muted);margin-top:2px}
+.caps label{flex:1;min-width:150px}
+/* cérémonie */
+.podium-c{display:flex;justify-content:center;align-items:flex-end;gap:10px;margin-top:16px}
+.pc{display:grid;justify-items:center;gap:2px;width:110px;text-align:center}
+.pc .face{width:56px;height:56px}
+.pc small{opacity:.8;font-size:12.5px}
+.step{width:100%;border-radius:10px 10px 0 0;display:grid;place-items:start center;padding-top:8px;font:800 30px var(--display);color:#2a1d02;margin-top:6px}
+.step.s1{background:linear-gradient(#ffe8a8,#d4a63a)}.step.s2{background:linear-gradient(#eef1f5,#b8c0cc)}.step.s3{background:linear-gradient(#f3c9a0,#b77942)}
+/* visite guidée */
+.coach{position:fixed;inset:0;z-index:70;pointer-events:none}
+.coach .hole{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(9,14,24,.62),0 0 0 3px var(--gold);transition:all .3s ease;pointer-events:none}
+.coach .tipc{position:fixed;pointer-events:auto;width:min(340px,calc(100% - 24px));background:var(--surface);color:var(--ink);border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.35);display:grid;gap:8px}
+.coach .tipc h3{font-size:20px}
+.coach .tipc p{margin:0;color:var(--muted);font-size:14.5px}
+.coach .row{justify-content:space-between}
+.coach .dots{display:flex;gap:5px}.coach .dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}.coach .dots i.on{background:var(--gold)}
+/* calendrier des résultats */
+.ecal{display:grid;grid-template-columns:repeat(10,minmax(64px,1fr));gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px}
+.ecd{background:var(--sunk);border-radius:12px;padding:8px 6px;display:flex;flex-direction:column;gap:4px;align-items:stretch;min-height:96px}
+.ecd.empty{opacity:.55}
+.ecl{text-align:center;line-height:1.1;margin-bottom:2px}.ecl b{font-size:12.5px;text-transform:capitalize}.ecl small{display:block;font:700 18px var(--display);color:var(--muted)}
+.tk.ec{display:block;width:100%;padding:3px 0;text-align:center}
+/* trophées */
+.trophies{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tro{background:var(--sunk);border-radius:14px;padding:12px;display:grid;justify-items:center;text-align:center;gap:4px;color:var(--muted);opacity:.6}
+.tro svg{width:48px;height:48px}
+.tro .tro-bg{fill:var(--line)}
+.tro b{font-size:14px;color:var(--ink)}
+.tro small{font-size:12px}
+.tro.got{opacity:1;color:#3b2a05;background:var(--gold-soft);box-shadow:inset 0 0 0 1.5px var(--gold)}
+.tro.got .tro-bg{fill:#e0a526}
+/* bilan */
+.recap-card{position:fixed;left:20px;bottom:20px;z-index:31;width:min(380px,calc(100% - 40px));background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 18px 50px rgba(0,0,0,.22);display:grid;gap:8px}
+.recap-card.in{animation:tin .3s ease-out}
+.recap-card ul{margin:0;padding-left:18px;font-size:13.5px}
+.rc-x{position:absolute;right:10px;top:8px;border:0;background:none;font-size:20px;cursor:pointer;color:var(--muted)}
+.rc-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rc-nums span{display:block;font-size:12px}
+.rc-nums b{font:700 22px var(--display);font-variation-settings:"wdth" 85}
+.rbars{width:100%;height:60px;display:block}
+.rc-leg{display:flex;gap:12px;font-size:12px;color:var(--muted)}
+.rc-leg i{display:inline-block;width:10px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+body.has-recap .toasts{bottom:var(--recap-h,300px)}
+@media (max-width:560px){.hsec{flex-basis:100%}.hgrid{grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}.rbars,.rc-leg,.recap-card ul{display:none}.recap-card{padding:10px 14px;gap:4px}.rc-nums b{font-size:19px}body.has-recap .toasts{bottom:var(--recap-h,200px)}}
+@media (max-width:720px){.recap-card{bottom:84px;left:10px}body.has-recap .toasts{bottom:calc(var(--recap-h,276px) + 84px)}}
+/* carte du marché */
+#heat{display:flex;flex-wrap:wrap;gap:8px}
+.hsec{flex:var(--n) 1 calc(var(--n) * 64px);min-width:min(150px,100%);max-width:100%;border-radius:12px;background:var(--sunk);padding:8px}
+.hsec h5{margin:0 0 6px;font:600 12.5px var(--body);color:var(--muted);display:flex;justify-content:space-between}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:4px}
+.ht{border:0;border-radius:8px;height:58px;display:grid;place-content:center;text-align:center;cursor:pointer;color:#fff;font:700 13px/1.15 var(--body);text-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .12s}
+.ht small{font-weight:500;font-size:11.5px;opacity:.95}
+.ht:hover{transform:scale(1.06);position:relative;z-index:2}
+.ht.sel{box-shadow:0 0 0 3px var(--gold)}
+.hleg{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.hleg .g{height:10px;width:180px;border-radius:5px;background:linear-gradient(90deg,#b3261e,#c96a5f,#8a8f98,#4d9c74,#137a4a)}
+/* graphique de la fiche */
+.chart-leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);align-items:center}
+.chart-leg label{display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.mk{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px}
+.mk.b{background:var(--up);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.mk.s{background:var(--down);clip-path:polygon(0 0,100% 0,50% 100%)}
+.mk.r{background:var(--gold);border-radius:50%}
+/* répartition */
+.alloc{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:center;margin:16px 0 4px}
+.alloc svg{width:180px;height:180px}
+.alloc ul{list-style:none;margin:0;padding:0;display:grid;gap:5px;font-size:14px}
+.alloc li{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center}
+.alloc li i{width:12px;height:12px;border-radius:3px}
+@media (max-width:560px){.alloc{grid-template-columns:1fr}.alloc svg{margin:auto}}
+.mission .mi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--surface);color:var(--gold)}
+.reroll{justify-self:start;font-size:12.5px}
+.reroll:disabled{color:var(--muted);text-decoration:none;cursor:default}
+.race-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin:8px 0}
+.race-leg i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+@media (prefers-reduced-motion: reduce){.breaking .in,.recap-card.in{animation:none}.ht{transition:none}}
+.cloudbox{margin:12px 0 0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2,rgba(0,0,0,.03));font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cloudbox b{font-weight:600}.cloudbox .btn{padding:6px 12px;font-size:13px}
+.kitrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:12px 0 0;font-size:13px}
+.lnk{background:none;border:0;padding:0;color:var(--muted,#667);text-decoration:underline;cursor:pointer;font:inherit}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="mark">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" fill="var(--ink)"/><path d="M7 23l6-7 5 4 9-11" fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><b>Wall Street</b><span>séance par séance</span></div>
+    </div>
+    <div class="board" aria-live="polite">
+      <div class="lab" id="seanceLbl">Séance<br>1</div>
+      <div class="flaps" id="flaps"></div>
+    </div>
+    <div class="ctrl">
+      <button class="btn go" id="bNext">Séance suivante <kbd>N</kbd></button>
+      <button class="btn" id="bWeek">+1 semaine</button>
+      <button class="btn" id="bMonth">+1 mois</button>
+      <button class="btn" id="bAuto" aria-pressed="false">Lecture auto</button>
+      <button class="btn iconbtn" id="bSound" aria-label="Couper le son" aria-pressed="true"></button>
+      <button class="btn iconbtn" id="bMenu" aria-label="Menu de la partie"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="hero" aria-label="Votre tour dans la ligne d'horizon">
+  <canvas id="sky"></canvas>
+  <div class="hero-ui">
+    <div class="fortune">
+      <div class="l">Votre fortune</div>
+      <div class="v" id="hVal">—</div>
+      <div class="s" id="hSub"></div>
+    </div>
+    <div class="glass rankbox" id="hRank"></div>
+  </div>
+</section>
+<div class="tape" id="tape" aria-label="Cours de la séance" style="background:var(--surface)"><div class="tape-in" id="tapeIn"></div></div>
+
+<main>
+  <section>
+    <div class="over">
+      <div class="card kcard" id="cardMkt"></div>
+      <div class="card kcard" id="cardMis"></div>
+      <div class="card une" id="une" aria-live="polite"></div>
+    </div>
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="cote" aria-selected="true">Marché</button>
+        <button class="tab" role="tab" data-tab="terminal" aria-selected="false">Infos</button>
+        <button class="tab" role="tab" data-tab="portef" aria-selected="false">Portefeuille<span class="n" id="nPos"></span></button>
+        <button class="tab" role="tab" data-tab="missions" aria-selected="false">Carrière<span class="n" id="nMis"></span></button>
+        <button class="tab" role="tab" data-tab="rivaux" aria-selected="false">Rivaux</button>
+        <button class="tab" role="tab" data-tab="shop" aria-selected="false">Train de vie</button>
+        <button class="tab" role="tab" data-tab="ordres" aria-selected="false">Opérations</button>
+      </div>
+      <div class="view" id="v-cote">
+        <div class="tools">
+          <div class="search"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input id="q" type="search" placeholder="Rechercher une valeur" aria-label="Rechercher une valeur"></div>
+          <select id="secF" aria-label="Filtrer par secteur"></select>
+          <div class="seg" id="viewSeg"><button data-m="list" class="on">Liste</button><button data-m="map">Carte</button></div>
+          <div class="seg" id="quickF"><button data-v="all" class="on">Toutes</button><button data-v="fav">Favoris</button><button data-v="mine">Mes valeurs</button><button data-v="soon">Résultats proches</button><button data-v="movers">Grosses variations</button></div>
+        </div>
+        <div id="heat" hidden></div>
+        <div class="tw" id="listWrap"><table id="tMarket"><thead><tr>
+          <th data-k="name">Valeur</th><th>1 mois</th><th data-k="px">Cours</th><th data-k="d1">Jour</th><th data-k="pe" title="Cours divisé par le bénéfice par action">PER</th><th data-k="dy">Rendement</th><th data-k="avis">Analystes</th><th data-k="earn">Résultats</th><th data-k="held">Détenu</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="view" id="v-terminal" hidden>
+        <div class="seg" id="tSub" style="margin-bottom:14px">
+          <button data-s="fil" class="on">Fil d'actualité</button><button data-s="macro">Économie</button><button data-s="resu">Résultats</button><button data-s="ana">Analystes</button><button data-s="secteurs">Secteurs</button><button data-s="pro">Recherche Pro</button>
+        </div>
+        <div id="tBody"></div>
+      </div>
+      <div class="view" id="v-portef" hidden>
+        <div class="tiles" id="pTiles"></div>
+        <div class="legend" style="margin-bottom:6px"><span><i style="background:var(--gold)"></i>Votre fortune</span><span><i style="background:var(--muted)"></i>Le marché avec la même mise</span></div>
+        <div class="chart tall"><canvas id="cPort"></canvas><div class="tip"></div></div>
+        <div class="alloc" id="alloc"></div>
+        <div id="ordAll"></div>
+        <h3 class="st">Positions</h3>
+        <div class="tw"><table id="tPos"><thead><tr><th>Valeur</th><th>Quantité</th><th>Prix de revient</th><th>Cours</th><th>Valeur</th><th>Poids</th><th>Plus-value</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="view" id="v-missions" hidden></div>
+      <div class="view" id="v-rivaux" hidden></div>
+      <div class="view" id="v-shop" hidden></div>
+      <div class="view" id="v-ordres" hidden>
+        <div class="tw"><table id="tTx"><thead><tr><th>Date</th><th>Opération</th><th>Valeur</th><th>Quantité</th><th>Cours</th><th>Frais</th><th>Montant</th><th>Résultat</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+  </section>
+
+  <aside id="aside">
+    <div class="card fiche">
+      <div class="fh"><div class="av" id="fAv"></div><div><h2 id="fName">—</h2><small id="fSub"></small></div><button class="star" id="fStar" aria-pressed="false" aria-label="Ajouter aux favoris"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.9l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8z" fill="currentColor"/></svg></button></div>
+      <div class="fp"><span class="big" id="fPx">—</span><span id="fChg"></span></div>
+      <div class="seg" id="ranges"><button data-r="21">1 mois</button><button data-r="63">3 mois</button><button data-r="126">6 mois</button><button data-r="252" class="on">1 an</button><button data-r="1260">5 ans</button></div>
+      <div class="chart"><canvas id="cStock"></canvas><div class="tip"></div></div>
+      <div class="chart-leg"><label><input type="checkbox" id="maT" checked> Moyenne 50 séances</label><span><i class="mk b"></i>vos achats</span><span><i class="mk s"></i>vos ventes</span><span><i class="mk r"></i>résultats</span></div>
+    </div>
+    <div class="card order">
+      <div class="side" id="sideSeg" role="group" aria-label="Type d'ordre"></div>
+      <div class="seg" id="modeSeg"><button data-mode="now" class="on">Maintenant</button><button data-mode="cond">Si le cours atteint…</button></div>
+      <div class="qty"><button id="qMinus" aria-label="Retirer un titre">−</button><input id="qty" type="number" min="1" step="1" value="10" inputmode="numeric" aria-label="Quantité"><button id="qPlus" aria-label="Ajouter un titre">+</button></div>
+      <input type="range" id="qRange" min="0" max="100" value="0" aria-label="Part du maximum">
+      <div class="quick" id="quick"></div>
+      <div id="condBox" class="cond" hidden>
+        <label for="cPx">Déclencher quand le cours atteint</label>
+        <div class="qty"><input id="cPx" type="number" step="0.01" min="0.01" inputmode="decimal"><span class="muted">$</span></div>
+        <div class="quick" id="cQuick"></div>
+        <div class="note" id="cNote"></div>
+      </div>
+      <div class="sum" id="est"></div>
+      <button class="exec b" id="bExec">Acheter</button>
+      <div class="note" id="oNote"></div>
+      <div id="ordList"></div>
+    </div>
+    <div class="card fiche">
+      <dl class="kv" id="fStats"></dl>
+      <div id="fBoxes" style="display:grid;gap:10px"></div>
+    </div>
+  </aside>
+</main>
+
+<div class="mbar"><button class="btn go" id="mNext">Séance suivante</button><button class="btn" id="mMonth">+1 mois</button></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="recap-card" id="recapCard" hidden role="status"></div>
+<div class="breaking" id="breaking"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<div class="coach" id="coach" hidden><div class="hole" id="coachHole"></div><div class="tipc" id="coachTip" role="dialog" aria-modal="true" aria-labelledby="coachT"></div></div>
+
+<div class="modal" id="mStart" hidden>
+  <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+    <div class="dlg-top">
+      <h2 id="sTitle">Construisez votre tour à Wall Street</h2>
+      <p>Vous débarquez à New York avec un petit capital et une ambition : que votre gratte-ciel domine la ville. Trois rivaux visent la même chose. Le marché, lui, ne vous fera pas de cadeau.</p>
+    </div>
+    <div class="dlg-body">
+      <div class="muted" style="font-size:14px">Capital de départ</div>
+      <div class="caps">
+        <label><input type="radio" name="cap" value="10000"><span>10 000 $</span></label>
+        <label><input type="radio" name="cap" value="50000" checked><span>50 000 $</span></label>
+        <label><input type="radio" name="cap" value="100000"><span>100 000 $</span></label>
+      </div>
+      <div class="muted" style="font-size:14px">Difficulté</div>
+      <div class="caps" id="diffCaps">
+        <label><input type="radio" name="diff" value="0"><span>Détendu<small>salaire généreux, rivaux plus lents</small></span></label>
+        <label><input type="radio" name="diff" value="1" checked><span>Normal<small>l'équilibre prévu</small></span></label>
+        <label><input type="radio" name="diff" value="2"><span>Requin<small>salaire réduit, rivaux affûtés, +25 % d'expérience</small></span></label>
+      </div>
+      <b>Comment on joue</b>
+      <ul>
+        <li>Chaque clic sur « Séance suivante » fait passer une journée de Bourse. Achetez, vendez, lisez les infos.</li>
+        <li>Remplissez des missions pour gagner de l'expérience et monter en grade : chaque promotion débloque de nouveaux outils.</li>
+        <li>Des événements vont vous tomber dessus : tuyaux douteux, propositions alléchantes, bulles et krachs. À vous de choisir.</li>
+        <li>Votre fortune fait grandir votre tour. Dépassez celles de Max, Margaux et Kevin.</li>
+      </ul>
+      <p class="note" style="margin:12px 0 0">Le marché est simulé mais réglé sur le réel : volatilité et comportement de chaque action mesurés sur cinq ans de vrais cours, cycles économiques calqués sur ceux observés depuis 1945.</p>
+      <div class="dlg-act"><button class="btn" id="sResume" hidden>Reprendre ma partie</button><button class="btn go" id="sGo">Commencer une partie</button></div>
+      <div id="sCloud" class="cloudbox" hidden></div>
+      <div class="kitrow"><button class="lnk" id="kBug" type="button">🐞 Signaler un problème</button><button class="lnk" id="kBench" type="button">🧪 Mesurer la fluidité</button><span id="kMsg" class="muted" aria-live="polite"></span></div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="mEvent" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="evTitle" id="evDlg"></div></div>
+<div class="modal" id="mInfo" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="infoTitle" id="infoDlg"></div></div>
+
+<script>
+const DATA = /*DATA*/;
+</script>
+<script>
+/*ENGINE*/
+</script>
+<script>
+/*GAME*/
+</script>
+</body>
+</html>

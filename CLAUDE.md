@@ -4,7 +4,7 @@ Dépôt de Victor (lecoach55) : ses jeux créés avec Claude et les outils de fa
 Réponds à Victor en français. Il joue surtout sur téléphone et sur un MacBook Pro Intel (puce graphique modeste).
 
 ## Outils communs (`outils-communs/`)
-`testkit.js` (🐞 signalement, compteur d'img/s, banc, envoi en base), `atelier.py` (serveur, pages, mesures, captures), `compare.py`. À intégrer dans chaque nouveau jeu.
+`testkit.js` (🐞 signalement, compteur d'img/s, banc, envoi en base), `sauvegarde-en-ligne.js` (grosses sauvegardes compressées et découpées, reprise sur un autre appareil), `atelier.py` (serveur, pages, mesures, captures), `compare.py`. À intégrer dans chaque nouveau jeu.
 
 ## Couronnes & Lignées (`couronnes-et-lignees/`)
 Simulation dynastique médiévale en une page HTML (SVG, sans dépendance). Artefact : slug `c14b9bc8-e782-45aa-b06c-06126bd542d0`.
@@ -46,3 +46,11 @@ Jeu de gestion (on incarne le pape, 1073-1517). Artefact : slug `e403381b-4eb6-4
 - Sauvegarde en ligne : document `partie` (nuage.js, capacités db + user) ; ne pas casser ce chemin. Le mode test (S.test) n'écrit jamais.
 - Équilibrage vérifié avec `outils/sim2.js` (ne pas le changer sans demander à Victor) ; robustesse avec `outils/fuzz.js`.
 - Avant publication : `perf.py`, `captures.py` + compare, `monkey.py` (ordinateur et mobile), `sauvegarde.py`. Voir `sedes-petri/README.md`.
+
+## Wall Street, séance par séance (`wallstreet/`)
+Simulation boursière jour par jour (HTML/JS sans dépendance, une seule page). Artefact publié : slug `fa79cd7f-9305-4e08-96f4-06dc8c1ae005` (capacités db + user). Journal des simulations : slug `8cfffc45-0a04-44ad-89ae-2727a46e3f5e`.
+- Construire : `sh wallstreet/jeu/build.sh /home/claude/bourse6.html` puis publier ce fichier en `index.html`.
+- Sauvegarde locale `wallst-sim-v3` (ne jamais changer la clé ; `ensureGame` complète les anciennes parties) + sauvegarde en ligne (`partie`, `partie_1`…, gzip). Ne jamais modifier ces documents.
+- Menu ☰ : 🐞 « Signaler un problème » → documents `signalement_*` ; 🧪 « Mesurer la fluidité » → `mesures_*` (la partie est copiée puis remise à l'identique). Lire avec `db_whoami` + `db_list` sur `data/users/<id>`.
+- Équilibre : ne pas toucher aux réglages du marché sans mesurer. Outils dans `wallstreet/outils` (copier jeu/ et outils/ dans un même dossier de travail) : `bots.js` (stratégies 44 marchés × 8 ans), `sim_lev.js`/`simstats.js` (faits stylisés : effet de levier, corrélations, volatilité), `rivalsim.js` (équilibre des rivaux), `proprobe.js`/`peprobe.js` (avantage des signaux), `gsim.py` (parties automatiques dans Chrome : `python3 gsim.py passif,actif 1 504`), `shots7.py` (captures), `memtest.py`, `kittest.py` (banc + signalement).
+- Cibles et méthode : `wallstreet/mesures/NUIT_WALLST.md`. Aucune stratégie gratuite > +5 %/an, hasard −1 à −3 %/an, au plus une fenêtre bloquante pour trois clics « +1 semaine ».

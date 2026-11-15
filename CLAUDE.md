@@ -76,3 +76,8 @@ Action-RPG façon Diablo + royaume (dés, diplomatie, dynastie). Canvas 2D, une 
 - Équilibre : `outils/sim_donjon.js` et `outils/sim_royaume.js` (repères dans le README) ; ne pas changer la difficulté sans accord.
 - Avant publication : `outils/parcours.py`, `outils/fumee.py`, `outils/perf.py` (référence `mesures/perf_v2.json`). Voir `trone-de-braise/README.md`.
 - Sauvegardes : locale `tdb-v1` + en ligne `partie` (ne jamais les modifier) ; tout nouveau champ doit être ajouté dans `completer(G)` (royaume.js) pour les anciennes parties.
+
+## Président de Club (`president-de-club/`)
+Gestion d'un club de foot français du Régional 2 à la Ligue 1 (une page HTML/JS). Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144`, publier `president-de-club/jeu/index.html` en `index.html` (publish_files, mode patch).
+- Équilibre : `outils/run3.js` (4 stratégies × 3 parties × 8 saisons, repère 1-4 fins sur 12, 0 erreur) et `outils/abmatch.js` ; ne pas changer la difficulté sans accord.
+- Apps Mac/Windows : `outils/app-bureau/` (Electron). Journal : `mesures/JOURNAL.md`. Voir `president-de-club/README.md`.

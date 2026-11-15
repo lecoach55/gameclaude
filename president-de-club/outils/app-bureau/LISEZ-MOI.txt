@@ -1,0 +1,19 @@
+PRÉSIDENT DE CLUB — pour Mac (processeur Intel)
+
+INSTALLATION (une seule fois)
+1. Ouvrez l'application Terminal (Applications > Utilitaires > Terminal).
+2. Tapez « bash » suivi d'un espace, glissez le fichier « Installer.command »
+   dans la fenêtre du Terminal, puis appuyez sur Entrée.
+   → Le jeu est copié dans Applications, autorisé, puis il s'ouvre.
+Ensuite, lancez « President de Club » depuis le Launchpad ou le dossier Applications.
+
+Important : ne lancez pas le jeu directement depuis le dossier Téléchargements,
+passez par l'installation ci-dessus.
+
+SANS RIEN INSTALLER
+Double-cliquez sur « Président de Club (version navigateur).html » : le jeu s'ouvre
+dans Safari ou Chrome, même sans internet.
+
+SAUVEGARDES
+L'application et la version navigateur ont chacune leurs sauvegardes.
+Pour transférer une partie : onglet Club > Sauvegarde > Exporter, puis Importer de l'autre côté.

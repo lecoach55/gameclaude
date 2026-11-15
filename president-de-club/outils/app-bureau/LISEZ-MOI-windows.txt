@@ -1,0 +1,15 @@
+PRÉSIDENT DE CLUB — pour Windows 10 et 11
+
+LANCER LE JEU
+1. Faites un clic droit sur le fichier zip > « Extraire tout… », puis choisissez un dossier (par exemple Documents).
+2. Dans le dossier extrait, double-cliquez sur « President de Club.exe » (l'icône avec l'écusson doré).
+3. Windows affiche « Windows a protégé votre ordinateur » : cliquez sur « Informations complémentaires », puis sur « Exécuter quand même ».
+   Ce message apparaît parce que le jeu n'est pas signé par un éditeur enregistré chez Microsoft. Il n'apparaît que la première fois.
+
+Astuce : clic droit sur « President de Club.exe » > « Afficher d'autres options » > « Envoyer vers » > « Bureau (créer un raccourci) » pour l'avoir sur le bureau.
+
+SANS RIEN INSTALLER
+Double-cliquez sur « Président de Club (version navigateur).html » : le jeu s'ouvre dans Edge ou Chrome, même sans internet.
+
+SAUVEGARDES
+Pour transférer une partie : onglet Club > Sauvegarde > Exporter, puis Importer de l'autre côté.

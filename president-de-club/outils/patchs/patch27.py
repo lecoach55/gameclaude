@@ -1,0 +1,17 @@
+f='/home/claude/president/index.html';s=open(f).read()
+def rep(a,b,n=1):
+    global s
+    assert s.count(a)==n,(a[:70],s.count(a));s=s.replace(a,b)
+n1=open('/home/claude/t/n1data.js').read()
+rep("const realFor=n=>REAL.find(r=>r[0]===n);","const realFor=n=>REAL.find(r=>r[0]===n);\n"+n1)
+rep("f*=r[2]===6?.55:r[2]===5?.72:.85;","f*=r[2]===6?.55:r[2]===5?.72:r[2]===4?.85:.93;")
+rep("function realTeamsFor(div){return REAL.filter(r=>r[2]===div&&r[0]!==(S.realClub||''));}","function realTeamsFor(div){const g=div===3?n1Group():null;return REAL.filter(r=>r[2]===div&&r[0]!==(S.realClub||'')&&(!g||r[7]===g));}")
+rep("  if(S.div<4)return;const rs=shuffle(","  if(S.div<3)return;const rs=shuffle(")
+rep("if(!old&&S.div>=4&&S.terr&&S.terr.reg)","if(!old&&S.div>=3&&S.terr&&S.terr.reg)")
+rep("if(!old&&S.terr&&S.div<=3){const town","if(!old&&S.terr&&S.div<=3&&!rv.real){const town")
+rep("const grp=[6,5,4].map(d=>`<optgroup label=\"${LV[d].n}\">${REAL.filter(r=>r[2]===d).map(","const grp=[[6],[5],[4],[3,'A'],[3,'B'],[3,'C']].map(([d,g])=>`<optgroup label=\"${LV[d].n}${g?' · groupe '+g:''}\">${REAL.filter(r=>r[2]===d&&(!g||r[7]===g)&&!r[8]).map(")
+rep("Prendre la présidence d’un club de Ligue 1, Ligue 2 ou Ligue 3 (saison 2026-27).","Prendre la présidence d’un club de Ligue 1, Ligue 2, Ligue 3 ou National 1 (saison 2026-27).")
+rep("S.sasp=true;S.statut='SASP';S.ownership=d===6?20:d===5?35:d===4?50:100;","S.sasp=d>=4;S.statut=d>=4?'SASP':'Association loi 1901';S.ownership=d===6?20:d===5?35:50;")
+rep(":Math.round(rf(.3,.8)*1e6);\n  S.ticket=",":d===4?Math.round(rf(.3,.8)*1e6):Math.round(rf(.08,.25)*1e6);\n  S.ticket=")
+rep("s.lvl=clamp((d===6?4:3)+(R()<.3?1:0)-(R()<.3?1:0),2,5)","s.lvl=clamp((d===6?4:d>=4?3:2)+(R()<.3?1:0)-(R()<.3?1:0),1,5)")
+open(f,'w').write(s);print('ok')

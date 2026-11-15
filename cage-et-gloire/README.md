@@ -12,6 +12,17 @@ Artefact : slug `a54aba6d-7add-42e6-8212-9468f69ceee4` (capacités db + user). P
 - Événements aléatoires (`EVENTS` dans moteur.js) : sponsors, combat au pied levé dans la ligue du dessus, jeune talent, conférence de presse, rachat, documentaire…
 - Combat : moteur par tranches de 15 s (debout, clinch, sol), 5 plans de combat, cartes des juges, stats. Chances estimées sur 140 combats simulés.
 
+## Systèmes ajoutés (nuit du 15 au 16/11/2026)
+- **Traits** (18, `TRAITS` dans data.js) : 13 agissent en combat (menton de fer, cardio de machine, diesel, explosif, gaucher, contreur, finisseur…), 5 hors combat (showman, bosseur, fragile, leader, tête brûlée). Effet mesuré par `outils/traits.js` : 46 à 58 % de victoires contre un jumeau sans trait.
+- **Camp d'entraînement** (`CAMP`) : étude vidéo, sparrings, stage à l'étranger (+1,2 à +2 à toutes les qualités le jour du combat).
+- **Négociation** des bourses et des contrats (+15 % / +35 %, chance affichée, l'offre peut être retirée).
+- **Contrats de management** (`f.mg`) : commission par combattant, renégociée à l'échéance (le combattant peut partir).
+- **Rivalités et revanches** (bourse ×1,3), **changement de catégorie**, **blessures nommées** et choix d'opérer.
+- **Grand Prix** annuel à huit (ECC/GLADIUS, semaine 8), **Top 15 toutes catégories**, **prix de fin d'année**, **temple de la renommée**, **lignée des champions**, **20 succès**, **objectifs de saison** avec primes, **bilan annuel**.
+- **Sponsors** sous contrat, **recruteur** (précision du potentiel), **attaché de presse**, **gala organisé par l'écurie**, agents libres venus des grandes ligues, entraînement confié au staff (🤖), difficulté (3 niveaux), 21 événements aléatoires + 4 spéciaux.
+- **Combat** : avis du staff (5 plans simulés), rapport sur l'adversaire, sous-carte, présentation des combattants sous projecteur, coins et soigneurs entre les rounds, marques de coups et sueur, ralenti des KO, foule animée, sons synthétisés (son.js), frappes par round.
+- Sauvegarde locale compressée (gzip, clé `cage-gloire-v1z` ; l'ancienne `cage-gloire-v1` est encore lue).
+
 ## Code (`jeu/`)
 `data.js` (organisations, catégories, styles, noms par pays — noms de vrais combattants retirés) · `combat.js` (moteur de combat, déterministe avec graine) · `moteur.js` (monde, calendrier, classements, mercato mensuel, économie, événements) — ces 3 fichiers tournent sous Node.
 `arene.js` (Three.js r160 : octogone, grillage, foule instanciée, portique, flashs ; combattants = mannequin Xbot recoloré par régions peau/short/gants/cheveux via les poids des os ; poses par directions d'os, adaptées de `valdragon/jeu/mxanim.js`) · `portraits.js` (portraits SVG générés) · `ui.js` · `style.css` · `testkit.js` · `nuage.js`.
@@ -23,6 +34,7 @@ Construction : `npm i` à la racine du dossier (three 0.160, esbuild, @fontsourc
 - `sim_monde.js N ans [bon|passif]` : parties automatiques. Repère : 0 erreur, organisations pleines, APEX atteint en 4 à 6 ans, 2 à 6 ceintures en 6 ans.
 - `parcours.py page dossier [l h]` : partie au doigt (accueil, onglets, offre, combat 3D jusqu'au bout avec le coin, résultat, fiche). Lent sous swiftshader (≈ 4 min).
 - `studio.py page dossier [poses]` : une capture par pose de l'arène. `bureau.py` : captures 1280×800.
+- `traits.js` (effet des traits), `evtest.js` (chaque événement et chaque choix), `vues.py page dossier semaines` (tous les écrans après N semaines de robot), `combat3d.py` (présentation, coin, ralenti d'un KO, résultat), `sauvegarde.py` (sauvegarde compressée → rechargement identique).
 - Références : `references/`.
 
 ## Règles

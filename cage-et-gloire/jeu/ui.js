@@ -97,6 +97,7 @@ const ACT={
  lv:x=>{SEL.lv=x;rendre();},
  camp:x=>{const [cid,k]=x.split(':');if(M.acheterCamp(cid,k)){toast('Camp réservé ✅');COTEvider();sauver();if(!$('modal').classList.contains('cache')&&$('pPlans'))preCombat(cid);else rendre();}else toast('Pas assez d\'argent');},
  sponsor:()=>{},
+ autoTous:x=>{M.mes().forEach(f=>f.train.auto=x==='1');toast(x==='1'?'Le staff gère l\'entraînement de tous 🤖':'À vous de jouer');sauver();rendre();},
  gala:()=>{const e=M.organiserGala();if(e){toast('Gala programmé ! 🎪');sauver();VUE='ecurie';rendre();}else toast('Impossible pour le moment');},
  pre2:cid=>{const t=M.trouverCombat(cid);if(t&&t.c.ok)preparerCamp(cid);},
  voirGP:()=>{VUE='ligues';SEL.lv='gp';rendre();},voirPrix:()=>{VUE='ligues';SEL.lv='prix';rendre();}
@@ -131,12 +132,14 @@ function vEcurie(){const ms=M.mes();const S=M.SALLES[G.salle.niv];let h='';
 function ligneF(f){const O=f.org?ORGc(f.org):null;const ch=estChamp(f);const pc=f.prochain&&M.trouverCombat(f.prochain);const etat=f.bless>0?`<span class="puce" style="color:#ff9aa2">🚑 ${f.bless} sem.</span>`:pc&&pc.c.ok?'<span class="puce">📅 combat le '+M.date(pc.e.sem).split(' · ')[0].replace('Sem. ','S')+'</span>':pc?'<span class="puce" style="color:#ffe39a">📨 offre</span>':'';
  return `<div class="fl ${f.mine?'moi':''}" data-f="${f.id}"><div class="por">${por(f,{mini:1})}</div><div style="min-width:0"><div class="nm">${flag(f.pays)} ${esc(nomC(f))} ${ch?ceinture(O.c1):''}</div>
  <div class="sm">${M.DIV(f.div).nom} · ${STYLES[f.style].ic} ${STYLES[f.style].nom}</div><div class="sm" style="margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">${orgB(f.org)} <b style="color:var(--txt)">${rec(f)}</b> ${M.rangTxt(f)} ${etat}</div>
- ${f.mine?`<div style="display:flex;gap:6px;align-items:center;margin-top:5px;font-size:10px" class="doux">Forme<div class="barre" style="flex:1;max-width:90px"><i style="width:${f.forme}%;background:${f.forme>75?'#2fbf71':f.forme>55?'#f0a23a':'#e63946'}"></i></div>${M.FOCUS[f.train.f].ic} ${M.FOCUS[f.train.f].n}</div>`:''}</div>
+ ${f.mine?`<div style="display:flex;gap:6px;align-items:center;margin-top:5px;font-size:10px" class="doux">Forme<div class="barre" style="flex:1;max-width:90px"><i style="width:${f.forme}%;background:${f.forme>75?'#2fbf71':f.forme>55?'#f0a23a':'#e63946'}"></i></div>${M.FOCUS[f.train.f].ic} ${M.FOCUS[f.train.f].n}${f.train.auto?' 🤖':''}</div>`:''}</div>
  <div class="note"><b style="color:${noteCol(M.ov(f))}">${M.ov(f)}</b><span>NOTE</span><div class="etoiles" style="font-size:9px">${etoiles(f)}</div></div></div>`;}
 /* ---------- vue Combattants ---------- */
 function vCombattants(){const ms=M.mes();const S=M.SALLES[G.salle.niv];
- let h=`<div class="titreVue"><h1>Mes combattants</h1><small>${ms.length}/${S.cap} places</small></div>`;
+ let h=`<div class="titreVue"><h1>Mes combattants</h1><small>${ms.length}/${S.cap} places</small></div><div style="display:flex;gap:8px;margin:-4px 0 12px"><button class="btn petit" data-act="autoTous" data-x="1">🤖 Tout confier au staff</button><button class="btn petit fant" data-act="autoTous" data-x="0">Reprendre la main</button></div>`;
  h+=ms.sort((a,b)=>M.ov(b)-M.ov(a)).map(ligneF).join('')||'<p class="doux">Personne… recrutez dans l\'onglet Salle.</p>';
+ {const L=[];for(const id in G.F){const f=G.F[id];if(!f.mine&&!(f.ret&&f.histo.length&&f.mg))continue;for(const x of f.histo)L.push([x,f]);}L.sort((a,b)=>b[0].s-a[0].s);
+  if(L.length)h+=`<div class="sec">DERNIERS COMBATS DE L'ÉCURIE</div><div class="carte histo">${L.slice(0,12).map(([x,f])=>`<div data-f="${f.id}"><span class="vd ${x.r}">${x.r}</span><span><b>${esc(f.nom)}</b> ${x.r==='V'?'bat':x.r==='D'?'perd contre':'nul avec'} ${flag(x.ap)} ${esc(x.an)} ${x.titre?ceinture():''}<br><small class="doux">${x.ev} · ${ISSUES[x.m]}${['ko','tko','sub'].includes(x.m)?' R'+x.rd:''} · ${M.date(x.s).split(' · ')[1]}</small></span><span></span></div>`).join('')}</div>`;}
  h+=`<div class="sec">RECRUTEMENT · AGENTS LIBRES</div><p class="doux" style="margin-top:-4px;font-size:12px">Renouvelé tous les mois. La prime de signature est payée une fois ; l'organisation la plus adaptée lui propose ensuite un contrat.</p>`;
  h+=G.recrues.map(id=>G.F[id]).filter(Boolean).map(f=>`<div class="fl" data-f="${f.id}"><div class="por">${por(f,{mini:1})}</div><div style="min-width:0;flex:1"><div class="nm">${flag(f.pays)} ${esc(nomC(f))}</div><div class="sm">${Math.floor(f.age)} ans · ${M.DIV(f.div).nom} · ${STYLES[f.style].ic} ${STYLES[f.style].nom} · ${rec(f)}</div>
  <div class="sm">Potentiel <span class="etoiles">${etoiles(f)}</span></div><button class="btn vert petit" style="margin-top:6px" data-act="signer" data-x="${f.id}">Signer · ${fE(f.prime)}</button></div><div class="note"><b style="color:${noteCol(M.ov(f))}">${M.ov(f)}</b><span>NOTE</span></div></div>`).join('');
@@ -160,7 +163,7 @@ function fiche(id){const f=G.F[id];if(!f)return;const O=f.org?ORGc(f.org):null;c
  if(f.mine){h+=`<div class="carte"><h3>État physique</h3>${[['Forme',f.forme,'#2fbf71'],['Fatigue',f.fat,'#e63946'],['Moral',f.moral,'#3d7bff']].map(([l,v,c])=>`<div class="attr"><span>${l}</span><div class="barre"><i style="width:${v}%;background:${c}"></i></div><b>${Math.round(v)}</b></div>`).join('')}
   ${f.bless>0?`<p style="color:#ff9aa2">🚑 ${esc(f.blessT||'Blessé')} : encore ${f.bless} semaine(s).</p>`:''}</div>
   <div class="carte"><h3>Progression</h3>${courbe(f)}</div>
-  <div class="carte"><h3>Programme d'entraînement</h3><div class="choix" id="cFocus">${Object.entries(M.FOCUS).map(([k,x])=>`<button data-k="${k}" class="${f.train.f===k?'on':''}">${x.ic} ${x.n}</button>`).join('')}</div>
+  <div class="carte"><h3>Programme d'entraînement <small><button class="btn petit ${f.train.auto?'vert':'fant'}" id="bAuto">🤖 ${f.train.auto?'Le staff gère':'Confier au staff'}</button></small></h3>${f.train.auto?'<p class="doux" style="font-size:12px;margin-top:0">Le staff choisit chaque semaine le programme (point faible) et l\'intensité (fatigue, combat proche). Touchez un programme pour reprendre la main.</p>':''}<div class="choix" id="cFocus">${Object.entries(M.FOCUS).map(([k,x])=>`<button data-k="${k}" class="${f.train.f===k?'on':''}">${x.ic} ${x.n}</button>`).join('')}</div>
   <div class="doux" style="font-size:12px;margin:10px 0 6px">Intensité</div><div class="choix" id="cInt">${M.INTENS.map((x,i)=>`<button data-k="${i}" class="${f.train.i===i?'on':''}">${['🟢','🟠','🔴'][i]} ${x.n}</button>`).join('')}</div>
   <p class="doux" style="font-size:12px;margin-bottom:0">${conseil(f)}</p></div>
   <div class="carte"><h3>Contrats</h3><div style="margin-bottom:8px">🤝 Management : <b>${Math.round(M.pctF(f)*100)} %</b> de ses bourses pour l'écurie${f.mg?` · jusqu'à la ${M.date(f.mg.fin)}`:''}</div>${f.ctr&&f.org?`${orgB(f.org)} ${O.nom} · encore <b>${Math.max(0,f.ctr.rest)}</b> combat(s)${f.ctr.show?` · bourse ${fE(f.ctr.show)} + ${fE(f.ctr.show)} si victoire`:''}`:'<span class="doux">Sans contrat : en attente d\'une offre.</span>'}
@@ -172,8 +175,9 @@ function fiche(id){const f=G.F[id];if(!f)return;const O=f.org?ORGc(f.org):null;c
  else if(f.libre)h+=`<div class="carte"><h3>Agent libre</h3><p>Prime de signature : <b>${fE(f.prime)}</b></p><p class="doux" style="font-size:12px">Potentiel estimé par votre recruteur : ${f.potVu??f.pot} (${['±12','±8','±4','±1'][G.coachs.recruteur||0]})</p><button class="btn vert" data-act="signer" data-x="${f.id}">Signer dans l'écurie</button></div>`;
  h+=`<div class="carte"><h3>Derniers combats</h3><div class="histo">${f.histo.slice(0,12).map(x=>`<div><span class="vd ${x.r}">${x.r}</span><span>${flag(x.ap)} ${esc(x.an)} ${x.titre?ceinture():''}<br><small class="doux">${x.ev} · ${ISSUES[x.m]}${['ko','tko','sub'].includes(x.m)?' R'+x.rd+' '+x.t:''}${x.tech?' ('+esc(x.tech)+')':''}</small></span>${x.adv&&G.F[x.adv]?`<button class="btn petit fant" data-f="${x.adv}">👁</button>`:'<span></span>'}</div>`).join('')||'<p class="doux">Aucun combat professionnel pour l\'instant.</p>'}</div></div></div>`;
  modal(h,true);
- if(f.mine){$('cFocus').querySelectorAll('button').forEach(b=>b.onclick=()=>{f.train.f=b.dataset.k;sauver();fiche(id);rendre();});
-  $('cInt').querySelectorAll('button').forEach(b=>b.onclick=()=>{f.train.i=+b.dataset.k;sauver();fiche(id);rendre();});
+ if(f.mine){$('cFocus').querySelectorAll('button').forEach(b=>b.onclick=()=>{f.train.f=b.dataset.k;f.train.auto=false;sauver();fiche(id);rendre();});
+  $('cInt').querySelectorAll('button').forEach(b=>b.onclick=()=>{f.train.i=+b.dataset.k;f.train.auto=false;sauver();fiche(id);rendre();});
+  $('bAuto').onclick=()=>{f.train.auto=!f.train.auto;sauver();fiche(id);rendre();};
   $('bLib').onclick=()=>modal(`<h2>Rompre ?</h2><p>${esc(nomC(f))} quittera définitivement votre écurie.</p><div class="btns"><button class="btn rouge" id="bOui">Oui, rompre</button><button class="btn" onclick="fiche('${id}')">Annuler</button></div>`)||($('bOui').onclick=()=>{M.liberer(id);fermerModal();sauver();rendre();});}
  brancher($('modal'));}
 function conseil(f){const a=f.at,s=f.style;const fai=ATTRS.map(([k])=>k).filter(k=>k!=='menton').sort((x,y)=>a[x]-a[y])[0];

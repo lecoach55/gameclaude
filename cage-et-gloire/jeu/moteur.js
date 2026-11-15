@@ -192,7 +192,8 @@ function avancer(){
  for(const O of ORGS)for(const d of DIVS){const L=classement(O.id,d.id);const ch=G.orgs[O.id].ch[d.id];L.forEach((f,i)=>{const r=f.id===ch?0:(ch?i:i+1);if(f.rpS!==s){f.rp0=f.rp??r;f.rp=r;f.rpS=s;}});}
  gpVerifier();const p=evenementAleatoire();if(p)out.popups.push(p);
  for(const f of mes()){const sp=speciaux(f);if(sp)out.popups.push(sp);}
- if(s%52===1)nouveauxObjectifs();majObjectifs();if(s%52===0)bilanObjectifs(out);
+ if(s%52===1){nouveauxObjectifs();G.an0s={v:G.stats.v,d:G.stats.d,t:G.stats.titres,b:G.stats.bourses,a:G.argent,ko:(G.stats.ko||0)+(G.stats.sub||0)};}
+ if(s%52===0&&G.an0s){const x=G.an0s;out.popups.push(mkP('bilan',{v:G.stats.v-x.v,d:G.stats.d-x.d,t:G.stats.titres-x.t,b:G.stats.bourses-x.b,da:G.argent-x.a,f:(G.stats.ko||0)+(G.stats.sub||0)-x.ko,an:G.an0+Math.floor((s-1)/52),ob:G.obj?G.obj.L.filter(o=>o.ok).length:0,best:mes().sort((p,q)=>ov(q)-ov(p))[0]?.id}));}majObjectifs();if(s%52===0)bilanObjectifs(out);
  if(G.argent<-15000&&!G.faillite){G.faillite=1;out.popups.push({id:'faillite',t:'Les huissiers à la porte',d:'Votre écurie accumule les dettes. Vendez du matériel, baissez les dépenses ou trouvez un sponsor !',ch:[{t:'Compris'}]});}
  if(G.argent>0)G.faillite=0;
  return out;}
@@ -267,7 +268,11 @@ function descendre(f,org){const go=G.orgs[f.org];if(go&&go.ch[f.div]===f.id)go.c
  if(ORG(ex).tier>=2&&f.age<33&&!f.inGP&&R()<.14){f.org=null;f.ctr=null;f.libre=true;f.serie=0;f.prime=Math.round((ov(f)*ov(f)*1.8*(1+(f.pot-ov(f))/30)+f.pop*120)/100)*100;f.potVu=f.pot;G.recrues.push(f.id);news('🔓',f.pr+' '+f.nom+' est libéré par '+ORG(ex).court+' : il cherche une nouvelle écurie.');return;}
  f.org=org;f.ctr={org,rest:3};f.serie=0;}
 /* ---------- entraînement ---------- */
-function entrainer(f){
+function autoTrain(f){const a=f.at;const pr=f.prochain&&trouverCombat(f.prochain);const proche=pr&&pr.c.ok&&pr.e.sem-G.sem<=2;
+ if(f.fat>62||f.bless>0){f.train.f='repos';f.train.i=0;return;}
+ const g={frappe:(a.frappe+a.def)/2,lutte:a.lutte,sol:a.sol,physique:(a.cardio+a.puiss)/2};let k='equi',mn=1e9;for(const x in g){const cap=f.pot+(STYLES[f.style].b[x==='physique'?'cardio':x==='frappe'?'frappe':x]||0)*.8;const v=g[x]-cap;if(v<mn){mn=v;k=x;}}
+ f.train.f=k;f.train.i=proche?0:f.fat>35?1:2;}
+function entrainer(f){if(f.train.auto)autoTrain(f);
  const I=INTENS[f.train.i],Fc=FOCUS[f.train.f];const S=SALLES[G.salle.niv];
  if(f.bless>0||f.train.f==='repos'){f.fat=Math.max(0,f.fat-(f.train.f==='repos'?14:8)-G.coachs.medecin*2);}
  else{const ageF=f.age<23?1.3:f.age<27?1.1:f.age<30?.85:f.age<33?.55:.3;
@@ -356,6 +361,7 @@ function pctF(f){return f&&f.mg?f.mg.pct:COMM;}
 function demandePct(f){return cl(.25-(f.pop-30)/420+(G.salle.rep-30)/700+(f.moral-60)/900,.12,.3);}
 function mkP(id,x){const E=SPECIAUX[id];return {id,x,t:E.t(x),d:E.d(x),ch:E.ch.map((c,i)=>({t:typeof c.t==='function'?c.t(x):c.t}))};}
 const SPECIAUX={
+ bilan:{t:x=>'Bilan de la saison '+x.an,d:x=>'Bilan des combats : '+x.v+' victoires ('+x.f+' avant la limite), '+x.d+' défaites. '+(x.t?x.t+' ceinture(s) remportée(s) ! ':'')+'Commissions : '+fmtE(x.b)+'. Trésorerie : '+(x.da>=0?'+':'')+fmtE(x.da)+' sur l\'année. Objectifs atteints : '+x.ob+'/3.'+(x.best?' Votre meilleur combattant : '+nomF(x.best)+' ('+ov(G.F[x.best])+').':''),ch:[{t:'En route pour la nouvelle saison !'}]},
  operation:{t:x=>'Blessure grave : '+nomF(x.f),d:x=>{const f=G.F[x.f];return 'Diagnostic : '+(f.blessT||'blessure').toLowerCase()+'. Indisponible '+f.bless+' semaines. Le chirurgien propose d\'opérer tout de suite ('+fmtE(x.m)+') pour raccourcir l\'absence d\'environ 40 %.';},
   ch:[{t:x=>'Opérer ('+fmtE(x.m)+')',f:x=>{const f=G.F[x.f];G.argent-=x.m;f.bless=Math.max(1,Math.round(f.bless*.6));}},{t:'Rééducation classique',f:x=>{const f=G.F[x.f];f.at.cardio=Math.max(20,f.at.cardio-1.5);f.at.puiss=Math.max(20,f.at.puiss-1);}}]},
  mgmt:{t:x=>'Contrat de management : '+nomF(x.f),d:x=>{const f=G.F[x.f];return 'Le contrat qui vous lie à '+nomF(x.f)+' arrive à son terme. Sa popularité ('+Math.round(f.pop)+') et votre réputation pèsent dans la discussion : il demande une commission de '+Math.round(x.dem*100)+' % (actuellement '+Math.round(f.mg.pct*100)+' %).';},

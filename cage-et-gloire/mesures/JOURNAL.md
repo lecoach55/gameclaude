@@ -17,3 +17,20 @@ Monde (outils/sim_monde.js 3 6) :
 TOTAL {"titres":13,"apex":2,"fail":0} 6.1s
 ```
 Parcours au doigt (mobile 390×844) : aucune erreur. Arène : ≈ 70 appels de dessin, 151 000 triangles.
+
+## v2 → v6 — nuit du 15 au 16/11/2026
+Traits, camps, négociation, management, rivalités, Grand Prix, Top 15, prix, temple, succès, objectifs, sponsors, gala maison, entraînement délégué ; mise en scène (présentation, coins, marques, ralenti, sons).
+Calibrage du combat sans traits : inchangé (≈ 52 % décisions). Effet des traits (outils/traits.js) : menton_fer  52.0% verre       46.0% machine     58.0% finisseur   51.8% tueur       51.1% diesel      55.2% explosif    55.6% gaucher     52.4% contreur    51.5% pressing    55.0% cage        50.2% gardes      53.9% rapide      51.7% 
+Monde (sim_monde.js 4 8) :
+```
+— graine 1 titres 8 V-D 162-147 max tier 4 erreurs 0 effectifs {"cfr":99,"ecc":91,"hex":92,"gla":91,"apx":106} combattants 531
+   objectifs/an: 1233312 commissions 20/22/28/22/21/24/22/28/21/29/30/30
+— graine 2 titres 16 V-D 173-140 max tier 4 erreurs 0 effectifs {"cfr":99,"hex":92,"gla":90,"ecc":90,"apx":106} combattants 530
+   objectifs/an: 2232332 commissions 20/19/20/22/20/25/30/25/22/30/30/30
+— graine 3 titres 15 V-D 199-168 max tier 4 erreurs 0 effectifs {"cfr":97,"ecc":89,"hex":92,"gla":92,"apx":106} combattants 533
+   objectifs/an: 2333223 commissions 18/20/19/18/18/19/27/20/19/20/30/29
+— graine 4 titres 16 V-D 200-174 max tier 4 erreurs 0 effectifs {"cfr":98,"hex":94,"ecc":88,"gla":90,"apx":107} combattants 525
+   objectifs/an: 2332232 commissions 22/23/21/22/21/23/21/28/22/22/25/24
+TOTAL {"titres":55,"apex":4,"fail":0} 22.3s
+```
+Tests : evtest 32 événements + 8 spéciaux sans erreur ; parcours au doigt, vues, combat3d, sauvegarde (rechargement identique, 147 000 caractères compressés au lieu d'environ 1 Mo) sans erreur. Arène : 55-69 appels de dessin, ≈ 249 000 triangles avec les soigneurs.

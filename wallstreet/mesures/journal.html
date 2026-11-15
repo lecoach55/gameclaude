@@ -45,6 +45,31 @@ a{color:inherit}
 
 <!--NOUVELLES-ENTREES-->
 
+<article id="e-passe7">
+<header><h2>Passe 7 : ce que la deuxième mesure sur le Mac a appris</h2><span class="when">15 novembre 2026 <span class="tag gold">publié</span></span></header>
+<h3>Lecture des résultats</h3>
+<ul>
+<li><b>La sauvegarde en ligne marche</b> : la partie est bien arrivée en ligne (compressée en un seul morceau). La mesure signalait pourtant une erreur : deux envois partaient en même temps, et le second échouait. Corrigé.</li>
+<li><b>La mesure s'est arrêtée en route</b> : à partir de l'onglet Portefeuille, plus aucune image n'a été affichée. L'onglet ou le volet de l'application avait été masqué pendant la mesure, et le navigateur suspend alors l'affichage. Les autres jeux de l'atelier ont rencontré la même chose.</li>
+<li>Sur ce Mac, sans ralentissement artificiel, le calcul d'une séance coûte environ 8 fois plus de temps que sur la machine de test : chaque milliseconde gagnée compte.</li>
+</ul>
+<h3>Corrections</h3>
+<ul>
+<li>Les graphiques ne réallouent plus leur toile à chaque séance (sur écran Retina, c'était le poste le plus coûteux).</li>
+<li>Le tableau du marché n'est plus recalculé quand il est hors de l'écran (il l'est dès qu'il redevient visible), et les mini-courbes sont gardées en mémoire pour la séance.</li>
+<li>Mesure 🧪 fiable : elle attend que la page soit visible, recommence une fois si l'affichage a été suspendu et le signale sinon. Un bandeau demande de rester sur l'onglet pendant 30 s. Elle mesure maintenant le temps ressenti, jusqu'à l'image affichée, et pas seulement le calcul.</li>
+<li>Sauvegarde en ligne prudente : si une partie plus récente existe sur un autre appareil et qu'on commence quand même une nouvelle partie, la partie en ligne n'est pas écrasée avant 20 séances jouées.</li>
+<li>Plus de confettis quand on termine l'année hors du podium.</li>
+</ul>
+<h3>Chiffres (10 séances, processeur ×4, écran Retina 771×755 comme le volet du Mac)</h3>
+<div class="tw"><table>
+<tr><th>Onglet</th><th>Avant</th><th>Après</th></tr>
+<tr><td>Marché</td><td>498 ms</td><td class="ok">287 ms (−42 %)</td></tr>
+<tr><td>Rivaux</td><td>334 ms</td><td class="ok">223 ms (−33 %)</td></tr>
+</table></div>
+<p>Depuis la première mesure du Mac (passe 5), le travail par séance a donc été divisé par environ trois. Contrôles : parties automatiques de 2 ans sans erreur, testeur au doigt sans erreur, sauvegarde en ligne testée avec une base simulée (envois simultanés, reprise sur un autre appareil, partie en ligne protégée).</p>
+</article>
+
 <article id="e-passe6">
 <header><h2>Passe 6 : fluidité, d'après la mesure faite sur le MacBook</h2><span class="when">15 novembre 2026 <span class="tag gold">publié</span></span></header>
 <h3>Ce que la mesure du Mac a montré</h3>

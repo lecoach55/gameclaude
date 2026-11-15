@@ -572,12 +572,15 @@ function renderHeat(){
   $('#heat').innerHTML=h;
   $('#hpSeg').onclick=e=>{const v=e.target.dataset.hp;if(v){hp=+v;renderHeat();}};
 }
-function renderCote(){
+const SPK={};function spkRow(r){const k=r.t+'|'+G.day+'|'+cls(r.m1);return SPK[k]||(SPK[r.t+'_']&&delete SPK[SPK[r.t+'_']],SPK[r.t+'_']=k,SPK[k]=sparkSVG(G.st[r.t].p.slice(-22),cls(r.m1)));}
+const COTEV={vis:true,dirty:false};
+try{new IntersectionObserver(es=>{es.forEach(e=>{COTEV.vis=e.isIntersecting;if(COTEV.vis&&COTEV.dirty&&tab==='cote')renderCote();});}).observe(document.getElementById('v-cote'));}catch(e){}
+function renderCote(){COTEV.dirty=false;
   $('#heat').hidden=cview!=='map';$('#listWrap').hidden=cview==='map';$('#quickF').style.display=cview==='map'?'none':'';
   if(cview==='map'){renderHeat();return;}
   document.querySelectorAll('#tMarket th[data-k]').forEach(th=>{const on=th.dataset.k===sortK;th.classList.toggle('sorted',on);th.dataset.dir=on?(sortDir>0?'↑':'↓'):'';});
   const R=rows();
-  $('#tMarket tbody').innerHTML=R.length?R.map(r=>'<tr data-t="'+r.t+'"'+(r.t===sel?' class="sel"':'')+'><td><div class="who">'+avatar(r.t)+'<div><b>'+esc(r.name)+(GM().fav[r.t]?' <span class="gold">★</span>':'')+'</b><small>'+r.t+', '+r.sec+'</small></div></div></td><td>'+sparkSVG(G.st[r.t].p.slice(-22),cls(r.m1))+'</td><td><b>'+nf2.format(r.px)+'</b></td><td>'+pill(r.d1)+'</td><td>'+(r.pe>0&&r.pe<500?nf1.format(r.pe):'—')+'</td><td>'+(r.dy>0?nf1.format(r.dy*100)+' %':'<span class="muted">—</span>')+'</td><td>'+abar(r.c)+'</td><td><span class="chipd'+(r.earn<=5?' soon':'')+'">'+(r.earn===0?'aujourd\'hui':'dans '+r.earn+' j')+'</span></td><td>'+(r.held>0?'<span class="held">'+nf0.format(r.held)+'</span>':r.held<0?'<span class="held" style="background:var(--down)">'+nf0.format(r.held)+'</span>':'')+'</td></tr>').join(''):'<tr><td colspan="9" class="quiet">Aucune valeur ne correspond à ce filtre.</td></tr>';
+  $('#tMarket tbody').innerHTML=R.length?R.map(r=>'<tr data-t="'+r.t+'"'+(r.t===sel?' class="sel"':'')+'><td><div class="who">'+avatar(r.t)+'<div><b>'+esc(r.name)+(GM().fav[r.t]?' <span class="gold">★</span>':'')+'</b><small>'+r.t+', '+r.sec+'</small></div></div></td><td>'+spkRow(r)+'</td><td><b>'+nf2.format(r.px)+'</b></td><td>'+pill(r.d1)+'</td><td>'+(r.pe>0&&r.pe<500?nf1.format(r.pe):'—')+'</td><td>'+(r.dy>0?nf1.format(r.dy*100)+' %':'<span class="muted">—</span>')+'</td><td>'+abar(r.c)+'</td><td><span class="chipd'+(r.earn<=5?' soon':'')+'">'+(r.earn===0?'aujourd\'hui':'dans '+r.earn+' j')+'</span></td><td>'+(r.held>0?'<span class="held">'+nf0.format(r.held)+'</span>':r.held<0?'<span class="held" style="background:var(--down)">'+nf0.format(r.held)+'</span>':'')+'</td></tr>').join(''):'<tr><td colspan="9" class="quiet">Aucune valeur ne correspond à ce filtre.</td></tr>';
 }
 function renderFiche(){
   const t=sel,o=G.st[t],s=ST[t],p=P(t),d1=ret(t,1);
@@ -820,7 +823,7 @@ function renderOrdres(){
 }
 function renderAll(){
   renderBoard();renderTape();renderHero();renderCards();renderUne();renderFiche();
-  const V={cote:renderCote,terminal:renderTerminal,portef:renderPortef,missions:renderMissions,rivaux:renderRivaux,shop:renderShop,ordres:renderOrdres};V[tab]();
+  const V={cote:()=>{if(COTEV.vis)renderCote();else COTEV.dirty=true;},terminal:renderTerminal,portef:renderPortef,missions:renderMissions,rivaux:renderRivaux,shop:renderShop,ordres:renderOrdres};V[tab]();
 }
 
 /* ---------- graphiques ---------- */
@@ -830,7 +833,7 @@ const CSZ={};const RO=window.ResizeObserver?new ResizeObserver(es=>es.forEach(e=
 function hex(c){if(/^#[0-9a-f]{6}$/i.test(c))return c;const t=document.createElement('div');t.style.color=c;document.body.appendChild(t);const m=getComputedStyle(t).color.match(/\d+/g);t.remove();return'#'+m.slice(0,3).map(x=>(+x).toString(16).padStart(2,'0')).join('');}
 function chart(canvas,series,labels,fmt,marks,lines){
   const wrap=canvas.parentElement;if(RO&&!wrap._ro){wrap._ro=1;RO.observe(wrap);}const sz=(wrap._sz&&wrap._sz.width>=10)?wrap._sz:(canvas.id&&CSZ[canvas.id]&&CSZ[canvas.id].iw===innerWidth?CSZ[canvas.id]:null),r=sz||wrap.getBoundingClientRect();if(canvas.id&&r.width>=10)CSZ[canvas.id]={width:r.width,height:r.height,iw:innerWidth};const dpr=window.devicePixelRatio||1;if(r.width<10)return;
-  canvas.width=r.width*dpr;canvas.height=r.height*dpr;const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);
+  const cw=Math.round(r.width*dpr),ch=Math.round(r.height*dpr);if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch;}const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);c.globalAlpha=1;c.setLineDash([]);
   const W=r.width,H=r.height,L=2,R=58,T=10,B=22;let mn=Infinity,mx=-Infinity;series.forEach(s=>s.d.forEach(v=>{if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v);}}));(lines||[]).forEach(l=>{mn=Math.min(mn,l.v);mx=Math.max(mx,l.v);});
   if(mx===mn){mx+=1;mn-=1;}const pad=(mx-mn)*0.1;mn-=pad;mx+=pad;
   const n=labels.length,X=k=>L+(n<2?0:k/(n-1))*(W-L-R),Y=v=>T+(1-(v-mn)/(mx-mn))*(H-T-B);
@@ -904,7 +907,7 @@ function ceremony(prime,out,me,mk){
   const nm=x=>x.id==='me'?'Vous':x.n.split(' ')[0];
   const order=[1,0,2].filter(k=>L[k]),H=[110,150,84];
   const pod='<div class="podium-c">'+order.map(k=>'<div class="pc"><div class="pf">'+face(L[k].id)+'</div><b>'+nm(L[k])+'</b><small>'+short$(L[k].v)+'</small><div class="step s'+(k+1)+'" style="height:'+H[k===0?1:k===1?0:2]+'px"><span>'+(k+1)+'</span></div></div>').join('')+'</div>';
-  popQueue.push('<div data-fx class="dlg-top" style="background:linear-gradient(160deg,#1a2333,#3a2b5c)"><div style="font-size:14px;opacity:.8">Cérémonie de fin d\'année, '+(yr===1?'votre première année':'année '+yr)+' à Wall Street</div><h2 id="infoTitle">'+(pos===1?'Vous êtes le meilleur investisseur de l\'année !':pos===2?'Deuxième place, tout près du sommet':pos===3?'Sur le podium':'Hors du podium cette année')+'</h2>'+pod+'</div><div class="dlg-body"><div class="rc-nums"><div><span class="muted">Vos placements</span><b class="'+cls(me)+'">'+pct1(me)+'</b></div><div><span class="muted">Le marché</span><b class="'+cls(mk)+'">'+pct1(mk)+'</b></div><div><span class="muted">Prime</span><b>'+short$(prime)+'</b></div></div>'+(xp?'<p class="gold" style="margin:10px 0 0"><b>+'+xp+' XP pour votre place sur le podium.</b></p>':'')+(best&&best.pl>0?'<p style="margin:10px 0 0">Meilleur coup : <b>'+esc(ST[best.t].n)+'</b>, '+money0(best.pl)+'.</p>':'')+(worst&&worst.pl<0?'<p style="margin:4px 0 0">Pire coup : <b>'+esc(ST[worst.t].n)+'</b>, '+money0(worst.pl)+'.</p>':'')+'<div class="dlg-act"><button class="btn go" data-close>Année suivante</button></div></div>');
+  popQueue.push('<div '+(pos<=3?'data-fx ':'')+'class="dlg-top" style="background:linear-gradient(160deg,#1a2333,#3a2b5c)"><div style="font-size:14px;opacity:.8">Cérémonie de fin d\'année, '+(yr===1?'votre première année':'année '+yr)+' à Wall Street</div><h2 id="infoTitle">'+(pos===1?'Vous êtes le meilleur investisseur de l\'année !':pos===2?'Deuxième place, tout près du sommet':pos===3?'Sur le podium':'Hors du podium cette année')+'</h2>'+pod+'</div><div class="dlg-body"><div class="rc-nums"><div><span class="muted">Vos placements</span><b class="'+cls(me)+'">'+pct1(me)+'</b></div><div><span class="muted">Le marché</span><b class="'+cls(mk)+'">'+pct1(mk)+'</b></div><div><span class="muted">Prime</span><b>'+short$(prime)+'</b></div></div>'+(xp?'<p class="gold" style="margin:10px 0 0"><b>+'+xp+' XP pour votre place sur le podium.</b></p>':'')+(best&&best.pl>0?'<p style="margin:10px 0 0">Meilleur coup : <b>'+esc(ST[best.t].n)+'</b>, '+money0(best.pl)+'.</p>':'')+(worst&&worst.pl<0?'<p style="margin:4px 0 0">Pire coup : <b>'+esc(ST[worst.t].n)+'</b>, '+money0(worst.pl)+'.</p>':'')+'<div class="dlg-act"><button class="btn go" data-close>Année suivante</button></div></div>');
 }
 const COACH=[
  ['#hero','Votre tour','Votre fortune fait grandir ce gratte-ciel. Les trois autres tours sont celles de vos rivaux : dépassez-les.'],
@@ -1031,10 +1034,11 @@ const CLOUD=(()=>{
     await to(doc('partie').set(Object.assign({id,n,gz:!!p.z,c:body.slice(0,CH)},meta)),20000);C.taille=body.length;}
   async function get(){if(!await ini())return null;try{const s=await to(doc('partie').get(),10000);return s&&s.exists?s.data():null;}catch(e){return null;}}
   async function full(m){let body=m.c;for(let k=1;k<m.n;k++){const s=await to(doc('partie_'+k).get(),10000);const d=s&&s.exists&&s.data();if(!d||d.id!==m.id)return null;body+=d.c;}return m.gz?unzip(body):body;}
-  async function pump(){if(busy||!pend)return;if(!await ini()){pend=null;return;}busy=true;const p=pend;pend=null;
+  async function pump(){if(busy||!pend)return;busy=true;if(!await ini()){pend=null;busy=false;return;}const p=pend;pend=null;if(!p){busy=false;return;}
     try{await put(p.s,p.m);C.ok=true;C.err='';}catch(e){C.err=String(e&&(e.code||e.message)||e).slice(0,160);if(e&&(e.code==='unavailable'||e.code==='timeout')){pend=pend||p;busy=false;setTimeout(pump,4000+Math.random()*3000);return;}}
     busy=false;if(pend)pump();}
-  function push(now){if(NOSAVE||!G)return;clearTimeout(tm);const go=()=>{lastT=Date.now();pend={s:JSON.stringify(G),m:{t:G.savedAt||Date.now(),day:G.day,date:G.date,val:Math.round(value())}};pump();};
+  function push(now){if(NOSAVE||!G)return;if(C.hold&&G.day-G.start<20)return; // une partie plus récente existe en ligne : on ne l'écrase pas tant que le joueur n'a pas choisi
+clearTimeout(tm);const go=()=>{lastT=Date.now();pend={s:JSON.stringify(G),m:{t:G.savedAt||Date.now(),day:G.day,date:G.date,val:Math.round(value())}};pump();};
     const w=30000-(Date.now()-lastT);if(now||w<=0)go();else tm=setTimeout(go,w);}
   const C={ini,get,full,push,ok:false,err:'',taille:0,put:async(n,o)=>{if(!await ini())return false;try{await to(doc(n).set(o),10000);return true;}catch(e){return false;}}};
   return C;
@@ -1045,7 +1049,12 @@ const KIT={erreurs:[]};
 addEventListener('error',e=>{KIT.erreurs.push(String(e.message||e).slice(0,300));if(KIT.erreurs.length>20)KIT.erreurs.shift();});
 addEventListener('unhandledrejection',e=>{KIT.erreurs.push('promesse : '+String(e.reason).slice(0,300));if(KIT.erreurs.length>20)KIT.erreurs.shift();});
 const kitStats=a=>{if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length};};
-const kitFrames=ms=>new Promise(r=>{const a=[];let lt=0,on=true;const f=t=>{if(lt)a.push(t-lt);lt=t;if(on)requestAnimationFrame(f);};requestAnimationFrame(f);setTimeout(()=>{on=false;r(kitStats(a));},ms);});
+// mesure fiable (même règle que la trousse commune) : on attend que la page soit visible, on recommence une fois si l'affichage a été suspendu
+const kitVisible=()=>new Promise(r=>{if(!document.hidden)return r();const f=()=>{if(!document.hidden){document.removeEventListener('visibilitychange',f);r();}};document.addEventListener('visibilitychange',f);});
+const kitFrames0=ms=>new Promise(r=>{const a=[];let lt=0,on=true,masq=false;const vf=()=>{if(document.hidden)masq=true;};document.addEventListener('visibilitychange',vf);const f=t=>{if(lt)a.push(t-lt);lt=t;if(on)requestAnimationFrame(f);};requestAnimationFrame(f);setTimeout(()=>{on=false;document.removeEventListener('visibilitychange',vf);const st=kitStats(a);if(masq||a.length<ms/1000*3)st.masquee=true;r(st);},ms);});
+async function kitFrames(ms){await kitVisible();let st=await kitFrames0(ms);if(st.masquee){await kitVisible();st=await kitFrames0(ms);}return st;}
+const nextPaint=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s.length?+s[Math.floor(s.length/2)].toFixed(1):null;};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function kitEtat(){const g=GM();return{date:G.date,seance:G.day,onglet:tab,valeur:sel,patrimoine:Math.round(value()),liquidites:Math.round(G.cash),lignes:Object.keys(G.pos).length,ordres:(g.orders||[]).length,rang:myRank(),xp:g.xp,difficulte:g.diff,lecture_auto:!!auto,
   infos:G.news.slice(-5).map(n=>n.title),sauvegarde_ko:Math.round(JSON.stringify(G).length/1024),cloud:{ok:CLOUD.ok,err:CLOUD.err,taille_ko:Math.round(CLOUD.taille/1024)}};}
@@ -1061,17 +1070,18 @@ async function kitBug(){
 async function kitBench(){
   if(busy)return;stopAuto();const snap=JSON.stringify(G),keep={tab,sel},sOn=soundOn;NOSAVE=true;soundOn=false;$('#mStart').hidden=true;
   const quiet=()=>{promoQueue.length=0;evQueue.length=0;popQueue.length=0;['mInfo','mEvent'].forEach(i=>{const m=$('#'+i);if(m)m.hidden=true;});};
-  const res=[];toast('Mesure en cours (30 s environ). Votre partie sera remise exactement comme avant.','var(--accent)');
+  const res=[];const ov=document.createElement('div');ov.className='kitov';ov.innerHTML='🧪 Mesure en cours, environ 30 secondes.<br><small>Restez sur cet onglet : votre partie sera remise exactement comme avant.</small>';document.body.appendChild(ov);
   try{
-    setTab('cote');await sleep(300);let t0=performance.now();for(let i=0;i<12;i++){step(1);quiet();await sleep(0);}
-    res.push({scene:'séance suivante (calcul + affichage)',ms:+((performance.now()-t0)/12).toFixed(1)});
-    t0=performance.now();step(21);quiet();res.push({scene:'+1 mois',ms:Math.round(performance.now()-t0)});
+    for(const t of ['cote','portef']){setTab(t);await sleep(300);await kitVisible();const js=[],tot=[];let masq=false;const vf=()=>{if(document.hidden)masq=true;};document.addEventListener('visibilitychange',vf);
+      for(let i=0;i<10;i++){const t0=performance.now();step(1);quiet();const t1=performance.now();await nextPaint();js.push(t1-t0);tot.push(performance.now()-t0);await sleep(120);}
+      document.removeEventListener('visibilitychange',vf);res.push(Object.assign({scene:'séance suivante ('+t+')',ms:med(tot),calcul_ms:med(js)},masq?{masquee:true}:{}));}
+    await kitVisible();let t0=performance.now();step(21);quiet();await nextPaint();res.push({scene:'+1 mois',ms:Math.round(performance.now()-t0)});
     for(const t of ['cote','portef','missions','rivaux']){setTab(t);await sleep(700);res.push(Object.assign({scene:'repos '+t},await kitFrames(2500)));}
     setTab('cote');$('#bAuto').click();await sleep(400);res.push(Object.assign({scene:'lecture auto'},await kitFrames(5000)));stopAuto();quiet();
   }catch(e){res.push({erreur:String(e)});}
-  G=JSON.parse(snap);ensureGame();SKY.heights={};shownVal=null;quiet();$('#recapCard').hidden=true;document.body.classList.remove('has-recap');sel=keep.sel;NOSAVE=false;soundOn=sOn;setTab(keep.tab);
+  ov.remove();  G=JSON.parse(snap);ensureGame();SKY.heights={};shownVal=null;quiet();$('#recapCard').hidden=true;document.body.classList.remove('has-recap');sel=keep.sel;NOSAVE=false;soundOn=sOn;setTab(keep.tab);
   saveNow();CLOUD.push(true);for(let i=0;i<50&&!CLOUD.ok&&!CLOUD.err;i++)await sleep(200);
-  const out={jeu:'wallstreet',date:new Date().toISOString(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,coeurs:navigator.hardwareConcurrency||0,res,version:'passe6',cloud:{ok:CLOUD.ok,err:CLOUD.err,taille_ko:Math.round(CLOUD.taille/1024),partie_ko:Math.round(snap.length/1024)}};
+  const out={jeu:'wallstreet',date:new Date().toISOString(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,coeurs:navigator.hardwareConcurrency||0,res,version:'passe7',cloud:{ok:CLOUD.ok,err:CLOUD.err,taille_ko:Math.round(CLOUD.taille/1024),partie_ko:Math.round(snap.length/1024)}};
   try{localStorage.setItem('wallst-derniere-mesure',JSON.stringify(out));}catch(e){}
   const ok=await CLOUD.put('mesures_'+Date.now(),out);KIT.dernier=out;
   const r=res.filter(x=>!x.erreur);
@@ -1080,9 +1090,9 @@ async function kitBench(){
 async function cloudOffer(){
   if(!await CLOUD.ini())return;const m=await CLOUD.get();const box=$('#sCloud');
   const localT=(G&&G.savedAt)||0,hasLocal=!!localT;
-  if(m&&m.t>localT+2000&&!(hasLocal&&G.day===m.day&&G.date===m.date)){
+  if(m&&m.t>localT+2000&&!(hasLocal&&G.day===m.day&&G.date===m.date)){CLOUD.hold=true;
     box.innerHTML='<span>☁️ Une partie plus récente existe sur un autre appareil : <b>'+dShort(m.date)+'</b>, patrimoine <b>'+money0(m.val)+'</b>.</span><button class="btn go" id="cLoad" type="button">Reprendre cette partie</button>';box.hidden=false;
-    $('#cLoad').onclick=async()=>{const b=$('#cLoad');b.disabled=true;b.textContent='Chargement…';try{const s=await CLOUD.full(m);const g=s&&JSON.parse(s);if(!g||g.v!==3)throw 0;stopAuto();G=g;ensureGame();SKY.heights={};shownVal=null;try{localStorage.setItem(KEY,s);}catch(e){}box.innerHTML='☁️ Partie reprise. Elle suit sur tous vos appareils.';$('#mStart').hidden=true;renderAll();toast('Partie reprise : '+dShort(G.date)+'.','var(--gold)');}catch(e){b.disabled=false;b.textContent='Réessayer';}};
+    $('#cLoad').onclick=async()=>{const b=$('#cLoad');b.disabled=true;b.textContent='Chargement…';try{const s=await CLOUD.full(m);const g=s&&JSON.parse(s);if(!g||g.v!==3)throw 0;stopAuto();CLOUD.hold=false;G=g;ensureGame();SKY.heights={};shownVal=null;try{localStorage.setItem(KEY,s);}catch(e){}box.innerHTML='☁️ Partie reprise. Elle suit sur tous vos appareils.';$('#mStart').hidden=true;renderAll();toast('Partie reprise : '+dShort(G.date)+'.','var(--gold)');}catch(e){b.disabled=false;b.textContent='Réessayer';}};
     if($('#mStart').hidden)toast('Une partie plus récente existe sur un autre appareil. Ouvrez le menu ☰ pour la reprendre.','var(--accent)');
   }else{box.innerHTML='☁️ Sauvegarde en ligne active : votre partie vous suit du téléphone à l’ordinateur.';box.hidden=false;}
 }

@@ -81,3 +81,8 @@ Action-RPG façon Diablo + royaume (dés, diplomatie, dynastie). Canvas 2D, une 
 Gestion d'un club de foot français du Régional 2 à la Ligue 1 (une page HTML/JS). Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144`, publier `president-de-club/jeu/index.html` en `index.html` (publish_files, mode patch).
 - Équilibre : `outils/run3.js` (4 stratégies × 3 parties × 8 saisons, repère 1-4 fins sur 12, 0 erreur) et `outils/abmatch.js` ; ne pas changer la difficulté sans accord.
 - Apps Mac/Windows : `outils/app-bureau/` (Electron). Journal : `mesures/JOURNAL.md`. Voir `president-de-club/README.md`.
+
+## Bannières & Sortilèges (`bannieres/`)
+Stratégie au tour par tour façon Heroes of Might and Magic avec cartes générées au hasard (Canvas 2D, une page hors ligne). Artefact : slug `c14c3c85-7570-4c24-845c-42239cee0f6a` (capacités db + user).
+- Construire : `python3 bannieres/jeu/build.py`, publier `bannieres/build/bannieres.html` en `index.html` (publish_files).
+- Logique testable sous Node (`outils/charger.js`, `sim_partie.js`) ; avant publication : `parcours.py`, `scen.py`, `perf.py`, `capt.py` + compare, `hors_ligne.py`. Voir `bannieres/README.md`.

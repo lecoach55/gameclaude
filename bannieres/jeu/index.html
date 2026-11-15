@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Bannières &amp; Sortilèges</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- accueil -->
+<section id="accueil" class="ecran on">
+ <canvas id="fondAccueil"></canvas>
+ <div class="titre-bloc">
+  <h1>Bannières <span>&amp;</span> Sortilèges</h1>
+  <div class="sous">Héros, châteaux et créatures fabuleuses — sur des terres que nul n’a encore cartographiées.</div>
+  <div class="menu-acc">
+   <button class="btn or" id="bContinuer" style="display:none">▶ Continuer la partie</button>
+   <button class="btn" id="bNouvelle">⚔ Nouvelle partie</button>
+   <button class="btn" id="bAide">📖 Comment jouer</button>
+   <button class="btn petit" id="bTest">🧪 Mode test</button>
+  </div>
+  <div id="nuageInfo" class="nuage-info"></div>
+ </div>
+ <div class="credits">Un jeu créé pour Victor · cartes générées à chaque partie · graphismes, musique et sons créés par le code · aucune connexion nécessaire</div>
+</section>
+<!-- nouvelle partie -->
+<section id="config" class="ecran">
+ <div class="cadre config">
+  <h2>Nouvelle partie</h2>
+  <div class="grille-cfg">
+   <div class="lbl">Taille de la carte</div><div class="choix" id="cTaille"><button data-v="36">Petite</button><button data-v="54" class="sel">Moyenne</button><button data-v="72">Grande</button></div>
+   <div class="lbl">Eau</div><div class="choix" id="cEau"><button data-v="0">Aucune</button><button data-v="1" class="sel">Lacs</button><button data-v="2">Mers</button></div>
+   <div class="lbl">Monstres</div><div class="choix" id="cMonstres"><button data-v="0">Faibles</button><button data-v="1" class="sel">Normaux</button><button data-v="2">Redoutables</button></div>
+   <div class="lbl">Rivaux</div><div class="choix" id="cDif"><button data-v="0">Paisibles</button><button data-v="1" class="sel">Ambitieux</button><button data-v="2">Impitoyables</button></div>
+   <div class="lbl">Graine</div><div class="ligne-graine"><input id="cGraine" inputmode="numeric" placeholder="au hasard"><button class="btn petit" id="cDe">🎲</button></div>
+  </div>
+  <h3>Royaumes</h3>
+  <div id="cJoueurs"></div>
+  <div class="ligne-btn"><button class="btn petit" id="cAjout">+ Ajouter un royaume</button></div>
+  <div class="ligne-btn"><button class="btn" id="cRetour">← Retour</button><button class="btn or" id="cGo">Générer le monde</button></div>
+ </div>
+</section>
+<!-- génération -->
+<section id="generation" class="ecran"><div class="gen-txt"><div class="sablier"></div><div id="genMsg">Le cartographe trace des terres inconnues…</div></div></section>
+<!-- aventure -->
+<section id="aventure" class="ecran">
+ <canvas id="carte"></canvas>
+ <div id="barreRes" class="barre-res"></div>
+ <aside id="panneau" class="panneau">
+  <canvas id="minicarte"></canvas>
+  <div id="listes" class="listes"><div id="listeHeros" class="liste"></div><div id="listeVilles" class="liste"></div></div>
+  <div id="ficheSel" class="fiche-sel"></div>
+  <div class="boutons-av">
+   <button class="ib" id="bHeroSuiv" title="Héros suivant (H)">🐎</button>
+   <button class="ib" id="bFiche" title="Fiche du héros">🛡</button>
+   <button class="ib" id="bVille" title="Ville (V)">🏰</button>
+   <button class="ib" id="bBouger" title="Avancer (espace)">➜</button>
+   <button class="ib" id="bCarte" title="Mini-carte">🗺</button>
+   <button class="ib" id="bMenu" title="Menu (Échap)">☰</button>
+   <button class="ib fin" id="bFinTour" title="Fin du tour (E)">⌛</button>
+  </div>
+ </aside>
+ <div id="infoBulle" class="info-bulle"></div>
+ <div id="bandeau" class="bandeau"></div>
+</section>
+<!-- combat -->
+<section id="combat" class="ecran">
+ <canvas id="cvCombat"></canvas>
+ <div class="barre-combat">
+  <div id="cbFile" class="cb-file"></div>
+  <div id="cbLog" class="cb-log"></div>
+  <div class="cb-btns">
+   <button class="ib" id="cbSort" title="Livre de sorts">📖</button>
+   <button class="ib" id="cbAttendre" title="Attendre">⏳</button>
+   <button class="ib" id="cbDefendre" title="Se défendre">🛡</button>
+   <button class="ib" id="cbAuto" title="Combat automatique">⚙</button>
+   <button class="ib" id="cbFuir" title="Fuir">🏳</button>
+  </div>
+ </div>
+ <div id="cbInfo" class="info-bulle"></div>
+</section>
+<!-- ville -->
+<section id="ville" class="ecran">
+ <canvas id="cvVille"></canvas>
+ <div class="ville-bas">
+  <div class="ville-tete"><span id="vNom"></span><span id="vRes" class="v-res"></span></div>
+  <div class="ville-armees">
+   <div class="arm-ligne"><div class="arm-tit" id="vGarnTit">Garnison</div><div class="slots" id="vGarn"></div></div>
+   <div class="arm-ligne"><div class="arm-tit" id="vHerosTit">Héros</div><div class="slots" id="vHeros"></div></div>
+  </div>
+  <div class="ville-btns">
+   <button class="btn petit" id="vConstruire">🔨 Construire</button>
+   <button class="btn petit" id="vRecruter">⚔ Recruter</button>
+   <button class="btn petit" id="vMarche">⚖ Marché</button>
+   <button class="btn petit" id="vTaverne">🍺 Taverne</button>
+   <button class="btn petit" id="vGuilde">✨ Guilde</button>
+   <button class="btn or petit" id="vQuitter">Quitter</button>
+  </div>
+ </div>
+</section>
+<!-- fenêtres -->
+<div id="modal" class="modal"><div class="cadre fen" id="fen"></div></div>
+<div id="toast" class="toast"></div>
+<script src="data.js"></script>
+<script src="carte.js"></script>
+<script src="regles.js"></script>
+<script src="combat.js"></script>
+<script src="ia.js"></script>
+<script src="sprites.js"></script>
+<script src="decor.js"></script>
+<script src="sons.js"></script>
+<script src="testkit.js"></script>
+<script src="nuage.js"></script>
+<script src="rendu.js"></script>
+<script src="combat_ui.js"></script>
+<script src="ville_ui.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

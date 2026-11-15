@@ -124,7 +124,7 @@ function majUI(){if(!G||ECRAN!=='aventure')return;const j=vueJoueur();const p=G.
  else f.innerHTML=`<div style="opacity:.7">${p.nom} — ${FAC[p.fac].nom}</div>`;
  peindreCanvasRes(f);
  const mon=G.joueurs[G.courant].humain&&!V.occupe;for(const id of ['bHeroSuiv','bFiche','bVille','bBouger','bFinTour'])$(id).disabled=!mon;$('bBouger').disabled=!mon||!V.chemin;}
-function miniArmee(a){return'<div class="mini-armee">'+a.map(s=>`<div class="s">${s?`<canvas width="48" height="48" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')+'</div>';}
+function miniArmee(a){return'<div class="mini-armee">'+a.map(s=>`<div class="s ${s?'':'vide'}">${s?`<canvas width="48" height="48" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')+'</div>';}
 
 // ---------- tapotements sur la carte ----------
 async function toucher(i){if(i<0||!G||V.occupe)return;const p=G.joueurs[G.courant];if(!p.humain)return;bulle(null);
@@ -162,7 +162,7 @@ function ouvrirFiche(h){V.porTmp=h;const st=['att','def','pou','con'];
 
 // ---------- éditeur d'armées (fiches, échanges, villes) ----------
 function editeurArmees(el,listes,onChange){let sel=null;
- const rendre=()=>{el.innerHTML=listes.map((l,li)=>`<div class="arm-ligne" style="margin:4px 0"><div class="arm-tit" style="color:#5a3a10">${esc(l.titre)}</div><div class="slots">${l.armee.map((s,k)=>`<div class="slot ${sel&&sel.l===li&&sel.k===k?'sel':''}" data-l="${li}" data-k="${k}">${s?`<canvas width="72" height="72" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')}</div></div>`).join('')
+ const rendre=()=>{el.innerHTML=listes.map((l,li)=>`<div class="arm-ligne" style="margin:4px 0"><div class="arm-tit" style="color:#5a3a10">${esc(l.titre)}</div><div class="slots">${l.armee.map((s,k)=>`<div class="slot ${sel&&sel.l===li&&sel.k===k?'sel':''} ${s?'':'vide'}" data-l="${li}" data-k="${k}">${s?`<canvas width="72" height="72" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')}</div></div>`).join('')
   +`<div class="btns" style="margin-top:4px"><button class="btn petit" id="edDiv" ${sel?'':'disabled'}>✂ Diviser</button><button class="btn petit" id="edInfo" ${sel?'':'disabled'}>ℹ Détails</button><button class="btn petit" id="edRenv" ${sel?'':'disabled'}>✕ Renvoyer</button></div>`;
   peindreCanvasRes(el);
   el.querySelectorAll('.slot').forEach(d=>d.onclick=()=>tap(+d.dataset.l,+d.dataset.k));

@@ -42,7 +42,7 @@ function creerCombat(A,D,o){o=o||{};const rng=creeRng(o.graine||12345);
  // dégâts
  C.degats=(a,c,opt={})=>{const A=CRE[a.c];let base;
   if(a.eff.beni)base=a.n*A.dmax;else if(a.eff.maudit)base=a.n*A.dmin*.8;else if(opt.moyenne)base=a.n*(A.dmin+A.dmax)/2;else{if(a.n<=10){base=0;for(let i=0;i<a.n;i++)base+=rng.i(A.dmin,A.dmax);}else{let s=0;for(let i=0;i<10;i++)s+=rng.i(A.dmin,A.dmax);base=s*a.n/10;}}
-  const at=C.attaque(a),df=C.defense(c);let m=at>df?Math.min(4,1+.05*(at-df)):Math.max(.3,1-.025*(df-at));
+  const at=C.attaque(a),df=Math.round(C.defense(c)*(A.sp.includes('brise')?.6:1));let m=at>df?Math.min(4,1+.05*(at-df)):Math.max(.3,1-.025*(df-at));
   const cs=C.stats[a.cote].comp,cd=C.stats[c.cote].comp;
   if(opt.tir){m*=1+[0,.1,.25,.5][cs.archerie||0];if(opt.dist>10)m*=.5;}else{m*=1+.1*(cs.offense||0);if(A.tirs)m*=.5;if(c.eff.bouclier)m*=.8;}
   m*=1-.05*(cd.armure||0);if(opt.charge&&A.sp.includes('charge'))m*=1+.05*opt.charge;

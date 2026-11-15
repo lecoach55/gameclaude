@@ -35,7 +35,7 @@ function arme(g,t,x,y,d){const fer='#cfd5da',bois='#7a5230';
  }}
 
 // ---------- humanoïdes ----------
-function dessHum(g,d){const pk=d.petit?.78:d.gros?1.22:1;const lx=d.mince?.85:1;const peau=d.peau||'#e3b58c';
+function dessHum(g,d){const pk=d.petit?.78:d.geant?1.42:d.gros?1.22:1;const lx=d.mince?.85:1;const peau=d.peau||'#e3b58c';
  g.save();g.translate(50,92);g.scale(pk*lx,pk);g.translate(-50,-92);
  // cape
  if(d.cape)peint(g,poly([40,34,58,34,64,86,30,88]),d.cape);
@@ -52,6 +52,7 @@ function dessHum(g,d){const pk=d.petit?.78:d.gros?1.22:1;const lx=d.mince?.85:1;
  // tête
  const hy=d.zombi?28:26;const hx=d.zombi?54:50;
  if(d.crane){boule(g,hx,hy,9,'#e2dcc6');g.fillStyle='#1a1410';g.beginPath();g.arc(hx+2,hy-1,2.4,0,7);g.arc(hx+7,hy-1,2.2,0,7);g.fill();g.save();g.shadowColor=d.orbe||'#7cf7a2';g.shadowBlur=6;g.fillStyle=d.orbe||'#7cf7a2';g.beginPath();g.arc(hx+2,hy-1,1,0,7);g.arc(hx+7,hy-1,1,0,7);g.fill();g.restore();}
+ else if(d.cyclope){boule(g,hx,hy,9,peau);g.fillStyle='#fff';g.beginPath();g.ellipse(hx+4,hy-2,3.2,2.6,0,0,7);g.fill();g.fillStyle='#3a1a0a';g.beginPath();g.arc(hx+5,hy-2,1.5,0,7);g.fill();g.strokeStyle='#3a2010';g.lineWidth=1.4;g.beginPath();g.moveTo(hx,hy-6);g.lineTo(hx+8,hy-6);g.stroke();}
  else{boule(g,hx,hy,9,peau);g.fillStyle='#2a1a10';g.beginPath();g.arc(hx+5,hy-1,1.3,0,7);g.fill();if(d.zombi){g.strokeStyle='#5a2a2a';g.lineWidth=1;g.beginPath();g.moveTo(hx+2,hy+5);g.lineTo(hx+8,hy+4);g.stroke();}}
  if(d.oreilles){peint(g,poly([hx-6,hy-2,hx-14,hy-8,hx-7,hy+3]),peau);}
  if(d.barbe)peint(g,g2=>{g2.moveTo(hx-3,hy+3);g2.quadraticCurveTo(hx+6,hy+20,hx+10,hy+3);g2.closePath();},d.barbe);
@@ -59,6 +60,7 @@ function dessHum(g,d){const pk=d.petit?.78:d.gros?1.22:1;const lx=d.mince?.85:1;
  if(d.casque===1)peint(g,g2=>{g2.moveTo(hx-11,hy-1);g2.quadraticCurveTo(hx,hy-17,hx+11,hy-1);g2.lineTo(hx+13,hy+1);g2.lineTo(hx-13,hy+1);g2.closePath();},d.arm||'#9aa8b8');
  if(d.casque===2){peint(g,rrect(hx-10,hy-11,20,20,5),d.arm||'#ccc');g.fillStyle='#111';g.fillRect(hx+1,hy-3,9,2.5);}
  if(d.capuche)peint(g,g2=>{g2.moveTo(hx-12,hy+8);g2.quadraticCurveTo(hx-12,hy-16,hx+4,hy-13);g2.quadraticCurveTo(hx+13,hy-8,hx+10,hy+2);g2.lineTo(hx+6,hy-3);g2.quadraticCurveTo(hx-2,hy-7,hx-5,hy+10);g2.closePath();},d.capuche);
+ if(d.couronne)peint(g,poly([hx-8,hy-7,hx-8,hy-14,hx-4,hy-10,hx,hy-16,hx+4,hy-10,hx+8,hy-14,hx+8,hy-7]),'#e8c040');
  // bouclier
  if(d.bouclier)peint(g,g2=>{g2.moveTo(30,40);g2.lineTo(44,40);g2.lineTo(44,56);g2.quadraticCurveTo(37,66,30,56);g2.closePath();},d.bouclier,{y0:40,y1:64});
  if(d.bouclier&&d.croix){g.fillStyle=d.croix;g.fillRect(35.5,43,3,14);g.fillRect(32,48,10,3);}
@@ -155,6 +157,21 @@ function dessAnge(g,d){g.save();g.shadowColor='#fff6c8';g.shadowBlur=14;ailes(g,
  g.save();g.translate(5,3);ailes(g,teinte(d.aile,-.05),46,36,1.05,1.05);g.restore();
  g.save();g.strokeStyle='#ffe58a';g.lineWidth=2;g.shadowColor='#ffe58a';g.shadowBlur=8;g.beginPath();g.ellipse(50,12,9,3,0,0,7);g.stroke();g.restore();}
 
+function dessChevaucheur(g,d){dessLoup(g,d);g.save();g.translate(44,62);g.scale(.62,.62);g.translate(-50,-92);dessHum(g,{petit:1,peau:d.peau,tun:d.tun,arme:'lance',oreilles:1});g.restore();}
+function dessOiseau(g,d){ailes(g,d.aile,50,40,1.25,1.15);trait(g,[44,64,40,86],'#c8a050',3);trait(g,[56,64,60,86],'#c8a050',3);for(const x of [40,60]){trait(g,[x,86,x+6,90],'#c8a050',2);trait(g,[x,86,x-4,90],'#c8a050',2);}
+ peint(g,g2=>{g2.moveTo(22,50);g2.lineTo(10,62);g2.lineTo(26,58);g2.closePath();},teinte(d.corps,-.2));ell(g,46,54,24,14,d.corps);
+ peint(g,g2=>{g2.moveTo(60,46);g2.quadraticCurveTo(66,30,74,24);g2.quadraticCurveTo(84,28,78,48);g2.closePath();},d.tete,{y0:22,y1:50});boule(g,76,24,9,d.tete);
+ peint(g,g2=>{g2.moveTo(83,20);g2.quadraticCurveTo(98,22,94,34);g2.quadraticCurveTo(90,28,84,29);g2.closePath();},'#e8b030');g.fillStyle='#111';g.beginPath();g.arc(79,21,1.6,0,7);g.fill();
+ g.save();g.translate(6,4);ailes(g,teinte(d.aile,.08),50,40,1.15,1.05);g.restore();}
+function dessBehemoth(g,d){const c=d.corps;g.save();g.translate(50,92);g.scale(1.12,1.12);g.translate(-50,-92);
+ for(const [x,c2] of [[30,teinte(c,-.3)],[40,c],[62,teinte(c,-.3)],[72,c]])peint(g,rrect(x-5,62,11,28,4),c2,{y0:62,y1:90});
+ for(const x of [30,40,62,72]){peint(g,poly([x-5,90,x-3,94,x,90,x+3,94,x+6,90]),'#e8dcc4');}
+ ell(g,50,52,30,19,c);ell(g,52,62,20,7,d.ventre,{trait:false});peint(g,g2=>{g2.moveTo(22,46);g2.quadraticCurveTo(10,50,12,62);g2.quadraticCurveTo(18,56,24,56);g2.closePath();},teinte(c,-.1));
+ for(let k=0;k<5;k++)peint(g,poly([34+k*7,36,37+k*7,26-(k%2)*3,40+k*7,36]),teinte(c,-.25));
+ boule(g,80,46,13,c);peint(g,g2=>{g2.moveTo(84,50);g2.quadraticCurveTo(98,52,96,60);g2.quadraticCurveTo(88,62,82,58);g2.closePath();},teinte(c,-.15));
+ g.fillStyle='#fff';for(let k=0;k<3;k++){g.beginPath();g.moveTo(86+k*3,56);g.lineTo(87.5+k*3,60);g.lineTo(89+k*3,56);g.fill();}
+ peint(g,g2=>{g2.moveTo(76,36);g2.quadraticCurveTo(70,22,78,14);g2.quadraticCurveTo(76,26,82,34);g2.closePath();},d.corne);peint(g,g2=>{g2.moveTo(86,38);g2.quadraticCurveTo(94,26,90,18);g2.quadraticCurveTo(96,28,90,40);g2.closePath();},d.corne);
+ g.save();g.shadowColor='#ff5a2a';g.shadowBlur=6;g.fillStyle='#ffb02a';g.beginPath();g.arc(86,43,2,0,7);g.fill();g.restore();g.restore();}
 var SPR_CACHE={};
 // ---------- créatures pré-rendues en 3D (sprites3d.js) ----------
 var IMG3D={};
@@ -171,7 +188,7 @@ function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[
   let ppu=S*.62/1.7;const [im,sx,sy,sw,sh]=cadre3D(id,'idle',0);const e0=ppu/D.pxu;const larg=Math.max(D.ax,sw-D.ax)*2*e0,haut=D.ay*e0;const f=Math.min(1,S*.98/larg,S*.86/haut);ppu*=f;
   dessiner3D(g,id,'idle',0,S*.5,S*.896,ppu,false);SPR_CACHE[k]=c;return c;}const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
  ombreSol(g,50,91,30,6,.4);
- ({hum:dessHum,squel:dessSquel,spectre:dessSpectre,cheval:dessCheval,cavalier:dessCavalier,centaure:dessCentaure,griffon:dessGriffon,loup:dessLoup,treant:dessTreant,dragon:dessDragon,ange:dessAnge})[d.t](g,d);
+ ({chevaucheur:dessChevaucheur,oiseau:dessOiseau,behemoth:dessBehemoth,hum:dessHum,squel:dessSquel,spectre:dessSpectre,cheval:dessCheval,cavalier:dessCavalier,centaure:dessCentaure,griffon:dessGriffon,loup:dessLoup,treant:dessTreant,dragon:dessDragon,ange:dessAnge})[d.t](g,d);
  eclairage(c);SPR_CACHE[k]=c;return c;}
 // modelé : lumière chaude en haut à gauche, ombre froide en bas à droite, liseré de contre-jour (donne du volume aux figures dessinées)
 function eclairage(c){const g=c.getContext('2d');const W=c.width,H=c.height;g.save();g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-atop';

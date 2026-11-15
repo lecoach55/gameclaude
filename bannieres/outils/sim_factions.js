@@ -3,7 +3,7 @@
 const J=require('./charger.js')();
 const NG=+process.argv[2]||4,JOURS=+process.argv[3]||120;
 const F=J.FACS,v={},n={};F.forEach(f=>{v[f]=0;n[f]=0;});let nul=0;const durees=[];
-(async()=>{for(let g=0;g<NG;g++)for(let a=0;a<3;a++)for(let b=0;b<3;b++){if(a===b)continue;
+(async()=>{for(let g=0;g<NG;g++)for(let a=0;a<F.length;a++)for(let b=0;b<F.length;b++){if(a===b)continue;
  J.nouvellePartie({graine:5000+g,taille:36,eau:g%3,monstres:1,joueurs:[{fac:F[a]},{fac:F[b]}]});
  while(!J.G.fini&&J.G.jour<=JOURS){await J.tourIA(J.G.courant);J.finTourJoueur();}
  n[F[a]]++;n[F[b]]++;if(J.G.fini){v[J.G.joueurs[J.G.fini.gagnant].fac]++;durees.push(J.G.jour);}else nul++;}

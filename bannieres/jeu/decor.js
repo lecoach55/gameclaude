@@ -118,7 +118,13 @@ function tourelle(g,x,y,w,h,mur,toit,forme){peint(g,rrect(x-w/2,y-h,w,h,2),mur,{
  else{for(let k=0;k<3;k++)peint(g,rrect(x-w/2+k*w/3,y-h-5,w/3-2,6,1),mur,{pierre:(g.canvas.height>500?.4:.22)});}}
 function spriteVille(fac){const k='v'+fac;if(SPR_CACHE[k])return SPR_CACHE[k];const W=TS*3.2,H=TS*3.4;const c=mkC(W,H);const g=c.getContext('2d');const F=FAC[fac].coul;const cx=W/2,base=H-TS*.15;
  ombreSol(g,cx,base-TS*.4,W*.48,TS*.5,.45);
- if(fac==='sylve'){// palissade, maisons dans les arbres
+ if(fac==='horde'){// palissade de pieux, grande hutte et huttes rondes
+  for(const [x,y,w] of [[cx-TS*.95,base-TS*.75,TS*.6],[cx+TS*.95,base-TS*.75,TS*.6]]){peint(g,rrect(x-w/2,y,w,TS*.5,6),'#9a7448');peint(g,poly([x-w/2-6,y+4,x,y-TS*.75,x+w/2+6,y+4]),'#c9a050');}
+  peint(g,rrect(cx-TS*.7,base-TS*1.5,TS*1.4,TS*.9,4),'#8a6238',{y0:base-TS*1.5,y1:base-TS*.6});peint(g,poly([cx-TS*.85,base-TS*1.42,cx,base-TS*2.5,cx+TS*.85,base-TS*1.42]),'#b8903e',{y0:base-TS*2.5,y1:base-TS*1.42});
+  for(const s2 of [-1,1]){trait(g,[cx+s2*TS*.5,base-TS*2.0,cx+s2*TS*.75,base-TS*2.7],'#e8dcc4',4);}
+  for(let x=cx-W*.44;x<cx+W*.44;x+=8){if(Math.abs(x-cx)<TS*.36)continue;peint(g,poly([x,base-TS*.12,x,base-TS*.8,x+4,base-TS*1.0,x+8,base-TS*.8,x+8,base-TS*.12]),'#7a5228',{y0:base-TS*1.0,y1:base});}
+  peint(g,g2=>{g2.moveTo(cx-TS*.34,base-TS*.12);g2.lineTo(cx-TS*.34,base-TS*.75);g2.lineTo(cx+TS*.34,base-TS*.75);g2.lineTo(cx+TS*.34,base-TS*.12);g2.closePath();},'#4a2a12');
+ }else if(fac==='sylve'){// palissade, maisons dans les arbres
   for(const [x,s] of [[cx-TS*1.1,1.3],[cx+TS*1.15,1.25],[cx,1.6]]){trait(g,[x,base-TS*.8,x,base-TS*1.9*s],'#6a4a2a',9);for(const [dx,dy,rr] of [[-20,-2,22],[20,-4,22],[0,-22,26],[-10,8,16],[12,8,16]])boule(g,x+dx,base-TS*1.9*s+dy,rr,teinte('#3f7a34',(dx%3)*.05));}
   for(const [x,y,w] of [[cx-TS*1.1,base-TS*1.5,30],[cx+TS*1.15,base-TS*1.45,30],[cx,base-TS*2.1,36]]){peint(g,rrect(x-w/2,y,w,w*.7,3),'#9a7448');peint(g,poly([x-w/2-5,y,x,y-w*.6,x+w/2+5,y]),F.toit);g.fillStyle='#ffd87a';g.fillRect(x-3,y+6,6,7);}
   for(let x=cx-W*.44;x<cx+W*.44;x+=7){if(Math.abs(x-cx)<TS*.36)continue;peint(g,poly([x,base-TS*.15,x,base-TS*.75,x+3.5,base-TS*.9,x+7,base-TS*.75,x+7,base-TS*.15]),'#8a6238',{y0:base-TS*.9,y1:base});}
@@ -187,12 +193,12 @@ function spriteArtefact(a){const k='a'+a;if(SPR_CACHE[k])return SPR_CACHE[k];con
 var PANO={capitole:[.5,.68,.19],hotelville:[.5,.68,.18],mairie:[.5,.68,.16],conseil:[.5,.68,.14],fort:[.5,.56,1],citadelle:[.5,.56,1],chateau:[.5,.56,1],taverne:[.25,.97,.14],marche:[.45,.99,.15],silo:[.06,.96,.1],
  graal:[.64,.6,.12],guilde1:[.82,.62,.1],guilde2:[.82,.62,.1],guilde3:[.82,.62,.1],hab1:[.08,.78,.12],hab2:[.3,.8,.12],hab3:[.68,.81,.12],hab4:[.92,.82,.12],hab5:[.65,.98,.13],hab6:[.87,1,.14],hab7:[.18,.62,.15]};
 function panoramaVille(v,W,H){const c=mkC(W,H);const g=c.getContext('2d');const F=FAC[v.fac];const zones=[];const r=creeRng(v.id*13);
- const nuit=v.fac==='necro';const sky=g.createLinearGradient(0,0,0,H*.6);sky.addColorStop(0,nuit?'#1a1430':v.fac==='sylve'?'#6aa8d8':'#5a90d0');sky.addColorStop(1,nuit?'#5a4a6a':v.fac==='sylve'?'#cfe8c8':'#f0d8b0');g.fillStyle=sky;g.fillRect(0,0,W,H);
+ const nuit=v.fac==='necro';const sky=g.createLinearGradient(0,0,0,H*.6);const hd=v.fac==='horde';sky.addColorStop(0,nuit?'#1a1430':hd?'#c86a3a':v.fac==='sylve'?'#6aa8d8':'#5a90d0');sky.addColorStop(1,nuit?'#5a4a6a':hd?'#f8d090':v.fac==='sylve'?'#cfe8c8':'#f0d8b0');g.fillStyle=sky;g.fillRect(0,0,W,H);
  if(nuit){g.fillStyle='#e8e4d0';g.beginPath();g.arc(W*.8,H*.14,H*.06,0,7);g.fill();g.fillStyle='#1a1430';g.beginPath();g.arc(W*.82,H*.13,H*.055,0,7);g.fill();}
  else{g.save();g.globalAlpha=.7;g.fillStyle='#fff';for(let k=0;k<5;k++){const x=r.f()*W,y=H*(.06+r.f()*.2);for(let j=0;j<4;j++){g.beginPath();g.ellipse(x+j*W*.025,y+(j%2)*4,W*.03,H*.025,0,0,7);g.fill();}}g.restore();}
  // montagnes lointaines
  for(let l=0;l<2;l++){g.fillStyle=nuit?['#3a3050','#2a2438'][l]:v.fac==='sylve'?['#8ab0a0','#5a8a64'][l]:['#9aa8c0','#6a7a90'][l];g.beginPath();g.moveTo(0,H*.55);for(let x=0;x<=W;x+=W/14)g.lineTo(x,H*(.32+l*.08)+Math.sin(x*.013+l*2+v.id)*H*.06+r.f()*H*.04);g.lineTo(W,H*.6);g.closePath();g.fill();}
- const sol=g.createLinearGradient(0,H*.5,0,H);const sc=nuit?['#4a4038','#2a2420']:v.fac==='sylve'?['#5a8a3a','#2f5a24']:['#7aa04a','#4a7030'];sol.addColorStop(0,sc[0]);sol.addColorStop(1,sc[1]);g.fillStyle=sol;g.fillRect(0,H*.52,W,H*.48);
+ const sol=g.createLinearGradient(0,H*.5,0,H);const sc=nuit?['#4a4038','#2a2420']:v.fac==='horde'?['#a88a52','#6a5232']:v.fac==='sylve'?['#5a8a3a','#2f5a24']:['#7aa04a','#4a7030'];sol.addColorStop(0,sc[0]);sol.addColorStop(1,sc[1]);g.fillStyle=sol;g.fillRect(0,H*.52,W,H*.48);
  // chemin
  g.fillStyle=nuit?'rgba(120,100,80,.5)':'rgba(200,170,120,.55)';g.beginPath();g.moveTo(W*.45,H);g.quadraticCurveTo(W*.5,H*.75,W*.5,H*.62);g.quadraticCurveTo(W*.52,H*.75,W*.6,H);g.fill();
  const [T1]=textures();const im=g.getImageData(0,H*.52|0,W,H-(H*.52|0));for(let y=0;y<im.height;y++)for(let x=0;x<W;x++){const o=(y*W+x)*4;const v=(T1[((y>>1)&255)*256+((x>>1)&255)]-.5)*50;im.data[o]+=v;im.data[o+1]+=v;im.data[o+2]+=v*.6;}g.putImageData(im,0,H*.52|0);
@@ -207,6 +213,7 @@ function panoramaVille(v,W,H){const c=mkC(W,H);const g=c.getContext('2d');const 
  return{c,zones};}
 function batimentPano(g,b,x,y,w,H,v,sx){const F=FAC[v.fac].coul;const mur=F.mur,toit=F.toit;const s=H/420;
  if(b==='fort'||b==='citadelle'||b==='chateau'){const n=b==='chateau'?3:b==='citadelle'?2:1;const W=g.canvas.width;
+  if(v.fac==='horde'){for(let xx=W*.12;xx<W*.88;xx+=12*s){peint(g,poly([xx,y,xx,y-(46+n*8)*s,xx+6*s,y-(56+n*8)*s,xx+12*s,y-(46+n*8)*s,xx+12*s,y]),'#7a5228',{y0:y-(56+n*8)*s,y1:y});}for(let k=0;k<n+1;k++){const tx=W*(.12+.76*k/n);peint(g,rrect(tx-16*s,y-(90+n*14)*s,32*s,(90+n*14)*s,3),'#8a6238');peint(g,poly([tx-22*s,y-(90+n*14)*s,tx,y-(120+n*14)*s,tx+22*s,y-(90+n*14)*s]),'#c9a050');}return{x:W*.12,y:y-(120+n*14)*s,w:W*.76,h:(120+n*14)*s};}
   peint(g,rrect(W*.18,y-40*s,W*.64,40*s,2),mur,{pierre:(g.canvas.height>500?.4:.22),y0:y-40*s,y1:y});for(let xx=W*.18;xx<W*.82;xx+=14*s)peint(g,rrect(xx,y-48*s,9*s,10*s,1),mur,{pierre:(g.canvas.height>500?.4:.22)});
   for(let k=0;k<n+1;k++){const tx=W*(.18+.64*k/n);tourelle(g,tx,y+4*s,34*s,(80+n*14)*s,mur,toit,v.fac==='necro'?'fleche':'cone');}
   return{x:W*.18,y:y-(80+n*14)*s,w:W*.64,h:(80+n*14)*s};}
@@ -223,6 +230,7 @@ function batimentPano(g,b,x,y,w,H,v,sx){const F=FAC[v.fac].coul;const mur=F.mur,
  // habitations : bâtiment générique + créature devant
  const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;
  if(v.fac==='sylve'){trait(g,[x,y,x,y-h*.9],'#6a4a2a',8*s);for(const [dx,dy,rr] of [[-.3,-.95,.28],[.3,-.95,.28],[0,-1.15,.32]])boule(g,x+dx*w,y+dy*h,rr*w,'#3f7a34');peint(g,rrect(x-w*.3,y-h*.55,w*.6,h*.35,3),'#9a7448');}
+ else if(v.fac==='horde'){peint(g,rrect(x-w/2,y-h*.5,w,h*.5,w*.2),'#9a7448',{y0:y-h*.5,y1:y});peint(g,poly([x-w/2-8*s,y-h*.42,x,y-h*1.05,x+w/2+8*s,y-h*.42]),'#c9a050',{y0:y-h*1.05,y1:y-h*.42});g.fillStyle='#2a1608';g.beginPath();g.ellipse(x,y-h*.12,w*.14,h*.18,0,Math.PI,0);g.fill();}
  else if(v.fac==='necro'){peint(g,poly([x-w/2,y,x-w/2,y-h*.6,x,y-h*1.0,x+w/2,y-h*.6,x+w/2,y]),teinte(mur,-.15),{pierre:(g.canvas.height>500?.4:.22),y0:y-h,y1:y});g.fillStyle='#120c18';g.beginPath();g.ellipse(x,y-h*.2,w*.18,h*.22,0,Math.PI,0);g.fill();}
  else{peint(g,rrect(x-w/2,y-h*.6,w,h*.6,3),mur,{pierre:(g.canvas.height>500?.4:.22),y0:y-h*.6,y1:y});peint(g,poly([x-w/2-6*s,y-h*.6,x,y-h*(.95+niv*.04),x+w/2+6*s,y-h*.6]),toit);g.fillStyle='#3a2412';g.fillRect(x-w*.12,y-h*.3,w*.24,h*.3);}
  const S=w*1.3;g.drawImage(spriteCreature(cre,Math.round(S)),x-S*.2,y-S*.9);

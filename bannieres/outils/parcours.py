@@ -16,8 +16,11 @@ async def main():
     jours=int(sys.argv[1]);W=int(sys.argv[2]) if len(sys.argv)>2 else 1280;H=int(sys.argv[3]) if len(sys.argv)>3 else 800;cap=sys.argv[4] if len(sys.argv)>4 else None
     base=serveur(JEU,8782);t0=time.time()
     async with async_playwright() as p:
-        nav=await navigateur(p);pg=await page(nav,base+'index.html',W,H)
-        await pg.wait_for_timeout(800);await pg.click('#bTest');await pg.wait_for_timeout(200);await pg.wait_for_function("()=>ECRAN==='aventure'",timeout=60000)
+        fac=os.environ.get('FAC')
+        nav=await navigateur(p);pg=await page(nav,base+('index.html?graine=11&taille=54&test=0&fac='+fac if fac else 'index.html'),W,H)
+        if fac:await pg.wait_for_function("()=>ECRAN==='aventure'",timeout=60000)
+        else:
+            await pg.wait_for_timeout(800);await pg.click('#bTest');await pg.wait_for_timeout(200);await pg.wait_for_function("()=>ECRAN==='aventure'",timeout=60000)
         await pg.evaluate("()=>{ACCEL=25;V.rapide=true;TEST=false;}")  # TEST=false : on teste aussi la vraie sauvegarde
         await pg.evaluate(ROBOT)
         dern=0

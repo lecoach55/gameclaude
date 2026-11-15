@@ -10,7 +10,10 @@ Y=lambda to,s=.8,dk=1.4,**k:{'f':'hx_ysolde','o':dict({'recol':{'h':.11,'to':to,
 M=lambda **k:{'f':'hx_maelle','o':k}
 C=lambda to,s=.7,**k:{'f':'hx_cult','o':dict({'recol':{'h':0,'to':to,'w':.18,'s':s}},**k)}
 # une variante par nom de héros (même ordre que HEROS_NOMS dans data.js, genre respecté)
+B=lambda hue=.35,**k:{'f':'hx_brute','o':dict({'hue':hue,'gsat':.95,'gdk':1.25,'gamt':.15,'ghc':.2},**k),'d':1.55,'dy':-.02,'rot':.3}
 P={
+ 'barbare':[B(.35),B(.05),B(-.4),M(recol={'h':.33,'to':.05,'w':.15,'s':1})],
+ 'chaman':[B(1.2,gdk=.95),C(.08,.8,gdk=1.1),Y(.05,1,1.1),M(recol={'h':.33,'to':.08,'w':.15,'s':.9})],
  'chevalier':[A(.62,1.2),A(.0,1.2,hue=2.2),A(.12,hue=.6,dk=1.8),Y(.62,.9)],
  'clerc':[Y(.12,.4,1.6),Y(.6,.7),M(recol={'h':.33,'to':.12,'w':.15,'s':.6}),A(.12,hue=.9,dk=1.9)],
  'rodeur':[M(hue=.25),M(recol={'h':.33,'to':.3,'w':.15,'s':1}),A(.3,hue=1.6,dk=1.3),Y(.3)],
@@ -26,6 +29,7 @@ async def main():
         await pg.goto('http://localhost:8765/bs_studio.html',timeout=120000)
         await pg.evaluate("()=>new Promise(r=>{const f=()=>window.studioPret?window.studioPret.then(r):setTimeout(f,100);f();})")
         for cl,l in P.items():
+            if os.environ.get('SEUL') and cl not in os.environ['SEUL'].split(','):continue
             for i,d in enumerate(l):
                 d=json.loads(json.dumps(d))
                 js="(p)=>rendrePortrait(p)"

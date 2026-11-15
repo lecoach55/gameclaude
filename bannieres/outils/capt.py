@@ -12,10 +12,10 @@ async def main():
         await pg.wait_for_function("()=>ECRAN==='aventure'",timeout=120000);await pg.wait_for_timeout(1500)
         await pg.evaluate("()=>{const t=document.querySelector('div[style*=monospace]');if(t)t.remove();}")
         await capturer(pg,f'{out}/carte.png')
-        for fac in ['bastion','sylve','necro']:
+        for fac in ['bastion','sylve','necro','horde']:
             await pg.evaluate("(f)=>{const v=villesDe(0)[0];v.fac=f;for(const b of BAT_ORDRE)if(!BAT[b].unique)v.bat[b]=1;ouvrirVille(v);}",fac);await pg.wait_for_timeout(1200)
             await capturer(pg,f'{out}/ville_{fac}.png');await pg.evaluate("()=>VI.fermer()")
-        await pg.evaluate("()=>{const h=herosDe(0)[0];combatInteractif({heros:h,armee:['griffon','cavalier','ange','moine','croise','archer','piquier'].map(c=>({c,n:5})),joueur:0},{heros:null,armee:['dragonvert','licorne','treant','dragonos','vampire','liche','chevnoir'].map(c=>({c,n:4})),joueur:-1},{terrain:(window._ter||'herbe'),banc:true});setTimeout(()=>{CB.auto=false;},10)}")
+        await pg.evaluate("()=>{const h=herosDe(0)[0];combatInteractif({heros:h,armee:['griffon','cavalier','ange','moine','croise','archer','piquier'].map(c=>({c,n:5})),joueur:0},{heros:null,armee:['behemoth','cyclope','roc','ogre','orque','chevloup2','gobelin2'].map(c=>({c,n:4})),joueur:-1},{terrain:(window._ter||'herbe'),banc:true});setTimeout(()=>{CB.auto=false;},10)}")
         await pg.wait_for_timeout(1500);await capturer(pg,f'{out}/combat.png')
         await pg.evaluate("()=>{CB.auto=true;CB.banc=false;ACCEL=2;if(CB.attente)CB.attente(iaCombat(CB.C));}");await pg.wait_for_timeout(9000);await capturer(pg,f'{out}/combat_suite.png')
         await nav.close()

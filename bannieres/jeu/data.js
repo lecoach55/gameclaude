@@ -51,9 +51,15 @@ var CRE={
  chevnoir:{nom:'Chevalier noir',pl:'Chevaliers noirs',fac:'necro',niv:6,pv:120,att:16,def:16,dmin:15,dmax:30,vit:7,sp:['mort','malefice'],cr:2,cout:{or:1200},d:{t:'cavalier',cheval:'#22212a',arm:'#3a3d48',tun:'#5a1020',arme:'epee',yeux:'#ff4a3a'}},
  dragonos:{nom:'Dragon d’os',pl:'Dragons d’os',fac:'necro',niv:7,pv:150,att:17,def:15,dmin:25,dmax:50,vit:9,vol:1,sp:['mort','peur'],cr:1,cout:{or:1800},d:{t:'dragon',corps:'#e6e0c8',ventre:'#bdb59a',aile:'#6a6458',os:1}},
  // Neutres
- gobelin:{nom:'Gobelin',pl:'Gobelins',fac:'neutre',niv:1,pv:5,att:4,def:2,dmin:1,dmax:2,vit:5,cr:15,cout:{or:40},d:{t:'hum',petit:1,peau:'#7fae3c',tun:'#6b4a2b',arme:'massue',oreilles:1}},
+ gobelin:{nom:'Gobelin',pl:'Gobelins',fac:'horde',niv:1,pv:5,att:4,def:2,dmin:1,dmax:2,vit:5,cr:15,cout:{or:40},d:{t:'hum',petit:1,peau:'#7fae3c',tun:'#6b4a2b',arme:'massue',oreilles:1}},
  loup:{nom:'Loup',pl:'Loups',fac:'neutre',niv:2,pv:15,att:7,def:5,dmin:2,dmax:5,vit:8,cr:9,cout:{or:110},d:{t:'loup',corps:'#7d7f86',ventre:'#c9c9c9'}},
- orque:{nom:'Orque',pl:'Orques',fac:'neutre',niv:3,pv:15,att:8,def:4,dmin:2,dmax:5,vit:4,tirs:12,cr:7,cout:{or:150},d:{t:'hum',peau:'#5f8a46',tun:'#7a3a22',arme:'hachejet',arm:'#6c6c6c'}},
+ orque:{nom:'Orque',pl:'Orques',fac:'horde',niv:3,pv:15,att:8,def:4,dmin:2,dmax:5,vit:4,tirs:12,cr:7,cout:{or:150},d:{t:'hum',peau:'#5f8a46',tun:'#7a3a22',arme:'hachejet',arm:'#6c6c6c'}},
+ // Horde
+ chevloup:{nom:'Chevaucheur de loup',pl:'Chevaucheurs de loup',fac:'horde',niv:2,pv:10,att:7,def:5,dmin:2,dmax:4,vit:6,cr:8,cout:{or:100},d:{t:'chevaucheur',corps:'#6f7178',ventre:'#bdbdbd',peau:'#7fae3c',tun:'#7a4a22'}},
+ ogre:{nom:'Ogre',pl:'Ogres',fac:'horde',niv:4,pv:40,att:13,def:7,dmin:6,dmax:12,vit:4,cr:4,cout:{or:300},d:{t:'hum',gros:1,peau:'#b8946a',tun:'#6a3a1a',arme:'massue'}},
+ roc:{nom:'Roc',pl:'Rocs',fac:'horde',niv:5,pv:40,att:13,def:11,dmin:11,dmax:15,vit:7,vol:1,cr:3,cout:{or:600},d:{t:'oiseau',corps:'#8a5a32',tete:'#e8dcc4',aile:'#6a4224'}},
+ cyclope:{nom:'Cyclope',pl:'Cyclopes',fac:'horde',niv:6,pv:70,att:15,def:12,dmin:16,dmax:20,vit:6,tirs:16,cr:2,cout:{or:750,mercure:1},d:{t:'hum',geant:1,peau:'#c49a7a',tun:'#5a4a2a',arme:'massue',cyclope:1}},
+ behemoth:{nom:'Béhémoth',pl:'Béhémoths',fac:'horde',niv:7,pv:160,att:17,def:17,dmin:30,dmax:50,vit:6,sp:['brise'],cr:1,cout:{or:1500,mercure:1},d:{t:'behemoth',corps:'#7a5a3a',ventre:'#b89a72',corne:'#e8dcc4'}},
  troll:{nom:'Troll',pl:'Trolls',fac:'neutre',niv:5,pv:40,att:14,def:7,dmin:10,dmax:15,vit:7,sp:['regen'],cr:3,cout:{or:500},d:{t:'hum',gros:1,peau:'#6f8f8a',tun:'#5a4632',arme:'massue'}},
  wyverne:{nom:'Wyverne',pl:'Wyvernes',fac:'neutre',niv:6,pv:70,att:14,def:14,dmin:14,dmax:18,vit:7,vol:1,sp:['poison'],cr:2,cout:{or:800},d:{t:'dragon',corps:'#8a6a2f',ventre:'#d8b46a',aile:'#6a4a20',petit:1}},
 };
@@ -73,6 +79,13 @@ var AMEL={
  treant:['Tréant ancien','Tréants anciens',{att:0,def:0,pv:10,dmin:0,dmax:0,vit:1},{ecorce:'#4a3420',feuille:'#2f6a1e'},425],
  licorne:['Licorne de guerre','Licornes de guerre',{att:0,def:0,pv:20,dmin:0,dmax:0,vit:2},{crin:'#7a5aff',corne:'#9ae8ff'},950],
  dragonvert:['Dragon d’émeraude','Dragons d’émeraude',{att:9,def:9,pv:70,dmin:0,dmax:0,vit:3},{corps:'#1f9a6a',ventre:'#f0e090',aile:'#1a6a4a'},4000,null,{cristal:2}],
+ gobelin:['Hobgobelin','Hobgobelins',{att:1,def:1,pv:1,dmin:0,dmax:0,vit:2},{peau:'#5f9a2c',tun:'#8a2a1a'},50],
+ chevloup:['Pillard','Pillards',{att:1,def:0,pv:0,dmin:1,dmax:0,vit:2},{corps:'#4a4c54',tun:'#8a2a1a'},140],
+ orque:['Chef orque','Chefs orques',{att:0,def:0,pv:5,dmin:0,dmax:0,vit:1},{tun:'#3a2a6a',arm:'#c9a040'},165,['doubletir']],
+ ogre:['Ogre mage','Ogres mages',{att:0,def:0,pv:20,dmin:0,dmax:0,vit:1},{tun:'#3a4a8a',arme:'baton',orbe:'#ff9a3a'},400],
+ roc:['Oiseau-tonnerre','Oiseaux-tonnerre',{att:0,def:0,pv:20,dmin:0,dmax:0,vit:4},{corps:'#3a4a6a',aile:'#2a3a5a',tete:'#ffe58a'},700],
+ cyclope:['Cyclope roi','Cyclopes rois',{att:2,def:1,pv:0,dmin:0,dmax:0,vit:2},{tun:'#8a2a1a',couronne:1},1100,null,{mercure:2}],
+ behemoth:['Béhémoth ancien','Béhémoths anciens',{att:2,def:2,pv:140,dmin:0,dmax:0,vit:3},{corps:'#5a3a24',corne:'#ffd060'},3000,null,{mercure:2}],
  squelette:['Squelette guerrier','Squelettes guerriers',{att:1,def:2,pv:0,dmin:0,dmax:0,vit:1},{os:'#f4ecd4',bouclier:'#8a2a2a'},70],
  zombie:['Zombie putride','Zombies putrides',{att:0,def:0,pv:5,dmin:0,dmax:0,vit:1},{peau:'#6a8a5a',tun:'#3a2a3a'},125],
  spectre:['Spectre hurlant','Spectres hurlants',{att:2,def:2,pv:2,dmin:0,dmax:0,vit:2},{robe:'#b8e0e8',yeux:'#ff9af0'},230],
@@ -84,8 +97,8 @@ var AMEL={
 for(const b in AMEL){const [nom,pl,bo,dd,or,sp,rare]=AMEL[b];const B=CRE[b];const u=JSON.parse(JSON.stringify(B));u.nom=nom;u.pl=pl;for(const k in bo)u[k]+=bo[k];u.dmax=Math.max(u.dmax,u.dmin);u.cout=Object.assign({or},rare||{});if(B.cout.gemmes)u.cout.gemmes=B.cout.gemmes+1;
  u.d=Object.assign({},B.d,dd);if(sp)u.sp=Array.from(new Set((u.sp||[]).concat(sp)));u.base=b;u.amel=1;CRE[b+'2']=u;B.amelio=b+'2';}
 for(const k in CRE){const c=CRE[k];c.id=k;c.sp=c.sp||[];c.val=c.cout.or+500*Object.keys(c.cout).filter(r=>r!=='or').reduce((s,r)=>s+c.cout[r],0);if(c.tirs)c.val=Math.round(c.val*1.1);}
-var CRE_NEUTRES=['gobelin','loup','orque','troll','wyverne'];
-var CAP_NOM={riposte2:'Riposte deux fois',charge:'Charge (+5 % dégâts par case parcourue)',moral:'+1 moral à l’armée',resmagie:'Résiste à 40 % des sorts',doubletir:'Tire deux fois',entrave:'Entrave la cible (vitesse −2)',souffle:'Souffle : frappe aussi la case derrière',mort:'Mort-vivant (moral neutre)',sansriposte:'Attaque sans riposte',drain:'Draine la vie (ressuscite les siens)',malefice:'25 % de chance de dégâts doublés',peur:'−1 moral à l’ennemi',regen:'Se régénère à chaque tour',poison:'Empoisonne (−10 % PV max)'};
+var CRE_NEUTRES=['loup','troll','wyverne'];
+var CAP_NOM={brise:'Brise les défenses : ignore 40 % de la défense',riposte2:'Riposte deux fois',charge:'Charge (+5 % dégâts par case parcourue)',moral:'+1 moral à l’armée',resmagie:'Résiste à 40 % des sorts',doubletir:'Tire deux fois',entrave:'Entrave la cible (vitesse −2)',souffle:'Souffle : frappe aussi la case derrière',mort:'Mort-vivant (moral neutre)',sansriposte:'Attaque sans riposte',drain:'Draine la vie (ressuscite les siens)',malefice:'25 % de chance de dégâts doublés',peur:'−1 moral à l’ennemi',regen:'Se régénère à chaque tour',poison:'Empoisonne (−10 % PV max)'};
 
 // ---------- factions ----------
 var FAC={
@@ -95,11 +108,14 @@ var FAC={
  sylve:{nom:'Sylve',ville:'Sylve',adj:'de la Sylve',ter:'herbe',rare:'cristal',crea:['centaure','nain','elfe','pegase','treant','licorne','dragonvert'],
   coul:{mur:'#c9b38a',toit:'#3f7a34',drap:'#2f8a4c'},classes:['rodeur','druide'],desc:'Archers elfes, licornes et dragons verts : rapides et redoutables à distance.',
   hab:['Clairière des centaures','Chaumière naine','Cercle des archers','Prairie des pégases','Bosquet des tréants','Glade des licornes','Falaise des dragons']},
+ horde:{nom:'Horde',ville:'Forteresse',adj:'de la Horde',ter:'rude',rare:'mercure',crea:['gobelin','chevloup','orque','ogre','roc','cyclope','behemoth'],
+  coul:{mur:'#9a7a52',toit:'#7a3a1a',drap:'#8a4a14'},classes:['barbare','chaman'],desc:'Orques, ogres, rocs et béhémoths : une force brute qui écrase tout sur son passage.',
+  hab:['Repaire des gobelins','Chenil des loups','Fort des orques','Grotte des ogres','Falaise des rocs','Caverne des cyclopes','Antre du béhémoth']},
  necro:{nom:'Nécropole',ville:'Nécropole',adj:'de la Nécropole',ter:'terre',rare:'soufre',crea:['squelette','zombie','spectre','vampire','liche','chevnoir','dragonos'],
   coul:{mur:'#7c7686',toit:'#3a2a4a',drap:'#5a1a6a'},classes:['chevmort','necromancien'],desc:'Morts-vivants innombrables : la nécromancie relève les ennemis tombés.',
   hab:['Cimetière','Tombeau des zombies','Tour hantée','Manoir vampire','Mausolée','Écuries maudites','Ossuaire des dragons']},
 };
-var FACS=['bastion','sylve','necro'];
+var FACS=['bastion','sylve','necro','horde'];
 
 // ---------- bâtiments de ville ----------
 // cout : ressources ; req : bâtiments requis. 'rare' = ressource rare de la faction.
@@ -134,7 +150,7 @@ var BAT={
  hab7u:{cout:{or:15000,minerai:10,rare:20},req:['hab7','chateau'],niv:7,amel:1},
 };
 var BAT_ORDRE=['conseil','mairie','hotelville','capitole','fort','citadelle','chateau','taverne','marche','silo','guilde1','guilde2','guilde3','hab1','hab1u','hab2','hab2u','hab3','hab3u','hab4','hab4u','hab5','hab5u','hab6','hab6u','hab7','hab7u'];
-var GRAAL_NOM={bastion:'Colosse de lumière',sylve:'Arbre-monde',necro:'Sceau des ténèbres'};
+var GRAAL_NOM={bastion:'Colosse de lumière',sylve:'Arbre-monde',necro:'Sceau des ténèbres',horde:'Totem des ancêtres'};
 function batNom(b,fac){if(b==='graal')return GRAAL_NOM[fac];if(BAT[b].amel)return'Amélioration : '+FAC[fac].hab[BAT[b].niv-1].toLowerCase();return BAT[b].niv?FAC[fac].hab[BAT[b].niv-1]:BAT[b].nom;}
 function batCout(b,fac){const c={};for(const r in BAT[b].cout){const k=r==='rare'?FAC[fac].rare:r;c[k]=(c[k]||0)+BAT[b].cout[r];}return c;}
 
@@ -181,12 +197,15 @@ var CLASSES={
  clerc:{nom:'Clerc',fac:'bastion',base:[1,0,2,2],prob:[20,15,32,33],comp:{sagesse:1},sorts:['benediction'],ch:{sagesse:7,sorcellerie:5,meneur:5,chance:4,logistique:4,armure:3,offense:2,eclaireur:3,pistage:3,intendance:4,archerie:2}},
  rodeur:{nom:'Rôdeur',fac:'sylve',base:[1,3,1,1],prob:[35,45,10,10],comp:{archerie:1},sorts:[],ch:{archerie:8,pistage:6,logistique:6,offense:4,armure:5,chance:5,eclaireur:5,sagesse:2,meneur:3,intendance:2,sorcellerie:1}},
  druide:{nom:'Druide',fac:'sylve',base:[0,2,1,2],prob:[10,20,35,35],comp:{sagesse:1},sorts:['soin'],ch:{sagesse:7,sorcellerie:5,chance:6,pistage:4,eclaireur:4,logistique:3,archerie:3,armure:2,offense:2,meneur:2,intendance:3}},
+ barbare:{nom:'Barbare',fac:'horde',base:[4,0,1,1],prob:[55,35,5,5],comp:{offense:1},sorts:[],ch:{offense:8,armure:4,logistique:6,archerie:5,meneur:5,pistage:5,eclaireur:3,chance:2,intendance:2,sagesse:1,sorcellerie:1}},
+ chaman:{nom:'Chaman',fac:'horde',base:[2,1,1,2],prob:[30,20,25,25],comp:{sagesse:1},sorts:['hate'],ch:{sagesse:6,sorcellerie:5,chance:4,logistique:5,pistage:4,eclaireur:4,offense:3,armure:3,meneur:3,intendance:3,archerie:2}},
  chevmort:{nom:'Chevalier de la mort',fac:'necro',base:[1,2,2,1],prob:[30,25,20,25],comp:{necromancie:1},sorts:[],ch:{offense:6,armure:6,necromancie:2,logistique:5,archerie:4,sagesse:3,eclaireur:3,pistage:3,intendance:3,sorcellerie:3}},
  necromancien:{nom:'Nécromancien',fac:'necro',base:[1,0,2,2],prob:[15,15,35,35],comp:{necromancie:1},sorts:['lenteur'],ch:{necromancie:2,sagesse:7,sorcellerie:6,logistique:3,armure:3,eclaireur:4,pistage:3,intendance:3,offense:2,archerie:2}},
 };
 var HEROS_NOMS={
  chevalier:['Aldric','Gauvain','Roland','Mélisende'],clerc:['Bérénice','Isolde','Clothilde','Tristan'],
  rodeur:['Sylvara','Elanor','Faelan','Thalia'],druide:['Ysoria','Liriel','Maëlis','Elwyn'],
+ barbare:['Grokar','Urgash','Brakka','Thorga'],chaman:['Mokar','Rhazag','Sharna','Velka'],
  chevmort:['Corbin','Lazare','Séverine','Ambroise'],necromancien:['Malachie','Ombeline','Morgane','Nérée'],
 };
 var XP_NIV=[0,0,1000,2000,3200,4600,6200,8000,10000,12200,14700,17500,20600,24320,28784,34140,40567,48279,57533,68637,81961,97949,117134,140156,167782,200933];

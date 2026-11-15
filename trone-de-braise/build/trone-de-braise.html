@@ -157,6 +157,20 @@ body.tact #minicarte{width:110px;height:110px}
 .etiq{display:inline-block;font-size:11px;padding:1px 6px;border-radius:9px;margin-left:4px}.etiq.g{background:#6a1a10}.etiq.a{background:#1f5a2a}.etiq.p{background:#3a3a3a}
 @media(max-width:760px){#panneau{left:6px;right:6px;width:auto;top:auto;bottom:66px;max-height:46vh}.bas-g{max-width:none;bottom:auto;top:52px}.barre{font-size:13px;gap:8px}.barre .maison{font-size:15px}}
 
+.bonus{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;gap:5px}
+.bonus span{background:rgba(10,8,6,.8);border:1px solid #6e5430;border-radius:12px;padding:2px 8px;font-size:12.5px;color:#f0e0c0}
+body.tact .bonus{bottom:150px}
+.tip{position:absolute;display:none;width:260px;background:rgba(14,10,7,.95);border:1px solid #6e5430;border-radius:5px;padding:8px 10px;font-size:13px;line-height:1.45;pointer-events:none;z-index:6}
+#objectif{position:absolute;left:10px;top:56px;z-index:4;max-width:min(420px,60vw);background:rgba(20,14,9,.88);border:1px solid #8a6a30;border-radius:6px;padding:7px 11px;font-size:13.5px;line-height:1.35;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.5)}
+#objectif b{display:block;color:var(--or2);font-weight:400;font-size:12.5px;letter-spacing:.03em}
+#objectif.replie span{display:none}
+#nouvelles{position:absolute;left:10px;bottom:62px;z-index:4;max-width:min(360px,70vw);background:rgba(20,14,9,.9);border:1px solid #5a4426;border-radius:6px;padding:8px 12px;font-size:13px;line-height:1.45;transition:opacity .8s;pointer-events:none}
+#nouvelles b{color:var(--or2);font-weight:400}
+@media(max-width:760px){#objectif{top:auto;bottom:118px;max-width:calc(100% - 20px);font-size:12.5px}#nouvelles{bottom:auto;top:96px}}
+.niv{position:absolute;bottom:12px;left:50%;transform:translate(-50%,0);font-size:11px;color:#d8c8a0;text-shadow:0 1px 2px #000;margin-left:-190px}
+body.tact .niv{display:none}
+#infoProv{position:absolute;z-index:6;pointer-events:none;background:rgba(14,10,7,.92);border:1px solid #6e5430;border-radius:5px;padding:6px 10px;font-size:12.5px;line-height:1.4;display:none;max-width:240px}
+
 </style>
 </head>
 <body>
@@ -209,10 +223,12 @@ body.tact #minicarte{width:110px;height:110px}
   <canvas id="minicarte" width="150" height="150"></canvas>
   <div class="bossbar" id="hBoss"><div class="nm"></div><div class="j"><i></i></div></div>
   <div class="msg" id="hMsg"></div>
+  <div class="bonus" id="hBonus"></div>
+  <div class="tip" id="hTip"></div>
   <div class="orbe vie"><i id="hVie"></i><span id="hVieT"></span></div>
   <div class="orbe mana"><i id="hMana"></i><span id="hManaT"></span></div>
   <div class="barre-comp" id="hComp"></div>
-  <div class="xp"><i id="hXp"></i></div>
+  <div class="xp"><i id="hXp"></i></div><div class="niv" id="hNiv"></div>
   <div class="action" id="hAction"><button class="btn or" id="bDescendre">⬇ Descendre (E)</button></div>
   <div class="btns-d"><button class="btn" id="bPause">⏸ Échap</button><button class="btn" id="bInvD">🎒 I</button><button class="btn" id="bCompD">✦ K</button></div>
   <div class="tactile"><div id="joy"><i></i></div><button id="attq">⚔</button></div>
@@ -280,13 +296,13 @@ const LIENS_MER = [['portambre', 'brisemer'], ['marchesgrises', 'tourbieres']];
 
 const DONJONS = {
  crypte:     { nom: 'Crypte', sol: ['#4a4440', '#3d3733'], mur: '#1d1a19', face: '#2c2724', lum: '#ffb35c', mobs: ['squelette', 'archer', 'goule', 'spectre'], boss: 'liche' },
- catacombes: { nom: 'Catacombes', sol: ['#47423c', '#3a352f'], mur: '#1a1716', face: '#2a2521', lum: '#ffa94a', mobs: ['squelette', 'archer', 'chaman', 'brute', 'spectre'], boss: 'liche' },
- mine:       { nom: 'Mine abandonnée', sol: ['#4b3d31', '#3e3228'], mur: '#1c1610', face: '#2d2219', lum: '#ffc070', mobs: ['goule', 'brute', 'araignee', 'chaman'], boss: 'ogre' },
- foret:      { nom: 'Bois maudit', sol: ['#33402c', '#2b3626'], mur: '#0f150c', face: '#1a2414', lum: '#d7ff9a', mobs: ['araignee', 'goule', 'loup', 'chaman'], boss: 'ogre' },
+ catacombes: { nom: 'Catacombes', sol: ['#47423c', '#3a352f'], mur: '#1a1716', face: '#2a2521', lum: '#ffa94a', mobs: ['squelette', 'archer', 'cultiste', 'brute', 'spectre'], boss: 'liche' },
+ mine:       { nom: 'Mine abandonnée', sol: ['#4b3d31', '#3e3228'], mur: '#1c1610', face: '#2d2219', lum: '#ffc070', mobs: ['goule', 'brute', 'araignee', 'golem', 'chaman'], boss: 'ogre' },
+ foret:      { nom: 'Bois maudit', sol: ['#33402c', '#2b3626'], mur: '#0f150c', face: '#1a2414', lum: '#d7ff9a', mobs: ['araignee', 'goule', 'loup', 'chaman'], boss: 'reine' },
  marais:     { nom: 'Marais noyé', sol: ['#323b34', '#2a322c'], mur: '#0e1410', face: '#18211b', lum: '#9fffd0', mobs: ['goule', 'araignee', 'spectre', 'chaman'], boss: 'liche' },
- glace:      { nom: 'Faille gelée', sol: ['#4c5864', '#414c57'], mur: '#141b22', face: '#26323d', lum: '#bfe4ff', mobs: ['squelette', 'loup', 'brute', 'spectre'], boss: 'wyverne' },
- egouts:     { nom: 'Égouts anciens', sol: ['#3b3e3a', '#323531'], mur: '#121412', face: '#1f221f', lum: '#ffd27a', mobs: ['araignee', 'goule', 'archer', 'brute'], boss: 'ogre' },
- antre:      { nom: 'Antre du dragon', sol: ['#4a2f24', '#3d271e'], mur: '#1a0d08', face: '#2e170e', lum: '#ff7a3a', mobs: ['brute', 'chaman', 'spectre', 'archer'], boss: 'wyverne' },
+ glace:      { nom: 'Faille gelée', sol: ['#4c5864', '#414c57'], mur: '#141b22', face: '#26323d', lum: '#bfe4ff', mobs: ['squelette', 'loup', 'golem', 'spectre'], boss: 'wyverne' },
+ egouts:     { nom: 'Égouts anciens', sol: ['#3b3e3a', '#323531'], mur: '#121412', face: '#1f221f', lum: '#ffd27a', mobs: ['rat', 'goule', 'cultiste', 'brute'], boss: 'reine' },
+ antre:      { nom: 'Antre du dragon', sol: ['#4a2f24', '#3d271e'], mur: '#1a0d08', face: '#2e170e', lum: '#ff7a3a', mobs: ['brute', 'cultiste', 'golem', 'archer'], boss: 'wyverne' },
  arene:      { nom: 'Champ de bataille', sol: ['#4a4733', '#3f3c2b'], mur: '#1b1a10', face: '#2b2a1b', lum: '#ffd890', mobs: ['soldat', 'soldat', 'arbaletrier'], boss: 'champion' },
 };
 
@@ -303,7 +319,11 @@ const MONSTRES = {
  loup:      { nom: 'Loup gris', pv: 30, dg: 5.2, vit: 4.4, portee: 1.0, cad: 1.0, xp: 14, type: 'cac', r: .36, coul: '#8c8f96', groupe: 1 },
  arbaletrier: { nom: 'Arbalétrier', pv: 30, dg: 5.5, vit: 2.4, portee: 7, cad: 2.1, xp: 14, type: 'tir', r: .33, coul: '#a0a6ad', proj: 'fleche' },
  soldat:    { nom: 'Soldat', pv: 40, dg: 6, vit: 2.6, portee: 1.1, cad: 1.2, xp: 14, type: 'cac', r: .34, coul: '#a0a6ad' },
+ rat:       { nom: 'Rat des cloaques', pv: 12, dg: 2.5, vit: 4.6, portee: .8, cad: .7, xp: 5, type: 'cac', r: .24, coul: '#6a5a4a', groupe: 3 },
+ golem:     { nom: 'Golem de pierre', pv: 150, dg: 13, vit: 1.4, portee: 1.5, cad: 2.4, xp: 42, type: 'cac', r: .58, coul: '#8a8478', frappe: true },
+ cultiste:  { nom: 'Cultiste des cendres', pv: 34, dg: 5, vit: 2.2, portee: 6, cad: 2.6, xp: 22, type: 'tir', r: .33, coul: '#7a2a2a', proj: 'feu', rafale: 3 },
  // boss
+ reine:     { nom: 'Reine des Toiles', pv: 600, dg: 13, vit: 2.4, portee: 5, cad: 1.5, xp: 330, type: 'boss', r: .75, coul: '#3c3436', boss: true },
  liche:     { nom: 'Roi-Liche', pv: 520, dg: 12, vit: 1.9, portee: 7, cad: 1.6, xp: 300, type: 'boss', r: .62, coul: '#b6f0ff', boss: true },
  ogre:      { nom: 'Seigneur Ogre', pv: 680, dg: 18, vit: 2.1, portee: 1.7, cad: 1.8, xp: 320, type: 'boss', r: .8, coul: '#7d8c4f', boss: true },
  wyverne:   { nom: 'Wyverne de Cendre', pv: 640, dg: 15, vit: 2.6, portee: 6, cad: 1.4, xp: 360, type: 'boss', r: .78, coul: '#c2462a', boss: true },
@@ -394,6 +414,7 @@ const RARETES = [
  { id: 'legendaire', nom: 'Légendaire', coul: '#ff8a2a', n: 4 },
 ];
 const PREFIXES = ['Sanglant', 'Ancien', 'Brisé', 'Royal', 'Maudit', 'Noble', 'Cruel', 'Sombre', 'Ardent', 'Glacé', 'Fidèle', 'Funeste'];
+const NOMS_RARES = ['Murmure', 'Fléau', 'Serment', 'Ombre', 'Chant', 'Rempart', 'Morsure', 'Veille', 'Écho', 'Cendre', 'Croc', 'Larme', 'Colère', 'Souffle', 'Garde', 'Présage'];
 const SUFFIXES = ['du Corbeau', 'de l’Aube', 'des Marches', 'du Puits', 'de la Veuve', 'du Loup', 'des Cendres', 'du Serment', 'de l’Exil', 'des Rois', 'de la Brume', 'du Pendu'];
 // légendaires : effets uniques en donjon ET dans le royaume
 const LEGENDAIRES = [
@@ -421,6 +442,46 @@ const PRENOMS_F = ['Aénor', 'Béatrix', 'Clémence', 'Douce', 'Ermengarde', 'Fl
 const SURNOMS = ['le Hardi', 'la Juste', 'le Sombre', 'l’Ancien', 'le Bâtisseur', 'la Rouge', 'le Pieux', 'le Cruel', 'l’Exilé', 'la Sage', 'le Jeune', 'le Loup', 'la Brave', 'le Patient'];
 
 if (typeof module !== 'undefined') module.exports = { R, rnd, ri, pick, chance, clamp, shuffle, seeded, SAISONS, MAISONS, IA_MAISONS, PROVINCES, LIENS_MER, DONJONS, MONSTRES, AFFIXES_ELITE, CLASSES, EMPLACEMENTS, NOMS_EMPL, ARMES, BASES, ICONES, STATS, STATS_EMPL, RARETES, PREFIXES, SUFFIXES, LEGENDAIRES, PRENOMS_H, PRENOMS_F, SURNOMS };
+
+/* ---------- Talents (passifs, 3 rangs, à partir du niveau 3) ---------- */
+const TALENTS = {
+ chevalier: [
+  { id: 'fer', nom: 'Peau de fer', ic: '🛡️', txt: r => `+${8 * r} % d’armure` },
+  { id: 'vigueur', nom: 'Vigueur', ic: '❤️', txt: r => `+${6 * r} % de vie` },
+  { id: 'riposte', nom: 'Riposte', ic: '💫', txt: r => `${5 * r} % de chances d’étourdir à chaque coup` },
+  { id: 'sangchaud', nom: 'Sang chaud', ic: '🩸', txt: r => `+${r} % de vol de vie` },
+  { id: 'maitre', nom: 'Maître d’armes', ic: '⚔️', txt: r => `+${6 * r} % de dégâts` },
+  { id: 'inebranlable', nom: 'Inébranlable', ic: '🗿', txt: r => `−${5 * r} % de dégâts subis` } ],
+ arcaniste: [
+  { id: 'erudition', nom: 'Érudition', ic: '📘', txt: r => `+${12 * r} % de mana` },
+  { id: 'flux', nom: 'Flux arcanique', ic: '🌊', txt: r => `+${20 * r} % de régénération de mana` },
+  { id: 'pyro', nom: 'Pyromancie', ic: '🔥', txt: r => `+${7 * r} % de dégâts` },
+  { id: 'cristal', nom: 'Esprit cristallin', ic: '💎', txt: r => `+${4 * r} % de critique` },
+  { id: 'bouclier', nom: 'Bouclier de mana', ic: '🔮', txt: r => `${10 * r} % des dégâts subis sont pris sur le mana` },
+  { id: 'concentration', nom: 'Concentration', ic: '⏳', txt: r => `−${6 * r} % de temps de recharge` } ],
+ rodeur: [
+  { id: 'faucon', nom: 'Œil de faucon', ic: '🦅', txt: r => `+${4 * r} % de critique` },
+  { id: 'piedleger', nom: 'Pied léger', ic: '🍃', txt: r => `+${6 * r} % de vitesse de déplacement` },
+  { id: 'barbele', nom: 'Flèches barbelées', ic: '🎯', txt: r => `+${15 * r} % de dégâts critiques` },
+  { id: 'instinct', nom: 'Instinct', ic: '🌀', txt: r => `${5 * r} % de chances d’esquiver un coup` },
+  { id: 'chasseur', nom: 'Chasseur', ic: '🏹', txt: r => `+${6 * r} % de dégâts` },
+  { id: 'survie', nom: 'Survie', ic: '🌿', txt: r => `+${1.2 * r} vie par seconde` } ],
+};
+/* ---------- Compagnons ---------- */
+const COMPAGNONS = {
+ ecuyer: { nom: 'Écuyer', desc: 'Combat au corps à corps et attire les coups.', ic: '🛡️', pv: 90, pvn: 20, dg: 6, dgn: 2.3, portee: 1.2, cad: 1.1, type: 'cac', coul: '#8a9097', prix: 120 },
+ arbaletriere: { nom: 'Arbalétrière', desc: 'Tire de loin, fragile mais précise.', ic: '🎯', pv: 60, pvn: 13, dg: 7, dgn: 2.6, portee: 7, cad: 1.6, type: 'tir', coul: '#6a7a4a', prix: 120 },
+ pretresse: { nom: 'Prêtresse', desc: 'Soigne vos blessures et frappe de lumière.', ic: '✨', pv: 70, pvn: 15, dg: 4, dgn: 1.5, portee: 6, cad: 1.8, type: 'soin', coul: '#e8dcc0', prix: 150 },
+};
+/* ---------- Autels (bonus temporaires en donjon) ---------- */
+const AUTELS = {
+ fureur: { nom: 'Autel de fureur', txt: '+50 % de dégâts', coul: '#ff5a3a', d: 25 },
+ celerite: { nom: 'Autel de célérité', txt: '+30 % de vitesse', coul: '#7ad0ff', d: 25 },
+ protection: { nom: 'Autel de protection', txt: '−40 % de dégâts subis', coul: '#ffe08a', d: 25 },
+ fortune: { nom: 'Autel de fortune', txt: 'Pluie d’or, or doublé', coul: '#ffc030', d: 45 },
+ savoir: { nom: 'Autel du savoir', txt: '+50 % d’expérience', coul: '#c9a0ff', d: 60 },
+};
+MONSTRES.gobelin = { nom: 'Gobelin voleur', pv: 160, dg: 0, vit: 3.4, portee: 0, cad: 9, xp: 60, type: 'fuite', r: .34, coul: '#7a9a3a' };
 
 </script>
 <script>
@@ -467,8 +528,7 @@ function genObjet(ilvl, classe, opts = {}) {
   if (s.max) v = Math.min(v, s.max);
   o.stats[pool[i]] = Math.max(1, Math.round(v));
  }
- o.nom = leg ? leg.nom : rar === 'normal' ? o.base : rar === 'magique' ? `${o.base} ${pick(SUFFIXES)}` : `${o.base} ${pick(PREFIXES).toLowerCase()} ${pick(SUFFIXES)}`;
- if (rar === 'rare') o.nom = o.nom.charAt(0).toUpperCase() + o.nom.slice(1);
+ o.nom = leg ? leg.nom : rar === 'normal' ? o.base : rar === 'magique' ? `${o.base} ${pick(SUFFIXES)}` : `${pick(NOMS_RARES)} ${pick(SUFFIXES)}`;
  o.prix = Math.round((8 + ilvl * 4) * ({ normal: 1, magique: 2.2, rare: 5, legendaire: 14 }[rar]));
  return o;
 }
@@ -493,7 +553,7 @@ function lignesObjet(o) {
 }
 /* ---------- Héros ---------- */
 function nouveauHeros(classe, nom, sexe, niveau = 1) {
- const h = { classe, nom, sexe, niveau, xp: 0, equip: {}, points: niveau - 1, comp: { [CLASSES[classe].comp[0].id]: 1 }, potions: 3 };
+ const h = { classe, nom, sexe, niveau, xp: 0, equip: {}, talents: {}, points: niveau - 1, comp: { [CLASSES[classe].comp[0].id]: 1 }, potions: 3 };
  return h;
 }
 function xpPour(n) { return 600 + 500 * n; }
@@ -510,6 +570,11 @@ function statsHeros(h, generation = 1) {
   if (o.effet) S.effets[o.effet] = true;
  }
  if (S.effets.heritage) S.pdmg += 3 * generation;
+ // talents
+ const T = h.talents || {}, t = k => T[k] || 0;
+ S.arm *= 1 + .08 * t('fer'); S.pvmax *= 1 + .06 * t('vigueur'); S.riposte = .05 * t('riposte'); S.vol += t('sangchaud'); S.pdmg += 6 * (t('maitre') + t('chasseur')) + 7 * t('pyro'); S.res += 5 * t('inebranlable');
+ S.manamax *= 1 + .12 * t('erudition'); S.fluxMana = 1 + .2 * t('flux'); S.crit += 4 * (t('cristal') + t('faucon')); S.bouclierMana = .1 * t('bouclier'); S.recup += 6 * t('concentration');
+ S.vmov += 6 * t('piedleger'); S.critd += 15 * t('barbele'); S.esquive = .05 * t('instinct'); S.regen += 1.2 * t('survie');
  if (S.effets.fantome) S.vmov += 15;
  S.cadence *= 1 + S.vit / 100;
  S.vitesse = 4.3 * (1 + S.vmov / 100);
@@ -742,7 +807,7 @@ function creerEtage(X) {
  // héros
  const h = o.heros, S = statsHeros(h, o.generation || 1);
  const ancien = X.joueur;
- A.p = { x: C.depart.cx + .5, y: C.depart.cy + .5, r: .33, ang: 0, pv: ancien ? Math.min(ancien.pv, S.pvmax) : S.pvmax, mana: ancien ? ancien.mana : S.manamax, S, cdA: 0, cds: {}, buff: 0, dash: null, inv: 0, anim: 0, animT: 0, pas: 0, frappes: 0, slow: 0, hitf: 0, potions: h.potions, potT: 0, vide: 0, mort: false };
+ A.p = { x: C.depart.cx + .5, y: C.depart.cy + .5, r: .33, ang: 0, pv: ancien ? Math.min(ancien.pv, S.pvmax) : S.pvmax, mana: ancien ? ancien.mana : S.manamax, S, cdA: 0, cds: {}, buff: 0, dash: null, inv: 0, anim: 0, animT: 0, pas: 0, frappes: 0, slow: 0, hitf: 0, potions: h.potions, potT: 0, vide: 0, mort: false, bonus: ancien ? ancien.bonus : {} };
  X.joueur = A.p;
  // décor
  for (const s of C.salles) {
@@ -781,6 +846,19 @@ function creerEtage(X) {
   }
   if (estBoss) { const b = mkMob(o.boss || D.boss, C.fin.cx + .5, C.fin.cy + .5, N + .5, true); A.mobs.push(b); A.boss = b; }
   else C.t[C.fin.cy * C.W + C.fin.cx] = ESC;
+ }
+ // autels, gobelin voleur, compagnon
+ A.autels = []; A.cadavres = [];
+ if (!o.arene) {
+  const cand = shuffle(C.salles.filter(s => s !== C.depart && !(estBoss && s === C.fin)));
+  const nA = chance(.55) ? 1 : chance(.5) ? 2 : 0;
+  for (let i = 0; i < nA && i < cand.length; i++) { const s = cand[i], k = pick(Object.keys(AUTELS)); const a = { k, x: s.x + 1.5 + R() * (s.w - 3), y: s.y + 1.5 + R() * (s.h - 3), pris: false }; A.autels.push(a); A.lumieres.push({ x: a.x, y: a.y, r: 2.6, f: i * 2, autel: a }); }
+  if (chance(.3) && cand.length > 2) { const s = cand[cand.length - 1]; const g = mkMob('gobelin', s.cx + .5, s.cy + .5, N); g.fuiteT = 0; A.mobs.push(g); }
+ }
+ if (o.compagnon) {
+  const K = COMPAGNONS[o.compagnon.type], nv = o.heros.niveau, anc = X.allie;
+  A.allie = { k: o.compagnon.type, K, nom: o.compagnon.nom, x: A.p.x - .8, y: A.p.y + .3, r: .32, pvmax: K.pv + K.pvn * (nv - 1), dg: K.dg + K.dgn * (nv - 1), cdA: 0, cdS: 4, ang: 0, anim: 0, pas: 0, hitf: 0, ko: 0, wind: 0 };
+  A.allie.pv = anc && !anc.ko ? Math.min(anc.pv, A.allie.pvmax) : A.allie.pvmax; X.allie = A.allie;
  }
  // éloigner les monstres du départ
  A.mobs = A.mobs.filter(m => m.objet || Math.hypot(m.x - A.p.x, m.y - A.p.y) > 6 || o.arene);
@@ -841,6 +919,7 @@ function message(A, s, d = 2.5) { A.msg = s; A.msgT = d; }
 function degatsHeros(A, mult) {
  const S = A.p.S; let d = rnd(S.dmin, S.dmax) * (1 + S.pdmg / 100) * mult;
  if (A.p.buff > 0) d *= 1.35;
+ if (A.p.bonus.fureur > 0) d *= 1.5;
  const crit = R() < S.crit / 100; if (crit) d *= 1 + S.critd / 100;
  return { d: d + S.feu * Math.min(1, mult), crit };
 }
@@ -853,6 +932,7 @@ function toucherMob(A, m, mult, opts = {}) {
  m.pv -= dd; m.hitf = .12; m.etat = 'chasse';
  if (opts.recul) { const a = Math.atan2(m.y - P.y, m.x - P.x), k = m.boss ? .1 : opts.recul; bouger(A, m, Math.cos(a) * k, Math.sin(a) * k); }
  if (opts.stun && !m.boss) m.stun = Math.max(m.stun, opts.stun);
+ if (S.riposte && !m.boss && R() < S.riposte) { m.stun = Math.max(m.stun, .8); texte(A, m.x, m.y - m.r - .7, 'Étourdi', '#ffe08a'); }
  if (opts.slow) m.slow = Math.max(m.slow, opts.slow);
  if (opts.gel && !m.boss) m.gel = Math.max(m.gel, opts.gel);
  if (S.effets.brulure) { m.brule = 3; m.bruleDg = dd * .4 / 3; }
@@ -874,10 +954,12 @@ function ajLoot(A, l) {
  if (!libre(A, l.x, l.y, .2)) { let best = null, bd = 9; for (let y = (l.y | 0) - 2; y <= (l.y | 0) + 2; y++) for (let x = (l.x | 0) - 2; x <= (l.x | 0) + 2; x++) if (sol(A, x + .5, y + .5)) { const d = Math.hypot(x + .5 - l.x, y + .5 - l.y); if (d < bd) { bd = d; best = [x + .5, y + .5]; } } if (best) { l.x = best[0]; l.y = best[1]; } }
  A.loot.push(l);
 }
-function lacherOr(A, x, y, n) { n = Math.max(1, Math.round(n * .3 * (1 + A.p.S.or / 100))); ajLoot(A, { x: x + rnd(-.4, .4), y: y + rnd(-.4, .4), or: n }); }
+function lacherOr(A, x, y, n) { n = Math.max(1, Math.round(n * .3 * (1 + A.p.S.or / 100 + (A.X.o.chanceOr ? .3 : 0)) * (A.p.bonus.fortune > 0 ? 2 : 1))); ajLoot(A, { x: x + rnd(-.4, .4), y: y + rnd(-.4, .4), or: n }); }
 function lacherObjet(A, x, y, opts = {}) { const o = genObjet(A.niveau + rnd(-.5, 1), A.X.o.heros.classe, opts); ajLoot(A, { x, y, obj: o, t: 0 }); if (o.rar === 'legendaire') { message(A, '✦ Objet légendaire !', 3); SON('legendaire'); } }
 function tuerMob(A, m) {
  m.mort = true; A.X.tues++;
+ if (A.cadavres) { A.cadavres.push({ x: m.x, y: m.y, k: m.k, r: m.r, ang: R() * 6.28, os: m.k === 'squelette' || m.k === 'archer' || m.k === 'liche', spectre: m.k === 'spectre' }); if (A.cadavres.length > 90) A.cadavres.shift(); }
+ if (m.k === 'gobelin') { message(A, 'Le gobelin lâche son butin !', 2.5); for (let i = 0; i < 8; i++) lacherOr(A, m.x + rnd(-1, 1), m.y + rnd(-1, 1), ri(6, 12) * A.niveau); for (let i = 0; i < 2; i++) lacherObjet(A, m.x + rnd(-.8, .8), m.y + rnd(-.8, .8), { min: 'magique', bonus: .2 }); }
  { const ec = A.X.o.heros.niveau - m.niv; gagnerXp(A, m.xp * (ec > 2 ? Math.max(.2, 1 - .15 * (ec - 2)) : 1)); }
  particules(A, m.x, m.y, m.boss ? 40 : 12, m.k === 'spectre' ? '#bfe6ff' : m.k === 'squelette' || m.k === 'archer' ? '#e8e2d0' : '#6e1414', 4, .8, .1);
  if (chance(m.boss ? 1 : m.elite ? .9 : .32)) lacherOr(A, m.x, m.y, ri(3, 8) * A.niveau * (m.boss ? 6 : m.elite ? 2.5 : 1));
@@ -895,7 +977,7 @@ function tuerMob(A, m) {
  } else SON('mort');
 }
 function gagnerXp(A, n) {
- const h = A.X.o.heros; n = Math.round(n); h.xp += n; A.X.xpGagne += n;
+ const h = A.X.o.heros; n = Math.round(n * (A.p.bonus.savoir > 0 ? 1.5 : 1)); h.xp += n; A.X.xpGagne += n;
  while (h.xp >= xpPour(h.niveau)) {
   h.xp -= xpPour(h.niveau); h.niveau++; h.points++;
   A.p.S = statsHeros(h, A.X.o.generation || 1); A.p.pv = A.p.S.pvmax; A.p.mana = A.p.S.manamax;
@@ -905,8 +987,11 @@ function gagnerXp(A, n) {
 function blesserJoueur(A, dg, src, opts = {}) {
  const P = A.p; if (P.inv > 0 || P.mort) return;
  const S = P.S, arm = S.arm * (P.buff > 0 ? 1.5 : 1), niv = src ? src.niv || A.niveau : A.niveau;
+ if (S.esquive && R() < S.esquive) { texte(A, P.x, P.y - .8, 'Esquive', '#cfe8ff'); return; }
  let d = dg * (1 - arm / (arm + 40 + 14 * niv)) * (1 - S.res / 100);
+ if (P.bonus.protection > 0) d *= .6;
  d = Math.max(1, d * rnd(.9, 1.1));
+ if (S.bouclierMana && P.mana > 0) { const k = Math.min(P.mana, d * S.bouclierMana); P.mana -= k; d -= k; }
  P.pv -= d; P.hitf = .15; A.shake = Math.max(A.shake, Math.min(.35, d / S.pvmax * 2));
  texte(A, P.x, P.y - .8, Math.round(d), '#ff5a4a');
  if (src && src.vampire) src.pv = Math.min(src.pvmax, src.pv + d);
@@ -925,7 +1010,7 @@ function multComp(A, id, base) { return base * (1 + .22 * (rangComp(A, id) - 1))
 function attaqueBase(A, ax, ay) {
  const P = A.p, S = P.S, C = CLASSES[A.X.o.heros.classe];
  if (P.cdA > 0) return;
- P.cdA = 1 / S.cadence; P.ang = Math.atan2(ay - P.y, ax - P.x); P.anim = .22; P.animT = .22; P.frappes++;
+ P.cdA = 1 / (S.cadence * (P.bonus.celerite > 0 ? 1.3 : 1)); P.ang = Math.atan2(ay - P.y, ax - P.x); P.anim = .22; P.animT = .22; P.frappes++;
  const onde = S.effets.onde && P.frappes % 4 === 0;
  if (C.attaque === 'cac') {
   let touche = 0;
@@ -990,7 +1075,8 @@ function majDonjon(A, dt, inp) {
  P.cdA -= dt; P.inv -= dt; P.hitf -= dt; P.anim -= dt; P.slow -= dt; if (P.spin) P.spin -= dt;
  if (P.buff > 0) P.buff -= dt;
  for (const k in P.cds) P.cds[k] -= dt;
- P.pv = Math.min(S.pvmax, P.pv + S.regen * dt); P.mana = Math.min(S.manamax, P.mana + (2.5 + S.manamax * .035) * dt);
+ P.pv = Math.min(S.pvmax, P.pv + S.regen * dt); P.mana = Math.min(S.manamax, P.mana + (2.5 + S.manamax * .035) * (S.fluxMana || 1) * dt);
+ for (const k in P.bonus) P.bonus[k] -= dt;
  if (P.potT > 0) { P.potT -= dt; P.pv = Math.min(S.pvmax, P.pv + P.potSoin / 1.2 * dt); }
  let mx = (inp.droite ? 1 : 0) - (inp.gauche ? 1 : 0), my = (inp.bas ? 1 : 0) - (inp.haut ? 1 : 0);
  const C = CLASSES[A.X.o.heros.classe];
@@ -1013,7 +1099,7 @@ function majDonjon(A, dt, inp) {
   particules(A, P.x, P.y, 1, '#cbbfa8', 1, .3);
   if (P.dash.t <= 0) P.dash = null;
  } else if (ml > 0) {
-  const v = S.vitesse * (P.slow > 0 ? .55 : 1) * (veutAttaquer && C.attaque !== 'cac' ? .6 : 1) * dt;
+  const v = S.vitesse * (P.bonus.celerite > 0 ? 1.3 : 1) * (P.slow > 0 ? .55 : 1) * (veutAttaquer && C.attaque !== 'cac' ? .6 : 1) * dt;
   P.mvx = mx / ml; P.mvy = my / ml; bouger(A, P, P.mvx * v, P.mvy * v); P.pas += dt * 9;
   if (!veutAttaquer) P.ang = Math.atan2(my, mx);
  } else { P.mvx = P.mvy = 0; }
@@ -1031,6 +1117,13 @@ function majDonjon(A, dt, inp) {
   else if (l.potion) { if (P.potions < 5) { P.potions++; A.X.o.heros.potions = P.potions; texte(A, P.x, P.y - .9, '+1 potion', '#ff7a7a'); A.loot.splice(i, 1); SON('or'); } }
   else if (l.obj) { if (A.X.butin.length + (A.X.o.inventaire ? A.X.o.inventaire.length : 0) < 60) { A.X.butin.push(l.obj); A.loot.splice(i, 1); texte(A, P.x, P.y - 1, l.obj.nom, RARETES.find(r => r.id === l.obj.rar).coul); SON(l.obj.rar === 'legendaire' || l.obj.rar === 'rare' ? 'objet_rare' : 'objet'); } }
  }
+ // ---- autels ----
+ for (const a of A.autels) if (!a.pris && Math.hypot(a.x - P.x, a.y - P.y) < .9) {
+  a.pris = true; const D = AUTELS[a.k]; P.bonus[a.k] = D.d; message(A, `${D.nom} : ${D.txt}`, 3); particules(A, a.x, a.y, 30, D.coul, 4, 1, .1); SON('niveau');
+  if (a.k === 'fortune') for (let i = 0; i < 10; i++) lacherOr(A, a.x + rnd(-1.5, 1.5), a.y + rnd(-1.5, 1.5), ri(4, 9) * A.niveau);
+  for (const l of A.lumieres) if (l.autel === a) l.r = 1.2;
+ }
+ majAllie(A, dt);
  // ---- pièges ----
  for (let i = A.pieges.length - 1; i >= 0; i--) { const g = A.pieges[i]; g.t -= dt; let boom = g.t <= 0; for (const m of A.mobs) if (!m.mort && !m.objet && Math.hypot(m.x - g.x, m.y - g.y) < .9 + m.r) boom = true; if (boom) { A.zones.push({ x: g.x, y: g.y, r: 2.3, t: 0, tmax: .05, mult: g.mult, ami: true, k: 'explosion' }); A.pieges.splice(i, 1); } }
  // ---- monstres ----
@@ -1053,12 +1146,14 @@ function majDonjon(A, dt, inp) {
      if (m.mort || p.touches.includes(m)) continue;
      if (Math.hypot(m.x - p.x, m.y - p.y) < m.r + p.r) {
       p.touches.push(m);
+      if (p.allie) { frapperParAllie(A, m, p.allie); fin = true; break; }
       if (!p.explose) toucherMob(A, m, p.mult, { proj: true, magie: p.magie, recul: .08 });
       if (p.rebond > 0) { p.rebond--; let c = null, bd = 6; for (const o of A.mobs) { if (o.mort || o.objet || p.touches.includes(o)) continue; const d = Math.hypot(o.x - p.x, o.y - p.y); if (d < bd) { bd = d; c = o; } } if (c) { const a = Math.atan2(c.y - p.y, c.x - p.x), v = Math.hypot(p.vx, p.vy); p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v; p.vie = 1; continue; } }
       if (!p.perce) { fin = true; break; }
      }
     }
    } else if (Math.hypot(P.x - p.x, P.y - p.y) < P.r + p.r) { blesserJoueur(A, p.dg, p.src); if (p.gel) P.slow = 1.5; fin = true; }
+   else if (A.allie && !A.allie.ko && Math.hypot(A.allie.x - p.x, A.allie.y - p.y) < A.allie.r + p.r) { blesserAllie(A, p.dg, p.src); fin = true; }
   }
   if (p.k === 'boule' || p.k === 'feu' || p.k === 'eclair') particules(A, p.x, p.y, 1, p.k === 'eclair' ? '#c9a0ff' : '#ffb04a', .6, .3, .07);
   if (fin) {
@@ -1079,8 +1174,9 @@ function majDonjon(A, dt, inp) {
     else if (z.k === 'pluie') particules(A, z.x + rnd(-1, 1), z.y + rnd(-1, 1), 3, '#e8dcc0', 2, .3);
     else if (z.k === 'onde') { A.fx.push({ k: 'anneau', x: z.x, y: z.y, r: z.r, vie: .3, v0: .3, coul: '#ffe3a0' }); }
    } else {
-    if (Math.hypot(P.x - z.x, P.y - z.y) < z.r + P.r * .5) { blesserJoueur(A, z.dg, z.src); if (z.k === 'givre') P.slow = 2; }
-    particules(A, z.x, z.y, 18, z.k === 'givre' ? '#bfe8ff' : '#ff7a3a', 4, .6, .1); A.fx.push({ k: 'anneau', x: z.x, y: z.y, r: z.r, vie: .3, v0: .3, coul: z.k === 'givre' ? '#bfe8ff' : '#ff6a3a' }); A.shake = Math.max(A.shake, .15); SON(z.k === 'givre' ? 'givre' : 'explosion');
+    if (Math.hypot(P.x - z.x, P.y - z.y) < z.r + P.r * .5) { blesserJoueur(A, z.dg, z.src); if (z.k === 'givre' || z.k === 'poison') P.slow = 2; }
+    if (A.allie && !A.allie.ko && Math.hypot(A.allie.x - z.x, A.allie.y - z.y) < z.r) blesserAllie(A, z.dg * .7, z.src);
+    const zc = z.k === 'givre' ? '#bfe8ff' : z.k === 'poison' ? '#9cff5a' : '#ff6a3a'; particules(A, z.x, z.y, 18, zc, 4, .6, .1); A.fx.push({ k: 'anneau', x: z.x, y: z.y, r: z.r, vie: .3, v0: .3, coul: zc }); A.shake = Math.max(A.shake, .15); SON(z.k === 'givre' ? 'givre' : 'explosion');
    }
   }
   if (z.feu && z.t > 0) { z.dur -= dt; z.tick = (z.tick || 0) - dt; if (z.tick <= 0) { z.tick = .5; if (Math.hypot(P.x - z.x, P.y - z.y) < z.r) blesserJoueur(A, z.dg * .35, z.src); } if (z.dur > 0) continue; A.zones.splice(i, 1); continue; }
@@ -1102,7 +1198,10 @@ function majMob(A, m, dt) {
  if (m.brule > 0) { m.brule -= dt; m.pv -= m.bruleDg * dt; if (R() < dt * 8) particules(A, m.x, m.y - .2, 1, '#ff8a2a', 1, .4); if (m.pv <= 0) { tuerMob(A, m); return; } }
  if (m.stun > 0) { m.stun -= dt; return; }
  if (m.gel > 0) return;
- const dx = P.x - m.x, dy = P.y - m.y, d = Math.hypot(dx, dy);
+ if (m.M.type === 'fuite') return majGobelin(A, m, dt);
+ const Al = A.allie, dP = Math.hypot(P.x - m.x, P.y - m.y);
+ const T = Al && !Al.ko && m.etat === 'chasse' && Math.hypot(Al.x - m.x, Al.y - m.y) + .8 < dP ? Al : P;
+ const dx = T.x - m.x, dy = T.y - m.y, d = Math.hypot(dx, dy);
  if (m.etat === 'veille') {
   if (d < (m.boss ? 9 : 8.5) && vue(A, m.x, m.y, P.x, P.y)) { m.etat = 'chasse'; if (m.boss) { message(A, m.M.nom + ' s’éveille…', 3); SON('boss'); } else if (chance(.3)) SON('grogne'); }
   else return;
@@ -1115,7 +1214,8 @@ function majMob(A, m, dt) {
   m.wind -= dt;
   if (m.chg) { const st = dt; bouger(A, m, m.chg.vx * st, m.chg.vy * st); m.chg.t -= dt; particules(A, m.x, m.y, 1, '#b8a07a', 1, .3); if (!m.chg.hit && Math.hypot(P.x - m.x, P.y - m.y) < m.r + P.r + .2) { m.chg.hit = true; blesserJoueur(A, m.dg * 1.5, m, { cac: true }); bouger(A, P, m.chg.vx * .04, m.chg.vy * .04); } if (m.chg.t <= 0) { m.chg = null; m.wind = 0; } return; }
   if (m.wind <= 0) {
-   if (m.attaque === 'cac') { if (d < m.portee + m.r + P.r + .35) blesserJoueur(A, m.dg, m, { cac: true }); SON('griffe'); }
+   if (m.attaque === 'cac') { if (d < m.portee + m.r + T.r + .35) { if (T === P) blesserJoueur(A, m.dg, m, { cac: true }); else blesserAllie(A, m.dg, m); } SON('griffe'); }
+   else if (m.attaque === 'tir' && m.M.rafale) { const a0 = Math.atan2(dy, dx); for (let k = -1; k <= 1; k++) { const a = a0 + k * .22; A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a) * 6, vy: Math.sin(a) * 6, r: .17, ami: false, dg: m.dg, vie: 2, k: 'feu', src: m, touches: [] }); } SON('tir_e'); }
    else if (m.attaque === 'tir') { const a = Math.atan2(dy, dx); A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a) * (m.M.proj === 'feu' ? 6 : 8.5), vy: Math.sin(a) * (m.M.proj === 'feu' ? 6 : 8.5), r: .18, ami: false, dg: m.dg, vie: 2, k: m.M.proj === 'feu' ? 'feu' : 'fleche_e', src: m, touches: [] }); SON('tir_e'); }
    else if (m.attaque === 'soin') { const c = m.cibleSoin; if (c && !c.mort) { c.pv = Math.min(c.pvmax, c.pv + c.pvmax * .25); particules(A, c.x, c.y, 10, '#9cff9c', 2, .6); texte(A, c.x, c.y - .8, '+soin', '#9cff9c'); } }
    m.attaque = null;
@@ -1131,11 +1231,12 @@ function majMob(A, m, dt) {
   return;
  }
  if (m.M.charge) m.cdS[0] -= dt;
+ if (m.M.frappe) { m.cdS[0] -= dt; if (m.cdS[0] <= 0 && d < 3) { m.cdS[0] = 7; A.zones.push({ x: m.x, y: m.y, r: 2.2, t: -1, tmax: .05, dg: m.dg * 1.5, k: 'frappe', src: m }); m.wind = 1.05; m.attaque = null; SON('grogne'); return; } }
  if (m.k === 'spectre') { m.cdS[1] -= dt; if (m.cdS[1] <= 0 && d < 7 && d > 2.5) { m.cdS[1] = rnd(3, 5); const a = R() * 6.28, nx = P.x + Math.cos(a) * 1.6, ny = P.y + Math.sin(a) * 1.6; if (libre(A, nx, ny, m.r)) { particules(A, m.x, m.y, 10, '#9fd3ff', 2, .5); m.x = nx; m.y = ny; particules(A, m.x, m.y, 10, '#9fd3ff', 2, .5); m.cdA = .5; } } }
  if (m.ardent) { m.cdS[2] -= dt; if (m.cdS[2] <= 0) { m.cdS[2] = 2.2; A.zones.push({ x: m.x, y: m.y, r: .8, t: .01, tmax: 99, fait: true, feu: true, dur: 4, dg: m.dg, src: m, k: 'feusol' }); } }
  // ---- choix d'action ----
- const portee = m.portee + m.r + P.r;
- const voit = d < 12 && (d < 1.8 || vue(A, m.x, m.y, P.x, P.y));
+ const portee = m.portee + m.r + T.r;
+ const voit = d < 12 && (d < 1.8 || vue(A, m.x, m.y, T.x, T.y));
  if (m.M.type === 'soin' && m.cdA <= 0) {
   let c = null; for (const o of A.mobs) if (!o.mort && !o.objet && o !== m && o.pv < o.pvmax * .6 && Math.hypot(o.x - m.x, o.y - m.y) < 6) { c = o; break; }
   if (c) { m.cdA = m.cad * 1.6; m.wind = .6; m.attaque = 'soin'; m.cibleSoin = c; return; }
@@ -1162,6 +1263,56 @@ function majMob(A, m, dt) {
  }
  if (bx || by) { const gx = tx + bx + .5 - m.x, gy = ty + by + .5 - m.y, gl = Math.hypot(gx, gy) || 1; suivre(A, m, gx / gl, gy / gl, vit, dt); }
 }
+/* ---------- Gobelin voleur : fuit, puis disparaît ---------- */
+function majGobelin(A, m, dt) {
+ const P = A.p, d = Math.hypot(P.x - m.x, P.y - m.y);
+ if (m.etat === 'veille') { if (d < 8 && vue(A, m.x, m.y, P.x, P.y)) { m.etat = 'chasse'; message(A, 'Un gobelin voleur ! Rattrapez-le !', 2.5); SON('grogne'); } else return; }
+ m.fuiteT += dt; if (R() < dt * 6) ajLoot(A, { x: m.x, y: m.y, or: Math.max(1, Math.round(ri(1, 3) * A.niveau * .3)) });
+ if (m.fuiteT > 22) { m.mort = true; particules(A, m.x, m.y, 25, '#9a7aff', 3, .8); message(A, 'Le gobelin s’échappe par un portail…', 2.5); SON('blink'); return; }
+ const F = A.flow; if (!F) return; const tx = m.x | 0, ty = m.y | 0, c = F[ty * A.W + tx];
+ let bx = 0, by = 0, bv = c;
+ for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) { const nx = tx + ox, ny = ty + oy; if (nx < 0 || ny < 0 || nx >= A.W || ny >= A.H) continue; const v = F[ny * A.W + nx]; if (v < 0 || v <= bv) continue; if (ox && oy && (F[ty * A.W + nx] < 0 || F[ny * A.W + tx] < 0)) continue; bv = v; bx = ox; by = oy; }
+ const vit = m.vit * (m.slow > 0 ? .5 : 1);
+ if (bx || by) { const gx = tx + bx + .5 - m.x, gy = ty + by + .5 - m.y, gl = Math.hypot(gx, gy) || 1; suivre(A, m, gx / gl, gy / gl, vit, dt); }
+ else if (d < 3) suivre(A, m, (m.x - P.x) / d, (m.y - P.y) / d, vit, dt);
+}
+/* ---------- Compagnon ---------- */
+function blesserAllie(A, dg, src) {
+ const C = A.allie; if (!C || C.ko) return;
+ const d = Math.max(1, dg * (1 - (10 + A.X.o.heros.niveau * 3) / ((10 + A.X.o.heros.niveau * 3) + 40 + 14 * (src ? src.niv || A.niveau : A.niveau))) * rnd(.9, 1.1));
+ C.pv -= d; C.hitf = .15; texte(A, C.x, C.y - .8, Math.round(d), '#ffb0a0');
+ if (C.pv <= 0) { C.pv = 0; C.ko = 18; message(A, `${C.nom} est à terre !`, 2); particules(A, C.x, C.y, 14, '#8a1d1d', 3, .6); SON('mort'); }
+}
+function majAllie(A, dt) {
+ const C = A.allie, P = A.p; if (!C) return;
+ C.anim += dt; C.hitf -= dt; C.cdA -= dt; C.cdS -= dt;
+ if (C.ko > 0) { C.ko -= dt; if (C.ko <= 0) { C.pv = C.pvmax * .5; message(A, `${C.nom} se relève.`, 1.5); } if (Math.hypot(P.x - C.x, P.y - C.y) > 12) { C.x = P.x; C.y = P.y; } return; }
+ C.pv = Math.min(C.pvmax, C.pv + C.pvmax * .006 * dt);
+ const K = C.K; let cible = null, bd = K.type === 'cac' ? 5.5 : 7.5;
+ for (const m of A.mobs) { if (m.mort || m.objet || m.etat !== 'chasse' && Math.hypot(m.x - P.x, m.y - P.y) > 5) continue; const d = Math.hypot(m.x - C.x, m.y - C.y); if (d < bd && vue(A, C.x, C.y, m.x, m.y)) { bd = d; cible = m; } }
+ const dP = Math.hypot(P.x - C.x, P.y - C.y);
+ // prêtresse : soins
+ if (K.type === 'soin' && C.cdS <= 0 && P.pv < P.S.pvmax * .65 && dP < 7) { C.cdS = 7; const s = P.S.pvmax * .22; P.pv = Math.min(P.S.pvmax, P.pv + s); particules(A, P.x, P.y, 16, '#fff2b0', 2, .7); texte(A, P.x, P.y - 1, '+' + Math.round(s), '#fff2b0'); C.anim2 = .5; SON('potion'); }
+ if (dP > 9) { C.x = P.x - .5; C.y = P.y + .5; return; }
+ let mx = 0, my = 0;
+ if (cible) {
+  const d = Math.hypot(cible.x - C.x, cible.y - C.y), portee = K.portee + cible.r + C.r;
+  C.ang = Math.atan2(cible.y - C.y, cible.x - C.x);
+  if (d > portee) { mx = (cible.x - C.x) / d; my = (cible.y - C.y) / d; }
+  else if (C.cdA <= 0) {
+   C.cdA = K.cad; C.anim2 = .25;
+   const dg = C.dg * rnd(.85, 1.15) * (1 + .4 * (chance(.1) ? 1 : 0));
+   if (K.type === 'cac') { frapperParAllie(A, cible, dg); SON('epee'); }
+   else A.projs.push({ x: C.x, y: C.y, vx: Math.cos(C.ang) * 13, vy: Math.sin(C.ang) * 13, r: .16, ami: true, allie: dg, vie: 1.2, k: K.type === 'soin' ? 'lumiere' : 'fleche', touches: [] });
+  }
+ } else if (dP > 2.2) { mx = (P.x - C.x) / dP; my = (P.y - C.y) / dP; C.ang = Math.atan2(my, mx); }
+ if (mx || my) { bouger(A, C, mx * 4.4 * dt, my * 4.4 * dt); C.pas += dt * 9; }
+}
+function frapperParAllie(A, m, dg) {
+ if (m.mort) return; if (m.objet) { m.mort = true; casserObjet(A, m); return; }
+ m.pv -= dg; m.hitf = .1; m.etat = 'chasse'; texte(A, m.x, m.y - m.r - .3, Math.round(dg), '#d8e8c8');
+ if (m.pv <= 0) tuerMob(A, m);
+}
 function suivre(A, m, ux, uy, v, dt) { bouger(A, m, ux * v * dt, uy * v * dt); m.ang = Math.atan2(uy, ux); }
 function setTimeoutJeu(A, t, f) { (A.minuteries || (A.minuteries = [])).push({ t: A.t + t, f }); }
 function majMinuteries(A) { if (!A.minuteries) return; for (let i = A.minuteries.length - 1; i >= 0; i--) if (A.t >= A.minuteries[i].t) { const f = A.minuteries[i].f; A.minuteries.splice(i, 1); f(); } }
@@ -1177,6 +1328,10 @@ function capaciteBoss(A, m, dt, d) {
   if (m.cdS[0] <= 0 && d < 4) { m.cdS[0] = m.k === 'ogre' ? 6 : 5; telegraphe(m.x, m.y, m.k === 'ogre' ? 3.2 : 2.6, 1, m.dg * 1.6, 'frappe'); m.wind = 1.05; m.attaque = null; SON('grogne'); return true; }
   if (m.cdS[1] <= 0 && d > 3 && d < 9) { m.cdS[1] = 8; const a = Math.atan2(P.y - m.y, P.x - m.x); m.wind = 1.3; A.zones.push({ x: m.x, y: m.y, r: .01, t: -.6, tmax: .01, k: 'ligne', ang: a, long: 7, fait: true, ligneVie: .6 }); setTimeoutJeu(A, .6, () => { if (!m.mort) m.chg = { vx: Math.cos(a) * 11, vy: Math.sin(a) * 11, t: .65 }; }); return true; }
   if (m.k === 'champion' && m.cdS[2] <= 0 && A.vivants < 8 && A.X.o.arene) { m.cdS[2] = 14; for (let i = 0; i < 2; i++) { const s = mkMob('soldat', m.x + rnd(-2, 2), m.y + rnd(-2, 2), m.niv - .5, false, m.maison); s.etat = 'chasse'; if (libre(A, s.x, s.y, s.r)) A.mobs.push(s); } message(A, 'Des renforts accourent !', 2); return true; }
+ } else if (m.k === 'reine') {
+  if (m.cdS[0] <= 0 && A.vivants < 12) { m.cdS[0] = 11; for (let i = 0; i < (m.phase === 2 ? 6 : 4); i++) { const a = R() * 6.28; const s = mkMob('araignee', m.x + Math.cos(a) * 1.5, m.y + Math.sin(a) * 1.5, m.niv - 1); s.etat = 'chasse'; if (libre(A, s.x, s.y, s.r)) A.mobs.push(s); } message(A, 'La couvée éclot !', 2); SON('invoque'); m.wind = .5; return true; }
+  if (m.cdS[1] <= 0) { m.cdS[1] = 6; for (let i = 0; i < (m.phase === 2 ? 5 : 3); i++) telegraphe(P.x + rnd(-2.2, 2.2), P.y + rnd(-2.2, 2.2), 1.4, 1.1 + i * .2, m.dg * 1.1, 'poison'); return false; }
+  if (m.cdS[2] <= 0 && d < 8) { m.cdS[2] = 3.5; const a = Math.atan2(P.y - m.y, P.x - m.x); for (const k of [-.15, .15]) A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a + k) * 7, vy: Math.sin(a + k) * 7, r: .22, ami: false, dg: m.dg * .5, vie: 2.2, k: 'toile', gel: true, src: m, touches: [] }); m.wind = .35; return true; }
  } else if (m.k === 'wyverne') {
   if (m.cdS[0] <= 0 && d < 7) { m.cdS[0] = 6; const a = Math.atan2(P.y - m.y, P.x - m.x); for (let k = 1; k <= 5; k++) for (const s of [-1, 0, 1]) { if (k < 2 && s) continue; const aa = a + s * .28; telegraphe(m.x + Math.cos(aa) * k * 1.2, m.y + Math.sin(aa) * k * 1.2, .75 + k * .08, .9 + k * .06, m.dg * 1.2, 'feu'); } m.wind = 1.3; m.ang = a; SON('souffle'); return true; }
   if (m.cdS[1] <= 0) { m.cdS[1] = 4.5; for (let i = -2; i <= 2; i++) { const a = Math.atan2(P.y - m.y, P.x - m.x) + i * .2; A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a) * 6.5, vy: Math.sin(a) * 6.5, r: .24, ami: false, dg: m.dg * .8, vie: 2.5, k: 'feu', src: m, touches: [] }); } m.wind = .4; return true; }
@@ -1204,7 +1359,8 @@ function botEntree(A) {
   return inp;
  }
  // ramasser, sinon aller vers l'objectif
- let l = null; bd = 1e9; for (const o of A.loot) { if (o.ign > A.t || o.potion && P.potions >= 5 || o.globe && P.pv > P.S.pvmax * .8) continue; const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd && d < 10) { bd = d; l = o; } }
+ let l = null; bd = 1e9; for (const o of A.autels || []) { if (o.pris) continue; const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd && d < 12) { bd = d; l = o; } }
+ for (const o of A.loot) { if (o.ign > A.t || o.potion && P.potions >= 5 || o.globe && P.pv > P.S.pvmax * .8) continue; const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd && d < 10) { bd = d; l = o; } }
  let cx, cy;
  if (l) { if (A.botLoot !== l) { A.botLoot = l; A.botLootT = A.t; } else if (A.t - A.botLootT > 6) l.ign = A.t + 60; cx = Math.floor(l.x) + .5; cy = Math.floor(l.y) + .5; }
  else if (A.portail) { cx = A.portail.x; cy = A.portail.y; }
@@ -1270,7 +1426,8 @@ function nouvellePartie(opts = {}) {
  const h = nouveauHeros(classe, opts.nom || (sexe === 'f' ? 'Aénor' : 'Émeric'), sexe, 1);
  h.equip.arme = genObjet(1, classe, { empl: 'arme', rarete: 'normal' });
  h.equip.armure = genObjet(1, classe, { empl: 'armure', rarete: 'normal' });
- G.joueur = { heros: h, age: 24, conjoint: null, enfants: [], generation: 1, lignee: [], inventaire: [], blesse: 0, regence: 0 };
+ G.joueur = { heros: h, age: 24, conjoint: null, enfants: [], generation: 1, lignee: [], inventaire: [], blesse: 0, regence: 0, compagnon: null };
+ completer(G);
  noter(G, `${titre(G)} ${h.nom} d’${H.joueur.nom} prend le gouvernement de Val-Sombre. Le vieux roi Aldric règne encore à Haute-Braise.`, 'regne');
  G.evts.push({ id: 'intro' });
  return G;
@@ -1288,7 +1445,44 @@ function revenus(G, m) {
  if (G.maisons[m].trait === 'marchand') r *= 1.2;
  return Math.round(r);
 }
-function entretien(G, m) { return Math.round(troupesDe(G, m) * .75); }
+function entretien(G, m) { return Math.round(troupesDe(G, m) * .75 + (m === 'joueur' ? (G.joueur.compagnon ? 6 : 0) + G.joueur.enfants.filter(e => e.formation !== undefined && e.formation < 10).length * 8 : 0)); }
+/* ---------- Mise à niveau des anciennes sauvegardes ---------- */
+function completer(G) {
+ const J = G.joueur;
+ if (J.compagnon === undefined) J.compagnon = null;
+ if (!J.heros.talents) J.heros.talents = {};
+ for (const e of J.enfants) if (e.classe === undefined) e.classe = null;
+ if (!G.objectifs) G.objectifs = { n: 0, faits: [] };
+ if (!G.nouvelles) G.nouvelles = [];
+ if (!G.faille) G.faille = { palier: 1, record: 0 };
+ if (!G.stats.bossTues) G.stats.bossTues = 0;
+ if (!G.v || G.v < 2) G.v = 2;
+ return G;
+}
+/* ---------- Objectifs (fil conducteur récompensé) ---------- */
+const OBJECTIFS = [
+ { t: 'Purger un donjon (la crypte de Val-Sombre est la plus facile)', ok: G => G.stats.donjons >= 1, r: G => { G.maisons.joueur.or += 60; return '+60 or'; } },
+ { t: 'Dépenser un point de compétence ou de talent (🛡️ Armurerie → ✦)', ok: G => G.joueur.heros.points === 0 && G.joueur.heros.niveau >= 2, r: G => { G.joueur.heros.potions = Math.max(G.joueur.heros.potions, 5); return 'Ceinture de 5 potions'; } },
+ { t: 'Recruter des troupes dans une de vos provinces', ok: G => troupesDe(G, 'joueur') >= 14, r: G => { G.maisons.joueur.or += 30; return '+30 or'; } },
+ { t: 'Conquérir une province (Les Saulaies ou les Marches Grises sont mal défendues)', ok: G => provincesDe(G, 'joueur').length >= 3, r: G => { G.maisons.joueur.or += 80; G.maisons.joueur.prestige += 5; return '+80 or, +5 prestige'; } },
+ { t: 'Engager un compagnon d’armes (🛡️ Armurerie → Compagnon)', ok: G => !!G.joueur.compagnon, r: G => { G.joueur.inventaire.push(genObjet(G.joueur.heros.niveau + 1, G.joueur.heros.classe, { min: 'rare' })); return 'Un objet rare'; } },
+ { t: 'Vous marier (🤝 Maisons → Mariage) pour assurer la lignée', ok: G => !!G.joueur.conjoint, r: G => { G.maisons.joueur.prestige += 10; return '+10 prestige'; } },
+ { t: 'Bâtir un marché ou une caserne', ok: G => provincesDe(G, 'joueur').some(p => p.bat.marche || p.bat.caserne), r: G => { G.maisons.joueur.or += 50; return '+50 or'; } },
+ { t: 'Atteindre le niveau 6', ok: G => G.joueur.heros.niveau >= 6, r: G => { G.joueur.inventaire.push(genObjet(7, G.joueur.heros.classe, { min: 'rare', empl: 'arme' })); return 'Une arme rare'; } },
+ { t: 'Tenir 5 provinces', ok: G => provincesDe(G, 'joueur').length >= 5, r: G => { G.maisons.joueur.or += 120; return '+120 or'; } },
+ { t: 'Avoir un héritier et lui choisir un maître d’armes (👑 Dynastie)', ok: G => G.joueur.enfants.some(e => e.classe), r: G => { G.maisons.joueur.prestige += 8; return '+8 prestige'; } },
+ { t: 'Vaincre trois maîtres de donjon', ok: G => G.stats.donjons >= 3, r: G => { G.joueur.inventaire.push(genObjet(G.joueur.heros.niveau + 2, G.joueur.heros.classe, { rarete: 'legendaire' })); return 'Un objet légendaire !'; } },
+ { t: 'Tenir 8 provinces', ok: G => provincesDe(G, 'joueur').length >= 8, r: G => { G.maisons.joueur.or += 200; return '+200 or'; } },
+ { t: 'Prendre Haute-Braise et ceindre la couronne (10 provinces)', ok: G => G.couronne, r: G => { G.maisons.joueur.prestige += 20; return 'La Faille de Braise s’ouvre à Haute-Braise…'; } },
+ { t: 'Descendre au palier 5 de la Faille de Braise', ok: G => G.faille.record >= 5, r: G => { G.joueur.inventaire.push(genObjet(G.joueur.heros.niveau + 4, G.joueur.heros.classe, { rarete: 'legendaire' })); return 'Un objet légendaire !'; } },
+];
+function objectifActuel(G) { return OBJECTIFS[G.objectifs.n] || null; }
+// renvoie le texte de récompense si l'objectif courant vient d'être atteint
+function verifierObjectif(G) {
+ const o = objectifActuel(G); if (!o || !o.ok(G)) return null;
+ const r = o.r(G); G.objectifs.faits.push(G.objectifs.n); G.objectifs.n++; noter(G, `Objectif accompli : ${o.t.replace(/ \(.*\)$/, '')}.`, 'exploit');
+ return { t: o.t, r };
+}
 function ordresMax(G) { const e = effetsRoyaume(G.joueur.heros); return 3 + (e.ordre ? 1 : 0) + (G.maisons.joueur.prestige >= 80 ? 1 : 0); }
 function enGuerre(G, a, b) { return a !== b && (G.maisons[a].guerre[b] || G.maisons[b].guerre[a]); }
 function changeRel(G, a, b, v) { if (a === b || !G.maisons[a] || !G.maisons[b]) return; G.maisons[a].rel[b] = clamp(G.maisons[a].rel[b] + v, -100, 100); G.maisons[b].rel[a] = clamp(G.maisons[b].rel[a] + v, -100, 100); }
@@ -1506,7 +1700,7 @@ function mortDuSouverain(G, cause) {
 }
 function succession(G, classe) {
  const S = G.succession, Jo = G.joueur, e = S.heritier, ancien = S.ancien;
- const niv = Math.max(1, Math.floor(ancien.niveau / 2));
+ const niv = Math.max(1, Math.floor(ancien.niveau / 2), e.classe === classe ? e.formation || 0 : Math.floor((e.formation || 0) / 2));
  const h = nouveauHeros(classe, e.nom, e.sexe, niv);
  h.xp = 0; h.potions = 3;
  // l'armurerie de la maison passe à l'héritier
@@ -1533,6 +1727,7 @@ function finSaison(G) {
  const rev = revenus(G, 'joueur'), ent = entretien(G, 'joueur');
  J.or += rev - ent; J.influence += 1 + provincesDe(G, 'joueur').filter(p => p.bat.temple).length * .5 + (effetsRoyaume(G.joueur.heros).intrigue ? 2 : 0);
  J.influence = Math.round(J.influence * 2) / 2;
+ if (G.dette) { J.or -= G.dette.m; if (--G.dette.s <= 0) { G.dette = null; noter(G, 'La dette envers le banquier de Port-Ambre est soldée.', 'info'); } }
  if (J.or < 0) { const q = provincesDe(G, 'joueur').sort((a, b) => b.t - a.t)[0]; if (q) { const k = Math.ceil(q.t * .2); q.t -= k; noter(G, `Faute de solde, ${k} soldats désertent à ${q.nom}.`, 'alerte'); } J.or = 0; }
  // provinces
  for (const p of G.provinces) {
@@ -1553,6 +1748,7 @@ function finSaison(G) {
  if (G.saison === 3) {
   Jo.age++; if (Jo.conjoint) Jo.conjoint.age++; for (const e of Jo.enfants) e.age++;
   if (Jo.regence > 0) Jo.regence--;
+  for (const e of Jo.enfants) if (e.classe && e.age >= 6 && (e.formation || 0) < 10) e.formation = (e.formation || 0) + 1;
   for (const id of IA_MAISONS) { const M = G.maisons[id]; if (M.elim) continue; M.chef.age++; if (M.heritier) M.heritier.age++; if (M.chef.age > 55 && chance((M.chef.age - 55) * .02)) { if (M.chef.roi) G.evts.push({ id: 'mort_roi' }); else if (chance(.5)) noter(G, `${M.chef.nom} de la maison ${M.nom} est mort(e) de vieillesse.`, 'info'); successionIA(G, id); } }
  }
  if (Jo.conjoint && Jo.age < 50 && Jo.conjoint.age < 46 && Jo.enfants.length < 6 && chance(.14)) {
@@ -1584,6 +1780,7 @@ function verifierVictoire(G) {
 
 /* ---------- IA des maisons ---------- */
 function tourIA(G) {
+ G.nouvelles = [];
  const ordre = shuffle(IA_MAISONS.slice());
  const dif = { facile: 1, normale: 1.35, difficile: 1.7 }[G.options.difficulte] || 1.35;
  for (const m of ordre) {
@@ -1627,6 +1824,7 @@ function tourIA(G) {
     const hostile = enGuerre(G, m, q.o) || q.o === 'rebelles';
     if (!hostile) continue;
     if (q.o === 'joueur' && G.tour < 4) continue; // répit de début de partie
+    if (q.o === 'rebelles' && G.tour < 8 && voisinsDe(q.id).some(id => prov(G, id).o === 'joueur')) continue; // laisser au joueur le temps de s'étendre
     const ratio = (p.t - 1) / (q.t + q.c * 1.5 + 1);
     if (ratio > 1.5) cibles.push({ p, q, ratio: ratio + (q.capitale ? .6 : 0) + (q.o === 'joueur' ? .2 : 0) });
    }
@@ -1637,6 +1835,7 @@ function tourIA(G) {
    att++;
    const avant = c.q.o;
    const r = attaquer(G, c.p.id, c.q.id, { n: c.p.t - 1 - (menace(c.p) > c.p.t ? 2 : 0), prudent: true });
+   G.nouvelles.push({ de: c.p.id, vers: c.q.id, m, avant, gagne: r.gagne });
    if (avant === 'joueur') G.evts.push({ id: 'attaque_subie', maison: m, prov: c.q.id, gagne: r.gagne, pa: r.pertesA, pd: r.pertesD });
   }
  }
@@ -1671,6 +1870,20 @@ function botRoyaume(G) {
  }
  // vendre le surplus
  for (const o of G.joueur.inventaire.splice(0)) J.or += Math.round(o.prix / 3);
+}
+
+/* ---------- La Faille de Braise (fin de partie : paliers sans fin) ---------- */
+function failleOuverte(G) { return G.couronne || provincesDe(G, 'joueur').some(p => p.capitale) || G.joueur.heros.niveau >= 15; }
+function configFaille(G) { const n = G.faille.palier; return { type: ['catacombes', 'antre', 'glace', 'mine', 'marais', 'crypte'][n % 6], niveau: 7 + n * 1.7, etages: 3, nom: `Faille de Braise — palier ${n}`, boss: ['liche', 'wyverne', 'ogre'][n % 3] }; }
+function finFaille(G, X) {
+ const F = G.faille, n = F.palier;
+ if (X.resultat !== 'victoire') return `La Faille vous recrache au palier ${n}.`;
+ F.record = Math.max(F.record, n); F.palier++;
+ const or = 60 * n; G.maisons.joueur.or += or; G.maisons.joueur.prestige += 3 + n;
+ let t = `Palier ${n} vaincu ! +${or} or, +${3 + n} prestige.`;
+ if (chance(.35 + n * .03)) { const o = genObjet(G.joueur.heros.niveau + 2, G.joueur.heros.classe, { rarete: 'legendaire' }); G.joueur.inventaire.push(o); t += ` La Faille vous offre ${o.nom} !`; }
+ noter(G, `${G.joueur.heros.nom} a vaincu le palier ${n} de la Faille de Braise.`, 'exploit');
+ return t;
 }
 
 </script>
@@ -1931,6 +2144,62 @@ const EVTS = {
    { t: 'Offrir une prime par tête (−25 or)', f: (G, e) => { G.maisons.joueur.or -= 25; pv(G, e.prov).loy += 5; return 'Les paysans s’en chargent.'; } },
   ],
   apres: (G, e, X) => X.resultat === 'victoire' ? (pv(G, e.prov).loy += 12, `Les meutes sont décimées. ${gainPrest(G, 3)}.`) : 'Les loups continuent leurs ravages.' },
+ pelerins: { titre: 'Les pèlerins de l’Aube', poids: 2,
+  texte: G => 'Une longue file de pèlerins traverse vos terres en route vers Sainte-Aube. Ils demandent le gîte et la protection de vos routes.',
+  choix: G => [
+   { t: 'Les accueillir (+loyauté, relation avec Solenne)', f: G => { for (const p of mesProv(G)) p.loy += 6; changeRel(G, 'joueur', 'solenne', 10); return 'Ils bénissent votre nom tout au long du chemin.'; } },
+   { t: 'Leur faire payer un droit de passage (+45 or)', f: G => { changeRel(G, 'joueur', 'solenne', -6); return gainOr(G, 45); } },
+  ] },
+ banquier: { titre: 'Le banquier de Port-Ambre', poids: 2, cond: G => !G.dette,
+  texte: G => 'Un banquier aux bagues d’ambre vous propose un prêt : 150 pièces d’or tout de suite, contre 16 pièces par saison pendant douze saisons.',
+  choix: G => [
+   { t: 'Accepter le prêt (+150 or, −16 or par saison)', f: G => { G.dette = { s: 12, m: 16 }; return gainOr(G, 150); } },
+   { t: 'Refuser', f: G => 'Il remballe ses registres avec un sourire poli.' },
+  ] },
+ statue: { titre: 'Une statue pour la postérité', poids: 2, cond: G => G.maisons.joueur.or >= 80,
+  texte: G => `Les maîtres maçons proposent d’ériger sur la grand-place une statue de ${heros(G).nom}, l’épée levée.`,
+  choix: G => [
+   { t: 'Commander la statue (−80 or, +12 prestige)', f: G => { G.maisons.joueur.or -= 80; return gainPrest(G, 12); } },
+   { t: 'Préférer une fontaine pour le peuple (−50 or, +loyauté)', f: G => { G.maisons.joueur.or -= 50; for (const p of mesProv(G)) p.loy += 10; return 'Le peuple boit à votre santé.'; } },
+   { t: 'Refuser ces vanités', f: G => '' },
+  ] },
+ raid_champion: { titre: 'Le pillard au heaume noir', poids: 2, cond: G => peutCombattre(G) && mesProv(G).length > 1,
+  ctx: G => ({ prov: uneProv(G).id, maison: maisonVoisine(G) }),
+  texte: (G, e) => `Un champion au heaume noir, à la solde de la maison ${mN(G, e.maison)}, ravage les villages de ${pv(G, e.prov).nom} avec sa bande.`,
+  choix: (G, e) => [
+   { t: 'L’affronter vous-même (combat)', f: (G, e) => ({ msg: '', combat: { arene: { n: 5, maison: e.maison }, niveau: Math.max(1, heros(G).niveau + .5), nom: 'Le pillard au heaume noir' } }) },
+   { t: 'Lancer la garnison à ses trousses (−3 troupes)', f: (G, e) => { const p = pv(G, e.prov); p.t = Math.max(1, p.t - 3); return 'Le pillard est chassé, au prix de quelques braves.'; } },
+   { t: 'Laisser brûler les villages', f: (G, e) => { const p = pv(G, e.prov); p.loy -= 15; p.p = Math.max(1, p.p - 1); return 'Prospérité −1, le peuple vous en veut.'; } },
+  ],
+  apres: (G, e, X) => X.resultat === 'victoire' ? (changeRel(G, 'joueur', e.maison, -8), `Le heaume noir orne désormais votre grand-salle. ${gainPrest(G, 8)}.`) : (pv(G, e.prov).loy -= 10, 'Le pillard s’échappe en riant.') },
+ ecole: { titre: 'Les clercs de Lisière', poids: 2,
+  texte: G => 'Des clercs savants demandent votre patronage pour fonder une école de scribes et de diplomates.',
+  choix: G => [
+   { t: 'Financer l’école (−60 or, +4 influence)', cond: G => G.maisons.joueur.or >= 60, f: G => { G.maisons.joueur.or -= 60; return gainInf(G, 4); } },
+   { t: 'Y envoyer vos enfants (+1 an de formation pour chacun)', cond: G => G.joueur.enfants.some(e => e.classe), f: G => { for (const e of G.joueur.enfants) if (e.classe) e.formation = Math.min(10, (e.formation || 0) + 1); return 'Vos héritiers progressent.'; } },
+   { t: 'Refuser', f: G => '' },
+  ] },
+ oracle: { titre: 'L’oracle aveugle', poids: 1,
+  texte: G => 'Une vieille femme aux yeux blancs s’assied devant votre trône. « Je vois les profondeurs. Je vois aussi votre sang. Que veux-tu savoir ? »',
+  choix: G => [
+   { t: '« Montre-moi les faiblesses des monstres » (+1 point de compétence)', f: G => { heros(G).points++; return 'Vous gagnez un point de compétence.'; } },
+   { t: '« Montre-moi le chemin des trésors » (+30 % d’or trouvé pour une expédition)', f: G => { G.chanceOr = true; return 'Votre prochaine expédition sera plus lucrative.'; } },
+   { t: '« Dis-moi l’avenir de ma lignée » (+6 prestige)', f: G => `« Ta lignée régnera… si elle survit à l’hiver. » ${gainPrest(G, 6)}.` },
+  ] },
+ faille_gronde: { titre: 'La Faille gronde', poids: 2, cond: G => failleOuverte(G) && peutCombattre(G),
+  texte: G => `Sous Haute-Braise, la Faille s’agite. Des créatures montent des profondeurs jusqu’aux caves du palais. Le palier ${G.faille.palier} vous appelle.`,
+  choix: G => [
+   { t: 'Descendre immédiatement (Faille, sans dépenser d’ordre)', f: G => ({ msg: '', combat: configFaille(G), faille: true }) },
+   { t: 'Murer les caves (+loyauté à la capitale)', f: G => { const p = mesProv(G).find(q => q.capitale); if (p) p.loy += 10; return 'Les caves sont scellées, pour l’instant.'; } },
+  ],
+  apres: (G, e, X) => finFaille(G, X) },
+ cache_compagnon: { titre: 'Une rumeur de taverne', poids: 2, cond: G => G.joueur.compagnon && peutCombattre(G),
+  texte: G => `${G.joueur.compagnon.nom} revient de la taverne, l’œil brillant : un contrebandier ivre aurait parlé d’une cache sous un vieux moulin.`,
+  choix: G => [
+   { t: 'Y aller ensemble (donjon d’un étage, trésor)', f: G => ({ msg: '', combat: { type: pick(['egouts', 'mine', 'crypte']), niveau: Math.max(1, heros(G).niveau), etages: 1, nom: 'La cache du contrebandier' } }) },
+   { t: 'Ce ne sont que des racontars', f: G => '' },
+  ],
+  apres: (G, e, X) => X.resultat === 'victoire' ? `La cache regorgeait d’or. ${gainOr(G, 90)}.` : 'Rien que des rats et des coups.' },
 };
 
 function tirerEvenements(G) {
@@ -2033,12 +2302,18 @@ function rendreDonjon(A, cv, ctx, lum, lctx) {
   if (z.feu) { ctx.fillStyle = `rgba(255,${90 + 40 * Math.sin(t * 9 + z.x)},20,.28)`; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 6.28); ctx.fill(); continue; }
   if (z.t < 0) {
    const k = 1 + z.t / (z.k === 'meteore' ? 1 : 1.2);
-   const coul = z.ami ? (z.k === 'meteore' ? '255,150,40' : '255,230,160') : z.k === 'givre' ? '140,210,255' : '255,50,30';
+   const coul = z.ami ? (z.k === 'meteore' ? '255,150,40' : '255,230,160') : z.k === 'givre' ? '140,210,255' : z.k === 'poison' ? '130,240,80' : '255,50,30';
    if (z.ami && z.k !== 'meteore') continue;
    ctx.strokeStyle = `rgba(${coul},.75)`; ctx.lineWidth = .05; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 6.28); ctx.stroke();
    ctx.fillStyle = `rgba(${coul},${.12 + .25 * clamp(k, 0, 1)})`; ctx.beginPath(); ctx.arc(z.x, z.y, z.r * clamp(k, .05, 1), 0, 6.28); ctx.fill();
    if (z.k === 'meteore') { const h = -z.t * 8; ctx.fillStyle = '#ffb04a'; ctx.beginPath(); ctx.arc(z.x + h * .3, z.y - h, .35, 0, 6.28); ctx.fill(); }
   }
+ }
+ for (const c of A.cadavres || []) {
+  if (c.x < x0 - 1 || c.x > x1 + 1 || c.y < y0 - 1 || c.y > y1 + 1) continue;
+  if (c.spectre) continue;
+  if (c.os) { ctx.strokeStyle = 'rgba(220,210,185,.55)'; ctx.lineWidth = .05; ctx.lineCap = 'round'; for (let k = 0; k < 3; k++) { const a = c.ang + k * 2.1, l = .18; ctx.beginPath(); ctx.moveTo(c.x - Math.cos(a) * l, c.y - Math.sin(a) * l * .6); ctx.lineTo(c.x + Math.cos(a) * l, c.y + Math.sin(a) * l * .6); ctx.stroke(); } ctx.fillStyle = 'rgba(225,215,190,.6)'; ctx.beginPath(); ctx.arc(c.x + Math.cos(c.ang) * .2, c.y, .09, 0, 6.28); ctx.fill(); }
+  else { ctx.fillStyle = 'rgba(80,6,6,.5)'; ctx.beginPath(); ctx.ellipse(c.x, c.y, c.r * 1.3, c.r * .7, c.ang * .2, 0, 6.28); ctx.fill(); ctx.fillStyle = 'rgba(40,30,25,.55)'; ctx.beginPath(); ctx.ellipse(c.x + .05, c.y - .05, c.r * .8, c.r * .45, c.ang, 0, 6.28); ctx.fill(); }
  }
  for (const f of A.fx) if (f.k === 'cible') { ctx.strokeStyle = 'rgba(255,230,160,.35)'; ctx.lineWidth = .04; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, 6.28); ctx.stroke(); }
  // objets au sol
@@ -2056,6 +2331,8 @@ function rendreDonjon(A, cv, ctx, lum, lctx) {
  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) if (A.carte.t[y * A.W + x] === PIL) L.push({ k: 'pilier', x: x + .5, y: y + .5 });
  for (const m of A.mobs) if (!m.mort && m.x > x0 - 2 && m.x < x1 + 2 && m.y > y0 - 2 && m.y < y1 + 2) L.push(m);
  L.push(P);
+ for (const a of A.autels || []) L.push({ k: 'autel', x: a.x, y: a.y, a });
+ if (A.allie) L.push(A.allie);
  if (A.portail) L.push({ k: 'portail', x: A.portail.x, y: A.portail.y });
  L.sort((a, b) => a.y - b.y);
  for (const e of L) {
@@ -2063,6 +2340,8 @@ function rendreDonjon(A, cv, ctx, lum, lctx) {
   else if (e.k === 'brasero') dessinerBrasero(ctx, e, t);
   else if (e.k === 'pilier') dessinerPilier(ctx, e, A);
   else if (e.k === 'portail') dessinerPortail(ctx, e, t);
+  else if (e.k === 'autel') dessinerAutel(ctx, e.a, t);
+  else if (e === A.allie) dessinerAllie(ctx, e, A);
   else if (e.objet) dessinerObjetDecor(ctx, e);
   else dessinerMob(ctx, e, A);
  }
@@ -2070,8 +2349,13 @@ function rendreDonjon(A, cv, ctx, lum, lctx) {
  for (const p of A.projs) {
   const a = Math.atan2(p.vy, p.vx);
   if (p.k === 'fleche' || p.k === 'fleche_e') { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(a); ctx.strokeStyle = p.k === 'fleche' ? '#e6d6b0' : '#cfa080'; ctx.lineWidth = .045; ctx.beginPath(); ctx.moveTo(-.35, 0); ctx.lineTo(.12, 0); ctx.stroke(); ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(.2, 0); ctx.lineTo(.08, -.05); ctx.lineTo(.08, .05); ctx.fill(); ctx.restore(); }
-  else { const c = p.k === 'eclair' ? ['#f3e6ff', '#a070ff'] : p.k === 'givre' ? ['#ffffff', '#7ad0ff'] : ['#fff2c0', '#ff6a1a']; const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.2); gr.addColorStop(0, c[0]); gr.addColorStop(.4, c[1]); gr.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.2, 0, 6.28); ctx.fill(); }
+  else if (p.k === 'toile') { ctx.strokeStyle = 'rgba(235,235,225,.85)'; ctx.lineWidth = .025; for (let k = 0; k < 4; k++) { const a = k * .785 + A.t * 3; ctx.beginPath(); ctx.moveTo(p.x - Math.cos(a) * .2, p.y - Math.sin(a) * .2); ctx.lineTo(p.x + Math.cos(a) * .2, p.y + Math.sin(a) * .2); ctx.stroke(); } ctx.beginPath(); ctx.arc(p.x, p.y, .12, 0, 6.28); ctx.stroke(); }
+  else { const c = p.k === 'lumiere' ? ['#ffffff', '#ffe08a'] : p.k === 'eclair' ? ['#f3e6ff', '#a070ff'] : p.k === 'givre' ? ['#ffffff', '#7ad0ff'] : ['#fff2c0', '#ff6a1a']; const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.2); gr.addColorStop(0, c[0]); gr.addColorStop(.4, c[1]); gr.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.2, 0, 6.28); ctx.fill(); }
  }
+ // poussières en suspension dans la lumière
+ if (!A.poussiere) { A.poussiere = []; for (let i = 0; i < 40; i++) A.poussiere.push({ x: rnd(-8, 8), y: rnd(-6, 6), z: R() * 6.28, v: rnd(.05, .2) }); }
+ ctx.fillStyle = hexa(A.D.lum, .35);
+ for (const d of A.poussiere) { d.z += .01; const px = P.x + ((d.x + Math.sin(d.z) * .6 + 8 + t * d.v) % 16) - 8, py = P.y + ((d.y + Math.cos(d.z * .7) * .4 + 6 - t * d.v * .5) % 12 + 12) % 12 - 6; ctx.fillRect(px, py, .035, .035); }
  // particules
  for (const f of A.fx) {
   if (f.k === 'anneau') { const k = 1 - f.vie / f.v0; ctx.strokeStyle = f.coul; ctx.globalAlpha = 1 - k; ctx.lineWidth = .12 * (1 - k) + .02; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (.4 + .6 * k), 0, 6.28); ctx.stroke(); ctx.globalAlpha = 1; continue; }
@@ -2126,6 +2410,10 @@ function hexa(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >
 /* ---------- Personnages ---------- */
 function ombre(ctx, x, y, rx) { ctx.fillStyle = 'rgba(0,0,0,.38)'; ctx.beginPath(); ctx.ellipse(x, y + .05, rx, rx * .42, 0, 0, 6.28); ctx.fill(); }
 function dessinerHeros(ctx, P, A) {
+ ctx.save(); ctx.translate(P.x, P.y); ctx.scale(1.22, 1.22); ctx.translate(-P.x, -P.y);
+ dessinerHeros0(ctx, P, A); ctx.restore();
+}
+function dessinerHeros0(ctx, P, A) {
  const h = A.X.o.heros, C = h.classe, x = P.x, y = P.y, a = P.ang, M = A.X.o.couleurs || ['#c8632a', '#f2d7a0'];
  const marche = Math.sin(P.pas) * (P.mvx || P.mvy ? 1 : 0);
  ctx.globalAlpha = P.inv > 0 && !P.dash ? .6 + .4 * Math.sin(A.t * 40) : 1;
@@ -2213,7 +2501,7 @@ function dessinerMob(ctx, m, A) {
  if (m.elite) { ctx.strokeStyle = `rgba(255,170,40,${.35 + .2 * Math.sin(t * 6)})`; ctx.lineWidth = .05; ctx.beginPath(); ctx.ellipse(x, y, m.r * 1.3, m.r * .55, 0, 0, 6.28); ctx.stroke(); }
  if (m.wind > 0 && m.attaque === 'cac') { ctx.fillStyle = 'rgba(255,40,20,.22)'; ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, m.portee + m.r, a - .8, a + .8); ctx.fill(); }
  if (m.gel > 0) { ctx.fillStyle = 'rgba(170,220,255,.5)'; ctx.beginPath(); ctx.ellipse(x, y - m.r * .9, m.r * 1.1, m.r * 1.3, 0, 0, 6.28); ctx.fill(); }
- ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+ ctx.save(); ctx.translate(x, y); ctx.scale(s * 1.18, s * 1.18);
  const pas = Math.sin(t * 8) * (m.etat === 'chasse' ? 1 : .2);
  switch (k) {
   case 'squelette': case 'archer': squelette(ctx, a, pas, k === 'archer', m); break;
@@ -2226,6 +2514,11 @@ function dessinerMob(ctx, m, A) {
   case 'loup': loup(ctx, a, pas, m); break;
   case 'soldat': case 'champion': case 'arbaletrier': soldat(ctx, a, pas, m, k === 'champion', k === 'arbaletrier'); break;
   case 'wyverne': wyverne(ctx, a, t, m); break;
+  case 'gobelin': gobelin(ctx, a, t, m); break;
+  case 'rat': rat(ctx, a, t, m); break;
+  case 'golem': golem(ctx, a, pas, m); break;
+  case 'cultiste': cultiste(ctx, a, pas, m); break;
+  case 'reine': ctx.scale(2.6, 2.6); araignee(ctx, a, t * .7, m); ctx.fillStyle = '#c9a227'; ctx.beginPath(); ctx.moveTo(Math.cos(a) * .1 - .08, -.22); ctx.lineTo(Math.cos(a) * .1 - .04, -.3); ctx.lineTo(Math.cos(a) * .1, -.24); ctx.lineTo(Math.cos(a) * .1 + .04, -.3); ctx.lineTo(Math.cos(a) * .1 + .08, -.22); ctx.fill(); break;
  }
  ctx.restore();
  if (flash) { ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.ellipse(x, y - m.r * 1.1, m.r * .9, m.r * 1.2, 0, 0, 6.28); ctx.fill(); }
@@ -2342,6 +2635,85 @@ function wyverne(ctx, a, t, m) {
  ctx.fillStyle = '#d0553a'; ctx.beginPath(); ctx.ellipse(ca * .62, -.92 + sa * .22, .17, .12, a, 0, 6.28); ctx.fill();
  ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(ca * .66 - sa * .05, -.96 + sa * .2, .03, 0, 6.28); ctx.arc(ca * .66 + sa * .05, -.96 + sa * .2, .03, 0, 6.28); ctx.fill();
  if (m.wind > 0) { const gl = ctx.createRadialGradient(ca * .8, -.9 + sa * .3, 0, ca * .8, -.9 + sa * .3, .25); gl.addColorStop(0, '#fff2c0'); gl.addColorStop(1, 'rgba(255,90,20,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(ca * .8, -.9 + sa * .3, .25, 0, 6.28); ctx.fill(); }
+}
+
+function dessinerAutel(ctx, a, t) {
+ const D = AUTELS[a.k], x = a.x, y = a.y;
+ ombre(ctx, x, y, .4);
+ ctx.fillStyle = '#3a3530'; ctx.beginPath(); ctx.moveTo(x - .36, y); ctx.lineTo(x + .36, y); ctx.lineTo(x + .28, y - .18); ctx.lineTo(x - .28, y - .18); ctx.fill();
+ const gr = ctx.createLinearGradient(x - .2, 0, x + .2, 0); gr.addColorStop(0, '#4a443c'); gr.addColorStop(.5, '#8a8276'); gr.addColorStop(1, '#3a342c');
+ ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(x - .2, y - .18); ctx.lineTo(x - .14, y - 1.3); ctx.lineTo(x, y - 1.45); ctx.lineTo(x + .14, y - 1.3); ctx.lineTo(x + .2, y - .18); ctx.fill();
+ const pulse = a.pris ? .25 : .6 + .4 * Math.sin(t * 3 + x);
+ ctx.globalAlpha = pulse; ctx.fillStyle = D.coul; ctx.beginPath(); ctx.arc(x, y - .85, .09, 0, 6.28); ctx.fill();
+ ctx.strokeStyle = D.coul; ctx.lineWidth = .03; ctx.beginPath(); ctx.moveTo(x, y - .7); ctx.lineTo(x, y - .4); ctx.moveTo(x - .08, y - 1.05); ctx.lineTo(x + .08, y - 1.15); ctx.stroke();
+ if (!a.pris) { const g2 = ctx.createRadialGradient(x, y - .85, 0, x, y - .85, .5); g2.addColorStop(0, D.coul); g2.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = .35 * pulse; ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(x, y - .85, .5, 0, 6.28); ctx.fill(); }
+ ctx.globalAlpha = 1;
+}
+function gobelin(ctx, a, t, m) {
+ const ca = Math.cos(a), pas = Math.sin(t * 16);
+ ctx.fillStyle = '#4a3a20'; ctx.beginPath(); ctx.ellipse(-.07, -.02 + pas * .04, .05, .07, 0, 0, 6.28); ctx.ellipse(.07, -.02 - pas * .04, .05, .07, 0, 0, 6.28); ctx.fill();
+ // sac d'or
+ ctx.fillStyle = '#8a6a3a'; ctx.beginPath(); ctx.arc(-ca * .18, -.42, .2, 0, 6.28); ctx.fill(); ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(-ca * .18, -.56, .07, 0, 6.28); ctx.fill();
+ ctx.fillStyle = '#7a9a3a'; ctx.beginPath(); ctx.ellipse(0, -.25, .13, .14, 0, 0, 6.28); ctx.fill();
+ ctx.beginPath(); ctx.arc(ca * .06, -.46, .11, 0, 6.28); ctx.fill();
+ ctx.beginPath(); ctx.moveTo(ca * .06 - .1, -.5); ctx.lineTo(ca * .06 - .26, -.6); ctx.lineTo(ca * .06 - .06, -.44); ctx.moveTo(ca * .06 + .1, -.5); ctx.lineTo(ca * .06 + .26, -.6); ctx.lineTo(ca * .06 + .06, -.44); ctx.fill();
+ ctx.fillStyle = '#ffe94a'; ctx.fillRect(ca * .06 - .05, -.48, .03, .03); ctx.fillRect(ca * .06 + .02, -.48, .03, .03);
+}
+function dessinerAllie(ctx, C, A) {
+ const x = C.x, y = C.y, a = C.ang, K = C.K;
+ ctx.globalAlpha = C.ko > 0 ? .45 : 1;
+ ombre(ctx, x, y, .3);
+ ctx.strokeStyle = 'rgba(120,220,140,.55)'; ctx.lineWidth = .035; ctx.beginPath(); ctx.ellipse(x, y, .42, .18, 0, 0, 6.28); ctx.stroke();
+ ctx.save(); ctx.translate(x, y); ctx.scale(1.15, 1.15);
+ if (C.ko > 0) { ctx.rotate(1.4); }
+ const pas = Math.sin(C.pas) * .04, ca = Math.cos(a), sa = Math.sin(a);
+ ctx.fillStyle = '#2a2420'; ctx.beginPath(); ctx.ellipse(-.08, -.03 + pas, .06, .09, 0, 0, 6.28); ctx.ellipse(.08, -.03 - pas, .06, .09, 0, 0, 6.28); ctx.fill();
+ const robe = C.k === 'pretresse' ? '#e8dcc0' : C.k === 'arbaletriere' ? '#5a6b3c' : '#9aa3ad';
+ ctx.fillStyle = robe; ctx.beginPath(); ctx.ellipse(0, -.3, .17, .21, 0, 0, 6.28); ctx.fill();
+ const M = A.X.o.couleurs || ['#c8632a', '#f2d7a0']; ctx.fillStyle = M[0]; ctx.fillRect(-.06, -.42, .12, .24);
+ const mx = ca * .2, my = -.32 + sa * .08;
+ ctx.save(); ctx.translate(mx, my); ctx.rotate(a + (C.anim2 > 0 ? -.6 : 0));
+ if (C.k === 'ecuyer') { ctx.fillStyle = '#dde3ea'; ctx.fillRect(0, -.025, .6, .05); }
+ else if (C.k === 'arbaletriere') { ctx.fillStyle = '#6b4a28'; ctx.fillRect(0, -.03, .42, .06); ctx.strokeStyle = '#4a3a28'; ctx.lineWidth = .04; ctx.beginPath(); ctx.moveTo(.32, -.2); ctx.quadraticCurveTo(.42, 0, .32, .2); ctx.stroke(); }
+ else { ctx.strokeStyle = '#c9a227'; ctx.lineWidth = .04; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(.5, 0); ctx.stroke(); ctx.fillStyle = '#fff2b0'; ctx.beginPath(); ctx.arc(.55, 0, .08, 0, 6.28); ctx.fill(); }
+ ctx.restore();
+ ctx.fillStyle = C.k === 'ecuyer' ? '#b8c0c8' : '#d9ab83'; ctx.beginPath(); ctx.arc(ca * .02, -.56, .12, 0, 6.28); ctx.fill();
+ if (C.k === 'pretresse') { ctx.fillStyle = '#f4ecd8'; ctx.beginPath(); ctx.arc(ca * .02, -.58, .14, Math.PI, 0); ctx.fill(); }
+ if (C.k === 'arbaletriere') { ctx.fillStyle = '#7a3a1a'; ctx.beginPath(); ctx.arc(ca * .02, -.6, .13, Math.PI, 0); ctx.fill(); }
+ ctx.restore();
+ if (C.anim2 > 0) C.anim2 -= 1 / 60;
+ // barre de vie
+ ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(x - .35, y - 1.05, .7, .07); ctx.fillStyle = '#5ac85a'; ctx.fillRect(x - .35, y - 1.05, .7 * Math.max(0, C.pv / C.pvmax), .07);
+ ctx.globalAlpha = 1;
+}
+
+function rat(ctx, a, t, m) {
+ const ca = Math.cos(a), dir = ca >= 0 ? 1 : -1; ctx.scale(dir, 1);
+ ctx.strokeStyle = '#b08a80'; ctx.lineWidth = .03; ctx.beginPath(); ctx.moveTo(-.18, -.08); ctx.quadraticCurveTo(-.36, -.02 + Math.sin(t * 12) * .05, -.42, -.12); ctx.stroke();
+ ctx.fillStyle = '#5a4a3e'; ctx.beginPath(); ctx.ellipse(0, -.1, .2, .1, 0, 0, 6.28); ctx.fill();
+ ctx.beginPath(); ctx.ellipse(.2, -.13, .09, .07, -.3, 0, 6.28); ctx.fill();
+ ctx.fillStyle = '#c08a8a'; ctx.beginPath(); ctx.arc(.16, -.2, .035, 0, 6.28); ctx.fill(); ctx.fillStyle = '#ff3030'; ctx.fillRect(.24, -.16, .02, .02);
+}
+function golem(ctx, a, pas, m) {
+ const c = '#8a8478', ca = Math.cos(a), sa = Math.sin(a);
+ ctx.fillStyle = '#4a463e'; ctx.fillRect(-.28, -.18 + pas * .03, .2, .2); ctx.fillRect(.08, -.18 - pas * .03, .2, .2);
+ const gr = ctx.createLinearGradient(-.45, 0, .45, 0); gr.addColorStop(0, '#5e5950'); gr.addColorStop(.5, '#a8a294'); gr.addColorStop(1, '#4e4a42');
+ ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(-.42, -.25); ctx.lineTo(-.36, -.82); ctx.lineTo(.36, -.86); ctx.lineTo(.44, -.25); ctx.closePath(); ctx.fill();
+ ctx.strokeStyle = 'rgba(30,25,20,.6)'; ctx.lineWidth = .025; ctx.beginPath(); ctx.moveTo(-.2, -.8); ctx.lineTo(-.05, -.5); ctx.lineTo(-.25, -.3); ctx.moveTo(.15, -.82); ctx.lineTo(.25, -.45); ctx.stroke();
+ const sw = m.wind > 0 ? -.25 : 0;
+ ctx.fillStyle = c; ctx.fillRect(-.62, -.78 + sw, .2, .5); ctx.fillRect(.42, -.78 + sw, .2, .5);
+ ctx.fillStyle = '#9a9488'; ctx.fillRect(-.16 + ca * .05, -1.05, .32, .24);
+ if (sa > -.3) { ctx.fillStyle = '#7ad0ff'; ctx.fillRect(-.1 + ca * .05, -.97, .06, .04); ctx.fillRect(.04 + ca * .05, -.97, .06, .04); }
+ ctx.fillStyle = 'rgba(122,208,255,.6)'; ctx.beginPath(); ctx.arc(0, -.55, .07, 0, 6.28); ctx.fill();
+}
+function cultiste(ctx, a, pas, m) {
+ const ca = Math.cos(a), sa = Math.sin(a);
+ ctx.fillStyle = '#3a1010'; ctx.beginPath(); ctx.moveTo(-.2, -.55); ctx.lineTo(.2, -.55); ctx.lineTo(.27, 0); ctx.lineTo(-.27, 0); ctx.fill();
+ ctx.fillStyle = '#7a2a2a'; ctx.beginPath(); ctx.ellipse(0, -.4, .15, .14, 0, 0, 6.28); ctx.fill();
+ ctx.fillStyle = '#c9a227'; ctx.fillRect(-.16, -.2, .32, .03);
+ ctx.fillStyle = '#2a0808'; ctx.beginPath(); ctx.moveTo(-.14, -.55); ctx.lineTo(0, -.85); ctx.lineTo(.14, -.55); ctx.fill();
+ if (sa > -.3) { ctx.fillStyle = '#ff6a2a'; ctx.fillRect(-.05 + ca * .02, -.62, .03, .03); ctx.fillRect(.02 + ca * .02, -.62, .03, .03); }
+ const gl = ctx.createRadialGradient(ca * .28, -.38, 0, ca * .28, -.38, .14); gl.addColorStop(0, '#fff2c0'); gl.addColorStop(.4, m.wind > 0 ? '#ff6a1a' : '#a03010'); gl.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(ca * .28, -.38, .14, 0, 6.28); ctx.fill();
 }
 
 </script>
@@ -2551,10 +2923,12 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 1) document.body.clas
 
 /* ---------- sauvegarde ---------- */
 function sauver() {
- if (TEST || !G) return; G.sauveT = Date.now();
+ if (!G) return;
+ if (MODE !== 'donjon') { const ob = verifierObjectif(G); if (ob) { SON('victoire'); toast(`🎯 Objectif accompli !<br><small>${esc(ob.t.replace(/ \(.*\)$/, ''))}</small><br>Récompense : <b>${esc(ob.r)}</b>`, 5000); majBarre(); } majObjectif(); }
+ if (TEST) return; G.sauveT = Date.now();
  try { const s = JSON.stringify(G); localStorage.setItem(CLE, s); NUAGE.sauver(s, { an: G.an, s: G.saison, nom: G.joueur.heros.nom }); } catch (e) { console.warn(e); }
 }
-function restaurer(s) { const g = JSON.parse(s); let mx = 0; const scan = o => { if (o && typeof o === 'object') { if (o.ilvl && o.id > mx) mx = o.id; for (const k in o) scan(o[k]); } }; scan(g); UID_OBJ = mx + 1; return g; }
+function restaurer(s) { const g = completer(JSON.parse(s)); let mx = 0; const scan = o => { if (o && typeof o === 'object') { if (o.ilvl && o.id > mx) mx = o.id; for (const k in o) scan(o[k]); } }; scan(g); UID_OBJ = mx + 1; return g; }
 function lireLocal() { try { const s = localStorage.getItem(CLE); return s ? { s, t: JSON.parse(s).sauveT || 0 } : null; } catch (e) { return null; } }
 
 /* ---------- accueil ---------- */
@@ -2622,7 +2996,7 @@ function redim() {
  if (G) CARTE.ajuster(cvC.width, cvC.height);
 }
 addEventListener('resize', () => { redim(); });
-function entrerRoyaume() { CARTE.V.init = false; montrer('royaume'); majBarre(); panneau(); traiterFile(); }
+function entrerRoyaume() { CARTE.V.init = false; montrer('royaume'); majBarre(); panneau(); majObjectif(); traiterFile(); }
 function majBarre() {
  const J = G.maisons.joueur, rev = revenus(G, 'joueur') - entretien(G, 'joueur');
  $('#barre').innerHTML = `<span class="maison">${blason('joueur', 26)}${esc(J.nom)}</span>
@@ -2666,6 +3040,7 @@ function panneau() {
  }
  if (proche) h += b(`☠ Expédition (niv ${p.dniv})`, 'expedition', o && !p.nettoye && combat, 'or');
  if (!mien && p.o !== 'rebelles') h += b('🤝 Diplomatie', 'diplo');
+ if (p.capitale && mien && failleOuverte(G)) h += b(`🔥 Faille de Braise (palier ${G.faille.palier})`, 'faille', o && combat, 'rouge');
  h += '</div>';
  if (!combat && proche && !p.nettoye) h += `<div class="info" style="color:#e9a">${G.joueur.regence ? 'Votre héritier est trop jeune pour combattre.' : `Vous êtes blessé(e) : encore ${G.joueur.blesse} saison(s) de repos.`}</div>`;
  el.innerHTML = h;
@@ -2680,6 +3055,7 @@ function actionProv(p, a) {
  else if (a === 'revolte') { confirmer(`Fomenter une révolte à ${p.nom} ? (3 influence, un ordre). Si le complot est découvert, la maison ${G.maisons[p.o].nom} vous en voudra.`, () => { const r = act(G, 'complot', { type: 'revolte', prov: p.id, maison: p.o }); fenetre('Complot', `<p>${r.msg}</p>`, [{ t: 'Continuer', f: fermer }]); apres(); }); }
  else if (a === 'expedition') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition({ type: p.donjon, niveau: p.dniv, etages: 3, nom: `${DONJONS[p.donjon].nom} de ${p.nom}` }, X => { const res = finExpedition(G, p.id, X); resumeExpedition(X, res.lignes); }); }
  else if (a === 'diplo') fenetreMaisons(p.o);
+ else if (a === 'faille') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition(configFaille(G), X => { const res = finExpedition(G, null, X, true); resumeExpedition(X, res.lignes, finFaille(G, X)); }); }
 }
 function apres() { sauver(); panneau(); }
 function fenetreBatir(p) {
@@ -2761,7 +3137,7 @@ function afficherBataille(b, avant, ok) {
    if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); zoomer(z0 * d / dist0 / CARTE.V.z, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); glisse = true; return; }
    if (Math.hypot(p[0] - dep[0], p[1] - dep[1]) > 8 * (cvC.q || 1)) glisse = true;
    if (glisse) { CARTE.V.x += p[0] - avant[0]; CARTE.V.y += p[1] - avant[1]; borner(); }
-  } else { const [mx, my] = CARTE.versCarte(p[0], p[1]); const q = CARTE.provinceA(G, mx, my); UI.survol = q && q.id; }
+  } else { const [mx, my] = CARTE.versCarte(p[0], p[1]); const q = CARTE.provinceA(G, mx, my); UI.survol = q && q.id; infoProv(q, e.offsetX, e.offsetY); }
  });
  const fin = e => { const avait = pts.has(e.pointerId); pts.delete(e.pointerId); if (avait && !glisse && pts.size === 0 && e.type === 'pointerup') clicCarte(pos(e)); };
  cvC.addEventListener('pointerup', fin); cvC.addEventListener('pointercancel', fin);
@@ -2787,6 +3163,7 @@ $('#finSaison').onclick = () => {
  finSaison(G); UI.sel = UI.sel; UI.fleches = UI.fleches.filter(f => (f.t -= 1) > 0);
  for (const e of G.evts) if (e.id === 'attaque_subie') { const q = prov(G, e.prov); const src = voisinsDe(e.prov).map(id => prov(G, id)).find(x => x.o === e.maison) || q; UI.fleches.push({ de: src.id, vers: e.prov, coul: G.maisons[e.maison].c1, t: 2 }); }
  toast(`${SAISONS[G.saison]} de l’an ${G.an} · ${G.maisons.joueur.or - avant.or >= 0 ? '+' : ''}${G.maisons.joueur.or - avant.or} or`);
+ afficherNouvelles();
  sauver(); panneau(); traiterFile();
 };
 function traiterFile() {
@@ -2795,7 +3172,7 @@ function traiterFile() {
  if (G.fin) return verifierFin();
  const e = G.evts[0]; if (!e) { sauver(); return; }
  const o = ouvrirEvt(G, e);
- const icones = { intro: '🏰', mort_roi: '👑', couronnement: '👑', naissance: '👶', declaration: '⚔️', offre_paix: '🕊️', offre_alliance: '🤝', attaque_subie: '🔥', retour_mal: '☠', tournoi: '🏇', bandits: '🗡️', duel: '⚔️', crypte_decouverte: '⚰️', dragon: '🐉', marchand: '💰', famine: '🌾', peste: '☣', prophete: '🔥', espion: '🕵️', vassal_rebelle: '😠', mariage_offre: '💍', enfant_malade: '🤒', mine_or: '⛏️', comete: '☄️', deserteurs: '🛡️', heretique: '🔮', chevalier_errant: '🐎', grande_foire: '🎪', trahison_alliee: '✉️', relique: '✝', recrue_heros: '🤺', corbeaux: '🐦‍⬛', inondation: '🌊', heritier_fugue: '🐎', tresor_royal: '💎', loups: '🐺' };
+ const icones = { intro: '🏰', mort_roi: '👑', couronnement: '👑', naissance: '👶', declaration: '⚔️', offre_paix: '🕊️', offre_alliance: '🤝', attaque_subie: '🔥', retour_mal: '☠', tournoi: '🏇', bandits: '🗡️', duel: '⚔️', crypte_decouverte: '⚰️', dragon: '🐉', marchand: '💰', famine: '🌾', peste: '☣', prophete: '🔥', espion: '🕵️', vassal_rebelle: '😠', mariage_offre: '💍', enfant_malade: '🤒', mine_or: '⛏️', comete: '☄️', deserteurs: '🛡️', heretique: '🔮', chevalier_errant: '🐎', grande_foire: '🎪', trahison_alliee: '✉️', relique: '✝', recrue_heros: '🤺', corbeaux: '🐦‍⬛', inondation: '🌊', heritier_fugue: '🐎', tresor_royal: '💎', loups: '🐺', pelerins: '🚶', banquier: '🏦', statue: '🗿', raid_champion: '🪖', ecole: '📚', oracle: '👁️', faille_gronde: '🔥', cache_compagnon: '🍺' };
  SON('page');
  fenetre(o.titre, `<div class="illus" style="background:radial-gradient(circle at 50% 60%,#5a3a1a,#1a100a);display:flex;align-items:center;justify-content:center;font-size:62px">${icones[e.id] || '📜'}</div><p>${o.texte}</p>`, o.choix.map(c => ({ t: c.t, ok: c.ok, f: () => {
   const r = choisirEvt(G, e, c.i);
@@ -2812,7 +3189,7 @@ function traiterFile() {
 function fenetreSuccession() {
  const S = G.succession, e = S.heritier;
  fenetre('Le souverain est mort', `<p>${esc(S.ancien.nom)} n’est plus. ${esc(e.nom)}, ${e.age} ans, hérite du siège d’${esc(G.maisons.joueur.nom)}${e.age < 16 ? ' (sous régence jusqu’à ses seize ans)' : ''}.</p><p>L’armurerie familiale lui revient. Quelle voie suivra ${e.sexe === 'f' ? 'la nouvelle dame' : 'le nouveau seigneur'} ?</p>`,
-  Object.keys(CLASSES).map(c => ({ t: `${CLASSES[c].nom} — ${CLASSES[c].desc}`, f: () => { succession(G, c); fermer(); sauver(); toast(`Longue vie à ${e.nom} !`); traiterFile(); } })), true);
+  Object.keys(CLASSES).sort((a, b) => (b === e.classe) - (a === e.classe)).map(c => ({ t: `${CLASSES[c].nom}${c === e.classe ? ` — <b>formé·e, niveau ${Math.max(1, e.formation || 0)}</b>` : ` — ${CLASSES[c].desc}`}`, cls: c === e.classe ? 'or' : '', f: () => { succession(G, c); fermer(); sauver(); toast(`Longue vie à ${e.nom} !`); traiterFile(); } })), true);
 }
 function verifierFin() {
  if (!G.fin) return;
@@ -2840,10 +3217,11 @@ $('#bDyn').onclick = () => {
  const av = s => s === 'f' ? '👸' : '🤴';
  let html = `<div class="arbre"><div class="perso"><span class="av">${av(h.sexe)}</span><div><b style="color:var(--or2);font-size:18px">${esc(h.nom)}</b> d’${esc(G.maisons.joueur.nom)}<br>${C.nom}, niveau ${h.niveau} · ${Jo.age} ans · génération ${Jo.generation}${Jo.blesse ? ' · <span style="color:#e99">blessé(e)</span>' : ''}${Jo.regence ? ' · <span style="color:#e99">régence</span>' : ''}</div></div>`;
  html += Jo.conjoint ? `<div class="perso"><span class="av">💍</span><div>Époux·se : <b>${esc(Jo.conjoint.nom)}</b> ${esc(G.maisons[Jo.conjoint.maison].nom)}, ${Jo.conjoint.age} ans</div></div>` : `<div class="perso"><span class="av">💍</span><div>Pas encore marié(e). Une union scelle une alliance et donne des héritiers : passez par 🤝 Maisons → Mariage.</div></div>`;
- html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Enfants</h4>` + (Jo.enfants.length ? Jo.enfants.slice().sort((a, b) => b.age - a.age).map((e, i) => `<div class="perso"><span class="av">${e.age < 12 ? '👶' : av(e.sexe)}</span><div><b>${esc(e.nom)}</b>, ${e.age} ans${i === 0 ? ' — <i>héritier·e</i>' : ''}</div></div>`).join('') : '<p style="color:#a98">Aucun enfant. Sans héritier, la mort du souverain signerait la fin de la maison.</p>');
+ html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Enfants</h4>` + (Jo.enfants.length ? Jo.enfants.slice().sort((a, b) => b.age - a.age).map((e, i) => `<div class="perso"><span class="av">${e.age < 12 ? '👶' : av(e.sexe)}</span><div style="flex:1"><b>${esc(e.nom)}</b>, ${e.age} ans${i === 0 ? ' — <i>héritier·e</i>' : ''}<br>${e.classe ? `<small>Formé·e comme ${CLASSES[e.classe].nom.toLowerCase()} : niveau ${e.formation || 0}${(e.formation || 0) >= 10 ? ' (formation achevée)' : ' (+1 par an, 8 or par saison)'}</small>` : e.age >= 6 ? `<small>Choisir un maître d’armes :</small> ${Object.keys(CLASSES).map(c => `<button class="btn petit" data-edu="${esc(e.nom)}" data-c="${c}">${CLASSES[c].nom}</button>`).join(' ')}` : '<small>Trop jeune pour être formé·e (6 ans)</small>'}</div></div>`).join('') : '<p style="color:#a98">Aucun enfant. Sans héritier, la mort du souverain signerait la fin de la maison.</p>');
  if (Jo.lignee.length) html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Les ancêtres</h4>` + Jo.lignee.map(l => `<div class="perso"><span class="av">🕯️</span><div>${esc(l.nom)} (${CLASSES[l.classe].nom}, niveau ${l.niveau}) — mort(e) en ${l.fin} à ${l.age} ans, ${esc(l.cause)}</div></div>`).join('');
  html += '</div>';
  fenetre('La dynastie', html, [{ t: 'Fermer', f: fermer }]);
+ $('#fen').querySelectorAll('[data-edu]').forEach(b => b.onclick = () => { const e = G.joueur.enfants.find(x => x.nom === b.dataset.edu); e.classe = b.dataset.c; e.formation = 0; SON('clic'); toast(`${e.nom} sera ${CLASSES[e.classe].nom.toLowerCase()}. Chaque année de formation lui donnera un niveau.`); sauver(); majBarre(); $('#bDyn').onclick(); });
 };
 $('#bMais').onclick = () => fenetreMaisons();
 function fenetreMaisons(focus) {
@@ -2884,10 +3262,11 @@ function sacCourant() { return MODE === 'donjon' && XP ? XP.butin : G.joueur.inv
 function armurerie(onglet) {
  ARM.onglet = onglet || ARM.onglet;
  const h = G.joueur.heros, enDonjon = MODE === 'donjon';
- const tabs = `<div class="choix" style="margin-bottom:10px">${[['equip', '🛡️ Équipement'], ['comp', `✦ Compétences${h.points ? ' (' + h.points + ')' : ''}`], ...(enDonjon ? [] : [['forge', '🔥 Forge']])].map(([k, t]) => `<button data-o="${k}" class="${ARM.onglet === k ? 'sel' : ''}">${t}</button>`).join('')}</div>`;
+ const tabs = `<div class="choix" style="margin-bottom:10px">${[['equip', '🛡️ Équipement'], ['comp', `✦ Compétences${h.points ? ' (' + h.points + ')' : ''}`], ...(enDonjon ? [] : [['compagnon', '🤝 Compagnon'], ['forge', '🔥 Forge']])].map(([k, t]) => `<button data-o="${k}" class="${ARM.onglet === k ? 'sel' : ''}">${t}</button>`).join('')}</div>`;
  let html = tabs;
  if (ARM.onglet === 'equip') html += ongletEquip(h, enDonjon);
  else if (ARM.onglet === 'comp') html += ongletComp(h);
+ else if (ARM.onglet === 'compagnon') html += ongletCompagnon(h);
  else html += ongletForge(h);
  fenetre(enDonjon ? 'Votre sac' : 'L’armurerie', html, [], false, true);
  $('#fen').querySelectorAll('[data-o]').forEach(b => b.onclick = () => { ARM.sel = null; armurerie(b.dataset.o); });
@@ -2928,12 +3307,16 @@ function brancherArm(h, enDonjon) {
  });
  if ($('#aVendreTout')) $('#aVendreTout').onclick = () => { let s = 0; for (const o of sac.slice()) if (o.rar === 'normal' || o.rar === 'magique') { s += Math.round(o.prix / 3); sac.splice(sac.indexOf(o), 1); } G.maisons.joueur.or += s; SON('or'); toast(`+${s} or`); majBarre(); sauver(); armurerie('equip'); };
  f.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const id = b.dataset.up; if (h.points <= 0) return; h.comp[id] = (h.comp[id] || 0) + 1; h.points--; SON('niveau'); sauver(); armurerie('comp'); });
+ f.querySelectorAll('[data-tal]').forEach(b => b.onclick = () => { const id = b.dataset.tal; if (h.points <= 0) return; h.talents[id] = (h.talents[id] || 0) + 1; h.points--; SON('niveau'); if (A) { const k = A.p.pv / A.p.S.pvmax; A.p.S = statsHeros(h, G.joueur.generation); A.p.pv = A.p.S.pvmax * k; } sauver(); armurerie('comp'); });
+ f.querySelectorAll('[data-comp]').forEach(b => b.onclick = () => { const k = b.dataset.comp, K = COMPAGNONS[k]; if (G.maisons.joueur.or < K.prix) return toast('Pas assez d’or'); G.maisons.joueur.or -= K.prix; const noms = { ecuyer: ['Bertrand', 'Galeran', 'Odon'], arbaletriere: ['Isaure', 'Mahaut', 'Flore'], pretresse: ['Sœur Alix', 'Sœur Blanche', 'Sœur Oriane'] }[k]; G.joueur.compagnon = { type: k, nom: pick(noms) }; SON('victoire'); toast(`${G.joueur.compagnon.nom} vous jure fidélité.`); majBarre(); sauver(); armurerie('compagnon'); });
+ if ($('#cRenvoi')) $('#cRenvoi').onclick = () => { G.joueur.compagnon = null; sauver(); majBarre(); armurerie('compagnon'); };
  f.querySelectorAll('[data-forge]').forEach(b => b.onclick = () => { const k = b.dataset.forge, cout = prixForge(h); if (G.maisons.joueur.or < cout) return toast('Pas assez d’or'); G.maisons.joueur.or -= cout; const o = genObjet(h.niveau + 1, h.classe, { empl: k === 'hasard' ? null : k, min: 'magique', bonus: k === 'hasard' ? .12 : .05 }); G.joueur.inventaire.push(o); SON(o.rar === 'legendaire' ? 'legendaire' : 'objet_rare'); majBarre(); sauver(); ARM.sel = o.id; armurerie('equip'); setTimeout(() => { const c = $(`.case[data-id="${o.id}"]`); if (c) c.click(); }, 30); });
 }
 const SEUILS_COMP = [1, 2, 4, 6];
 function ongletComp(h) {
- const C = CLASSES[h.classe];
- return `<p>Points à répartir : <b style="color:var(--or2)">${h.points}</b> <small style="color:#a98">(un par niveau)</small></p><div class="comps">${C.comp.map((c, i) => { const r = h.comp[c.id] || 0, ok = h.points > 0 && h.niveau >= SEUILS_COMP[i] && r < 10; return `<div class="compl"><div class="ic">${c.ic}</div><div class="tx"><b>${c.nom}</b> — rang ${r}${r ? ` (+${Math.round((r - 1) * 22)} % de puissance)` : ''} · touche ${i + 1}${i === 0 ? ' ou clic droit' : ''}<br>${c.desc}<br><small style="color:#8ab8ff">${c.cout} mana · recharge ${c.cd} s</small>${h.niveau < SEUILS_COMP[i] ? `<br><small style="color:#e99">Disponible au niveau ${SEUILS_COMP[i]}</small>` : ''}</div><button class="btn petit ${ok ? 'or' : ''}" data-up="${c.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>`;
+ const C = CLASSES[h.classe], T = TALENTS[h.classe];
+ const talents = `<h4 style="margin:14px 0 6px;color:var(--or2);font-weight:400">Talents ${h.niveau < 3 ? '<small style="color:#e99">(à partir du niveau 3)</small>' : ''}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px">${T.map(t => { const r = h.talents[t.id] || 0, ok = h.points > 0 && h.niveau >= 3 && r < 3; return `<div class="compl"><div class="ic" style="font-size:20px">${t.ic}</div><div class="tx"><b>${t.nom}</b> ${'●'.repeat(r)}${'○'.repeat(3 - r)}<br><small>${r ? t.txt(r) : t.txt(1) + ' par rang'}</small></div><button class="btn petit ${ok ? 'or' : ''}" data-tal="${t.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>`;
+ return talents.replace(/^/, '') && `<p>Points à répartir : <b style="color:var(--or2)">${h.points}</b> <small style="color:#a98">(un par niveau)</small></p><div class="comps">${C.comp.map((c, i) => { const r = h.comp[c.id] || 0, ok = h.points > 0 && h.niveau >= SEUILS_COMP[i] && r < 10; return `<div class="compl"><div class="ic">${c.ic}</div><div class="tx"><b>${c.nom}</b> — rang ${r}${r ? ` (+${Math.round((r - 1) * 22)} % de puissance)` : ''} · touche ${i + 1}${i === 0 ? ' ou clic droit' : ''}<br>${c.desc}<br><small style="color:#8ab8ff">${c.cout} mana · recharge ${c.cd} s</small>${h.niveau < SEUILS_COMP[i] ? `<br><small style="color:#e99">Disponible au niveau ${SEUILS_COMP[i]}</small>` : ''}</div><button class="btn petit ${ok ? 'or' : ''}" data-up="${c.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>` + talents;
 }
 const prixForge = h => 40 + 16 * h.niveau;
 function ongletForge(h) {
@@ -2945,7 +3328,8 @@ function ongletForge(h) {
 let surFin = null, entree = { haut: 0, bas: 0, gauche: 0, droite: 0, clic: false, shift: false, mx: 0, my: 0, sx: 0, sy: 0, comp: [0, 0, 0, 0], potion: false, action: false };
 function lancerExpedition(cfg, fin) {
  const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
- XP = creerExpedition({ type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, heros: h, generation: G.joueur.generation, arene: cfg.arene, boss: cfg.boss, nomLieu: cfg.nom, couleurs: [G.maisons.joueur.c1, G.maisons.joueur.c2], inventaire: G.joueur.inventaire, dif: G.options.difficulte });
+ XP = creerExpedition({ type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, heros: h, generation: G.joueur.generation, arene: cfg.arene, boss: cfg.boss, nomLieu: cfg.nom, couleurs: [G.maisons.joueur.c1, G.maisons.joueur.c2], inventaire: G.joueur.inventaire, dif: G.options.difficulte, compagnon: G.joueur.compagnon, chanceOr: G.chanceOr });
+ G.chanceOr = false;
  surFin = fin; fermer(); montrer('donjon'); nouvelEtage();
 }
 function nouvelEtage() {
@@ -3041,11 +3425,16 @@ function hud(dt) {
  const P = A.p, S = P.S, h = G.joueur.heros, C = CLASSES[h.classe];
  $('#hVie').style.height = clamp(P.pv / S.pvmax * 100, 0, 100) + '%'; $('#hVieT').textContent = Math.ceil(P.pv);
  $('#hMana').style.height = clamp(P.mana / S.manamax * 100, 0, 100) + '%'; $('#hManaT').textContent = Math.floor(P.mana);
- $('#hXp').style.width = clamp(h.xp / xpPour(h.niveau) * 100, 0, 100) + '%';
+ $('#hXp').style.width = clamp(h.xp / xpPour(h.niveau) * 100, 0, 100) + '%'; $('#hNiv').textContent = `${h.nom} · niveau ${h.niveau}${h.points ? ` · ${h.points} point${h.points > 1 ? 's' : ''} à dépenser (K)` : ''}`;
  $('#hComp').querySelectorAll('[data-c]').forEach((e, i) => { const c = C.comp[i], cd = P.cds[c.id] || 0; e.querySelector('.cd').style.height = cd > 0 ? (cd / (c.cd * (1 - S.recup / 100)) * 100) + '%' : '0'; e.classList.toggle('verr', !h.comp[c.id]); e.style.borderColor = h.comp[c.id] && P.mana < c.cout ? '#3a4a8a' : ''; });
  $('#hComp').querySelector('.pot .n').textContent = P.potions;
  const b = A.boss; const bb = $('#hBoss');
  if (b && !b.mort && b.etat === 'chasse') { bb.classList.add('on'); bb.querySelector('.nm').textContent = b.M.nom + (b.phase === 2 ? ' — fureur' : ''); bb.querySelector('i').style.width = clamp(b.pv / b.pvmax * 100, 0, 100) + '%'; } else bb.classList.remove('on');
+ const bo = Object.entries(P.bonus).filter(([k, v]) => v > 0).map(([k, v]) => `<span style="border-color:${AUTELS[k].coul}">${{ fureur: '🔥', celerite: '💨', protection: '🛡️', fortune: '🪙', savoir: '📖' }[k]} ${Math.ceil(v)}</span>`);
+ if (P.buff > 0) bo.push(`<span style="border-color:#ff6a3a">📯 ${Math.ceil(P.buff)}</span>`);
+ if (A.allie) bo.push(`<span style="border-color:#5ac85a">${COMPAGNONS[A.allie.k].ic} ${A.allie.ko > 0 ? 'à terre' : Math.round(A.allie.pv / A.allie.pvmax * 100) + ' %'}</span>`);
+ $('#hBonus').innerHTML = bo.join('');
+ infobulleSol();
  const m = $('#hMsg'); m.textContent = A.msg || ''; m.style.opacity = A.msgT > 0 ? 1 : 0;
  $('#hAction').classList.toggle('on', !!A.surEscalier);
  miniT -= .08; if (miniT <= 0) { miniT = .3; minicarte(); }
@@ -3100,6 +3489,46 @@ async function banc() {
 try { RENDU.haute = localStorage.getItem('tdb-qualite') === '1'; } catch (e) { }
 initAccueil();
 window.JEU = { get G() { return G; }, get A() { return A; }, get XP() { return XP; }, UI, lancerExpedition, entrerRoyaume, act, finSaison, montrer };
+
+/* ---------- objectif courant, nouvelles ---------- */
+function majObjectif() {
+ let el = $('#objectif'); if (!el) { el = document.createElement('div'); el.id = 'objectif'; $('#royaume').appendChild(el); el.onclick = () => el.classList.toggle('replie'); }
+ const o = G && objectifActuel(G);
+ el.style.display = o && MODE === 'royaume' ? '' : 'none';
+ if (o) el.innerHTML = `<b>🎯 Objectif ${G.objectifs.n + 1}/${OBJECTIFS.length}</b><span>${esc(o.t)}</span>`;
+}
+function afficherNouvelles() {
+ const N = G.nouvelles || []; if (!N.length) return;
+ for (const n of N) UI.fleches.push({ de: n.de, vers: n.vers, coul: G.maisons[n.m].c1, t: 1.5 });
+ const prises = N.filter(n => n.gagne).map(n => `${esc(G.maisons[n.m].nom)} prend ${esc(prov(G, n.vers).nom)}${n.avant === 'joueur' ? ' <b style="color:#f88">(à vous)</b>' : ''}`);
+ let el = $('#nouvelles'); if (!el) { el = document.createElement('div'); el.id = 'nouvelles'; $('#royaume').appendChild(el); }
+ el.innerHTML = `<b>📯 Nouvelles du royaume</b><br>${N.length} bataille${N.length > 1 ? 's' : ''} cette saison.${prises.length ? '<br>' + prises.join('<br>') : ''}`;
+ el.style.opacity = 1; clearTimeout(el._h); el._h = setTimeout(() => el.style.opacity = 0, 9000);
+}
+
+function ongletCompagnon(h) {
+ const c = G.joueur.compagnon, J = G.maisons.joueur;
+ if (c) { const K = COMPAGNONS[c.type]; return `<div class="perso"><span class="av">${K.ic}</span><div><b style="color:var(--or2);font-size:18px">${esc(c.nom)}</b>, ${K.nom.toLowerCase()} de la maison<br>${K.desc}<br><small>Niveau ${h.niveau} (suit le vôtre) · ${Math.round(K.pv + K.pvn * (h.niveau - 1))} vie · solde 6 or par saison</small></div></div><p style="font-size:13.5px;color:#bba">Votre compagnon vous suit dans les donjons et les combats. S’il tombe, il se relève au bout de quelques secondes.</p><button class="btn petit" id="cRenvoi">Le renvoyer</button>`; }
+ return `<p>Un compagnon d’armes vous accompagne dans les donjons, combat à vos côtés et détourne les coups. Solde : 6 or par saison. Vous avez ${nf(J.or)} or.</p><div style="display:grid;gap:8px">${Object.entries(COMPAGNONS).map(([k, K]) => `<div class="compl"><div class="ic">${K.ic}</div><div class="tx"><b>${K.nom}</b><br>${K.desc}</div><button class="btn petit ${J.or >= K.prix ? 'or' : ''}" data-comp="${k}" ${J.or >= K.prix ? '' : 'disabled'}>Engager ${K.prix} 🪙</button></div>`).join('')}</div>`;
+}
+
+function infobulleSol() {
+ const tip = $('#hTip'); if (!A || document.body.classList.contains('tact')) { tip.style.display = 'none'; return; }
+ const q = cvJ.q || 1, mx = (entree.sx * q - A.ox) / A.TS, my = (entree.sy * q - A.oy) / A.TS;
+ let l = null, bd = .7; for (const o of A.loot) if (o.obj) { const d = Math.hypot(o.x - mx, o.y - my); if (d < bd) { bd = d; l = o; } }
+ if (!l) { tip.style.display = 'none'; return; }
+ const h = G.joueur.heros, o = l.obj, R0 = RARETES.find(r => r.id === o.rar), act = h.equip[o.empl], sc = scoreObjet(o, h.classe), sa = scoreObjet(act, h.classe);
+ tip.innerHTML = `<b style="color:${R0.coul}">${esc(o.nom)}</b><br><small>${R0.nom} · ${o.base} · niv. ${o.ilvl}</small><br>${lignesObjet(o).join('<br>')}<br>${sc < 0 ? '<span class="pire">Inutilisable pour votre classe</span>' : act ? `<span class="${sc >= sa ? 'mieux' : 'pire'}">${sc >= sa ? '▲ meilleur' : '▼ moins bon'} que ${esc(act.nom)}</span>` : '<span class="mieux">Emplacement libre</span>'}`;
+ tip.style.display = 'block'; tip.style.left = Math.min(innerWidth - 270, entree.sx + 18) + 'px'; tip.style.top = Math.max(8, entree.sy - 40) + 'px';
+}
+
+function infoProv(p, x, y) {
+ let el = $('#infoProv'); if (!el) { el = document.createElement('div'); el.id = 'infoProv'; $('#royaume').appendChild(el); cvC.addEventListener('pointerleave', () => el.style.display = 'none'); }
+ if (!p || document.body.classList.contains('tact')) { el.style.display = 'none'; return; }
+ const M = G.maisons[p.o];
+ el.innerHTML = `<b style="color:${p.o === 'joueur' ? '#f2d7a0' : '#e8d6a8'}">${esc(p.nom)}</b> — ${esc(M.nom)} ${p.o !== 'joueur' ? etatMaison(p.o) : ''}<br>⚔️ ${p.t} troupes · 🏰 ${p.c ? 'château ' + p.c : 'sans château'}<br>☠ ${DONJONS[p.donjon].nom} ${p.nettoye ? '(purgé)' : 'niv. ' + p.dniv}`;
+ el.style.display = 'block'; el.style.left = Math.min(innerWidth - 250, x + 16) + 'px'; el.style.top = (y + 16) + 'px';
+}
 
 </script>
 <script type="module">

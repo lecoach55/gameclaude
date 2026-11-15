@@ -16,10 +16,12 @@ if ('ontouchstart' in window || navigator.maxTouchPoints > 1) document.body.clas
 
 /* ---------- sauvegarde ---------- */
 function sauver() {
- if (TEST || !G) return; G.sauveT = Date.now();
+ if (!G) return;
+ if (MODE !== 'donjon') { const ob = verifierObjectif(G); if (ob) { SON('victoire'); toast(`🎯 Objectif accompli !<br><small>${esc(ob.t.replace(/ \(.*\)$/, ''))}</small><br>Récompense : <b>${esc(ob.r)}</b>`, 5000); majBarre(); } majObjectif(); }
+ if (TEST) return; G.sauveT = Date.now();
  try { const s = JSON.stringify(G); localStorage.setItem(CLE, s); NUAGE.sauver(s, { an: G.an, s: G.saison, nom: G.joueur.heros.nom }); } catch (e) { console.warn(e); }
 }
-function restaurer(s) { const g = JSON.parse(s); let mx = 0; const scan = o => { if (o && typeof o === 'object') { if (o.ilvl && o.id > mx) mx = o.id; for (const k in o) scan(o[k]); } }; scan(g); UID_OBJ = mx + 1; return g; }
+function restaurer(s) { const g = completer(JSON.parse(s)); let mx = 0; const scan = o => { if (o && typeof o === 'object') { if (o.ilvl && o.id > mx) mx = o.id; for (const k in o) scan(o[k]); } }; scan(g); UID_OBJ = mx + 1; return g; }
 function lireLocal() { try { const s = localStorage.getItem(CLE); return s ? { s, t: JSON.parse(s).sauveT || 0 } : null; } catch (e) { return null; } }
 
 /* ---------- accueil ---------- */
@@ -87,7 +89,7 @@ function redim() {
  if (G) CARTE.ajuster(cvC.width, cvC.height);
 }
 addEventListener('resize', () => { redim(); });
-function entrerRoyaume() { CARTE.V.init = false; montrer('royaume'); majBarre(); panneau(); traiterFile(); }
+function entrerRoyaume() { CARTE.V.init = false; montrer('royaume'); majBarre(); panneau(); majObjectif(); traiterFile(); }
 function majBarre() {
  const J = G.maisons.joueur, rev = revenus(G, 'joueur') - entretien(G, 'joueur');
  $('#barre').innerHTML = `<span class="maison">${blason('joueur', 26)}${esc(J.nom)}</span>
@@ -131,6 +133,7 @@ function panneau() {
  }
  if (proche) h += b(`☠ Expédition (niv ${p.dniv})`, 'expedition', o && !p.nettoye && combat, 'or');
  if (!mien && p.o !== 'rebelles') h += b('🤝 Diplomatie', 'diplo');
+ if (p.capitale && mien && failleOuverte(G)) h += b(`🔥 Faille de Braise (palier ${G.faille.palier})`, 'faille', o && combat, 'rouge');
  h += '</div>';
  if (!combat && proche && !p.nettoye) h += `<div class="info" style="color:#e9a">${G.joueur.regence ? 'Votre héritier est trop jeune pour combattre.' : `Vous êtes blessé(e) : encore ${G.joueur.blesse} saison(s) de repos.`}</div>`;
  el.innerHTML = h;
@@ -145,6 +148,7 @@ function actionProv(p, a) {
  else if (a === 'revolte') { confirmer(`Fomenter une révolte à ${p.nom} ? (3 influence, un ordre). Si le complot est découvert, la maison ${G.maisons[p.o].nom} vous en voudra.`, () => { const r = act(G, 'complot', { type: 'revolte', prov: p.id, maison: p.o }); fenetre('Complot', `<p>${r.msg}</p>`, [{ t: 'Continuer', f: fermer }]); apres(); }); }
  else if (a === 'expedition') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition({ type: p.donjon, niveau: p.dniv, etages: 3, nom: `${DONJONS[p.donjon].nom} de ${p.nom}` }, X => { const res = finExpedition(G, p.id, X); resumeExpedition(X, res.lignes); }); }
  else if (a === 'diplo') fenetreMaisons(p.o);
+ else if (a === 'faille') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition(configFaille(G), X => { const res = finExpedition(G, null, X, true); resumeExpedition(X, res.lignes, finFaille(G, X)); }); }
 }
 function apres() { sauver(); panneau(); }
 function fenetreBatir(p) {
@@ -226,7 +230,7 @@ function afficherBataille(b, avant, ok) {
    if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); zoomer(z0 * d / dist0 / CARTE.V.z, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); glisse = true; return; }
    if (Math.hypot(p[0] - dep[0], p[1] - dep[1]) > 8 * (cvC.q || 1)) glisse = true;
    if (glisse) { CARTE.V.x += p[0] - avant[0]; CARTE.V.y += p[1] - avant[1]; borner(); }
-  } else { const [mx, my] = CARTE.versCarte(p[0], p[1]); const q = CARTE.provinceA(G, mx, my); UI.survol = q && q.id; }
+  } else { const [mx, my] = CARTE.versCarte(p[0], p[1]); const q = CARTE.provinceA(G, mx, my); UI.survol = q && q.id; infoProv(q, e.offsetX, e.offsetY); }
  });
  const fin = e => { const avait = pts.has(e.pointerId); pts.delete(e.pointerId); if (avait && !glisse && pts.size === 0 && e.type === 'pointerup') clicCarte(pos(e)); };
  cvC.addEventListener('pointerup', fin); cvC.addEventListener('pointercancel', fin);
@@ -252,6 +256,7 @@ $('#finSaison').onclick = () => {
  finSaison(G); UI.sel = UI.sel; UI.fleches = UI.fleches.filter(f => (f.t -= 1) > 0);
  for (const e of G.evts) if (e.id === 'attaque_subie') { const q = prov(G, e.prov); const src = voisinsDe(e.prov).map(id => prov(G, id)).find(x => x.o === e.maison) || q; UI.fleches.push({ de: src.id, vers: e.prov, coul: G.maisons[e.maison].c1, t: 2 }); }
  toast(`${SAISONS[G.saison]} de l’an ${G.an} · ${G.maisons.joueur.or - avant.or >= 0 ? '+' : ''}${G.maisons.joueur.or - avant.or} or`);
+ afficherNouvelles();
  sauver(); panneau(); traiterFile();
 };
 function traiterFile() {
@@ -260,7 +265,7 @@ function traiterFile() {
  if (G.fin) return verifierFin();
  const e = G.evts[0]; if (!e) { sauver(); return; }
  const o = ouvrirEvt(G, e);
- const icones = { intro: '🏰', mort_roi: '👑', couronnement: '👑', naissance: '👶', declaration: '⚔️', offre_paix: '🕊️', offre_alliance: '🤝', attaque_subie: '🔥', retour_mal: '☠', tournoi: '🏇', bandits: '🗡️', duel: '⚔️', crypte_decouverte: '⚰️', dragon: '🐉', marchand: '💰', famine: '🌾', peste: '☣', prophete: '🔥', espion: '🕵️', vassal_rebelle: '😠', mariage_offre: '💍', enfant_malade: '🤒', mine_or: '⛏️', comete: '☄️', deserteurs: '🛡️', heretique: '🔮', chevalier_errant: '🐎', grande_foire: '🎪', trahison_alliee: '✉️', relique: '✝', recrue_heros: '🤺', corbeaux: '🐦‍⬛', inondation: '🌊', heritier_fugue: '🐎', tresor_royal: '💎', loups: '🐺' };
+ const icones = { intro: '🏰', mort_roi: '👑', couronnement: '👑', naissance: '👶', declaration: '⚔️', offre_paix: '🕊️', offre_alliance: '🤝', attaque_subie: '🔥', retour_mal: '☠', tournoi: '🏇', bandits: '🗡️', duel: '⚔️', crypte_decouverte: '⚰️', dragon: '🐉', marchand: '💰', famine: '🌾', peste: '☣', prophete: '🔥', espion: '🕵️', vassal_rebelle: '😠', mariage_offre: '💍', enfant_malade: '🤒', mine_or: '⛏️', comete: '☄️', deserteurs: '🛡️', heretique: '🔮', chevalier_errant: '🐎', grande_foire: '🎪', trahison_alliee: '✉️', relique: '✝', recrue_heros: '🤺', corbeaux: '🐦‍⬛', inondation: '🌊', heritier_fugue: '🐎', tresor_royal: '💎', loups: '🐺', pelerins: '🚶', banquier: '🏦', statue: '🗿', raid_champion: '🪖', ecole: '📚', oracle: '👁️', faille_gronde: '🔥', cache_compagnon: '🍺' };
  SON('page');
  fenetre(o.titre, `<div class="illus" style="background:radial-gradient(circle at 50% 60%,#5a3a1a,#1a100a);display:flex;align-items:center;justify-content:center;font-size:62px">${icones[e.id] || '📜'}</div><p>${o.texte}</p>`, o.choix.map(c => ({ t: c.t, ok: c.ok, f: () => {
   const r = choisirEvt(G, e, c.i);
@@ -277,7 +282,7 @@ function traiterFile() {
 function fenetreSuccession() {
  const S = G.succession, e = S.heritier;
  fenetre('Le souverain est mort', `<p>${esc(S.ancien.nom)} n’est plus. ${esc(e.nom)}, ${e.age} ans, hérite du siège d’${esc(G.maisons.joueur.nom)}${e.age < 16 ? ' (sous régence jusqu’à ses seize ans)' : ''}.</p><p>L’armurerie familiale lui revient. Quelle voie suivra ${e.sexe === 'f' ? 'la nouvelle dame' : 'le nouveau seigneur'} ?</p>`,
-  Object.keys(CLASSES).map(c => ({ t: `${CLASSES[c].nom} — ${CLASSES[c].desc}`, f: () => { succession(G, c); fermer(); sauver(); toast(`Longue vie à ${e.nom} !`); traiterFile(); } })), true);
+  Object.keys(CLASSES).sort((a, b) => (b === e.classe) - (a === e.classe)).map(c => ({ t: `${CLASSES[c].nom}${c === e.classe ? ` — <b>formé·e, niveau ${Math.max(1, e.formation || 0)}</b>` : ` — ${CLASSES[c].desc}`}`, cls: c === e.classe ? 'or' : '', f: () => { succession(G, c); fermer(); sauver(); toast(`Longue vie à ${e.nom} !`); traiterFile(); } })), true);
 }
 function verifierFin() {
  if (!G.fin) return;
@@ -305,10 +310,11 @@ $('#bDyn').onclick = () => {
  const av = s => s === 'f' ? '👸' : '🤴';
  let html = `<div class="arbre"><div class="perso"><span class="av">${av(h.sexe)}</span><div><b style="color:var(--or2);font-size:18px">${esc(h.nom)}</b> d’${esc(G.maisons.joueur.nom)}<br>${C.nom}, niveau ${h.niveau} · ${Jo.age} ans · génération ${Jo.generation}${Jo.blesse ? ' · <span style="color:#e99">blessé(e)</span>' : ''}${Jo.regence ? ' · <span style="color:#e99">régence</span>' : ''}</div></div>`;
  html += Jo.conjoint ? `<div class="perso"><span class="av">💍</span><div>Époux·se : <b>${esc(Jo.conjoint.nom)}</b> ${esc(G.maisons[Jo.conjoint.maison].nom)}, ${Jo.conjoint.age} ans</div></div>` : `<div class="perso"><span class="av">💍</span><div>Pas encore marié(e). Une union scelle une alliance et donne des héritiers : passez par 🤝 Maisons → Mariage.</div></div>`;
- html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Enfants</h4>` + (Jo.enfants.length ? Jo.enfants.slice().sort((a, b) => b.age - a.age).map((e, i) => `<div class="perso"><span class="av">${e.age < 12 ? '👶' : av(e.sexe)}</span><div><b>${esc(e.nom)}</b>, ${e.age} ans${i === 0 ? ' — <i>héritier·e</i>' : ''}</div></div>`).join('') : '<p style="color:#a98">Aucun enfant. Sans héritier, la mort du souverain signerait la fin de la maison.</p>');
+ html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Enfants</h4>` + (Jo.enfants.length ? Jo.enfants.slice().sort((a, b) => b.age - a.age).map((e, i) => `<div class="perso"><span class="av">${e.age < 12 ? '👶' : av(e.sexe)}</span><div style="flex:1"><b>${esc(e.nom)}</b>, ${e.age} ans${i === 0 ? ' — <i>héritier·e</i>' : ''}<br>${e.classe ? `<small>Formé·e comme ${CLASSES[e.classe].nom.toLowerCase()} : niveau ${e.formation || 0}${(e.formation || 0) >= 10 ? ' (formation achevée)' : ' (+1 par an, 8 or par saison)'}</small>` : e.age >= 6 ? `<small>Choisir un maître d’armes :</small> ${Object.keys(CLASSES).map(c => `<button class="btn petit" data-edu="${esc(e.nom)}" data-c="${c}">${CLASSES[c].nom}</button>`).join(' ')}` : '<small>Trop jeune pour être formé·e (6 ans)</small>'}</div></div>`).join('') : '<p style="color:#a98">Aucun enfant. Sans héritier, la mort du souverain signerait la fin de la maison.</p>');
  if (Jo.lignee.length) html += `<h4 style="margin-top:8px;color:var(--or2);font-weight:400">Les ancêtres</h4>` + Jo.lignee.map(l => `<div class="perso"><span class="av">🕯️</span><div>${esc(l.nom)} (${CLASSES[l.classe].nom}, niveau ${l.niveau}) — mort(e) en ${l.fin} à ${l.age} ans, ${esc(l.cause)}</div></div>`).join('');
  html += '</div>';
  fenetre('La dynastie', html, [{ t: 'Fermer', f: fermer }]);
+ $('#fen').querySelectorAll('[data-edu]').forEach(b => b.onclick = () => { const e = G.joueur.enfants.find(x => x.nom === b.dataset.edu); e.classe = b.dataset.c; e.formation = 0; SON('clic'); toast(`${e.nom} sera ${CLASSES[e.classe].nom.toLowerCase()}. Chaque année de formation lui donnera un niveau.`); sauver(); majBarre(); $('#bDyn').onclick(); });
 };
 $('#bMais').onclick = () => fenetreMaisons();
 function fenetreMaisons(focus) {
@@ -349,10 +355,11 @@ function sacCourant() { return MODE === 'donjon' && XP ? XP.butin : G.joueur.inv
 function armurerie(onglet) {
  ARM.onglet = onglet || ARM.onglet;
  const h = G.joueur.heros, enDonjon = MODE === 'donjon';
- const tabs = `<div class="choix" style="margin-bottom:10px">${[['equip', '🛡️ Équipement'], ['comp', `✦ Compétences${h.points ? ' (' + h.points + ')' : ''}`], ...(enDonjon ? [] : [['forge', '🔥 Forge']])].map(([k, t]) => `<button data-o="${k}" class="${ARM.onglet === k ? 'sel' : ''}">${t}</button>`).join('')}</div>`;
+ const tabs = `<div class="choix" style="margin-bottom:10px">${[['equip', '🛡️ Équipement'], ['comp', `✦ Compétences${h.points ? ' (' + h.points + ')' : ''}`], ...(enDonjon ? [] : [['compagnon', '🤝 Compagnon'], ['forge', '🔥 Forge']])].map(([k, t]) => `<button data-o="${k}" class="${ARM.onglet === k ? 'sel' : ''}">${t}</button>`).join('')}</div>`;
  let html = tabs;
  if (ARM.onglet === 'equip') html += ongletEquip(h, enDonjon);
  else if (ARM.onglet === 'comp') html += ongletComp(h);
+ else if (ARM.onglet === 'compagnon') html += ongletCompagnon(h);
  else html += ongletForge(h);
  fenetre(enDonjon ? 'Votre sac' : 'L’armurerie', html, [], false, true);
  $('#fen').querySelectorAll('[data-o]').forEach(b => b.onclick = () => { ARM.sel = null; armurerie(b.dataset.o); });
@@ -393,12 +400,16 @@ function brancherArm(h, enDonjon) {
  });
  if ($('#aVendreTout')) $('#aVendreTout').onclick = () => { let s = 0; for (const o of sac.slice()) if (o.rar === 'normal' || o.rar === 'magique') { s += Math.round(o.prix / 3); sac.splice(sac.indexOf(o), 1); } G.maisons.joueur.or += s; SON('or'); toast(`+${s} or`); majBarre(); sauver(); armurerie('equip'); };
  f.querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const id = b.dataset.up; if (h.points <= 0) return; h.comp[id] = (h.comp[id] || 0) + 1; h.points--; SON('niveau'); sauver(); armurerie('comp'); });
+ f.querySelectorAll('[data-tal]').forEach(b => b.onclick = () => { const id = b.dataset.tal; if (h.points <= 0) return; h.talents[id] = (h.talents[id] || 0) + 1; h.points--; SON('niveau'); if (A) { const k = A.p.pv / A.p.S.pvmax; A.p.S = statsHeros(h, G.joueur.generation); A.p.pv = A.p.S.pvmax * k; } sauver(); armurerie('comp'); });
+ f.querySelectorAll('[data-comp]').forEach(b => b.onclick = () => { const k = b.dataset.comp, K = COMPAGNONS[k]; if (G.maisons.joueur.or < K.prix) return toast('Pas assez d’or'); G.maisons.joueur.or -= K.prix; const noms = { ecuyer: ['Bertrand', 'Galeran', 'Odon'], arbaletriere: ['Isaure', 'Mahaut', 'Flore'], pretresse: ['Sœur Alix', 'Sœur Blanche', 'Sœur Oriane'] }[k]; G.joueur.compagnon = { type: k, nom: pick(noms) }; SON('victoire'); toast(`${G.joueur.compagnon.nom} vous jure fidélité.`); majBarre(); sauver(); armurerie('compagnon'); });
+ if ($('#cRenvoi')) $('#cRenvoi').onclick = () => { G.joueur.compagnon = null; sauver(); majBarre(); armurerie('compagnon'); };
  f.querySelectorAll('[data-forge]').forEach(b => b.onclick = () => { const k = b.dataset.forge, cout = prixForge(h); if (G.maisons.joueur.or < cout) return toast('Pas assez d’or'); G.maisons.joueur.or -= cout; const o = genObjet(h.niveau + 1, h.classe, { empl: k === 'hasard' ? null : k, min: 'magique', bonus: k === 'hasard' ? .12 : .05 }); G.joueur.inventaire.push(o); SON(o.rar === 'legendaire' ? 'legendaire' : 'objet_rare'); majBarre(); sauver(); ARM.sel = o.id; armurerie('equip'); setTimeout(() => { const c = $(`.case[data-id="${o.id}"]`); if (c) c.click(); }, 30); });
 }
 const SEUILS_COMP = [1, 2, 4, 6];
 function ongletComp(h) {
- const C = CLASSES[h.classe];
- return `<p>Points à répartir : <b style="color:var(--or2)">${h.points}</b> <small style="color:#a98">(un par niveau)</small></p><div class="comps">${C.comp.map((c, i) => { const r = h.comp[c.id] || 0, ok = h.points > 0 && h.niveau >= SEUILS_COMP[i] && r < 10; return `<div class="compl"><div class="ic">${c.ic}</div><div class="tx"><b>${c.nom}</b> — rang ${r}${r ? ` (+${Math.round((r - 1) * 22)} % de puissance)` : ''} · touche ${i + 1}${i === 0 ? ' ou clic droit' : ''}<br>${c.desc}<br><small style="color:#8ab8ff">${c.cout} mana · recharge ${c.cd} s</small>${h.niveau < SEUILS_COMP[i] ? `<br><small style="color:#e99">Disponible au niveau ${SEUILS_COMP[i]}</small>` : ''}</div><button class="btn petit ${ok ? 'or' : ''}" data-up="${c.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>`;
+ const C = CLASSES[h.classe], T = TALENTS[h.classe];
+ const talents = `<h4 style="margin:14px 0 6px;color:var(--or2);font-weight:400">Talents ${h.niveau < 3 ? '<small style="color:#e99">(à partir du niveau 3)</small>' : ''}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px">${T.map(t => { const r = h.talents[t.id] || 0, ok = h.points > 0 && h.niveau >= 3 && r < 3; return `<div class="compl"><div class="ic" style="font-size:20px">${t.ic}</div><div class="tx"><b>${t.nom}</b> ${'●'.repeat(r)}${'○'.repeat(3 - r)}<br><small>${r ? t.txt(r) : t.txt(1) + ' par rang'}</small></div><button class="btn petit ${ok ? 'or' : ''}" data-tal="${t.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>`;
+ return talents.replace(/^/, '') && `<p>Points à répartir : <b style="color:var(--or2)">${h.points}</b> <small style="color:#a98">(un par niveau)</small></p><div class="comps">${C.comp.map((c, i) => { const r = h.comp[c.id] || 0, ok = h.points > 0 && h.niveau >= SEUILS_COMP[i] && r < 10; return `<div class="compl"><div class="ic">${c.ic}</div><div class="tx"><b>${c.nom}</b> — rang ${r}${r ? ` (+${Math.round((r - 1) * 22)} % de puissance)` : ''} · touche ${i + 1}${i === 0 ? ' ou clic droit' : ''}<br>${c.desc}<br><small style="color:#8ab8ff">${c.cout} mana · recharge ${c.cd} s</small>${h.niveau < SEUILS_COMP[i] ? `<br><small style="color:#e99">Disponible au niveau ${SEUILS_COMP[i]}</small>` : ''}</div><button class="btn petit ${ok ? 'or' : ''}" data-up="${c.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>` + talents;
 }
 const prixForge = h => 40 + 16 * h.niveau;
 function ongletForge(h) {
@@ -410,7 +421,8 @@ function ongletForge(h) {
 let surFin = null, entree = { haut: 0, bas: 0, gauche: 0, droite: 0, clic: false, shift: false, mx: 0, my: 0, sx: 0, sy: 0, comp: [0, 0, 0, 0], potion: false, action: false };
 function lancerExpedition(cfg, fin) {
  const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
- XP = creerExpedition({ type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, heros: h, generation: G.joueur.generation, arene: cfg.arene, boss: cfg.boss, nomLieu: cfg.nom, couleurs: [G.maisons.joueur.c1, G.maisons.joueur.c2], inventaire: G.joueur.inventaire, dif: G.options.difficulte });
+ XP = creerExpedition({ type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, heros: h, generation: G.joueur.generation, arene: cfg.arene, boss: cfg.boss, nomLieu: cfg.nom, couleurs: [G.maisons.joueur.c1, G.maisons.joueur.c2], inventaire: G.joueur.inventaire, dif: G.options.difficulte, compagnon: G.joueur.compagnon, chanceOr: G.chanceOr });
+ G.chanceOr = false;
  surFin = fin; fermer(); montrer('donjon'); nouvelEtage();
 }
 function nouvelEtage() {
@@ -506,11 +518,16 @@ function hud(dt) {
  const P = A.p, S = P.S, h = G.joueur.heros, C = CLASSES[h.classe];
  $('#hVie').style.height = clamp(P.pv / S.pvmax * 100, 0, 100) + '%'; $('#hVieT').textContent = Math.ceil(P.pv);
  $('#hMana').style.height = clamp(P.mana / S.manamax * 100, 0, 100) + '%'; $('#hManaT').textContent = Math.floor(P.mana);
- $('#hXp').style.width = clamp(h.xp / xpPour(h.niveau) * 100, 0, 100) + '%';
+ $('#hXp').style.width = clamp(h.xp / xpPour(h.niveau) * 100, 0, 100) + '%'; $('#hNiv').textContent = `${h.nom} · niveau ${h.niveau}${h.points ? ` · ${h.points} point${h.points > 1 ? 's' : ''} à dépenser (K)` : ''}`;
  $('#hComp').querySelectorAll('[data-c]').forEach((e, i) => { const c = C.comp[i], cd = P.cds[c.id] || 0; e.querySelector('.cd').style.height = cd > 0 ? (cd / (c.cd * (1 - S.recup / 100)) * 100) + '%' : '0'; e.classList.toggle('verr', !h.comp[c.id]); e.style.borderColor = h.comp[c.id] && P.mana < c.cout ? '#3a4a8a' : ''; });
  $('#hComp').querySelector('.pot .n').textContent = P.potions;
  const b = A.boss; const bb = $('#hBoss');
  if (b && !b.mort && b.etat === 'chasse') { bb.classList.add('on'); bb.querySelector('.nm').textContent = b.M.nom + (b.phase === 2 ? ' — fureur' : ''); bb.querySelector('i').style.width = clamp(b.pv / b.pvmax * 100, 0, 100) + '%'; } else bb.classList.remove('on');
+ const bo = Object.entries(P.bonus).filter(([k, v]) => v > 0).map(([k, v]) => `<span style="border-color:${AUTELS[k].coul}">${{ fureur: '🔥', celerite: '💨', protection: '🛡️', fortune: '🪙', savoir: '📖' }[k]} ${Math.ceil(v)}</span>`);
+ if (P.buff > 0) bo.push(`<span style="border-color:#ff6a3a">📯 ${Math.ceil(P.buff)}</span>`);
+ if (A.allie) bo.push(`<span style="border-color:#5ac85a">${COMPAGNONS[A.allie.k].ic} ${A.allie.ko > 0 ? 'à terre' : Math.round(A.allie.pv / A.allie.pvmax * 100) + ' %'}</span>`);
+ $('#hBonus').innerHTML = bo.join('');
+ infobulleSol();
  const m = $('#hMsg'); m.textContent = A.msg || ''; m.style.opacity = A.msgT > 0 ? 1 : 0;
  $('#hAction').classList.toggle('on', !!A.surEscalier);
  miniT -= .08; if (miniT <= 0) { miniT = .3; minicarte(); }
@@ -565,3 +582,43 @@ async function banc() {
 try { RENDU.haute = localStorage.getItem('tdb-qualite') === '1'; } catch (e) { }
 initAccueil();
 window.JEU = { get G() { return G; }, get A() { return A; }, get XP() { return XP; }, UI, lancerExpedition, entrerRoyaume, act, finSaison, montrer };
+
+/* ---------- objectif courant, nouvelles ---------- */
+function majObjectif() {
+ let el = $('#objectif'); if (!el) { el = document.createElement('div'); el.id = 'objectif'; $('#royaume').appendChild(el); el.onclick = () => el.classList.toggle('replie'); }
+ const o = G && objectifActuel(G);
+ el.style.display = o && MODE === 'royaume' ? '' : 'none';
+ if (o) el.innerHTML = `<b>🎯 Objectif ${G.objectifs.n + 1}/${OBJECTIFS.length}</b><span>${esc(o.t)}</span>`;
+}
+function afficherNouvelles() {
+ const N = G.nouvelles || []; if (!N.length) return;
+ for (const n of N) UI.fleches.push({ de: n.de, vers: n.vers, coul: G.maisons[n.m].c1, t: 1.5 });
+ const prises = N.filter(n => n.gagne).map(n => `${esc(G.maisons[n.m].nom)} prend ${esc(prov(G, n.vers).nom)}${n.avant === 'joueur' ? ' <b style="color:#f88">(à vous)</b>' : ''}`);
+ let el = $('#nouvelles'); if (!el) { el = document.createElement('div'); el.id = 'nouvelles'; $('#royaume').appendChild(el); }
+ el.innerHTML = `<b>📯 Nouvelles du royaume</b><br>${N.length} bataille${N.length > 1 ? 's' : ''} cette saison.${prises.length ? '<br>' + prises.join('<br>') : ''}`;
+ el.style.opacity = 1; clearTimeout(el._h); el._h = setTimeout(() => el.style.opacity = 0, 9000);
+}
+
+function ongletCompagnon(h) {
+ const c = G.joueur.compagnon, J = G.maisons.joueur;
+ if (c) { const K = COMPAGNONS[c.type]; return `<div class="perso"><span class="av">${K.ic}</span><div><b style="color:var(--or2);font-size:18px">${esc(c.nom)}</b>, ${K.nom.toLowerCase()} de la maison<br>${K.desc}<br><small>Niveau ${h.niveau} (suit le vôtre) · ${Math.round(K.pv + K.pvn * (h.niveau - 1))} vie · solde 6 or par saison</small></div></div><p style="font-size:13.5px;color:#bba">Votre compagnon vous suit dans les donjons et les combats. S’il tombe, il se relève au bout de quelques secondes.</p><button class="btn petit" id="cRenvoi">Le renvoyer</button>`; }
+ return `<p>Un compagnon d’armes vous accompagne dans les donjons, combat à vos côtés et détourne les coups. Solde : 6 or par saison. Vous avez ${nf(J.or)} or.</p><div style="display:grid;gap:8px">${Object.entries(COMPAGNONS).map(([k, K]) => `<div class="compl"><div class="ic">${K.ic}</div><div class="tx"><b>${K.nom}</b><br>${K.desc}</div><button class="btn petit ${J.or >= K.prix ? 'or' : ''}" data-comp="${k}" ${J.or >= K.prix ? '' : 'disabled'}>Engager ${K.prix} 🪙</button></div>`).join('')}</div>`;
+}
+
+function infobulleSol() {
+ const tip = $('#hTip'); if (!A || document.body.classList.contains('tact')) { tip.style.display = 'none'; return; }
+ const q = cvJ.q || 1, mx = (entree.sx * q - A.ox) / A.TS, my = (entree.sy * q - A.oy) / A.TS;
+ let l = null, bd = .7; for (const o of A.loot) if (o.obj) { const d = Math.hypot(o.x - mx, o.y - my); if (d < bd) { bd = d; l = o; } }
+ if (!l) { tip.style.display = 'none'; return; }
+ const h = G.joueur.heros, o = l.obj, R0 = RARETES.find(r => r.id === o.rar), act = h.equip[o.empl], sc = scoreObjet(o, h.classe), sa = scoreObjet(act, h.classe);
+ tip.innerHTML = `<b style="color:${R0.coul}">${esc(o.nom)}</b><br><small>${R0.nom} · ${o.base} · niv. ${o.ilvl}</small><br>${lignesObjet(o).join('<br>')}<br>${sc < 0 ? '<span class="pire">Inutilisable pour votre classe</span>' : act ? `<span class="${sc >= sa ? 'mieux' : 'pire'}">${sc >= sa ? '▲ meilleur' : '▼ moins bon'} que ${esc(act.nom)}</span>` : '<span class="mieux">Emplacement libre</span>'}`;
+ tip.style.display = 'block'; tip.style.left = Math.min(innerWidth - 270, entree.sx + 18) + 'px'; tip.style.top = Math.max(8, entree.sy - 40) + 'px';
+}
+
+function infoProv(p, x, y) {
+ let el = $('#infoProv'); if (!el) { el = document.createElement('div'); el.id = 'infoProv'; $('#royaume').appendChild(el); cvC.addEventListener('pointerleave', () => el.style.display = 'none'); }
+ if (!p || document.body.classList.contains('tact')) { el.style.display = 'none'; return; }
+ const M = G.maisons[p.o];
+ el.innerHTML = `<b style="color:${p.o === 'joueur' ? '#f2d7a0' : '#e8d6a8'}">${esc(p.nom)}</b> — ${esc(M.nom)} ${p.o !== 'joueur' ? etatMaison(p.o) : ''}<br>⚔️ ${p.t} troupes · 🏰 ${p.c ? 'château ' + p.c : 'sans château'}<br>☠ ${DONJONS[p.donjon].nom} ${p.nettoye ? '(purgé)' : 'niv. ' + p.dniv}`;
+ el.style.display = 'block'; el.style.left = Math.min(innerWidth - 250, x + 16) + 'px'; el.style.top = (y + 16) + 'px';
+}

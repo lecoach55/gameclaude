@@ -40,8 +40,7 @@ function genObjet(ilvl, classe, opts = {}) {
   if (s.max) v = Math.min(v, s.max);
   o.stats[pool[i]] = Math.max(1, Math.round(v));
  }
- o.nom = leg ? leg.nom : rar === 'normal' ? o.base : rar === 'magique' ? `${o.base} ${pick(SUFFIXES)}` : `${o.base} ${pick(PREFIXES).toLowerCase()} ${pick(SUFFIXES)}`;
- if (rar === 'rare') o.nom = o.nom.charAt(0).toUpperCase() + o.nom.slice(1);
+ o.nom = leg ? leg.nom : rar === 'normal' ? o.base : rar === 'magique' ? `${o.base} ${pick(SUFFIXES)}` : `${pick(NOMS_RARES)} ${pick(SUFFIXES)}`;
  o.prix = Math.round((8 + ilvl * 4) * ({ normal: 1, magique: 2.2, rare: 5, legendaire: 14 }[rar]));
  return o;
 }
@@ -66,7 +65,7 @@ function lignesObjet(o) {
 }
 /* ---------- Héros ---------- */
 function nouveauHeros(classe, nom, sexe, niveau = 1) {
- const h = { classe, nom, sexe, niveau, xp: 0, equip: {}, points: niveau - 1, comp: { [CLASSES[classe].comp[0].id]: 1 }, potions: 3 };
+ const h = { classe, nom, sexe, niveau, xp: 0, equip: {}, talents: {}, points: niveau - 1, comp: { [CLASSES[classe].comp[0].id]: 1 }, potions: 3 };
  return h;
 }
 function xpPour(n) { return 600 + 500 * n; }
@@ -83,6 +82,11 @@ function statsHeros(h, generation = 1) {
   if (o.effet) S.effets[o.effet] = true;
  }
  if (S.effets.heritage) S.pdmg += 3 * generation;
+ // talents
+ const T = h.talents || {}, t = k => T[k] || 0;
+ S.arm *= 1 + .08 * t('fer'); S.pvmax *= 1 + .06 * t('vigueur'); S.riposte = .05 * t('riposte'); S.vol += t('sangchaud'); S.pdmg += 6 * (t('maitre') + t('chasseur')) + 7 * t('pyro'); S.res += 5 * t('inebranlable');
+ S.manamax *= 1 + .12 * t('erudition'); S.fluxMana = 1 + .2 * t('flux'); S.crit += 4 * (t('cristal') + t('faucon')); S.bouclierMana = .1 * t('bouclier'); S.recup += 6 * t('concentration');
+ S.vmov += 6 * t('piedleger'); S.critd += 15 * t('barbele'); S.esquive = .05 * t('instinct'); S.regen += 1.2 * t('survie');
  if (S.effets.fantome) S.vmov += 15;
  S.cadence *= 1 + S.vit / 100;
  S.vitesse = 4.3 * (1 + S.vmov / 100);

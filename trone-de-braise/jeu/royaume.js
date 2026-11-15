@@ -33,7 +33,8 @@ function nouvellePartie(opts = {}) {
  const h = nouveauHeros(classe, opts.nom || (sexe === 'f' ? 'Aénor' : 'Émeric'), sexe, 1);
  h.equip.arme = genObjet(1, classe, { empl: 'arme', rarete: 'normal' });
  h.equip.armure = genObjet(1, classe, { empl: 'armure', rarete: 'normal' });
- G.joueur = { heros: h, age: 24, conjoint: null, enfants: [], generation: 1, lignee: [], inventaire: [], blesse: 0, regence: 0 };
+ G.joueur = { heros: h, age: 24, conjoint: null, enfants: [], generation: 1, lignee: [], inventaire: [], blesse: 0, regence: 0, compagnon: null };
+ completer(G);
  noter(G, `${titre(G)} ${h.nom} d’${H.joueur.nom} prend le gouvernement de Val-Sombre. Le vieux roi Aldric règne encore à Haute-Braise.`, 'regne');
  G.evts.push({ id: 'intro' });
  return G;
@@ -51,7 +52,44 @@ function revenus(G, m) {
  if (G.maisons[m].trait === 'marchand') r *= 1.2;
  return Math.round(r);
 }
-function entretien(G, m) { return Math.round(troupesDe(G, m) * .75); }
+function entretien(G, m) { return Math.round(troupesDe(G, m) * .75 + (m === 'joueur' ? (G.joueur.compagnon ? 6 : 0) + G.joueur.enfants.filter(e => e.formation !== undefined && e.formation < 10).length * 8 : 0)); }
+/* ---------- Mise à niveau des anciennes sauvegardes ---------- */
+function completer(G) {
+ const J = G.joueur;
+ if (J.compagnon === undefined) J.compagnon = null;
+ if (!J.heros.talents) J.heros.talents = {};
+ for (const e of J.enfants) if (e.classe === undefined) e.classe = null;
+ if (!G.objectifs) G.objectifs = { n: 0, faits: [] };
+ if (!G.nouvelles) G.nouvelles = [];
+ if (!G.faille) G.faille = { palier: 1, record: 0 };
+ if (!G.stats.bossTues) G.stats.bossTues = 0;
+ if (!G.v || G.v < 2) G.v = 2;
+ return G;
+}
+/* ---------- Objectifs (fil conducteur récompensé) ---------- */
+const OBJECTIFS = [
+ { t: 'Purger un donjon (la crypte de Val-Sombre est la plus facile)', ok: G => G.stats.donjons >= 1, r: G => { G.maisons.joueur.or += 60; return '+60 or'; } },
+ { t: 'Dépenser un point de compétence ou de talent (🛡️ Armurerie → ✦)', ok: G => G.joueur.heros.points === 0 && G.joueur.heros.niveau >= 2, r: G => { G.joueur.heros.potions = Math.max(G.joueur.heros.potions, 5); return 'Ceinture de 5 potions'; } },
+ { t: 'Recruter des troupes dans une de vos provinces', ok: G => troupesDe(G, 'joueur') >= 14, r: G => { G.maisons.joueur.or += 30; return '+30 or'; } },
+ { t: 'Conquérir une province (Les Saulaies ou les Marches Grises sont mal défendues)', ok: G => provincesDe(G, 'joueur').length >= 3, r: G => { G.maisons.joueur.or += 80; G.maisons.joueur.prestige += 5; return '+80 or, +5 prestige'; } },
+ { t: 'Engager un compagnon d’armes (🛡️ Armurerie → Compagnon)', ok: G => !!G.joueur.compagnon, r: G => { G.joueur.inventaire.push(genObjet(G.joueur.heros.niveau + 1, G.joueur.heros.classe, { min: 'rare' })); return 'Un objet rare'; } },
+ { t: 'Vous marier (🤝 Maisons → Mariage) pour assurer la lignée', ok: G => !!G.joueur.conjoint, r: G => { G.maisons.joueur.prestige += 10; return '+10 prestige'; } },
+ { t: 'Bâtir un marché ou une caserne', ok: G => provincesDe(G, 'joueur').some(p => p.bat.marche || p.bat.caserne), r: G => { G.maisons.joueur.or += 50; return '+50 or'; } },
+ { t: 'Atteindre le niveau 6', ok: G => G.joueur.heros.niveau >= 6, r: G => { G.joueur.inventaire.push(genObjet(7, G.joueur.heros.classe, { min: 'rare', empl: 'arme' })); return 'Une arme rare'; } },
+ { t: 'Tenir 5 provinces', ok: G => provincesDe(G, 'joueur').length >= 5, r: G => { G.maisons.joueur.or += 120; return '+120 or'; } },
+ { t: 'Avoir un héritier et lui choisir un maître d’armes (👑 Dynastie)', ok: G => G.joueur.enfants.some(e => e.classe), r: G => { G.maisons.joueur.prestige += 8; return '+8 prestige'; } },
+ { t: 'Vaincre trois maîtres de donjon', ok: G => G.stats.donjons >= 3, r: G => { G.joueur.inventaire.push(genObjet(G.joueur.heros.niveau + 2, G.joueur.heros.classe, { rarete: 'legendaire' })); return 'Un objet légendaire !'; } },
+ { t: 'Tenir 8 provinces', ok: G => provincesDe(G, 'joueur').length >= 8, r: G => { G.maisons.joueur.or += 200; return '+200 or'; } },
+ { t: 'Prendre Haute-Braise et ceindre la couronne (10 provinces)', ok: G => G.couronne, r: G => { G.maisons.joueur.prestige += 20; return 'La Faille de Braise s’ouvre à Haute-Braise…'; } },
+ { t: 'Descendre au palier 5 de la Faille de Braise', ok: G => G.faille.record >= 5, r: G => { G.joueur.inventaire.push(genObjet(G.joueur.heros.niveau + 4, G.joueur.heros.classe, { rarete: 'legendaire' })); return 'Un objet légendaire !'; } },
+];
+function objectifActuel(G) { return OBJECTIFS[G.objectifs.n] || null; }
+// renvoie le texte de récompense si l'objectif courant vient d'être atteint
+function verifierObjectif(G) {
+ const o = objectifActuel(G); if (!o || !o.ok(G)) return null;
+ const r = o.r(G); G.objectifs.faits.push(G.objectifs.n); G.objectifs.n++; noter(G, `Objectif accompli : ${o.t.replace(/ \(.*\)$/, '')}.`, 'exploit');
+ return { t: o.t, r };
+}
 function ordresMax(G) { const e = effetsRoyaume(G.joueur.heros); return 3 + (e.ordre ? 1 : 0) + (G.maisons.joueur.prestige >= 80 ? 1 : 0); }
 function enGuerre(G, a, b) { return a !== b && (G.maisons[a].guerre[b] || G.maisons[b].guerre[a]); }
 function changeRel(G, a, b, v) { if (a === b || !G.maisons[a] || !G.maisons[b]) return; G.maisons[a].rel[b] = clamp(G.maisons[a].rel[b] + v, -100, 100); G.maisons[b].rel[a] = clamp(G.maisons[b].rel[a] + v, -100, 100); }
@@ -269,7 +307,7 @@ function mortDuSouverain(G, cause) {
 }
 function succession(G, classe) {
  const S = G.succession, Jo = G.joueur, e = S.heritier, ancien = S.ancien;
- const niv = Math.max(1, Math.floor(ancien.niveau / 2));
+ const niv = Math.max(1, Math.floor(ancien.niveau / 2), e.classe === classe ? e.formation || 0 : Math.floor((e.formation || 0) / 2));
  const h = nouveauHeros(classe, e.nom, e.sexe, niv);
  h.xp = 0; h.potions = 3;
  // l'armurerie de la maison passe à l'héritier
@@ -296,6 +334,7 @@ function finSaison(G) {
  const rev = revenus(G, 'joueur'), ent = entretien(G, 'joueur');
  J.or += rev - ent; J.influence += 1 + provincesDe(G, 'joueur').filter(p => p.bat.temple).length * .5 + (effetsRoyaume(G.joueur.heros).intrigue ? 2 : 0);
  J.influence = Math.round(J.influence * 2) / 2;
+ if (G.dette) { J.or -= G.dette.m; if (--G.dette.s <= 0) { G.dette = null; noter(G, 'La dette envers le banquier de Port-Ambre est soldée.', 'info'); } }
  if (J.or < 0) { const q = provincesDe(G, 'joueur').sort((a, b) => b.t - a.t)[0]; if (q) { const k = Math.ceil(q.t * .2); q.t -= k; noter(G, `Faute de solde, ${k} soldats désertent à ${q.nom}.`, 'alerte'); } J.or = 0; }
  // provinces
  for (const p of G.provinces) {
@@ -316,6 +355,7 @@ function finSaison(G) {
  if (G.saison === 3) {
   Jo.age++; if (Jo.conjoint) Jo.conjoint.age++; for (const e of Jo.enfants) e.age++;
   if (Jo.regence > 0) Jo.regence--;
+  for (const e of Jo.enfants) if (e.classe && e.age >= 6 && (e.formation || 0) < 10) e.formation = (e.formation || 0) + 1;
   for (const id of IA_MAISONS) { const M = G.maisons[id]; if (M.elim) continue; M.chef.age++; if (M.heritier) M.heritier.age++; if (M.chef.age > 55 && chance((M.chef.age - 55) * .02)) { if (M.chef.roi) G.evts.push({ id: 'mort_roi' }); else if (chance(.5)) noter(G, `${M.chef.nom} de la maison ${M.nom} est mort(e) de vieillesse.`, 'info'); successionIA(G, id); } }
  }
  if (Jo.conjoint && Jo.age < 50 && Jo.conjoint.age < 46 && Jo.enfants.length < 6 && chance(.14)) {
@@ -347,6 +387,7 @@ function verifierVictoire(G) {
 
 /* ---------- IA des maisons ---------- */
 function tourIA(G) {
+ G.nouvelles = [];
  const ordre = shuffle(IA_MAISONS.slice());
  const dif = { facile: 1, normale: 1.35, difficile: 1.7 }[G.options.difficulte] || 1.35;
  for (const m of ordre) {
@@ -390,6 +431,7 @@ function tourIA(G) {
     const hostile = enGuerre(G, m, q.o) || q.o === 'rebelles';
     if (!hostile) continue;
     if (q.o === 'joueur' && G.tour < 4) continue; // répit de début de partie
+    if (q.o === 'rebelles' && G.tour < 8 && voisinsDe(q.id).some(id => prov(G, id).o === 'joueur')) continue; // laisser au joueur le temps de s'étendre
     const ratio = (p.t - 1) / (q.t + q.c * 1.5 + 1);
     if (ratio > 1.5) cibles.push({ p, q, ratio: ratio + (q.capitale ? .6 : 0) + (q.o === 'joueur' ? .2 : 0) });
    }
@@ -400,6 +442,7 @@ function tourIA(G) {
    att++;
    const avant = c.q.o;
    const r = attaquer(G, c.p.id, c.q.id, { n: c.p.t - 1 - (menace(c.p) > c.p.t ? 2 : 0), prudent: true });
+   G.nouvelles.push({ de: c.p.id, vers: c.q.id, m, avant, gagne: r.gagne });
    if (avant === 'joueur') G.evts.push({ id: 'attaque_subie', maison: m, prov: c.q.id, gagne: r.gagne, pa: r.pertesA, pd: r.pertesD });
   }
  }
@@ -434,4 +477,18 @@ function botRoyaume(G) {
  }
  // vendre le surplus
  for (const o of G.joueur.inventaire.splice(0)) J.or += Math.round(o.prix / 3);
+}
+
+/* ---------- La Faille de Braise (fin de partie : paliers sans fin) ---------- */
+function failleOuverte(G) { return G.couronne || provincesDe(G, 'joueur').some(p => p.capitale) || G.joueur.heros.niveau >= 15; }
+function configFaille(G) { const n = G.faille.palier; return { type: ['catacombes', 'antre', 'glace', 'mine', 'marais', 'crypte'][n % 6], niveau: 7 + n * 1.7, etages: 3, nom: `Faille de Braise — palier ${n}`, boss: ['liche', 'wyverne', 'ogre'][n % 3] }; }
+function finFaille(G, X) {
+ const F = G.faille, n = F.palier;
+ if (X.resultat !== 'victoire') return `La Faille vous recrache au palier ${n}.`;
+ F.record = Math.max(F.record, n); F.palier++;
+ const or = 60 * n; G.maisons.joueur.or += or; G.maisons.joueur.prestige += 3 + n;
+ let t = `Palier ${n} vaincu ! +${or} or, +${3 + n} prestige.`;
+ if (chance(.35 + n * .03)) { const o = genObjet(G.joueur.heros.niveau + 2, G.joueur.heros.classe, { rarete: 'legendaire' }); G.joueur.inventaire.push(o); t += ` La Faille vous offre ${o.nom} !`; }
+ noter(G, `${G.joueur.heros.nom} a vaincu le palier ${n} de la Faille de Braise.`, 'exploit');
+ return t;
 }

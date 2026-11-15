@@ -8,9 +8,13 @@ Artefact publié : slug `ad95fb12-6952-4fbd-8b8b-ff66978db6c6` (capacités db + 
 Construire : `python3 jeu/build.py` → `build/trone-de-braise.html`, à publier en `index.html` (publish_files).
 Graine fixe : `index.html?graine=7`. Sauvegarde locale `tdb-v1` (ne pas changer la clé) + document en ligne `partie` (ne jamais le modifier).
 
+## Version 2 (15/11/2026, soir)
+Objectifs récompensés (14, `OBJECTIFS` dans royaume.js), talents passifs (6 par classe, 3 rangs), compagnons (écuyer, arbalétrière, prêtresse ; solde 6 or/saison), autels (5 bonus), gobelin voleur, cadavres persistants, nouveaux monstres (rat, golem, cultiste) et boss Reine des Toiles, infobulle des objets au sol, éducation des héritiers (+1 niveau/an, 8 or/saison), Faille de Braise (paliers sans fin à la capitale), nouvelles de la saison avec flèches de toutes les batailles, 8 nouveaux événements, prêt bancaire. L'IA ne prend plus les terres libres voisines du joueur avant la saison 8.
+Anciennes sauvegardes : `completer(G)` ajoute les champs manquants (format v2).
+
 ## Outils (`outils/`)
-- `sim_donjon.js classe nivHeros nivDonjon N [depart|magique]` : expéditions jouées par le robot. Repères 15/11/2026 : départ niveau 1 → 33 à 83 % de réussite selon la classe ; équipement magique au même niveau → 60 à 100 %.
-- `sim_royaume.js N saisons` : parties complètes du royaume. Repère : robot naïf couronné dans ~57 % des parties en ~54 saisons, ~10 % de défaites.
+- `sim_donjon.js classe nivHeros nivDonjon N [depart|magique] [compagnon]` : expéditions jouées par le robot. Avec un compagnon au départ : ~60 à 85 % de réussite. Repères 15/11/2026 : départ niveau 1 → 33 à 83 % de réussite selon la classe ; équipement magique au même niveau → 60 à 100 %.
+- `sim_royaume.js N saisons` : parties complètes du royaume. Repère v2 : robot naïf couronné dans ~45 à 67 % des parties en ~43 saisons, ~5 % de défaites.
 - `fumee.py dossier` : parcours complet avec captures. `parcours.py` : non-régression (événement-combat, charge du champion, mort réelle + succession, reprise de sauvegarde, 10 saisons).
 - `perf.py sortie.json [ralenti_cpu]` : banc reproductible (carte, combat, boss). Référence : `mesures/perf_base.json`.
 

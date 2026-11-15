@@ -253,6 +253,62 @@ const EVTS = {
    { t: 'Offrir une prime par tête (−25 or)', f: (G, e) => { G.maisons.joueur.or -= 25; pv(G, e.prov).loy += 5; return 'Les paysans s’en chargent.'; } },
   ],
   apres: (G, e, X) => X.resultat === 'victoire' ? (pv(G, e.prov).loy += 12, `Les meutes sont décimées. ${gainPrest(G, 3)}.`) : 'Les loups continuent leurs ravages.' },
+ pelerins: { titre: 'Les pèlerins de l’Aube', poids: 2,
+  texte: G => 'Une longue file de pèlerins traverse vos terres en route vers Sainte-Aube. Ils demandent le gîte et la protection de vos routes.',
+  choix: G => [
+   { t: 'Les accueillir (+loyauté, relation avec Solenne)', f: G => { for (const p of mesProv(G)) p.loy += 6; changeRel(G, 'joueur', 'solenne', 10); return 'Ils bénissent votre nom tout au long du chemin.'; } },
+   { t: 'Leur faire payer un droit de passage (+45 or)', f: G => { changeRel(G, 'joueur', 'solenne', -6); return gainOr(G, 45); } },
+  ] },
+ banquier: { titre: 'Le banquier de Port-Ambre', poids: 2, cond: G => !G.dette,
+  texte: G => 'Un banquier aux bagues d’ambre vous propose un prêt : 150 pièces d’or tout de suite, contre 16 pièces par saison pendant douze saisons.',
+  choix: G => [
+   { t: 'Accepter le prêt (+150 or, −16 or par saison)', f: G => { G.dette = { s: 12, m: 16 }; return gainOr(G, 150); } },
+   { t: 'Refuser', f: G => 'Il remballe ses registres avec un sourire poli.' },
+  ] },
+ statue: { titre: 'Une statue pour la postérité', poids: 2, cond: G => G.maisons.joueur.or >= 80,
+  texte: G => `Les maîtres maçons proposent d’ériger sur la grand-place une statue de ${heros(G).nom}, l’épée levée.`,
+  choix: G => [
+   { t: 'Commander la statue (−80 or, +12 prestige)', f: G => { G.maisons.joueur.or -= 80; return gainPrest(G, 12); } },
+   { t: 'Préférer une fontaine pour le peuple (−50 or, +loyauté)', f: G => { G.maisons.joueur.or -= 50; for (const p of mesProv(G)) p.loy += 10; return 'Le peuple boit à votre santé.'; } },
+   { t: 'Refuser ces vanités', f: G => '' },
+  ] },
+ raid_champion: { titre: 'Le pillard au heaume noir', poids: 2, cond: G => peutCombattre(G) && mesProv(G).length > 1,
+  ctx: G => ({ prov: uneProv(G).id, maison: maisonVoisine(G) }),
+  texte: (G, e) => `Un champion au heaume noir, à la solde de la maison ${mN(G, e.maison)}, ravage les villages de ${pv(G, e.prov).nom} avec sa bande.`,
+  choix: (G, e) => [
+   { t: 'L’affronter vous-même (combat)', f: (G, e) => ({ msg: '', combat: { arene: { n: 5, maison: e.maison }, niveau: Math.max(1, heros(G).niveau + .5), nom: 'Le pillard au heaume noir' } }) },
+   { t: 'Lancer la garnison à ses trousses (−3 troupes)', f: (G, e) => { const p = pv(G, e.prov); p.t = Math.max(1, p.t - 3); return 'Le pillard est chassé, au prix de quelques braves.'; } },
+   { t: 'Laisser brûler les villages', f: (G, e) => { const p = pv(G, e.prov); p.loy -= 15; p.p = Math.max(1, p.p - 1); return 'Prospérité −1, le peuple vous en veut.'; } },
+  ],
+  apres: (G, e, X) => X.resultat === 'victoire' ? (changeRel(G, 'joueur', e.maison, -8), `Le heaume noir orne désormais votre grand-salle. ${gainPrest(G, 8)}.`) : (pv(G, e.prov).loy -= 10, 'Le pillard s’échappe en riant.') },
+ ecole: { titre: 'Les clercs de Lisière', poids: 2,
+  texte: G => 'Des clercs savants demandent votre patronage pour fonder une école de scribes et de diplomates.',
+  choix: G => [
+   { t: 'Financer l’école (−60 or, +4 influence)', cond: G => G.maisons.joueur.or >= 60, f: G => { G.maisons.joueur.or -= 60; return gainInf(G, 4); } },
+   { t: 'Y envoyer vos enfants (+1 an de formation pour chacun)', cond: G => G.joueur.enfants.some(e => e.classe), f: G => { for (const e of G.joueur.enfants) if (e.classe) e.formation = Math.min(10, (e.formation || 0) + 1); return 'Vos héritiers progressent.'; } },
+   { t: 'Refuser', f: G => '' },
+  ] },
+ oracle: { titre: 'L’oracle aveugle', poids: 1,
+  texte: G => 'Une vieille femme aux yeux blancs s’assied devant votre trône. « Je vois les profondeurs. Je vois aussi votre sang. Que veux-tu savoir ? »',
+  choix: G => [
+   { t: '« Montre-moi les faiblesses des monstres » (+1 point de compétence)', f: G => { heros(G).points++; return 'Vous gagnez un point de compétence.'; } },
+   { t: '« Montre-moi le chemin des trésors » (+30 % d’or trouvé pour une expédition)', f: G => { G.chanceOr = true; return 'Votre prochaine expédition sera plus lucrative.'; } },
+   { t: '« Dis-moi l’avenir de ma lignée » (+6 prestige)', f: G => `« Ta lignée régnera… si elle survit à l’hiver. » ${gainPrest(G, 6)}.` },
+  ] },
+ faille_gronde: { titre: 'La Faille gronde', poids: 2, cond: G => failleOuverte(G) && peutCombattre(G),
+  texte: G => `Sous Haute-Braise, la Faille s’agite. Des créatures montent des profondeurs jusqu’aux caves du palais. Le palier ${G.faille.palier} vous appelle.`,
+  choix: G => [
+   { t: 'Descendre immédiatement (Faille, sans dépenser d’ordre)', f: G => ({ msg: '', combat: configFaille(G), faille: true }) },
+   { t: 'Murer les caves (+loyauté à la capitale)', f: G => { const p = mesProv(G).find(q => q.capitale); if (p) p.loy += 10; return 'Les caves sont scellées, pour l’instant.'; } },
+  ],
+  apres: (G, e, X) => finFaille(G, X) },
+ cache_compagnon: { titre: 'Une rumeur de taverne', poids: 2, cond: G => G.joueur.compagnon && peutCombattre(G),
+  texte: G => `${G.joueur.compagnon.nom} revient de la taverne, l’œil brillant : un contrebandier ivre aurait parlé d’une cache sous un vieux moulin.`,
+  choix: G => [
+   { t: 'Y aller ensemble (donjon d’un étage, trésor)', f: G => ({ msg: '', combat: { type: pick(['egouts', 'mine', 'crypte']), niveau: Math.max(1, heros(G).niveau), etages: 1, nom: 'La cache du contrebandier' } }) },
+   { t: 'Ce ne sont que des racontars', f: G => '' },
+  ],
+  apres: (G, e, X) => X.resultat === 'victoire' ? `La cache regorgeait d’or. ${gainOr(G, 90)}.` : 'Rien que des rats et des coups.' },
 };
 
 function tirerEvenements(G) {

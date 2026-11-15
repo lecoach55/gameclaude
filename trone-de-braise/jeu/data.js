@@ -55,13 +55,13 @@ const LIENS_MER = [['portambre', 'brisemer'], ['marchesgrises', 'tourbieres']];
 
 const DONJONS = {
  crypte:     { nom: 'Crypte', sol: ['#4a4440', '#3d3733'], mur: '#1d1a19', face: '#2c2724', lum: '#ffb35c', mobs: ['squelette', 'archer', 'goule', 'spectre'], boss: 'liche' },
- catacombes: { nom: 'Catacombes', sol: ['#47423c', '#3a352f'], mur: '#1a1716', face: '#2a2521', lum: '#ffa94a', mobs: ['squelette', 'archer', 'chaman', 'brute', 'spectre'], boss: 'liche' },
- mine:       { nom: 'Mine abandonnée', sol: ['#4b3d31', '#3e3228'], mur: '#1c1610', face: '#2d2219', lum: '#ffc070', mobs: ['goule', 'brute', 'araignee', 'chaman'], boss: 'ogre' },
- foret:      { nom: 'Bois maudit', sol: ['#33402c', '#2b3626'], mur: '#0f150c', face: '#1a2414', lum: '#d7ff9a', mobs: ['araignee', 'goule', 'loup', 'chaman'], boss: 'ogre' },
+ catacombes: { nom: 'Catacombes', sol: ['#47423c', '#3a352f'], mur: '#1a1716', face: '#2a2521', lum: '#ffa94a', mobs: ['squelette', 'archer', 'cultiste', 'brute', 'spectre'], boss: 'liche' },
+ mine:       { nom: 'Mine abandonnée', sol: ['#4b3d31', '#3e3228'], mur: '#1c1610', face: '#2d2219', lum: '#ffc070', mobs: ['goule', 'brute', 'araignee', 'golem', 'chaman'], boss: 'ogre' },
+ foret:      { nom: 'Bois maudit', sol: ['#33402c', '#2b3626'], mur: '#0f150c', face: '#1a2414', lum: '#d7ff9a', mobs: ['araignee', 'goule', 'loup', 'chaman'], boss: 'reine' },
  marais:     { nom: 'Marais noyé', sol: ['#323b34', '#2a322c'], mur: '#0e1410', face: '#18211b', lum: '#9fffd0', mobs: ['goule', 'araignee', 'spectre', 'chaman'], boss: 'liche' },
- glace:      { nom: 'Faille gelée', sol: ['#4c5864', '#414c57'], mur: '#141b22', face: '#26323d', lum: '#bfe4ff', mobs: ['squelette', 'loup', 'brute', 'spectre'], boss: 'wyverne' },
- egouts:     { nom: 'Égouts anciens', sol: ['#3b3e3a', '#323531'], mur: '#121412', face: '#1f221f', lum: '#ffd27a', mobs: ['araignee', 'goule', 'archer', 'brute'], boss: 'ogre' },
- antre:      { nom: 'Antre du dragon', sol: ['#4a2f24', '#3d271e'], mur: '#1a0d08', face: '#2e170e', lum: '#ff7a3a', mobs: ['brute', 'chaman', 'spectre', 'archer'], boss: 'wyverne' },
+ glace:      { nom: 'Faille gelée', sol: ['#4c5864', '#414c57'], mur: '#141b22', face: '#26323d', lum: '#bfe4ff', mobs: ['squelette', 'loup', 'golem', 'spectre'], boss: 'wyverne' },
+ egouts:     { nom: 'Égouts anciens', sol: ['#3b3e3a', '#323531'], mur: '#121412', face: '#1f221f', lum: '#ffd27a', mobs: ['rat', 'goule', 'cultiste', 'brute'], boss: 'reine' },
+ antre:      { nom: 'Antre du dragon', sol: ['#4a2f24', '#3d271e'], mur: '#1a0d08', face: '#2e170e', lum: '#ff7a3a', mobs: ['brute', 'cultiste', 'golem', 'archer'], boss: 'wyverne' },
  arene:      { nom: 'Champ de bataille', sol: ['#4a4733', '#3f3c2b'], mur: '#1b1a10', face: '#2b2a1b', lum: '#ffd890', mobs: ['soldat', 'soldat', 'arbaletrier'], boss: 'champion' },
 };
 
@@ -78,7 +78,11 @@ const MONSTRES = {
  loup:      { nom: 'Loup gris', pv: 30, dg: 5.2, vit: 4.4, portee: 1.0, cad: 1.0, xp: 14, type: 'cac', r: .36, coul: '#8c8f96', groupe: 1 },
  arbaletrier: { nom: 'Arbalétrier', pv: 30, dg: 5.5, vit: 2.4, portee: 7, cad: 2.1, xp: 14, type: 'tir', r: .33, coul: '#a0a6ad', proj: 'fleche' },
  soldat:    { nom: 'Soldat', pv: 40, dg: 6, vit: 2.6, portee: 1.1, cad: 1.2, xp: 14, type: 'cac', r: .34, coul: '#a0a6ad' },
+ rat:       { nom: 'Rat des cloaques', pv: 12, dg: 2.5, vit: 4.6, portee: .8, cad: .7, xp: 5, type: 'cac', r: .24, coul: '#6a5a4a', groupe: 3 },
+ golem:     { nom: 'Golem de pierre', pv: 150, dg: 13, vit: 1.4, portee: 1.5, cad: 2.4, xp: 42, type: 'cac', r: .58, coul: '#8a8478', frappe: true },
+ cultiste:  { nom: 'Cultiste des cendres', pv: 34, dg: 5, vit: 2.2, portee: 6, cad: 2.6, xp: 22, type: 'tir', r: .33, coul: '#7a2a2a', proj: 'feu', rafale: 3 },
  // boss
+ reine:     { nom: 'Reine des Toiles', pv: 600, dg: 13, vit: 2.4, portee: 5, cad: 1.5, xp: 330, type: 'boss', r: .75, coul: '#3c3436', boss: true },
  liche:     { nom: 'Roi-Liche', pv: 520, dg: 12, vit: 1.9, portee: 7, cad: 1.6, xp: 300, type: 'boss', r: .62, coul: '#b6f0ff', boss: true },
  ogre:      { nom: 'Seigneur Ogre', pv: 680, dg: 18, vit: 2.1, portee: 1.7, cad: 1.8, xp: 320, type: 'boss', r: .8, coul: '#7d8c4f', boss: true },
  wyverne:   { nom: 'Wyverne de Cendre', pv: 640, dg: 15, vit: 2.6, portee: 6, cad: 1.4, xp: 360, type: 'boss', r: .78, coul: '#c2462a', boss: true },
@@ -169,6 +173,7 @@ const RARETES = [
  { id: 'legendaire', nom: 'Légendaire', coul: '#ff8a2a', n: 4 },
 ];
 const PREFIXES = ['Sanglant', 'Ancien', 'Brisé', 'Royal', 'Maudit', 'Noble', 'Cruel', 'Sombre', 'Ardent', 'Glacé', 'Fidèle', 'Funeste'];
+const NOMS_RARES = ['Murmure', 'Fléau', 'Serment', 'Ombre', 'Chant', 'Rempart', 'Morsure', 'Veille', 'Écho', 'Cendre', 'Croc', 'Larme', 'Colère', 'Souffle', 'Garde', 'Présage'];
 const SUFFIXES = ['du Corbeau', 'de l’Aube', 'des Marches', 'du Puits', 'de la Veuve', 'du Loup', 'des Cendres', 'du Serment', 'de l’Exil', 'des Rois', 'de la Brume', 'du Pendu'];
 // légendaires : effets uniques en donjon ET dans le royaume
 const LEGENDAIRES = [
@@ -196,3 +201,43 @@ const PRENOMS_F = ['Aénor', 'Béatrix', 'Clémence', 'Douce', 'Ermengarde', 'Fl
 const SURNOMS = ['le Hardi', 'la Juste', 'le Sombre', 'l’Ancien', 'le Bâtisseur', 'la Rouge', 'le Pieux', 'le Cruel', 'l’Exilé', 'la Sage', 'le Jeune', 'le Loup', 'la Brave', 'le Patient'];
 
 if (typeof module !== 'undefined') module.exports = { R, rnd, ri, pick, chance, clamp, shuffle, seeded, SAISONS, MAISONS, IA_MAISONS, PROVINCES, LIENS_MER, DONJONS, MONSTRES, AFFIXES_ELITE, CLASSES, EMPLACEMENTS, NOMS_EMPL, ARMES, BASES, ICONES, STATS, STATS_EMPL, RARETES, PREFIXES, SUFFIXES, LEGENDAIRES, PRENOMS_H, PRENOMS_F, SURNOMS };
+
+/* ---------- Talents (passifs, 3 rangs, à partir du niveau 3) ---------- */
+const TALENTS = {
+ chevalier: [
+  { id: 'fer', nom: 'Peau de fer', ic: '🛡️', txt: r => `+${8 * r} % d’armure` },
+  { id: 'vigueur', nom: 'Vigueur', ic: '❤️', txt: r => `+${6 * r} % de vie` },
+  { id: 'riposte', nom: 'Riposte', ic: '💫', txt: r => `${5 * r} % de chances d’étourdir à chaque coup` },
+  { id: 'sangchaud', nom: 'Sang chaud', ic: '🩸', txt: r => `+${r} % de vol de vie` },
+  { id: 'maitre', nom: 'Maître d’armes', ic: '⚔️', txt: r => `+${6 * r} % de dégâts` },
+  { id: 'inebranlable', nom: 'Inébranlable', ic: '🗿', txt: r => `−${5 * r} % de dégâts subis` } ],
+ arcaniste: [
+  { id: 'erudition', nom: 'Érudition', ic: '📘', txt: r => `+${12 * r} % de mana` },
+  { id: 'flux', nom: 'Flux arcanique', ic: '🌊', txt: r => `+${20 * r} % de régénération de mana` },
+  { id: 'pyro', nom: 'Pyromancie', ic: '🔥', txt: r => `+${7 * r} % de dégâts` },
+  { id: 'cristal', nom: 'Esprit cristallin', ic: '💎', txt: r => `+${4 * r} % de critique` },
+  { id: 'bouclier', nom: 'Bouclier de mana', ic: '🔮', txt: r => `${10 * r} % des dégâts subis sont pris sur le mana` },
+  { id: 'concentration', nom: 'Concentration', ic: '⏳', txt: r => `−${6 * r} % de temps de recharge` } ],
+ rodeur: [
+  { id: 'faucon', nom: 'Œil de faucon', ic: '🦅', txt: r => `+${4 * r} % de critique` },
+  { id: 'piedleger', nom: 'Pied léger', ic: '🍃', txt: r => `+${6 * r} % de vitesse de déplacement` },
+  { id: 'barbele', nom: 'Flèches barbelées', ic: '🎯', txt: r => `+${15 * r} % de dégâts critiques` },
+  { id: 'instinct', nom: 'Instinct', ic: '🌀', txt: r => `${5 * r} % de chances d’esquiver un coup` },
+  { id: 'chasseur', nom: 'Chasseur', ic: '🏹', txt: r => `+${6 * r} % de dégâts` },
+  { id: 'survie', nom: 'Survie', ic: '🌿', txt: r => `+${1.2 * r} vie par seconde` } ],
+};
+/* ---------- Compagnons ---------- */
+const COMPAGNONS = {
+ ecuyer: { nom: 'Écuyer', desc: 'Combat au corps à corps et attire les coups.', ic: '🛡️', pv: 90, pvn: 20, dg: 6, dgn: 2.3, portee: 1.2, cad: 1.1, type: 'cac', coul: '#8a9097', prix: 120 },
+ arbaletriere: { nom: 'Arbalétrière', desc: 'Tire de loin, fragile mais précise.', ic: '🎯', pv: 60, pvn: 13, dg: 7, dgn: 2.6, portee: 7, cad: 1.6, type: 'tir', coul: '#6a7a4a', prix: 120 },
+ pretresse: { nom: 'Prêtresse', desc: 'Soigne vos blessures et frappe de lumière.', ic: '✨', pv: 70, pvn: 15, dg: 4, dgn: 1.5, portee: 6, cad: 1.8, type: 'soin', coul: '#e8dcc0', prix: 150 },
+};
+/* ---------- Autels (bonus temporaires en donjon) ---------- */
+const AUTELS = {
+ fureur: { nom: 'Autel de fureur', txt: '+50 % de dégâts', coul: '#ff5a3a', d: 25 },
+ celerite: { nom: 'Autel de célérité', txt: '+30 % de vitesse', coul: '#7ad0ff', d: 25 },
+ protection: { nom: 'Autel de protection', txt: '−40 % de dégâts subis', coul: '#ffe08a', d: 25 },
+ fortune: { nom: 'Autel de fortune', txt: 'Pluie d’or, or doublé', coul: '#ffc030', d: 45 },
+ savoir: { nom: 'Autel du savoir', txt: '+50 % d’expérience', coul: '#c9a0ff', d: 60 },
+};
+MONSTRES.gobelin = { nom: 'Gobelin voleur', pv: 160, dg: 0, vit: 3.4, portee: 0, cad: 9, xp: 60, type: 'fuite', r: .34, coul: '#7a9a3a' };

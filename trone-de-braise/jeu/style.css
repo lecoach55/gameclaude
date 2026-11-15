@@ -149,3 +149,17 @@ body.tact #minicarte{width:110px;height:110px}
 .rel{font-size:12.5px;color:#bba}
 .etiq{display:inline-block;font-size:11px;padding:1px 6px;border-radius:9px;margin-left:4px}.etiq.g{background:#6a1a10}.etiq.a{background:#1f5a2a}.etiq.p{background:#3a3a3a}
 @media(max-width:760px){#panneau{left:6px;right:6px;width:auto;top:auto;bottom:66px;max-height:46vh}.bas-g{max-width:none;bottom:auto;top:52px}.barre{font-size:13px;gap:8px}.barre .maison{font-size:15px}}
+
+.bonus{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;gap:5px}
+.bonus span{background:rgba(10,8,6,.8);border:1px solid #6e5430;border-radius:12px;padding:2px 8px;font-size:12.5px;color:#f0e0c0}
+body.tact .bonus{bottom:150px}
+.tip{position:absolute;display:none;width:260px;background:rgba(14,10,7,.95);border:1px solid #6e5430;border-radius:5px;padding:8px 10px;font-size:13px;line-height:1.45;pointer-events:none;z-index:6}
+#objectif{position:absolute;left:10px;top:56px;z-index:4;max-width:min(420px,60vw);background:rgba(20,14,9,.88);border:1px solid #8a6a30;border-radius:6px;padding:7px 11px;font-size:13.5px;line-height:1.35;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.5)}
+#objectif b{display:block;color:var(--or2);font-weight:400;font-size:12.5px;letter-spacing:.03em}
+#objectif.replie span{display:none}
+#nouvelles{position:absolute;left:10px;bottom:62px;z-index:4;max-width:min(360px,70vw);background:rgba(20,14,9,.9);border:1px solid #5a4426;border-radius:6px;padding:8px 12px;font-size:13px;line-height:1.45;transition:opacity .8s;pointer-events:none}
+#nouvelles b{color:var(--or2);font-weight:400}
+@media(max-width:760px){#objectif{top:auto;bottom:118px;max-width:calc(100% - 20px);font-size:12.5px}#nouvelles{bottom:auto;top:96px}}
+.niv{position:absolute;bottom:12px;left:50%;transform:translate(-50%,0);font-size:11px;color:#d8c8a0;text-shadow:0 1px 2px #000;margin-left:-190px}
+body.tact .niv{display:none}
+#infoProv{position:absolute;z-index:6;pointer-events:none;background:rgba(14,10,7,.92);border:1px solid #6e5430;border-radius:5px;padding:6px 10px;font-size:12.5px;line-height:1.4;display:none;max-width:240px}

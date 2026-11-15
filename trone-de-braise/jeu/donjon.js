@@ -71,7 +71,7 @@ function creerEtage(X) {
  // héros
  const h = o.heros, S = statsHeros(h, o.generation || 1);
  const ancien = X.joueur;
- A.p = { x: C.depart.cx + .5, y: C.depart.cy + .5, r: .33, ang: 0, pv: ancien ? Math.min(ancien.pv, S.pvmax) : S.pvmax, mana: ancien ? ancien.mana : S.manamax, S, cdA: 0, cds: {}, buff: 0, dash: null, inv: 0, anim: 0, animT: 0, pas: 0, frappes: 0, slow: 0, hitf: 0, potions: h.potions, potT: 0, vide: 0, mort: false };
+ A.p = { x: C.depart.cx + .5, y: C.depart.cy + .5, r: .33, ang: 0, pv: ancien ? Math.min(ancien.pv, S.pvmax) : S.pvmax, mana: ancien ? ancien.mana : S.manamax, S, cdA: 0, cds: {}, buff: 0, dash: null, inv: 0, anim: 0, animT: 0, pas: 0, frappes: 0, slow: 0, hitf: 0, potions: h.potions, potT: 0, vide: 0, mort: false, bonus: ancien ? ancien.bonus : {} };
  X.joueur = A.p;
  // décor
  for (const s of C.salles) {
@@ -110,6 +110,19 @@ function creerEtage(X) {
   }
   if (estBoss) { const b = mkMob(o.boss || D.boss, C.fin.cx + .5, C.fin.cy + .5, N + .5, true); A.mobs.push(b); A.boss = b; }
   else C.t[C.fin.cy * C.W + C.fin.cx] = ESC;
+ }
+ // autels, gobelin voleur, compagnon
+ A.autels = []; A.cadavres = [];
+ if (!o.arene) {
+  const cand = shuffle(C.salles.filter(s => s !== C.depart && !(estBoss && s === C.fin)));
+  const nA = chance(.55) ? 1 : chance(.5) ? 2 : 0;
+  for (let i = 0; i < nA && i < cand.length; i++) { const s = cand[i], k = pick(Object.keys(AUTELS)); const a = { k, x: s.x + 1.5 + R() * (s.w - 3), y: s.y + 1.5 + R() * (s.h - 3), pris: false }; A.autels.push(a); A.lumieres.push({ x: a.x, y: a.y, r: 2.6, f: i * 2, autel: a }); }
+  if (chance(.3) && cand.length > 2) { const s = cand[cand.length - 1]; const g = mkMob('gobelin', s.cx + .5, s.cy + .5, N); g.fuiteT = 0; A.mobs.push(g); }
+ }
+ if (o.compagnon) {
+  const K = COMPAGNONS[o.compagnon.type], nv = o.heros.niveau, anc = X.allie;
+  A.allie = { k: o.compagnon.type, K, nom: o.compagnon.nom, x: A.p.x - .8, y: A.p.y + .3, r: .32, pvmax: K.pv + K.pvn * (nv - 1), dg: K.dg + K.dgn * (nv - 1), cdA: 0, cdS: 4, ang: 0, anim: 0, pas: 0, hitf: 0, ko: 0, wind: 0 };
+  A.allie.pv = anc && !anc.ko ? Math.min(anc.pv, A.allie.pvmax) : A.allie.pvmax; X.allie = A.allie;
  }
  // éloigner les monstres du départ
  A.mobs = A.mobs.filter(m => m.objet || Math.hypot(m.x - A.p.x, m.y - A.p.y) > 6 || o.arene);
@@ -170,6 +183,7 @@ function message(A, s, d = 2.5) { A.msg = s; A.msgT = d; }
 function degatsHeros(A, mult) {
  const S = A.p.S; let d = rnd(S.dmin, S.dmax) * (1 + S.pdmg / 100) * mult;
  if (A.p.buff > 0) d *= 1.35;
+ if (A.p.bonus.fureur > 0) d *= 1.5;
  const crit = R() < S.crit / 100; if (crit) d *= 1 + S.critd / 100;
  return { d: d + S.feu * Math.min(1, mult), crit };
 }
@@ -182,6 +196,7 @@ function toucherMob(A, m, mult, opts = {}) {
  m.pv -= dd; m.hitf = .12; m.etat = 'chasse';
  if (opts.recul) { const a = Math.atan2(m.y - P.y, m.x - P.x), k = m.boss ? .1 : opts.recul; bouger(A, m, Math.cos(a) * k, Math.sin(a) * k); }
  if (opts.stun && !m.boss) m.stun = Math.max(m.stun, opts.stun);
+ if (S.riposte && !m.boss && R() < S.riposte) { m.stun = Math.max(m.stun, .8); texte(A, m.x, m.y - m.r - .7, 'Étourdi', '#ffe08a'); }
  if (opts.slow) m.slow = Math.max(m.slow, opts.slow);
  if (opts.gel && !m.boss) m.gel = Math.max(m.gel, opts.gel);
  if (S.effets.brulure) { m.brule = 3; m.bruleDg = dd * .4 / 3; }
@@ -203,10 +218,12 @@ function ajLoot(A, l) {
  if (!libre(A, l.x, l.y, .2)) { let best = null, bd = 9; for (let y = (l.y | 0) - 2; y <= (l.y | 0) + 2; y++) for (let x = (l.x | 0) - 2; x <= (l.x | 0) + 2; x++) if (sol(A, x + .5, y + .5)) { const d = Math.hypot(x + .5 - l.x, y + .5 - l.y); if (d < bd) { bd = d; best = [x + .5, y + .5]; } } if (best) { l.x = best[0]; l.y = best[1]; } }
  A.loot.push(l);
 }
-function lacherOr(A, x, y, n) { n = Math.max(1, Math.round(n * .3 * (1 + A.p.S.or / 100))); ajLoot(A, { x: x + rnd(-.4, .4), y: y + rnd(-.4, .4), or: n }); }
+function lacherOr(A, x, y, n) { n = Math.max(1, Math.round(n * .3 * (1 + A.p.S.or / 100 + (A.X.o.chanceOr ? .3 : 0)) * (A.p.bonus.fortune > 0 ? 2 : 1))); ajLoot(A, { x: x + rnd(-.4, .4), y: y + rnd(-.4, .4), or: n }); }
 function lacherObjet(A, x, y, opts = {}) { const o = genObjet(A.niveau + rnd(-.5, 1), A.X.o.heros.classe, opts); ajLoot(A, { x, y, obj: o, t: 0 }); if (o.rar === 'legendaire') { message(A, '✦ Objet légendaire !', 3); SON('legendaire'); } }
 function tuerMob(A, m) {
  m.mort = true; A.X.tues++;
+ if (A.cadavres) { A.cadavres.push({ x: m.x, y: m.y, k: m.k, r: m.r, ang: R() * 6.28, os: m.k === 'squelette' || m.k === 'archer' || m.k === 'liche', spectre: m.k === 'spectre' }); if (A.cadavres.length > 90) A.cadavres.shift(); }
+ if (m.k === 'gobelin') { message(A, 'Le gobelin lâche son butin !', 2.5); for (let i = 0; i < 8; i++) lacherOr(A, m.x + rnd(-1, 1), m.y + rnd(-1, 1), ri(6, 12) * A.niveau); for (let i = 0; i < 2; i++) lacherObjet(A, m.x + rnd(-.8, .8), m.y + rnd(-.8, .8), { min: 'magique', bonus: .2 }); }
  { const ec = A.X.o.heros.niveau - m.niv; gagnerXp(A, m.xp * (ec > 2 ? Math.max(.2, 1 - .15 * (ec - 2)) : 1)); }
  particules(A, m.x, m.y, m.boss ? 40 : 12, m.k === 'spectre' ? '#bfe6ff' : m.k === 'squelette' || m.k === 'archer' ? '#e8e2d0' : '#6e1414', 4, .8, .1);
  if (chance(m.boss ? 1 : m.elite ? .9 : .32)) lacherOr(A, m.x, m.y, ri(3, 8) * A.niveau * (m.boss ? 6 : m.elite ? 2.5 : 1));
@@ -224,7 +241,7 @@ function tuerMob(A, m) {
  } else SON('mort');
 }
 function gagnerXp(A, n) {
- const h = A.X.o.heros; n = Math.round(n); h.xp += n; A.X.xpGagne += n;
+ const h = A.X.o.heros; n = Math.round(n * (A.p.bonus.savoir > 0 ? 1.5 : 1)); h.xp += n; A.X.xpGagne += n;
  while (h.xp >= xpPour(h.niveau)) {
   h.xp -= xpPour(h.niveau); h.niveau++; h.points++;
   A.p.S = statsHeros(h, A.X.o.generation || 1); A.p.pv = A.p.S.pvmax; A.p.mana = A.p.S.manamax;
@@ -234,8 +251,11 @@ function gagnerXp(A, n) {
 function blesserJoueur(A, dg, src, opts = {}) {
  const P = A.p; if (P.inv > 0 || P.mort) return;
  const S = P.S, arm = S.arm * (P.buff > 0 ? 1.5 : 1), niv = src ? src.niv || A.niveau : A.niveau;
+ if (S.esquive && R() < S.esquive) { texte(A, P.x, P.y - .8, 'Esquive', '#cfe8ff'); return; }
  let d = dg * (1 - arm / (arm + 40 + 14 * niv)) * (1 - S.res / 100);
+ if (P.bonus.protection > 0) d *= .6;
  d = Math.max(1, d * rnd(.9, 1.1));
+ if (S.bouclierMana && P.mana > 0) { const k = Math.min(P.mana, d * S.bouclierMana); P.mana -= k; d -= k; }
  P.pv -= d; P.hitf = .15; A.shake = Math.max(A.shake, Math.min(.35, d / S.pvmax * 2));
  texte(A, P.x, P.y - .8, Math.round(d), '#ff5a4a');
  if (src && src.vampire) src.pv = Math.min(src.pvmax, src.pv + d);
@@ -254,7 +274,7 @@ function multComp(A, id, base) { return base * (1 + .22 * (rangComp(A, id) - 1))
 function attaqueBase(A, ax, ay) {
  const P = A.p, S = P.S, C = CLASSES[A.X.o.heros.classe];
  if (P.cdA > 0) return;
- P.cdA = 1 / S.cadence; P.ang = Math.atan2(ay - P.y, ax - P.x); P.anim = .22; P.animT = .22; P.frappes++;
+ P.cdA = 1 / (S.cadence * (P.bonus.celerite > 0 ? 1.3 : 1)); P.ang = Math.atan2(ay - P.y, ax - P.x); P.anim = .22; P.animT = .22; P.frappes++;
  const onde = S.effets.onde && P.frappes % 4 === 0;
  if (C.attaque === 'cac') {
   let touche = 0;
@@ -319,7 +339,8 @@ function majDonjon(A, dt, inp) {
  P.cdA -= dt; P.inv -= dt; P.hitf -= dt; P.anim -= dt; P.slow -= dt; if (P.spin) P.spin -= dt;
  if (P.buff > 0) P.buff -= dt;
  for (const k in P.cds) P.cds[k] -= dt;
- P.pv = Math.min(S.pvmax, P.pv + S.regen * dt); P.mana = Math.min(S.manamax, P.mana + (2.5 + S.manamax * .035) * dt);
+ P.pv = Math.min(S.pvmax, P.pv + S.regen * dt); P.mana = Math.min(S.manamax, P.mana + (2.5 + S.manamax * .035) * (S.fluxMana || 1) * dt);
+ for (const k in P.bonus) P.bonus[k] -= dt;
  if (P.potT > 0) { P.potT -= dt; P.pv = Math.min(S.pvmax, P.pv + P.potSoin / 1.2 * dt); }
  let mx = (inp.droite ? 1 : 0) - (inp.gauche ? 1 : 0), my = (inp.bas ? 1 : 0) - (inp.haut ? 1 : 0);
  const C = CLASSES[A.X.o.heros.classe];
@@ -342,7 +363,7 @@ function majDonjon(A, dt, inp) {
   particules(A, P.x, P.y, 1, '#cbbfa8', 1, .3);
   if (P.dash.t <= 0) P.dash = null;
  } else if (ml > 0) {
-  const v = S.vitesse * (P.slow > 0 ? .55 : 1) * (veutAttaquer && C.attaque !== 'cac' ? .6 : 1) * dt;
+  const v = S.vitesse * (P.bonus.celerite > 0 ? 1.3 : 1) * (P.slow > 0 ? .55 : 1) * (veutAttaquer && C.attaque !== 'cac' ? .6 : 1) * dt;
   P.mvx = mx / ml; P.mvy = my / ml; bouger(A, P, P.mvx * v, P.mvy * v); P.pas += dt * 9;
   if (!veutAttaquer) P.ang = Math.atan2(my, mx);
  } else { P.mvx = P.mvy = 0; }
@@ -360,6 +381,13 @@ function majDonjon(A, dt, inp) {
   else if (l.potion) { if (P.potions < 5) { P.potions++; A.X.o.heros.potions = P.potions; texte(A, P.x, P.y - .9, '+1 potion', '#ff7a7a'); A.loot.splice(i, 1); SON('or'); } }
   else if (l.obj) { if (A.X.butin.length + (A.X.o.inventaire ? A.X.o.inventaire.length : 0) < 60) { A.X.butin.push(l.obj); A.loot.splice(i, 1); texte(A, P.x, P.y - 1, l.obj.nom, RARETES.find(r => r.id === l.obj.rar).coul); SON(l.obj.rar === 'legendaire' || l.obj.rar === 'rare' ? 'objet_rare' : 'objet'); } }
  }
+ // ---- autels ----
+ for (const a of A.autels) if (!a.pris && Math.hypot(a.x - P.x, a.y - P.y) < .9) {
+  a.pris = true; const D = AUTELS[a.k]; P.bonus[a.k] = D.d; message(A, `${D.nom} : ${D.txt}`, 3); particules(A, a.x, a.y, 30, D.coul, 4, 1, .1); SON('niveau');
+  if (a.k === 'fortune') for (let i = 0; i < 10; i++) lacherOr(A, a.x + rnd(-1.5, 1.5), a.y + rnd(-1.5, 1.5), ri(4, 9) * A.niveau);
+  for (const l of A.lumieres) if (l.autel === a) l.r = 1.2;
+ }
+ majAllie(A, dt);
  // ---- pièges ----
  for (let i = A.pieges.length - 1; i >= 0; i--) { const g = A.pieges[i]; g.t -= dt; let boom = g.t <= 0; for (const m of A.mobs) if (!m.mort && !m.objet && Math.hypot(m.x - g.x, m.y - g.y) < .9 + m.r) boom = true; if (boom) { A.zones.push({ x: g.x, y: g.y, r: 2.3, t: 0, tmax: .05, mult: g.mult, ami: true, k: 'explosion' }); A.pieges.splice(i, 1); } }
  // ---- monstres ----
@@ -382,12 +410,14 @@ function majDonjon(A, dt, inp) {
      if (m.mort || p.touches.includes(m)) continue;
      if (Math.hypot(m.x - p.x, m.y - p.y) < m.r + p.r) {
       p.touches.push(m);
+      if (p.allie) { frapperParAllie(A, m, p.allie); fin = true; break; }
       if (!p.explose) toucherMob(A, m, p.mult, { proj: true, magie: p.magie, recul: .08 });
       if (p.rebond > 0) { p.rebond--; let c = null, bd = 6; for (const o of A.mobs) { if (o.mort || o.objet || p.touches.includes(o)) continue; const d = Math.hypot(o.x - p.x, o.y - p.y); if (d < bd) { bd = d; c = o; } } if (c) { const a = Math.atan2(c.y - p.y, c.x - p.x), v = Math.hypot(p.vx, p.vy); p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v; p.vie = 1; continue; } }
       if (!p.perce) { fin = true; break; }
      }
     }
    } else if (Math.hypot(P.x - p.x, P.y - p.y) < P.r + p.r) { blesserJoueur(A, p.dg, p.src); if (p.gel) P.slow = 1.5; fin = true; }
+   else if (A.allie && !A.allie.ko && Math.hypot(A.allie.x - p.x, A.allie.y - p.y) < A.allie.r + p.r) { blesserAllie(A, p.dg, p.src); fin = true; }
   }
   if (p.k === 'boule' || p.k === 'feu' || p.k === 'eclair') particules(A, p.x, p.y, 1, p.k === 'eclair' ? '#c9a0ff' : '#ffb04a', .6, .3, .07);
   if (fin) {
@@ -408,8 +438,9 @@ function majDonjon(A, dt, inp) {
     else if (z.k === 'pluie') particules(A, z.x + rnd(-1, 1), z.y + rnd(-1, 1), 3, '#e8dcc0', 2, .3);
     else if (z.k === 'onde') { A.fx.push({ k: 'anneau', x: z.x, y: z.y, r: z.r, vie: .3, v0: .3, coul: '#ffe3a0' }); }
    } else {
-    if (Math.hypot(P.x - z.x, P.y - z.y) < z.r + P.r * .5) { blesserJoueur(A, z.dg, z.src); if (z.k === 'givre') P.slow = 2; }
-    particules(A, z.x, z.y, 18, z.k === 'givre' ? '#bfe8ff' : '#ff7a3a', 4, .6, .1); A.fx.push({ k: 'anneau', x: z.x, y: z.y, r: z.r, vie: .3, v0: .3, coul: z.k === 'givre' ? '#bfe8ff' : '#ff6a3a' }); A.shake = Math.max(A.shake, .15); SON(z.k === 'givre' ? 'givre' : 'explosion');
+    if (Math.hypot(P.x - z.x, P.y - z.y) < z.r + P.r * .5) { blesserJoueur(A, z.dg, z.src); if (z.k === 'givre' || z.k === 'poison') P.slow = 2; }
+    if (A.allie && !A.allie.ko && Math.hypot(A.allie.x - z.x, A.allie.y - z.y) < z.r) blesserAllie(A, z.dg * .7, z.src);
+    const zc = z.k === 'givre' ? '#bfe8ff' : z.k === 'poison' ? '#9cff5a' : '#ff6a3a'; particules(A, z.x, z.y, 18, zc, 4, .6, .1); A.fx.push({ k: 'anneau', x: z.x, y: z.y, r: z.r, vie: .3, v0: .3, coul: zc }); A.shake = Math.max(A.shake, .15); SON(z.k === 'givre' ? 'givre' : 'explosion');
    }
   }
   if (z.feu && z.t > 0) { z.dur -= dt; z.tick = (z.tick || 0) - dt; if (z.tick <= 0) { z.tick = .5; if (Math.hypot(P.x - z.x, P.y - z.y) < z.r) blesserJoueur(A, z.dg * .35, z.src); } if (z.dur > 0) continue; A.zones.splice(i, 1); continue; }
@@ -431,7 +462,10 @@ function majMob(A, m, dt) {
  if (m.brule > 0) { m.brule -= dt; m.pv -= m.bruleDg * dt; if (R() < dt * 8) particules(A, m.x, m.y - .2, 1, '#ff8a2a', 1, .4); if (m.pv <= 0) { tuerMob(A, m); return; } }
  if (m.stun > 0) { m.stun -= dt; return; }
  if (m.gel > 0) return;
- const dx = P.x - m.x, dy = P.y - m.y, d = Math.hypot(dx, dy);
+ if (m.M.type === 'fuite') return majGobelin(A, m, dt);
+ const Al = A.allie, dP = Math.hypot(P.x - m.x, P.y - m.y);
+ const T = Al && !Al.ko && m.etat === 'chasse' && Math.hypot(Al.x - m.x, Al.y - m.y) + .8 < dP ? Al : P;
+ const dx = T.x - m.x, dy = T.y - m.y, d = Math.hypot(dx, dy);
  if (m.etat === 'veille') {
   if (d < (m.boss ? 9 : 8.5) && vue(A, m.x, m.y, P.x, P.y)) { m.etat = 'chasse'; if (m.boss) { message(A, m.M.nom + ' s’éveille…', 3); SON('boss'); } else if (chance(.3)) SON('grogne'); }
   else return;
@@ -444,7 +478,8 @@ function majMob(A, m, dt) {
   m.wind -= dt;
   if (m.chg) { const st = dt; bouger(A, m, m.chg.vx * st, m.chg.vy * st); m.chg.t -= dt; particules(A, m.x, m.y, 1, '#b8a07a', 1, .3); if (!m.chg.hit && Math.hypot(P.x - m.x, P.y - m.y) < m.r + P.r + .2) { m.chg.hit = true; blesserJoueur(A, m.dg * 1.5, m, { cac: true }); bouger(A, P, m.chg.vx * .04, m.chg.vy * .04); } if (m.chg.t <= 0) { m.chg = null; m.wind = 0; } return; }
   if (m.wind <= 0) {
-   if (m.attaque === 'cac') { if (d < m.portee + m.r + P.r + .35) blesserJoueur(A, m.dg, m, { cac: true }); SON('griffe'); }
+   if (m.attaque === 'cac') { if (d < m.portee + m.r + T.r + .35) { if (T === P) blesserJoueur(A, m.dg, m, { cac: true }); else blesserAllie(A, m.dg, m); } SON('griffe'); }
+   else if (m.attaque === 'tir' && m.M.rafale) { const a0 = Math.atan2(dy, dx); for (let k = -1; k <= 1; k++) { const a = a0 + k * .22; A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a) * 6, vy: Math.sin(a) * 6, r: .17, ami: false, dg: m.dg, vie: 2, k: 'feu', src: m, touches: [] }); } SON('tir_e'); }
    else if (m.attaque === 'tir') { const a = Math.atan2(dy, dx); A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a) * (m.M.proj === 'feu' ? 6 : 8.5), vy: Math.sin(a) * (m.M.proj === 'feu' ? 6 : 8.5), r: .18, ami: false, dg: m.dg, vie: 2, k: m.M.proj === 'feu' ? 'feu' : 'fleche_e', src: m, touches: [] }); SON('tir_e'); }
    else if (m.attaque === 'soin') { const c = m.cibleSoin; if (c && !c.mort) { c.pv = Math.min(c.pvmax, c.pv + c.pvmax * .25); particules(A, c.x, c.y, 10, '#9cff9c', 2, .6); texte(A, c.x, c.y - .8, '+soin', '#9cff9c'); } }
    m.attaque = null;
@@ -460,11 +495,12 @@ function majMob(A, m, dt) {
   return;
  }
  if (m.M.charge) m.cdS[0] -= dt;
+ if (m.M.frappe) { m.cdS[0] -= dt; if (m.cdS[0] <= 0 && d < 3) { m.cdS[0] = 7; A.zones.push({ x: m.x, y: m.y, r: 2.2, t: -1, tmax: .05, dg: m.dg * 1.5, k: 'frappe', src: m }); m.wind = 1.05; m.attaque = null; SON('grogne'); return; } }
  if (m.k === 'spectre') { m.cdS[1] -= dt; if (m.cdS[1] <= 0 && d < 7 && d > 2.5) { m.cdS[1] = rnd(3, 5); const a = R() * 6.28, nx = P.x + Math.cos(a) * 1.6, ny = P.y + Math.sin(a) * 1.6; if (libre(A, nx, ny, m.r)) { particules(A, m.x, m.y, 10, '#9fd3ff', 2, .5); m.x = nx; m.y = ny; particules(A, m.x, m.y, 10, '#9fd3ff', 2, .5); m.cdA = .5; } } }
  if (m.ardent) { m.cdS[2] -= dt; if (m.cdS[2] <= 0) { m.cdS[2] = 2.2; A.zones.push({ x: m.x, y: m.y, r: .8, t: .01, tmax: 99, fait: true, feu: true, dur: 4, dg: m.dg, src: m, k: 'feusol' }); } }
  // ---- choix d'action ----
- const portee = m.portee + m.r + P.r;
- const voit = d < 12 && (d < 1.8 || vue(A, m.x, m.y, P.x, P.y));
+ const portee = m.portee + m.r + T.r;
+ const voit = d < 12 && (d < 1.8 || vue(A, m.x, m.y, T.x, T.y));
  if (m.M.type === 'soin' && m.cdA <= 0) {
   let c = null; for (const o of A.mobs) if (!o.mort && !o.objet && o !== m && o.pv < o.pvmax * .6 && Math.hypot(o.x - m.x, o.y - m.y) < 6) { c = o; break; }
   if (c) { m.cdA = m.cad * 1.6; m.wind = .6; m.attaque = 'soin'; m.cibleSoin = c; return; }
@@ -491,6 +527,56 @@ function majMob(A, m, dt) {
  }
  if (bx || by) { const gx = tx + bx + .5 - m.x, gy = ty + by + .5 - m.y, gl = Math.hypot(gx, gy) || 1; suivre(A, m, gx / gl, gy / gl, vit, dt); }
 }
+/* ---------- Gobelin voleur : fuit, puis disparaît ---------- */
+function majGobelin(A, m, dt) {
+ const P = A.p, d = Math.hypot(P.x - m.x, P.y - m.y);
+ if (m.etat === 'veille') { if (d < 8 && vue(A, m.x, m.y, P.x, P.y)) { m.etat = 'chasse'; message(A, 'Un gobelin voleur ! Rattrapez-le !', 2.5); SON('grogne'); } else return; }
+ m.fuiteT += dt; if (R() < dt * 6) ajLoot(A, { x: m.x, y: m.y, or: Math.max(1, Math.round(ri(1, 3) * A.niveau * .3)) });
+ if (m.fuiteT > 22) { m.mort = true; particules(A, m.x, m.y, 25, '#9a7aff', 3, .8); message(A, 'Le gobelin s’échappe par un portail…', 2.5); SON('blink'); return; }
+ const F = A.flow; if (!F) return; const tx = m.x | 0, ty = m.y | 0, c = F[ty * A.W + tx];
+ let bx = 0, by = 0, bv = c;
+ for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) { const nx = tx + ox, ny = ty + oy; if (nx < 0 || ny < 0 || nx >= A.W || ny >= A.H) continue; const v = F[ny * A.W + nx]; if (v < 0 || v <= bv) continue; if (ox && oy && (F[ty * A.W + nx] < 0 || F[ny * A.W + tx] < 0)) continue; bv = v; bx = ox; by = oy; }
+ const vit = m.vit * (m.slow > 0 ? .5 : 1);
+ if (bx || by) { const gx = tx + bx + .5 - m.x, gy = ty + by + .5 - m.y, gl = Math.hypot(gx, gy) || 1; suivre(A, m, gx / gl, gy / gl, vit, dt); }
+ else if (d < 3) suivre(A, m, (m.x - P.x) / d, (m.y - P.y) / d, vit, dt);
+}
+/* ---------- Compagnon ---------- */
+function blesserAllie(A, dg, src) {
+ const C = A.allie; if (!C || C.ko) return;
+ const d = Math.max(1, dg * (1 - (10 + A.X.o.heros.niveau * 3) / ((10 + A.X.o.heros.niveau * 3) + 40 + 14 * (src ? src.niv || A.niveau : A.niveau))) * rnd(.9, 1.1));
+ C.pv -= d; C.hitf = .15; texte(A, C.x, C.y - .8, Math.round(d), '#ffb0a0');
+ if (C.pv <= 0) { C.pv = 0; C.ko = 18; message(A, `${C.nom} est à terre !`, 2); particules(A, C.x, C.y, 14, '#8a1d1d', 3, .6); SON('mort'); }
+}
+function majAllie(A, dt) {
+ const C = A.allie, P = A.p; if (!C) return;
+ C.anim += dt; C.hitf -= dt; C.cdA -= dt; C.cdS -= dt;
+ if (C.ko > 0) { C.ko -= dt; if (C.ko <= 0) { C.pv = C.pvmax * .5; message(A, `${C.nom} se relève.`, 1.5); } if (Math.hypot(P.x - C.x, P.y - C.y) > 12) { C.x = P.x; C.y = P.y; } return; }
+ C.pv = Math.min(C.pvmax, C.pv + C.pvmax * .006 * dt);
+ const K = C.K; let cible = null, bd = K.type === 'cac' ? 5.5 : 7.5;
+ for (const m of A.mobs) { if (m.mort || m.objet || m.etat !== 'chasse' && Math.hypot(m.x - P.x, m.y - P.y) > 5) continue; const d = Math.hypot(m.x - C.x, m.y - C.y); if (d < bd && vue(A, C.x, C.y, m.x, m.y)) { bd = d; cible = m; } }
+ const dP = Math.hypot(P.x - C.x, P.y - C.y);
+ // prêtresse : soins
+ if (K.type === 'soin' && C.cdS <= 0 && P.pv < P.S.pvmax * .65 && dP < 7) { C.cdS = 7; const s = P.S.pvmax * .22; P.pv = Math.min(P.S.pvmax, P.pv + s); particules(A, P.x, P.y, 16, '#fff2b0', 2, .7); texte(A, P.x, P.y - 1, '+' + Math.round(s), '#fff2b0'); C.anim2 = .5; SON('potion'); }
+ if (dP > 9) { C.x = P.x - .5; C.y = P.y + .5; return; }
+ let mx = 0, my = 0;
+ if (cible) {
+  const d = Math.hypot(cible.x - C.x, cible.y - C.y), portee = K.portee + cible.r + C.r;
+  C.ang = Math.atan2(cible.y - C.y, cible.x - C.x);
+  if (d > portee) { mx = (cible.x - C.x) / d; my = (cible.y - C.y) / d; }
+  else if (C.cdA <= 0) {
+   C.cdA = K.cad; C.anim2 = .25;
+   const dg = C.dg * rnd(.85, 1.15) * (1 + .4 * (chance(.1) ? 1 : 0));
+   if (K.type === 'cac') { frapperParAllie(A, cible, dg); SON('epee'); }
+   else A.projs.push({ x: C.x, y: C.y, vx: Math.cos(C.ang) * 13, vy: Math.sin(C.ang) * 13, r: .16, ami: true, allie: dg, vie: 1.2, k: K.type === 'soin' ? 'lumiere' : 'fleche', touches: [] });
+  }
+ } else if (dP > 2.2) { mx = (P.x - C.x) / dP; my = (P.y - C.y) / dP; C.ang = Math.atan2(my, mx); }
+ if (mx || my) { bouger(A, C, mx * 4.4 * dt, my * 4.4 * dt); C.pas += dt * 9; }
+}
+function frapperParAllie(A, m, dg) {
+ if (m.mort) return; if (m.objet) { m.mort = true; casserObjet(A, m); return; }
+ m.pv -= dg; m.hitf = .1; m.etat = 'chasse'; texte(A, m.x, m.y - m.r - .3, Math.round(dg), '#d8e8c8');
+ if (m.pv <= 0) tuerMob(A, m);
+}
 function suivre(A, m, ux, uy, v, dt) { bouger(A, m, ux * v * dt, uy * v * dt); m.ang = Math.atan2(uy, ux); }
 function setTimeoutJeu(A, t, f) { (A.minuteries || (A.minuteries = [])).push({ t: A.t + t, f }); }
 function majMinuteries(A) { if (!A.minuteries) return; for (let i = A.minuteries.length - 1; i >= 0; i--) if (A.t >= A.minuteries[i].t) { const f = A.minuteries[i].f; A.minuteries.splice(i, 1); f(); } }
@@ -506,6 +592,10 @@ function capaciteBoss(A, m, dt, d) {
   if (m.cdS[0] <= 0 && d < 4) { m.cdS[0] = m.k === 'ogre' ? 6 : 5; telegraphe(m.x, m.y, m.k === 'ogre' ? 3.2 : 2.6, 1, m.dg * 1.6, 'frappe'); m.wind = 1.05; m.attaque = null; SON('grogne'); return true; }
   if (m.cdS[1] <= 0 && d > 3 && d < 9) { m.cdS[1] = 8; const a = Math.atan2(P.y - m.y, P.x - m.x); m.wind = 1.3; A.zones.push({ x: m.x, y: m.y, r: .01, t: -.6, tmax: .01, k: 'ligne', ang: a, long: 7, fait: true, ligneVie: .6 }); setTimeoutJeu(A, .6, () => { if (!m.mort) m.chg = { vx: Math.cos(a) * 11, vy: Math.sin(a) * 11, t: .65 }; }); return true; }
   if (m.k === 'champion' && m.cdS[2] <= 0 && A.vivants < 8 && A.X.o.arene) { m.cdS[2] = 14; for (let i = 0; i < 2; i++) { const s = mkMob('soldat', m.x + rnd(-2, 2), m.y + rnd(-2, 2), m.niv - .5, false, m.maison); s.etat = 'chasse'; if (libre(A, s.x, s.y, s.r)) A.mobs.push(s); } message(A, 'Des renforts accourent !', 2); return true; }
+ } else if (m.k === 'reine') {
+  if (m.cdS[0] <= 0 && A.vivants < 12) { m.cdS[0] = 11; for (let i = 0; i < (m.phase === 2 ? 6 : 4); i++) { const a = R() * 6.28; const s = mkMob('araignee', m.x + Math.cos(a) * 1.5, m.y + Math.sin(a) * 1.5, m.niv - 1); s.etat = 'chasse'; if (libre(A, s.x, s.y, s.r)) A.mobs.push(s); } message(A, 'La couvée éclot !', 2); SON('invoque'); m.wind = .5; return true; }
+  if (m.cdS[1] <= 0) { m.cdS[1] = 6; for (let i = 0; i < (m.phase === 2 ? 5 : 3); i++) telegraphe(P.x + rnd(-2.2, 2.2), P.y + rnd(-2.2, 2.2), 1.4, 1.1 + i * .2, m.dg * 1.1, 'poison'); return false; }
+  if (m.cdS[2] <= 0 && d < 8) { m.cdS[2] = 3.5; const a = Math.atan2(P.y - m.y, P.x - m.x); for (const k of [-.15, .15]) A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a + k) * 7, vy: Math.sin(a + k) * 7, r: .22, ami: false, dg: m.dg * .5, vie: 2.2, k: 'toile', gel: true, src: m, touches: [] }); m.wind = .35; return true; }
  } else if (m.k === 'wyverne') {
   if (m.cdS[0] <= 0 && d < 7) { m.cdS[0] = 6; const a = Math.atan2(P.y - m.y, P.x - m.x); for (let k = 1; k <= 5; k++) for (const s of [-1, 0, 1]) { if (k < 2 && s) continue; const aa = a + s * .28; telegraphe(m.x + Math.cos(aa) * k * 1.2, m.y + Math.sin(aa) * k * 1.2, .75 + k * .08, .9 + k * .06, m.dg * 1.2, 'feu'); } m.wind = 1.3; m.ang = a; SON('souffle'); return true; }
   if (m.cdS[1] <= 0) { m.cdS[1] = 4.5; for (let i = -2; i <= 2; i++) { const a = Math.atan2(P.y - m.y, P.x - m.x) + i * .2; A.projs.push({ x: m.x, y: m.y, vx: Math.cos(a) * 6.5, vy: Math.sin(a) * 6.5, r: .24, ami: false, dg: m.dg * .8, vie: 2.5, k: 'feu', src: m, touches: [] }); } m.wind = .4; return true; }
@@ -533,7 +623,8 @@ function botEntree(A) {
   return inp;
  }
  // ramasser, sinon aller vers l'objectif
- let l = null; bd = 1e9; for (const o of A.loot) { if (o.ign > A.t || o.potion && P.potions >= 5 || o.globe && P.pv > P.S.pvmax * .8) continue; const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd && d < 10) { bd = d; l = o; } }
+ let l = null; bd = 1e9; for (const o of A.autels || []) { if (o.pris) continue; const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd && d < 12) { bd = d; l = o; } }
+ for (const o of A.loot) { if (o.ign > A.t || o.potion && P.potions >= 5 || o.globe && P.pv > P.S.pvmax * .8) continue; const d = Math.hypot(o.x - P.x, o.y - P.y); if (d < bd && d < 10) { bd = d; l = o; } }
  let cx, cy;
  if (l) { if (A.botLoot !== l) { A.botLoot = l; A.botLootT = A.t; } else if (A.t - A.botLootT > 6) l.ign = A.t + 60; cx = Math.floor(l.x) + .5; cy = Math.floor(l.y) + .5; }
  else if (A.portail) { cx = A.portail.x; cy = A.portail.y; }

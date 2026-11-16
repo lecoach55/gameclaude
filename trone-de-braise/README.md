@@ -15,6 +15,11 @@ Anciennes sauvegardes : `completer(G)` ajoute les champs manquants (format v2).
 ## Version 3 — nouvelle interface (15/11/2026)
 Direction « table de guerre à la chandelle » : encre de nuit et lapis, filets d’or, braise pour l’action. Polices libres (OFL) intégrées en base64 par build.py : Grenze Gotisch (titres) et Alegreya Sans (texte), fichiers dans `jeu/polices/`. Ruban de ressources, tiroir de province (feuille du bas sur mobile), dock d’icônes, sceau de cire « Fin de saison » qui respire quand il n’y a plus d’ordres, fenêtres encadrées d’or, caméra de carte animée (zoom et recentrage doux), fondu entre les écrans, HUD de donjon avec orbes cerclées et radar circulaire.
 
+## Version 4 — fluidité (16/11/2026)
+Mesure réelle de Victor (MacBook Intel Iris Plus, 912×755 @2) : carte 60 img/s, donjon 38-40 img/s, à-coup de 0,7 s à l'entrée. Diagnostic : le donjon est limité par le remplissage de pixels (sol, voile d'obscurité, grande teinte chaude en mode « lighter »), pas par le JavaScript (profil : 97 % hors JS).
+Corrections : teinte chaude supprimée (`RENDU.teinte` pour la remettre), noir de fond limité aux bords non couverts, lueurs et vignette en images pré-calculées (plus aucun `createRadialGradient` par image), corps des monstres, piliers et jarres en images mises en cache (8 directions × 4 poses), particules regroupées, HUD mis à jour seulement quand il change, dégradés du sol réutilisés (pré-rendu ~4× plus rapide). Donjon dessiné à 1× la taille d'écran par défaut (2× en qualité haute) et **résolution adaptative** (`ADAPT` dans ui.js) : baisse par paliers de 12 % si la moyenne dépasse 18,5 ms, remonte si < 15,5 ms.
+Banc à CPU ×4 (rendu logiciel) : donjon 19 → 31 img/s à résolution fixe, 40-57 img/s avec l'adaptation. `RENDU.off` (sol, lum, ent) permet de mesurer le coût de chaque couche.
+
 ## Outils (`outils/`)
 - `sim_donjon.js classe nivHeros nivDonjon N [depart|magique] [compagnon]` : expéditions jouées par le robot. Avec un compagnon au départ : ~60 à 85 % de réussite. Repères 15/11/2026 : départ niveau 1 → 33 à 83 % de réussite selon la classe ; équipement magique au même niveau → 60 à 100 %.
 - `sim_royaume.js N saisons` : parties complètes du royaume. Repère v2 : robot naïf couronné dans ~45 à 67 % des parties en ~43 saisons, ~5 % de défaites.

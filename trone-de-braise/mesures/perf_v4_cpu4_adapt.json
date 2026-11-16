@@ -1,0 +1,20 @@
+{
+ "carte": {
+  "fps": 60,
+  "pire": 16.8,
+  "n": 239
+ },
+ "donjon_combat": {
+  "fps": 39.8,
+  "pire": 66.7,
+  "n": 199,
+  "entites": 85
+ },
+ "boss": {
+  "fps": 57.4,
+  "pire": 33.4,
+  "n": 287,
+  "entites": 62
+ },
+ "erreurs": []
+}

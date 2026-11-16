@@ -82,10 +82,11 @@ function apercuHeros(cv, classe, sexe) {
 const cvC = $('#carte'), ctxC = cvC.getContext('2d');
 const cvJ = $('#jeu'), ctxJ = cvJ.getContext('2d');
 const lum = document.createElement('canvas'), lctx = lum.getContext('2d');
+const ADAPT = { e: 1, ft: [], t: 0, bon: 0 }; // résolution du donjon ajustée selon la fluidité réelle
 function redim() {
- const q = Math.min(devicePixelRatio || 1, RENDU.haute ? 2 : 1.25);
- for (const cv of [cvC, cvJ]) { const w = Math.round(innerWidth * q), h = Math.round(innerHeight * q); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } cv.q = q; }
- RENDU.q = q; lum.width = Math.ceil(cvJ.width / 4); lum.height = Math.ceil(cvJ.height / 4);
+ const q = Math.min(devicePixelRatio || 1, RENDU.haute ? 2 : 1.25), qj = Math.min(devicePixelRatio || 1, RENDU.haute ? 2 : 1) * ADAPT.e;
+ for (const [cv, k] of [[cvC, q], [cvJ, qj]]) { const w = Math.round(innerWidth * k), h = Math.round(innerHeight * k); if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; } cv.q = k; }
+ RENDU.q = qj; lum.width = Math.ceil(cvJ.width / 4); lum.height = Math.ceil(cvJ.height / 4);
  if (G) CARTE.ajuster(cvC.width, cvC.height);
 }
 addEventListener('resize', () => { redim(); });
@@ -527,9 +528,9 @@ let hudT = 0, miniT = 0;
 function hud(dt) {
  hudT -= dt; if (hudT > 0) return; hudT = .08;
  const P = A.p, S = P.S, h = G.joueur.heros, C = CLASSES[h.classe];
- $('#hVie').style.height = clamp(P.pv / S.pvmax * 100, 0, 100) + '%'; $('#hVieT').textContent = Math.ceil(P.pv);
- $('#hMana').style.height = clamp(P.mana / S.manamax * 100, 0, 100) + '%'; $('#hManaT').textContent = Math.floor(P.mana);
- $('#hXp').style.width = clamp(h.xp / xpPour(h.niveau) * 100, 0, 100) + '%'; $('#hNiv').textContent = `${h.nom} · niveau ${h.niveau}${h.points ? ` · ${h.points} point${h.points > 1 ? 's' : ''} à dépenser (K)` : ''}`;
+ majStyle('#hVie', 'height', Math.round(clamp(P.pv / S.pvmax * 100, 0, 100)) + '%'); majTexte('#hVieT', Math.ceil(P.pv));
+ majStyle('#hMana', 'height', Math.round(clamp(P.mana / S.manamax * 100, 0, 100)) + '%'); majTexte('#hManaT', Math.floor(P.mana));
+ $('#hXp').style.width = clamp(h.xp / xpPour(h.niveau) * 100, 0, 100) + '%'; majTexte('#hNiv', `${h.nom} · niveau ${h.niveau}${h.points ? ` · ${h.points} point${h.points > 1 ? 's' : ''} à dépenser (K)` : ''}`);
  $('#hComp').querySelectorAll('[data-c]').forEach((e, i) => { const c = C.comp[i], cd = P.cds[c.id] || 0; e.querySelector('.cd').style.height = cd > 0 ? (cd / (c.cd * (1 - S.recup / 100)) * 100) + '%' : '0'; e.classList.toggle('verr', !h.comp[c.id]); e.style.borderColor = h.comp[c.id] && P.mana < c.cout ? '#3a4a8a' : ''; });
  $('#hComp').querySelector('.pot .n').textContent = P.potions;
  const b = A.boss; const bb = $('#hBoss');
@@ -537,7 +538,7 @@ function hud(dt) {
  const bo = Object.entries(P.bonus).filter(([k, v]) => v > 0).map(([k, v]) => `<span style="border-color:${AUTELS[k].coul}">${{ fureur: '🔥', celerite: '💨', protection: '🛡️', fortune: '🪙', savoir: '📖' }[k]} ${Math.ceil(v)}</span>`);
  if (P.buff > 0) bo.push(`<span style="border-color:#ff6a3a">📯 ${Math.ceil(P.buff)}</span>`);
  if (A.allie) bo.push(`<span style="border-color:#5ac85a">${COMPAGNONS[A.allie.k].ic} ${A.allie.ko > 0 ? 'à terre' : Math.round(A.allie.pv / A.allie.pvmax * 100) + ' %'}</span>`);
- $('#hBonus').innerHTML = bo.join('');
+ majTexte('#hBonus', bo.join(''), true);
  infobulleSol();
  const m = $('#hMsg'); m.textContent = A.msg || ''; m.style.opacity = A.msgT > 0 ? 1 : 0;
  $('#hAction').classList.toggle('on', !!A.surEscalier);
@@ -565,6 +566,7 @@ function boucle(t) {
  if (MODE === 'donjon' && A) {
   if (!A.pause && !A.fini) { majDonjon(A, dt, lireEntree()); if (A.fini) finEtage(); }
   rendreDonjon(A, cvJ, ctxJ, lum, lctx); hud(dt);
+  adapter(t);
  } else if (MODE === 'royaume' && G) {
   animerCamera(dt); carteT -= dt;
   if (carteT <= 0 || CARTE.V.x !== CARTE.V.tx) {
@@ -580,14 +582,15 @@ requestAnimationFrame(boucle);
 /* ---------- trousse de test ---------- */
 async function banc() {
  if (!TK) return toast('Trousse indisponible');
- toast('Banc en cours (≈ 30 s)…', 30000);
+ toast('Banc en cours (≈ 30 s)…', 30000); ADAPT.e = 1; ADAPT.ft.length = 0; redim();
  const res = await TK.banc([
   { nom: 'carte du royaume', preparer: async () => { A = null; montrer('royaume'); } },
   { nom: 'donjon niveau 5 (combat automatique)', preparer: async () => { UI.auto = true; lancerExpedition({ type: 'catacombes', niveau: 5, etages: 2, nom: 'Banc' }, () => { }); } },
   { nom: 'boss (combat automatique)', preparer: async () => { UI.auto = true; XP = creerExpedition({ type: 'crypte', niveau: 3, etages: 1, heros: G.joueur.heros, generation: 1 }); montrer('donjon'); nouvelEtage(); A.p.x = A.boss.x - 4; A.p.y = A.boss.y; A.p.S.pvmax *= 50; A.p.pv = A.p.S.pvmax; } },
  ], 5000);
  UI.auto = false; A = null; XP = null; montrer('royaume');
- fenetre('Banc de mesure', `<p>${res.res.map(r => `${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p><small>${esc(res.gpu)}</small><br>${res.enregistre ? 'Résultats envoyés à Claude ✓' : 'Résultats enregistrés sur cet appareil.'}</p>`, [{ t: 'Fermer', f: fermer }]);
+ res.echelle = ADAPT.e; TK.envoyer('mesures_' + Date.now() + '_echelle', { echelle: ADAPT.e, date: new Date().toISOString() });
+ fenetre('Banc de mesure', `<p>${res.res.map(r => `${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p>Résolution du donjon ajustée à ${Math.round(res.echelle * 100)} %.</p><p><small>${esc(res.gpu)}</small><br>${res.enregistre ? 'Résultats envoyés à Claude ✓' : 'Résultats enregistrés sur cet appareil.'}</p>`, [{ t: 'Fermer', f: fermer }]);
 }
 (function attendreTK(n = 0) {
  if (window.Testkit) {
@@ -653,3 +656,17 @@ function cadrerDepart() {
  const mx = mes.reduce((s, p) => s + p.x, 0) / mes.length, my = mes.reduce((s, p) => s + p.y, 0) / mes.length;
  V.z = V.tz = clamp(cvC.width / 520, V.base, V.base * 3.2); V.x = V.tx = cvC.width / 2 - mx * V.z; V.y = V.ty = cvC.height * .3 - my * V.z; borner(); V.x = V.tx; V.y = V.ty;
 }
+
+function adapter(t) {
+ if (ADAPT.fige || document.hidden) return;
+ const d = t - (ADAPT.der || t); ADAPT.der = t; if (d <= 0 || d > 250) return;
+ ADAPT.ft.push(d); if (ADAPT.ft.length < 90) return;
+ const moy = ADAPT.ft.reduce((a, b) => a + b, 0) / ADAPT.ft.length; ADAPT.ft.length = 0;
+ if (moy > 18.5 && ADAPT.e > .55) { ADAPT.e = Math.round((ADAPT.e - .12) * 100) / 100; ADAPT.bon = 0; redim(); }
+ else if (moy < 15.5 && ADAPT.e < 1) { if (++ADAPT.bon >= 3) { ADAPT.e = Math.min(1, Math.round((ADAPT.e + .08) * 100) / 100); ADAPT.bon = 0; redim(); } }
+ else ADAPT.bon = 0;
+}
+
+const DERNIER = new Map();
+function majTexte(sel, v, html) { v = String(v); if (DERNIER.get(sel) === v) return; DERNIER.set(sel, v); const e = $(sel); if (html) e.innerHTML = v; else e.textContent = v; }
+function majStyle(sel, p, v) { const k = sel + p; if (DERNIER.get(k) === v) return; DERNIER.set(k, v); $(sel).style[p] = v; }

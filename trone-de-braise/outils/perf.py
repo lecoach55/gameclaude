@@ -13,7 +13,8 @@ async def main():
         if ral>1:
             cdp=await pg.context.new_cdp_session(pg); await cdp.send('Emulation.setCPUThrottlingRate',{'rate':ral})
         await pg.wait_for_timeout(800)
-        await pg.evaluate("()=>{TEST=true;G=nouvellePartie({classe:'arcaniste'});G.evts=[];entrerRoyaume();JEU.UI.sel='valsombre';panneau();}")
+        fige='true' if os.environ.get('FIGE','1')=='1' else 'false'
+        await pg.evaluate("()=>{ADAPT.fige="+fige+";TEST=true;G=nouvellePartie({classe:'arcaniste'});G.evts=[];entrerRoyaume();JEU.UI.sel='valsombre';panneau();}")
         await pg.wait_for_timeout(1000); res['carte']=await mesurer(pg,4000)
         for nom,js in [('donjon_combat',"JEU.UI.auto=true;lancerExpedition({type:'catacombes',niveau:5,etages:3,nom:'Banc'},()=>{});"),('boss',"JEU.UI.auto=true;lancerExpedition({type:'antre',niveau:6,etages:1,nom:'Banc',boss:'wyverne'},()=>{});const A=JEU.A;A.p.x=A.boss.x-4;A.p.y=A.boss.y;A.p.S.pvmax*=40;A.p.pv=A.p.S.pvmax;")]:
             await pg.evaluate("()=>{"+js+"}"); await pg.wait_for_timeout(2500)

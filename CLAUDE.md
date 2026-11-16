@@ -74,7 +74,7 @@ Simulateur de vie avec scène 3D. Artefact : slug `b04fac4d-6c5d-4942-aea6-f931c
 Action-RPG façon Diablo + royaume (dés, diplomatie, dynastie). Canvas 2D, une seule page hors ligne. Artefact : slug `ad95fb12-6952-4fbd-8b8b-ff66978db6c6` (capacités db + user).
 - Construire : `python3 trone-de-braise/jeu/build.py`, publier `trone-de-braise/build/trone-de-braise.html` en `index.html` (publish_files).
 - Équilibre : `outils/sim_donjon.js` et `outils/sim_royaume.js` (repères dans le README) ; ne pas changer la difficulté sans accord.
-- Avant publication : `outils/parcours.py`, `outils/fumee.py`, `outils/perf.py` (référence `mesures/perf_v3.json`). Voir `trone-de-braise/README.md`.
+- Avant publication : `outils/parcours.py`, `outils/fumee.py`, `outils/perf.py` (référence `mesures/perf_v4_cpu4.json` à CPU ×4 ; `FIGE=0` pour mesurer avec la résolution adaptative). Voir `trone-de-braise/README.md`.
 - Sauvegardes : locale `tdb-v1` + en ligne `partie` (ne jamais les modifier) ; tout nouveau champ doit être ajouté dans `completer(G)` (royaume.js) pour les anciennes parties.
 
 ## Président de Club (`president-de-club/`)

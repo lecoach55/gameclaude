@@ -32,7 +32,7 @@ let ECH=3;// répétitions des textures par unité (carte 3, combat 1.4, ville .
 const MATS={};function mat(c,o={}){if(o.map===null)delete o.map;if(o.tri&&!RES.tx[o.tri])o=Object.assign({},o,{tri:null});if(o.tri)o=Object.assign({},o,{ech:(o.ech||1)*ECH});const k=c+JSON.stringify(o,(n,v)=>n==='map'?(v&&v.uuid):v);if(MATS[k])return MATS[k];const m=new T.MeshStandardMaterial(Object.assign({color:c,roughness:o.r??.85,metalness:o.m||0,flatShading:!!o.plat},o.map?{map:o.map}:{},o.tri?{map:RES.tx[o.tri]}:{}));if(o.em){m.emissive=new T.Color(o.em);m.emissiveIntensity=o.ei||1;}if(o.vc)m.vertexColors=true;if(o.transp){m.transparent=true;m.opacity=o.transp;}return MATS[k]=brume(m,o);}
 // ---------- ressources réalistes : textures Poly Haven (CC0) et arbres/rochers pré-rendus (imposteurs) ----------
 const RES={tx:{},img:{},pret:false,lay:null,atlas:null,imp:null};
-const NOMS_TX=['enduit','poutre','pave','mur3','ardoise2','sol_herbe','sol_terre','sol_rude','sol_neige','sol_sable','sol_marais','sol_lave','sol_fond','sol_route','roche','roche2','neige','mur','mur2','ardoise','tuile','chaume','bois','ecorce'];
+const NOMS_TX=['sol_herbe_n','sol_terre_n','sol_rude_n','sol_neige_n','sol_sable_n','sol_marais_n','sol_lave_n','sol_fond_n','sol_route_n','enduit','poutre','pave','mur3','ardoise2','sol_herbe','sol_terre','sol_rude','sol_neige','sol_sable','sol_marais','sol_lave','sol_fond','sol_route','roche','roche2','neige','mur','mur2','ardoise','tuile','chaume','bois','ecorce'];
 function srcRes(id,f){const el=document.getElementById(id);return el?'data:'+(f.endsWith('.webp')?'image/webp':'image/jpeg')+';base64,'+el.textContent.trim():f;}
 function chargerImg(src){return new Promise(r=>{const im=new Image();im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src;});}
 let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
@@ -41,6 +41,8 @@ let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
  // couches du sol (texture « tableau » : une couche par terrain)
  const L=['sol_herbe','sol_terre','sol_rude','sol_neige','sol_sable','sol_marais','sol_lave','sol_fond','sol_route'];if(L.every(n=>RES.img[n])){const S0=512,d=new Uint8Array(S0*S0*4*L.length);const c=mkC(S0,S0),g=c.getContext('2d',{willReadFrequently:true});
   L.forEach((n,k)=>{g.drawImage(RES.img[n],0,0,S0,S0);d.set(g.getImageData(0,0,S0,S0).data,k*S0*S0*4);});const t=new T.DataArrayTexture(d,S0,S0,L.length);t.wrapS=t.wrapT=T.RepeatWrapping;t.colorSpace=T.SRGBColorSpace;t.generateMipmaps=true;t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;t.anisotropy=4;t.needsUpdate=true;RES.lay=t;}
+ {const LN=L.map(n=>n+'_n');if(LN.every(n=>RES.img[n])){const S1=256,d=new Uint8Array(S1*S1*4*LN.length);const c=mkC(S1,S1),g=c.getContext('2d',{willReadFrequently:true});
+  LN.forEach((n,k)=>{g.drawImage(RES.img[n],0,0,S1,S1);d.set(g.getImageData(0,0,S1,S1).data,k*S1*S1*4);});const t=new T.DataArrayTexture(d,S1,S1,LN.length);t.wrapS=t.wrapT=T.RepeatWrapping;t.generateMipmaps=true;t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;t.needsUpdate=true;RES.layN=t;}}
  // imposteurs : atlas (vue de dessus « h » et vue de côté « b »)
  let meta=null;const mj=document.getElementById('imp-json');try{meta=mj?JSON.parse(mj.textContent):await (await fetch('imp/imp.json')).json();}catch(e){}
  if(meta){RES.imp=meta;for(const vue of ['h','b']){const ks=Object.keys(meta).filter(k=>k.endsWith('_'+vue));const ims=await Promise.all(ks.map(k=>chargerImg(srcRes('i3-'+k,'imp/'+k+'.webp'))));
@@ -85,10 +87,10 @@ function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);const g=cv.getCont
  try{rivieres(g,Object.assign({graine:G.graine},c),G.objs,'#00ff00');}catch(e){console.warn(e);}g.filter='none';
  const t=new T.CanvasTexture(cv);t.minFilter=T.LinearMipmapLinearFilter;return t;}
 function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N;i++)td[i]=c.ter[i];const tt=new T.DataTexture(td,N,N,T.RedFormat);tt.needsUpdate=true;
- const uni={bsLay:{value:RES.lay},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
+ const uni={bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
  const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});
  return brume(m,{cle:'sol',extra:sh=>{Object.assign(sh.uniforms,uni);
-  sh.fragmentShader=sh.fragmentShader.replace('void main() {',`uniform float bsT;uniform highp sampler2DArray bsLay;uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;
+  sh.fragmentShader=sh.fragmentShader.replace('void main() {',`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;
 float bsRiv=0.,bsGlow=0.;
 vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;vec3 b=texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.29+.37,id)).rgb;return mix(a,b,smoothstep(.3,.7,nz));}
 float idc(vec2 c){return floor(texture2D(bsTer,(clamp(c,0.,bsN-1.)+.5)/bsN).r*255.+.5);}
@@ -99,13 +101,14 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  vec4 w=vec4((1.-fr.x)*(1.-fr.y),fr.x*(1.-fr.y),(1.-fr.x)*fr.y,fr.x*fr.y);
  w*=vec4(dot(c0,vec3(.33)),dot(c1,vec3(.33)),dot(c2,vec3(.33)),dot(c3,vec3(.33)))+.25;w=pow(w,vec4(3.));w/=w.x+w.y+w.z+w.w;
  vec3 col=c0*w.x+c1*w.y+c2*w.z+c3*w.w;
+ {vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
  float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
- diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
+ diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
 // ---------- brouillard (texture N×N, filtrage linéaire = bords doux) ----------
 function majBrume(){const vu=G.joueurs[vueJoueur()].vu;for(let i=0;i<N*N;i++)fogData[i]=vu[i]?255:0;fogTex.needsUpdate=true;}
 let VAGUES=null;function texVagues(){if(VAGUES)return VAGUES;const S0=256;const [T1,T2]=textures();const d=new Uint8Array(S0*S0*4);const hh=(x,y)=>T2[((y+S0)%S0)*256+((x+S0)%S0)]*.6+T1[((y*2+S0)%S0)*256+((x*2+S0)%S0)]*.4;
@@ -133,10 +136,10 @@ const MPI={};function planImp(vue,nom,ht,mir,q){const k=nom+'_'+vue,me=RES.imp&&
  const g=new T.PlaneGeometry(w,hh);const ax=(mir?1-me.px/me.w:me.px/me.w)*w,ay=(1-me.py/me.h)*hh;g.translate(w/2-ax,hh/2-ay,0);const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){let u=uv.getX(i);if(mir)u=1-u;uv.setXY(i,r[0]+u*r[2],r[1]+uv.getY(i)*r[3]);}
  const mk=vue+'m';const m=MPI[mk]||(MPI[mk]=brume(new T.MeshBasicMaterial({map:at.tex,alphaTest:.5,side:T.DoubleSide,toneMapped:false}),{cle:'impl'}));const o=new T.Mesh(g,m);if(q)o.quaternion.copy(q);
  o.customDepthMaterial=MPI[mk+'o']||(MPI[mk+'o']=new T.MeshDepthMaterial({depthPacking:T.RGBADepthPacking,map:at.tex,alphaTest:.5,side:T.DoubleSide}));o.castShadow=true;return o;}
-function matSolSimple(a,b,ech,var2){const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});const uni={bsLay:{value:RES.lay},bsBr:{value:texBruitGL()}};
- return brume(m,{cle:'solS'+a+b+ech,extra:sh=>{Object.assign(sh.uniforms,uni);sh.fragmentShader=sh.fragmentShader.replace('void main() {','uniform highp sampler2DArray bsLay;uniform sampler2D bsBr;\nvoid main() {').replace('#include <map_fragment>',`{vec2 p=vBsW*${ech.toFixed(3)};float nz=texture2D(bsBr,p*.11).r,nz2=texture2D(bsBr,p*.023+.4).r;
+function matSolSimple(a,b,ech,var2){const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});const uni={bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsBr:{value:texBruitGL()}};
+ return brume(m,{cle:'solS'+a+b+ech,extra:sh=>{Object.assign(sh.uniforms,uni);sh.fragmentShader=sh.fragmentShader.replace('void main() {','uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsBr;\nvoid main() {').replace('#include <map_fragment>',`{vec2 p=vBsW*${ech.toFixed(3)};float nz=texture2D(bsBr,p*.11).r,nz2=texture2D(bsBr,p*.023+.4).r;
  vec3 ca=mix(texture(bsLay,vec3(p,${a}.)).rgb,texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.71+.3,${a}.)).rgb,smoothstep(.35,.65,nz));vec3 cb=texture(bsLay,vec3(p*.9,${b}.)).rgb;
- vec3 col=mix(ca,cb,smoothstep(.56,.68,nz2*.7+nz*.3)*${(var2??1).toFixed(2)});col*=.85+.3*nz2;diffuseColor.rgb*=col;}`);}});}
+ float mb=smoothstep(.56,.68,nz2*.7+nz*.3)*${(var2??1).toFixed(2)};vec3 col=mix(ca,cb,mb);col*=.85+.3*nz2;diffuseColor.rgb*=col;bsNt=mix(texture(bsLayN,vec3(p,${a}.)).xyz,texture(bsLayN,vec3(p*.9,${b}.)).xyz,mb)*2.-1.;}`).replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1);normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}');}});}
 const SEC={herbe:1,terre:2,rude:1,neige:2,sable:2,marais:7,lave:2};const IDT={herbe:0,terre:1,rude:2,neige:3,sable:4,marais:5,lave:6};
 function arbresPour(ter,r){const p=r.f();switch(ter){
  case 'neige':return p<.8?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:'jeune_a';
@@ -552,6 +555,13 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  for(let k=0;k<70;k++){const z=-17-r.f()*22;arbre((r.f()-.5)*vis(z)*1.1,z,4+r.f()*3);}
  for(let k=0;k<16;k++){const z=-12+r.f()*20;const sd=r.f()<.5?-1:1;arbre(sd*vis(z)*(.44+r.f()*.1),z,3.5+r.f()*2);}
  for(let k=0;k<10;k++){const z=-2+r.f()*12;const x=(r.f()-.5)*vis(z)*.9;if(Math.abs(x)<2)continue;if(reel){const o=planImp('b','roc_'+'abcd'[k%4],.22+r.f()*.25,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}continue;}const o=new T.Mesh(geoRocher(k%5,terS),mP);o.position.set(x,0,z);o.scale.setScalar(.6+r.f()*.6);o.castShadow=true;sc.add(o);}
+ // place pavée, puits, tonneaux, caisses et lanternes (accessoires photographiés)
+ if(reel&&v.fac!=='horde'){ECH=.55;const pl=new T.Mesh(new T.CircleGeometry(4.2,40).rotateX(-Math.PI/2),mat(0xc8c0b4,{tri:'pave',r:.95,ech:.9}));pl.position.set(0,.025,4.5);pl.scale.set(1.25,1,.8);pl.receiveShadow=true;sc.add(pl);
+  const ch2=new T.Mesh(new T.PlaneGeometry(2.4,22).rotateX(-Math.PI/2),mat(0xc8c0b4,{tri:'pave',r:.95,ech:.9}));ch2.position.set(0,.02,-3);ch2.receiveShadow=true;sc.add(ch2);
+  const pu=new T.Group();pu.position.set(2.6,0,4.2);pu.scale.setScalar(1.6);bloc(pu,GCYL,0xb0a898,PM3,[0,.32,0],null,[1,.64,1]);bloc(pu,GCYL,0x1a3a4a,{r:.05},[0,.6,0],null,[.8,.02,.8]);for(const s2 of [-1,1])bloc(pu,GBOX,0x5a4030,PP,[s2*.45,1,0],null,[.08,1.3,.08]);bloc(pu,PRISME,0x7a7a82,PT,[0,1.68,0],null,[1.2,.5,1]);sc.add(fusionner(pu));}
+ if(reel){const qA=cam.quaternion.clone();const acc=(nom,ht,x,z)=>{const o=planImp('b',nom,ht,r.f()<.5,qA);if(o){o.position.set(x,0,z);sc.add(o);}};
+  acc('tonneau',.65,-3.6,7.4);acc('tonneau2',.6,-4.3,7.8);acc('caisse',.42,-2.9,7.9);acc('caisse',.4,3.4,7.6);acc('tonneau',.62,4.2,7.2);acc('seau',.3,2.9,5.2);
+  for(const x of [-1.6,1.6])for(const z of [1,6.5]){acc('lanterne',.9,x,z);}}
  // bâtiments
  const P=v.fac==='sylve'?PM2:v.fac==='horde'?PB:PM;
  const ordre=Object.keys(PANO).filter(b=>v.bat[b]).filter(b=>!(b==='conseil'&&(v.bat.mairie))&&!(b==='mairie'&&v.bat.hotelville)&&!(b==='hotelville'&&v.bat.capitole)&&!(b==='fort'&&v.bat.citadelle)&&!(b==='citadelle'&&v.bat.chateau)&&!(b==='guilde1'&&v.bat.guilde2)&&!(b==='guilde2'&&v.bat.guilde3));

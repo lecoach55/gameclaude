@@ -185,6 +185,10 @@ function quadrupede(o){
  const p0=P.pose0;etat.poser=(an,t)=>{const k=Math.sin(t*Math.PI),s=Math.sin(t*Math.PI*2);const po={av:[[...p0.av],[...p0.av]],ar:[[...p0.ar],[...p0.ar]],cou:0,tete:0,queue:s*.4,machoire:0,ailes:o.ailesRepos??.25};
   corps.position.set(0,0,0);corps.rotation.set(0,0,0);let dy=0;
   if(an==='idle'){po.cou=s*.03;po.tete=s*.04;dy=s*.008;po.ailes+=s*.05;}
+  else if(an==='marche'){const f=t*Math.PI*2;const ph=[[.25,.75],[0,.5]];// pas : AG .25, AD .75, PG 0, PD .5
+   for(const [av,i] of [[1,0],[1,1],[0,0],[0,1]]){const l=po[av?'av':'ar'][i];const a=f-ph[av?0:1][i]*Math.PI*2;const sw=Math.sin(a),lift=Math.max(0,Math.cos(a));
+    l[0]+=sw*(av?.32:.28);l[1]+=lift*(av?-.25:.3)*-1+(av?lift*.15:0);l[2]+=lift*(av?-.55:.35)*-1;l[3]+=lift*.2;}
+   dy=Math.abs(Math.sin(f))*.012;po.cou=Math.sin(f*2)*.04;po.tete=-Math.sin(f*2)*.05;po.queue=Math.sin(f)*.3;}
   else if(an==='atk'){if(o.cabre){corps.rotation.z=k*.62;dy=k*.08;corps.position.x=-k*.22;for(const l of po.av){l[0]+=k*1.5;l[1]-=k*.9;l[2]-=k*.8;}for(const l of po.ar){l[0]+=k*.4;l[1]-=k*.3;}po.cou=k*.25;po.tete=-k*.2;po.machoire=k*.25;po.ailes=.25+k*.75;}
    else{corps.position.x=k*.28;corps.rotation.z=-k*.1;for(const l of po.av){l[0]+=k*.9;l[1]+=k*.2;}for(const l of po.ar){l[0]-=k*.35;l[1]-=k*.2;}po.cou=-k*.35;po.tete=-k*.1;po.machoire=k*.6;po.ailes=.25+k*.6;}}
   else if(an==='hit'){corps.rotation.z=k*.12;corps.position.x=-k*.1;po.cou=k*.3;po.tete=k*.2;po.machoire=k*.3;}
@@ -251,7 +255,7 @@ function feuilles(par,c,R,n,C,tex){const g=new THREE.PlaneGeometry(.055,.075);co
  im.castShadow=true;par.add(im);}
 
 // ---------- cavaliers (personnages Mixamo assis) ----------
-function rig(root){const B={};root.traverse(o=>{if(o.isBone){const n=o.name.replace(/^mixamorig:?/,'');if(!B[n])B[n]=o;}});return B;}
+function rig(root){const B={};root.traverse(o=>{if(o.isBone){const n=o.name.replace(/^mixamorig\d*:?/,'').replace(/^.*[:|]/,'');if(!B[n])B[n]=o;}});return B;}
 const CH={LeftArm:'LeftForeArm',LeftForeArm:'LeftHand',RightArm:'RightForeArm',RightForeArm:'RightHand',LeftUpLeg:'LeftLeg',LeftLeg:'LeftFoot',RightUpLeg:'RightLeg',RightLeg:'RightFoot'};
 const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_q=new THREE.Quaternion(),_q2=new THREE.Quaternion();
 function viser(B,n,dir){const b=B[n],c=B[CH[n]];if(!b||!c)return;b.updateMatrixWorld(true);b.getWorldPosition(_a);c.getWorldPosition(_b);const cur=_b.sub(_a).normalize();_q.setFromUnitVectors(cur,dir.clone().normalize());b.getWorldQuaternion(_q2);const nw=_q.multiply(_q2);const pq=new THREE.Quaternion();b.parent.getWorldQuaternion(pq);b.quaternion.copy(pq.invert().multiply(nw));b.updateMatrixWorld(true);}
@@ -272,7 +276,19 @@ function monte(o,perso,optsPerso,bras,tapis){return()=>{const Q=quadrupede(o);Q.
   const pose=k=>asseoir(R,B=>bras(B,k));
   return{root:Q.root,poser:(an,t)=>{Q.poser(an,t);pose(an==='atk'?Math.sin(t*Math.PI):0);}};};}
 const BRAS_LANCE=(B,k)=>{viser(B,'RightArm',V(.6,-.5,-.3+k*.3));viser(B,'RightForeArm',V(1,.2-k*.3,0));viser(B,'LeftArm',V(.3,-.8,.4));viser(B,'LeftForeArm',V(.8,-.2,.3));};
+function heros(couleurs,perso,opts,dy,tapis,loup){const make=monte(loup?(()=>{const o={g:Object.assign({},G_LOUP,{corps:{bar:[.62,.26,.23],poit:[.28,.3,.23],cul:[.28,.26,.22],ventre:[.5,.17,.2]},av:[.25,.25,.18,.07],ar:[.29,.3,.2,.07]}),res:100,couleurs,peau:{etire:[140,60,140],tache:.32,relief:.55,freq:6},dos:1,fourrure:1};o.couleurs.poils=[0x6a645e,0x3a3632,0x8a847c];o.hauteur=hauteurPose(o.g);return o;})():cheval(couleurs),
+  perso,Object.assign({dy},opts),(B,k)=>{viser(B,'RightArm',V(.5,-.6,-.35));viser(B,'RightForeArm',V(.9,.1,-.1));viser(B,'LeftArm',V(.35,-.8,.4));viser(B,'LeftForeArm',V(.8,-.25,.3));},tapis);
+ return()=>{const R=make();return{root:R.root,poser:(an,t)=>R.poser(an==='atk'?'marche':an,t)};};}
 export const QDEFS={
+ h_chevalier:{c:heros({robe:0xd8d0c0,fonce:0x8a8070,ventre:0xe8e2d6,crin:[0xe8e0d0,0xc8c0b0],nez:0x4a3e36,sabot:0x3a3026},'hx_aldric',{s:.78,gsat:.95,gdk:1.5,gamt:.06,recol:{h:.75,to:.6,w:.12,s:1.2}},-.52,0x2f4f88),u:3.0,fw:208,fh:192},
+ h_clerc:{c:heros({robe:0x8a8a86,fonce:0x4a4844,ventre:0xa8a8a2,crin:[0xd8d8d4,0xa8a8a4],nez:0x2a2826,sabot:0x2a2622},'hx_ysolde',{s:.78,gsat:.7,gdk:.75,gamt:.2,recol:{h:.11,to:.6,w:.5,s:.5}},-.52,0x6a4a8a),u:3.0,fw:208,fh:192},
+ h_rodeur:{c:heros({robe:0x8a5a32,fonce:0x4a2e18,ventre:0x9a6e44,crin:[0x2a1a10,0x3a2414],nez:0x201410,sabot:0x2a2018},'hx_maelle',{s:.8,gsat:.9,gdk:1.3,gamt:.08,recol:{h:.33,to:.3,w:.12,s:.9}},-.52,0x2f6a3a),u:3.0,fw:208,fh:192},
+ h_druide:{c:heros({robe:0xb08a5a,fonce:0x6a4a2a,ventre:0xc8a878,crin:[0xe8d8b8,0xc8b090],nez:0x3a2a1a,sabot:0x3a3026},'hx_maelle',{s:.8,gsat:.9,gdk:1.3,gamt:.08,hue:.3},-.52,0x4a6a2a),u:3.0,fw:208,fh:192},
+ h_chevmort:{c:heros({robe:0x1e1a1a,fonce:0x0e0c0c,ventre:0x2a2424,crin:[0x0a0808,0x1a1414],nez:0x101010,sabot:0x151010,oeil:0x801010},'hx_aldric',{s:.8,gsat:.3,gdk:.6,gamt:.3,gmet:.3,recol:{h:.75,to:.8,w:.2,s:1.1}},-.52,0x3a1010),u:3.0,fw:208,fh:192},
+ h_necromancien:{c:heros({robe:0x3a3632,fonce:0x1a1816,ventre:0x4a4640,crin:[0x8a8a84,0x5a5a56],nez:0x101010,sabot:0x151010,oeil:0x30a060},'hx_ysolde',{s:.78,gsat:.5,gdk:.45,gamt:.3,recol:{h:.38,to:.55,w:.35,s:.45}},-.52,0x2a4a3a),u:3.0,fw:208,fh:192},
+ h_barbare:{c:heros({robe:0x4a3424,fonce:0x24180e,ventre:0x6a4e38,crin:[0x1a120c,0x2a1e14],nez:0x181010,sabot:0x2a2018},'hx_brute',{s:.6,hue:.05,gsat:.6,gdk:1.1,gamt:.15,ghc:.2},-.48,0x6a2a14),u:3.0,fw:208,fh:192},
+ h_chaman:{c:heros({robe:0x8a7a62,fonce:0x4a3e2e,ventre:0xa89a80,crin:[0x3a2e22,0x5a4a38],nez:0x201810,sabot:0x2a2018},'hx_brute',{s:.58,hue:.35,gsat:.55,gdk:1.1,gamt:.15,ghc:.2},-.48,0x5a3a14),u:3.0,fw:208,fh:192},
+
  cavalier:{c:monte(cheval({robe:0xd8d0c0,fonce:0x8a8070,ventre:0xe8e2d6,crin:[0xe8e0d0,0xc8c0b0,0xa89c88],nez:0x4a3e36,sabot:0x3a3026}),'hx_aldric',{s:.78,gsat:.9,gdk:1.45,gamt:.08,recol:{h:.75,to:.62,w:.14,s:1.1},wR:['staff'],wx:{staff:{p:[0,.1,.02],s:.62}},dy:-.52},BRAS_LANCE,0x2f4f88),u:3.0,fw:208,fh:192},
  chevnoir:{c:monte(cheval({robe:0x1e1a1a,fonce:0x0e0c0c,ventre:0x2a2424,crin:[0x0a0808,0x1a1414],nez:0x101010,sabot:0x151010,oeil:0x801010}),'hx_aldric',{s:.8,gsat:.25,gdk:.42,gamt:.35,gmet:.3,recol:{h:.75,to:.98,w:.2,s:1.2},dy:-.52},BRAS_LANCE,0x3a1010),u:3.0,fw:208,fh:192},
  pegase:{c:()=>{const Q=quadrupede(cheval({robe:0xeceef4,fonce:0xb8bcc8,ventre:0xf6f6fa,crin:[0xf0f4ff,0xd0dcf0,0xb8c8e8],nez:0x8a8088,sabot:0x8a8478},{ailes:1,ailesT:1.15,ailesRepos:.2,plumes:[0xf4f4f8,0xd8dce8],couv:[0xf8f8fc,0xe8eaf2]}));return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.3,fw:212,fh:208},

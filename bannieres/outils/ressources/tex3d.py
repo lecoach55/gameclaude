@@ -41,5 +41,8 @@ L={
  'pave':lambda:regle(charge('mossy_cobblestone'),sat=.8),'mur3':lambda:charge('rustic_stone_wall'),'ardoise2':lambda:regle(charge('grey_roof_tiles'),sat=.7),
  'bois':lambda:regle(teinter(charge('brown_planks_05'),(130,96,62),.6),lum=.95),'ecorce':lambda:charge('pine_bark'),
 }
+# reliefs des sols (normal maps 256 px, même ordre que les couches)
+SRC_SOL={'sol_herbe':'rocky_terrain_02','sol_terre':'dry_ground_rocks','sol_rude':'rocky_trail','sol_neige':'snow_field_aerial','sol_sable':'aerial_sand','sol_marais':'brown_mud_leaves_01','sol_lave':'burned_ground_01','sol_fond':'coast_sand_01','sol_route':'grass_path_3'}
+for k,src in SRC_SOL.items():L[k+'_n']=(lambda src:lambda:charge(src,'nor',256))(src)
 for n,f in L.items():
     im=f();q=80 if n.endswith('_n') else 82;p=os.path.join(OUT,n+'.jpg');im.save(p,'JPEG',quality=q,optimize=True);print(n,os.path.getsize(p)//1024,'Kio')

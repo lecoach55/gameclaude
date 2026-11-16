@@ -37,6 +37,8 @@ L={
  'mur2':lambda:charge('stone_wall'),'mur2_n':lambda:charge('stone_wall','nor'),
  'ardoise':lambda:regle(charge('roof_slates_02'),lum=1.1),'ardoise_n':lambda:charge('roof_slates_02','nor'),
  'tuile':lambda:charge('clay_roof_tiles_02'),'chaume':lambda:regle(charge('thatch_roof_angled'),lum=1.25,sat=1.1),
+ 'enduit':lambda:regle(teinter(charge('plastered_wall_03'),(214,200,176),.5),lum=1.25),'poutre':lambda:regle(charge('dark_wooden_planks'),lum=.9),
+ 'pave':lambda:regle(charge('mossy_cobblestone'),sat=.8),'mur3':lambda:charge('rustic_stone_wall'),'ardoise2':lambda:regle(charge('grey_roof_tiles'),sat=.7),
  'bois':lambda:regle(teinter(charge('brown_planks_05'),(130,96,62),.6),lum=.95),'ecorce':lambda:charge('pine_bark'),
 }
 for n,f in L.items():

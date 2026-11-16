@@ -52,6 +52,11 @@ HOOK.combat=async(A,D,opts)=>{const ha=humain(A.joueur),hd=humain(D.joueur);if(!
 
 // ---------- accueil ----------
 function fondAccueil(){const c=$('fondAccueil');c.width=innerWidth*Math.min(2,devicePixelRatio||1);c.height=innerHeight*Math.min(2,devicePixelRatio||1);const g=c.getContext('2d');
+ // fond en 3D : une ville du Bastion rendue une fois, avec un lent travelling
+ if(V.m3&&R3.ok&&R3.pret&&R3.pret()&&V.acc3!==false){try{if(!V.acc3||V.acc3.W!==c.width){const bat={};for(const b of BAT_ORDRE)if(!BAT[b].unique)bat[b]=1;const W=Math.round(c.width*1.12),H=Math.round(c.height*1.12);
+   V.acc3=R3.panoVille({id:11,fac:'bastion',nom:'',bat,prop:-1,sansCre:1},W,H);V.acc3.W=c.width;}
+  const t=performance.now()/1000;const im=V.acc3.c;const ox=-(Math.sin(t*.06)+1)*.5*(im.width-c.width),oy=-(Math.cos(t*.05)+1)*.5*(im.height-c.height);g.drawImage(im,ox,oy);
+  const gr=g.createLinearGradient(0,0,0,c.height);gr.addColorStop(0,'rgba(0,0,0,.25)');gr.addColorStop(.5,'rgba(0,0,0,.05)');gr.addColorStop(1,'rgba(0,0,0,.45)');g.fillStyle=gr;g.fillRect(0,0,c.width,c.height);return;}catch(e){console.error(e);V.acc3=false;}}
  if(!V.accueil){const gen=genererCarte({graine:31,taille:28,joueurs:[{fac:'bastion'},{fac:'necro'}],eau:2,monstres:1});V.accueil={sol:peindreSol(gen.carte),gen};}
  const {sol,gen}=V.accueil;const N=gen.carte.N;const k=Math.max(c.width,c.height)/(N*PX)*1.25;const t=performance.now()/1000;const ox=-((Math.sin(t*.05)+1)*.5)*(N*PX*k-c.width),oy=-((Math.cos(t*.04)+1)*.5)*(N*PX*k-c.height);
  g.drawImage(sol,ox,oy,N*PX*k,N*PX*k);const T=PX*k;

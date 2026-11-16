@@ -69,9 +69,16 @@ function meches(chemins,ep,cols,mat){const gs=[];for(const ch of chemins){const 
 let SEED=12345;const rnd=()=>(SEED=(SEED*16807)%2147483647)/2147483647;
 
 // ---------- ailes : bras + rangées de plumes ----------
+let TPL=null;function texPlume(){if(TPL)return TPL;const c=document.createElement('canvas');c.width=64;c.height=256;const g=c.getContext('2d');
+ g.fillStyle='#fff';g.beginPath();g.moveTo(32,2);g.bezierCurveTo(58,40,60,200,40,254);g.lineTo(24,254);g.bezierCurveTo(4,200,6,40,32,2);g.fill();
+ g.globalCompositeOperation='source-atop';for(let y=6;y<250;y+=3){const a=(y/256)*.6+.2;g.strokeStyle=`rgba(0,0,0,${.12+.1*Math.random()})`;g.lineWidth=1;g.beginPath();g.moveTo(32,y);g.lineTo(4,y-14*a);g.moveTo(32,y);g.lineTo(60,y-14*a);g.stroke();}
+ for(let k=0;k<6;k++){g.fillStyle='rgba(0,0,0,.35)';const y=40+Math.random()*190;g.fillRect(Math.random()<.5?2:44,y,18,2);}
+ const gr=g.createLinearGradient(0,0,0,256);gr.addColorStop(0,'rgba(0,0,0,.25)');gr.addColorStop(.4,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,64,256);
+ g.globalCompositeOperation='source-over';g.strokeStyle='rgba(240,230,210,.9)';g.lineWidth=2;g.beginPath();g.moveTo(32,4);g.lineTo(32,254);g.stroke();
+ TPL=new THREE.CanvasTexture(c);TPL.colorSpace=THREE.SRGBColorSpace;return TPL;}
 function aile(o,cote,ouv){// ouv : 0 replié, 1 déployé ; renvoie un groupe (racine à l'épaule), étendue vers -x (arrière) et le côté
- const g=new THREE.Group();const L=o.ailesT||1.2;const plume=new THREE.BoxGeometry(1,1,1);const mats={};
- const mp=c=>mats[c]||(mats[c]=new THREE.MeshStandardMaterial({color:c,roughness:.75}));
+ const g=new THREE.Group();const L=o.ailesT||1.2;const plume=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2).rotateY(Math.PI/2);const mats={};
+ const mp=c=>mats[c]||(mats[c]=new THREE.MeshStandardMaterial({color:c,roughness:.8,map:texPlume(),alphaTest:.45,side:THREE.DoubleSide}));
  // os de l'aile : épaule → coude → poignet (dans le plan, dépliés selon ouv)
  const a1=-.3-ouv*.25,a2=.8-ouv*.75,a3=-.4+ouv*.2;// angles
  const e=[0,0,0],c=add(e,[Math.cos(Math.PI+a1)*L*.32,Math.sin(.6+ouv*.4)*L*.32*.6,cote*L*.32*(.35+ouv*.6)]);
@@ -79,7 +86,7 @@ function aile(o,cote,ouv){// ouv : 0 replié, 1 déployé ; renvoie un groupe (r
  const bout=add(p,[Math.cos(Math.PI+a1+a2+a3)*L*.18,.02,cote*L*.18*(.3+ouv*.6)]);
  const os=[e,c,p,bout];
  // plumes : rémiges primaires (main), secondaires (avant-bras), couvertures
- const ajout=(base,dir,lg,lar,coul,inc)=>{const m=new THREE.Mesh(plume,mp(coul));const d=nrm(dir);m.scale.set(lg,.004,lar);m.position.set(...add(base,mul(d,lg/2)));
+ const ajout=(base,dir,lg,lar,coul,inc)=>{const m=new THREE.Mesh(plume,mp(coul));const d=nrm(dir);m.scale.set(lg,1,lar*1.6);m.position.set(...add(base,mul(d,lg/2)));
   const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1,0,0),new THREE.Vector3(...d));m.quaternion.copy(q);m.rotateX(inc*cote);g.add(m);};
  const rang=(A,B,n,lg0,lg1,ang0,ang1,coul,lar,inc,dy)=>{for(let i=0;i<n;i++){const t=i/(n-1);const base=add(lerp(A,B,t),[0,dy,0]);const ang=ang0+(ang1-ang0)*t;const dir=[Math.cos(Math.PI+ang),-.25-.15*(1-ouv),cote*Math.sin(ang)*.9];
    const cl=new THREE.Color(coul[0]).lerp(new THREE.Color(coul[1]),t*.7+rnd()*.3).getHex();ajout(base,dir,lg0+(lg1-lg0)*t,lar,cl,inc);}};
@@ -89,7 +96,7 @@ function aile(o,cote,ouv){// ouv : 0 replié, 1 déployé ; renvoie un groupe (r
  rang(e,c,8,L*.32,L*.4,-.6,-.35,pt,L*.08,.05,0);// tertiaires
  const cv=o.couv||[pt[0],pt[0]];rang(e,p,14,L*.22,L*.18,-.5,.2,cv,L*.07,.15,.012);rang(e,c,10,L*.12,L*.1,-.4,0,cv,L*.06,.2,.024);
  // bras (os couvert)
- const mb=mp(cv[0]);for(let i=0;i<3;i++){const a=os[i],b=os[i+1];const d=sub(b,a);const m=new THREE.Mesh(new THREE.CylinderGeometry(L*.025,L*.035,len(d),8),mb);m.position.set(...lerp(a,b,.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...nrm(d)));g.add(m);}
+ const mb=new THREE.MeshStandardMaterial({color:cv[0],roughness:.8});for(let i=0;i<3;i++){const a=os[i],b=os[i+1];const d=sub(b,a);const m=new THREE.Mesh(new THREE.CylinderGeometry(L*.025,L*.035,len(d),8),mb);m.position.set(...lerp(a,b,.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...nrm(d)));g.add(m);}
  return g;}
 
 // ---------- quadrupède sculpté ----------
@@ -162,6 +169,8 @@ function quadrupede(o){
   if(o.criniere){const ch=[];for(let i=0;i<90;i++){const t=rnd();const b=add(lerp(cb,ct,t),[-P.cou.r0*.55*(1-t*.4)+.02,P.cou.r0*.85*(1-t*.5),(rnd()-.5)*.03]);const sd=(rnd()<.5?1:-1);
     ch.push({p:[b,add(b,[-.05,.03,sd*.02]),add(b,[-.08,-.06,sd*.07]),add(b,[-.07,-.16,sd*.1])],k:i});}
    for(let i=0;i<14;i++){const b=add(add(h0,mul(hd,T.l*.1)),[0,T.r0*.9,(rnd()-.5)*.05]);ch.push({p:[b,add(b,[.05,.02,0]),add(b,[.1,-.04,(rnd()-.5)*.05])],k:i});}extras.add(meches(ch,.011,C.crin));}
+  if(o.fourrure){const ch=[];for(let i=0;i<160;i++){const t=rnd();const onDos=i<100;const b=onDos?[ -B.bar[0]*.8+t*B.bar[0]*1.7,B.bar[1]*(.85+.1*Math.sin(t*3)),(rnd()-.5)*B.bar[2]*1.2]:add(lerp(cb,ct,t*.6),[(rnd()-.5)*.1,(rnd()-.3)*P.cou.r0*1.4,(rnd()<.5?1:-1)*P.cou.r0*(.8+rnd()*.4)]);const l=.05+rnd()*.05;
+    ch.push({p:[b,add(b,[-l*.6,l*.4,(rnd()-.5)*l]),add(b,[-l*1.2,-l*.1,(rnd()-.5)*l*1.5])],k:i});}extras.add(meches(ch,.009,C.poils||[C.robe,C.fonce]));}
   // yeux
   if(!P.bec||true){for(const z of [-1,1]){const ep=P.bec?add(add(ct,mul(hd,T.l*.2)),[0,T.r0*.35,z*T.r0*.75]):add(add(h0,mul(hd,T.l*.25)),[0,T.r0*.45,z*T.r0*.82]);const e=new THREE.Mesh(new THREE.SphereGeometry(T.r0*.2,12,8),mBrillant(C.oeil||0x140c06,.08));e.position.set(...ep);extras.add(e);}}
   if(P.cornes){const mcn=mBrillant(0xd8ccb0,.35);for(const z of [-1,1]){const b=add(add(h0,mul(hd,T.l*.15)),[0,T.r0*.8,z*T.r0*.7]);const cur=new THREE.CatmullRomCurve3([b,add(b,[-.08,.2,z*.2]),add(b,[.12,.38,z*.32]),add(b,[.34,.36,z*.24])].map(v=>new THREE.Vector3(...v)));
@@ -205,7 +214,7 @@ function oiseau(o){const root=new THREE.Group(),corps=new THREE.Group();root.add
   peau(S,mc,o.res||100);
   for(const z of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(.03,12,8),mBrillant(0x2a1404,.08));e.position.set(...add(add(ct,mul(hd,.1)),[0,.04,z*.1]));ex.add(e);}
   // queue en éventail
-  const plume=new THREE.BoxGeometry(1,1,1);for(let i=0;i<9;i++){const a=(i-4)/4*.5;const m=new THREE.Mesh(plume,new THREE.MeshStandardMaterial({color:new THREE.Color(C.plumes[0]).lerp(new THREE.Color(C.plumes[1]),rnd()).getHex(),roughness:.75}));m.scale.set(.5,.004,.09);m.position.set(-.85,-.02,Math.sin(a)*.25);m.rotation.y=a;m.rotation.z=.1;ex.add(m);}
+  const plume=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2).rotateY(Math.PI/2);for(let i=0;i<9;i++){const a=(i-4)/4*.5;const m=new THREE.Mesh(plume,new THREE.MeshStandardMaterial({color:new THREE.Color(C.plumes[0]).lerp(new THREE.Color(C.plumes[1]),rnd()).getHex(),roughness:.8,map:texPlume(),alphaTest:.45,side:THREE.DoubleSide}));m.scale.set(.5,1,.14);m.position.set(-.85,-.02,Math.sin(a)*.25);m.rotation.y=a;m.rotation.z=.1;ex.add(m);}
   for(const z of [-1,1]){const w=aile({ailesT:o.ailesT||1.5,plumes:C.plumes,couv:C.couv},z,ouv);w.position.set(.15,.2,z*.22);ex.add(w);}
   ex.traverse(x=>{if(x.isMesh)x.castShadow=true;});
   corps.rotation.set(0,0,rz);corps.position.set(an==='atk'?k*.2:0,o.hauteur+(an==='idle'?s*.01:0),0);if(an==='die'){const d=Math.min(1,t*1.15);corps.rotation.x=d*1.4;corps.position.y=o.hauteur*(1-d*.75);}corps.updateMatrixWorld(true);};
@@ -268,7 +277,7 @@ export const QDEFS={
  chevnoir:{c:monte(cheval({robe:0x1e1a1a,fonce:0x0e0c0c,ventre:0x2a2424,crin:[0x0a0808,0x1a1414],nez:0x101010,sabot:0x151010,oeil:0x801010}),'hx_aldric',{s:.8,gsat:.25,gdk:.42,gamt:.35,gmet:.3,recol:{h:.75,to:.98,w:.2,s:1.2},dy:-.52},BRAS_LANCE,0x3a1010),u:3.0,fw:208,fh:192},
  pegase:{c:()=>{const Q=quadrupede(cheval({robe:0xeceef4,fonce:0xb8bcc8,ventre:0xf6f6fa,crin:[0xf0f4ff,0xd0dcf0,0xb8c8e8],nez:0x8a8088,sabot:0x8a8478},{ailes:1,ailesT:1.15,ailesRepos:.2,plumes:[0xf4f4f8,0xd8dce8],couv:[0xf8f8fc,0xe8eaf2]}));return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.3,fw:212,fh:208},
  licorne:{c:()=>{const Q=quadrupede(cheval({robe:0xf6f4f0,fonce:0xc8c4bc,ventre:0xfbfaf6,crin:[0xf8f0f8,0xe8d8f0,0xd8c0e8],nez:0xb09098,sabot:0xd8c8a0},{licorne:1}));return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.0,fw:200,fh:184},
- loup:{c:()=>{const o={g:G_LOUP,res:100,couleurs:{robe:0x5a5550,fonce:0x24221f,ventre:0xa8a094,fraise:0x7a746c,nez:0x141010,oeil:0x8a6a10},peau:{etire:[140,60,140],tache:.32,relief:.55,freq:6}};o.hauteur=hauteurPose(o.g);o.dos=1;const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:2.0,fw:168,fh:140},
+ loup:{c:()=>{const o={g:G_LOUP,res:100,couleurs:{robe:0x5a5550,fonce:0x24221f,ventre:0xa8a094,fraise:0x7a746c,nez:0x141010,oeil:0x8a6a10},peau:{etire:[140,60,140],tache:.32,relief:.55,freq:6}};o.hauteur=hauteurPose(o.g);o.dos=1;o.fourrure=1;o.couleurs.poils=[0x6a645e,0x3a3632,0x8a847c,0x24201e];const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:2.0,fw:168,fh:140},
  griffon:{c:()=>{const o={g:G_GRIFFON,res:104,cabre:1,ailes:1,ailesT:1.1,ailesRepos:.35,plumes:[0x7a5430,0x3a2616],couv:[0x9a6e3e,0x7a5430],couleurs:{robe:0xb08850,fonce:0x7a5a30,ventre:0xd8c8a8,tete:0xf0ece0,bec:0xd8a838,oeil:0xc88a10},peau:{etire:[90,90,90],tache:.25,relief:.4,freq:5}};
    o.hauteur=hauteurPose(o.g);const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.0,fw:200,fh:192},
  behemoth:{c:()=>{const o={g:G_BEHEMOTH,res:108,couleurs:{robe:0x5a3a2e,fonce:0x2e1e18,ventre:0x7a5a48,nez:0x1a1010,oeil:0xd04010},peau:{etire:[30,30,30],tache:.4,relief:1.2,freq:4,r:.7}};o.hauteur=hauteurPose(o.g);const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.2,fw:224,fh:192},

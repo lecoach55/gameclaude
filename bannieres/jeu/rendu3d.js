@@ -32,7 +32,7 @@ let ECH=3;// répétitions des textures par unité (carte 3, combat 1.4, ville .
 const MATS={};function mat(c,o={}){if(o.map===null)delete o.map;if(o.tri&&!RES.tx[o.tri])o=Object.assign({},o,{tri:null});if(o.tri)o=Object.assign({},o,{ech:(o.ech||1)*ECH});const k=c+JSON.stringify(o,(n,v)=>n==='map'?(v&&v.uuid):v);if(MATS[k])return MATS[k];const m=new T.MeshStandardMaterial(Object.assign({color:c,roughness:o.r??.85,metalness:o.m||0,flatShading:!!o.plat},o.map?{map:o.map}:{},o.tri?{map:RES.tx[o.tri]}:{}));if(o.em){m.emissive=new T.Color(o.em);m.emissiveIntensity=o.ei||1;}if(o.vc)m.vertexColors=true;if(o.transp){m.transparent=true;m.opacity=o.transp;}return MATS[k]=brume(m,o);}
 // ---------- ressources réalistes : textures Poly Haven (CC0) et arbres/rochers pré-rendus (imposteurs) ----------
 const RES={tx:{},img:{},pret:false,lay:null,atlas:null,imp:null};
-const NOMS_TX=['sol_herbe','sol_terre','sol_rude','sol_neige','sol_sable','sol_marais','sol_lave','sol_fond','sol_route','roche','roche2','neige','mur','mur2','ardoise','tuile','chaume','bois','ecorce'];
+const NOMS_TX=['enduit','poutre','pave','mur3','ardoise2','sol_herbe','sol_terre','sol_rude','sol_neige','sol_sable','sol_marais','sol_lave','sol_fond','sol_route','roche','roche2','neige','mur','mur2','ardoise','tuile','chaume','bois','ecorce'];
 function srcRes(id,f){const el=document.getElementById(id);return el?'data:'+(f.endsWith('.webp')?'image/webp':'image/jpeg')+';base64,'+el.textContent.trim():f;}
 function chargerImg(src){return new Promise(r=>{const im=new Image();im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src;});}
 let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
@@ -199,34 +199,94 @@ const BOX=new T.BoxGeometry(1,1,1),CYL=new T.CylinderGeometry(.5,.5,1,12),CONE=n
 function tour(gr,x,z,r0,ht,mur,toit,forme,pierre){bloc(gr,CYL,mur,pierre,[x,ht/2,z],null,[r0*2,ht,r0*2]);if(forme==='plat'){for(let k=0;k<6;k++){const a=k/6*Math.PI*2;bloc(gr,BOX,mur,pierre,[x+Math.cos(a)*r0*.9,ht+.05,z+Math.sin(a)*r0*.9],null,[.07,.1,.07]);}}
  else bloc(gr,CONE,toit,PT,[x,ht+r0*(forme==='fleche'?1.6:1.1),z],null,[r0*2.5,r0*(forme==='fleche'?3.2:2.2),r0*2.5]);}
 function drapeauMesh(gr,x,y,z,coul,s=1){const m=new T.Mesh(new T.PlaneGeometry(.32*s,.2*s,6,2).translate(.16*s,0,0),mat(coul,{onde:1,r:.7}));m.position.set(x,y,z);m.material.side=T.DoubleSide;gr.add(m);const mat2=new T.Mesh(CYL,mat(0x3a2a1a));mat2.scale.set(.025,.42*s,.025);mat2.position.set(x,y-.12*s,z);gr.add(mat2);return m;}
-function toitNat(c){return new T.Color(c).lerp(new T.Color(0x56565c),.5).getHex();}
+function toitNat(c){return new T.Color(c).lerp(new T.Color(0x9a9aa2),.68).getHex();}
+
+// =========================================================
+// ARCHITECTURE : pièces médiévales assemblées (remparts crénelés, tours à mâchicoulis, donjons, portes, maisons à colombages)
+// puis fusionnées par matière (peu d'appels de dessin). Matières : pierre de château, enduit, poutres, ardoise, tuile, chaume.
+// =========================================================
+const PE={tri:'enduit',r:.95,ech:1.3},PP={tri:'poutre',r:.8,ech:1.6},PM3={tri:'mur3',r:.92},PA2={tri:'ardoise2',r:.8,ech:1.2},PV={tri:'pave',r:.95,ech:.8};
+const GCYL=new T.CylinderGeometry(.5,.56,1,20,1),GCYLH=new T.CylinderGeometry(.5,.5,1,20,1,true),GCONE=new T.ConeGeometry(.5,1,20,1),GBOX=new T.BoxGeometry(1,1,1);
+const GARC=(()=>{const g=new T.CylinderGeometry(.5,.5,1,16,1,false,0,Math.PI);g.rotateX(Math.PI/2);g.rotateZ(Math.PI/2);return g;})();
+const NOIR=0x161210;
+// mur crénelé entre deux points (au sol), hauteur h, épaisseur e
+function rempart(gr,a,b,h,e,mur,P,dents=true){const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz),ang=-Math.atan2(dz,dx);const cx=(a[0]+b[0])/2,cz=(a[1]+b[1])/2;const ux=dx/L,uz=dz/L,nx=-uz,nz=ux;
+ bloc(gr,GBOX,mur,P,[cx,h/2,cz],[0,ang,0],[L,h,e]);bloc(gr,GBOX,mur,P,[cx,h-.02,cz],[0,ang,0],[L,.05,e*1.3]);
+ if(dents){const n=Math.max(3,Math.round(L/(e*.8)))|1;for(let k=0;k<n;k+=2){const t=(k+.5)/n-.5;for(const sg of [1,-1])bloc(gr,GBOX,mur,P,[cx+ux*t*L+nx*sg*e*.52,h+e*.25,cz+uz*t*L+nz*sg*e*.52],[0,ang,0],[L/n*.95,e*.5,e*.2]);}}}
+// tour ronde : fût légèrement évasé, archères, mâchicoulis, toit conique débordant avec épi (forme : cone | fleche | plat)
+function tourR(gr,x,z,r,h,mur,toit,forme,P,PR=PT){bloc(gr,GCYL,mur,P,[x,h/2,z],null,[r*2,h,r*2]);
+ bloc(gr,GCYLH,mur,P,[x,h+r*.12,z],null,[r*2.3,r*.26,r*2.3]);// mâchicoulis
+ for(let k=0;k<10;k++){const a=k/10*Math.PI*2;bloc(gr,GBOX,mur,P,[x+Math.cos(a)*r*1.1,h-r*.06,z+Math.sin(a)*r*1.1],[0,-a,0],[r*.14,r*.2,r*.2]);}
+ for(let k=0;k<3;k++){const y=h*(.35+k*.22);bloc(gr,GBOX,NOIR,{r:1},[x,y,z+r*1.0],null,[r*.12,r*.38,r*.06]);}
+ if(forme==='plat'){for(let k=0;k<8;k++){const a=k/8*Math.PI*2;bloc(gr,GBOX,mur,P,[x+Math.cos(a)*r*1.05,h+r*.42,z+Math.sin(a)*r*1.05],[0,-a,0],[r*.32,r*.3,r*.18]);}return;}
+ const hc=r*(forme==='fleche'?4.2:2.6);bloc(gr,GCONE,toit,PR,[x,h+r*.25+hc/2,z],null,[r*2.75,hc,r*2.75]);
+ bloc(gr,GCYL,0x3a3430,{m:.6,r:.4},[x,h+r*.25+hc+r*.25,z],null,[r*.08,r*.5,r*.08]);}
+function tourC(gr,x,z,w,h,mur,toit,P,PR=PT){bloc(gr,GBOX,mur,P,[x,h/2,z],null,[w,h,w]);for(const [sx,sz] of [[1,1],[1,-1],[-1,1],[-1,-1]])bloc(gr,GBOX,mur,P,[x+sx*w*.5,h*.3,z+sz*w*.5],[0,Math.PI/4,0],[w*.18,h*.6,w*.18]);
+ bloc(gr,CONE4,toit,PR,[x,h+w*.55,z],[0,Math.PI/4,0],[w*1.55,w*1.1,w*1.55]);for(let k=0;k<2;k++)bloc(gr,GBOX,NOIR,{r:1},[x,h*(.45+k*.25),z+w*.51],null,[w*.12,w*.3,w*.04]);}
+// porte fortifiée : deux tours, arche sombre, herse
+function porteF(gr,x,z,w,h,mur,toit,forme,P){bloc(gr,GBOX,mur,P,[x,h*.55,z],null,[w,h*1.1,w*.7]);bloc(gr,GBOX,NOIR,{r:1},[x,h*.25,z+w*.36],null,[w*.42,h*.5,.02]);bloc(gr,GARC,NOIR,{r:1},[x,h*.5,z+w*.36],null,[w*.42,.02,w*.42]);
+ for(let k=0;k<4;k++)bloc(gr,GBOX,0x2a2622,{m:.7,r:.5},[x-w*.15+k*w*.1,h*.3,z+w*.37],null,[w*.015,h*.55,.015]);
+ for(const s of [-1,1])tourR(gr,x+s*w*.55,z+w*.05,w*.28,h*1.35,mur,toit,forme,P);
+ const n=4;for(let k=0;k<n;k++){bloc(gr,GBOX,mur,P,[x-w*.38+k*w*.25,h*1.1+w*.08,z+w*.3],null,[w*.12,w*.16,w*.12]);}}
+// donjon : tour carrée massive, contreforts, fenêtres éclairées, toit en pavillon
+function donjon(gr,x,z,w,d,h,mur,toit,P,nuit,haut=1){bloc(gr,GBOX,mur,P,[x,h/2,z],null,[w,h,d]);
+ for(const sx of [-1,1])for(const sz of [-1,1])bloc(gr,GBOX,mur,P,[x+sx*w*.5,h*.4,z+sz*d*.5],[0,Math.PI/4,0],[w*.14,h*.8,w*.14]);
+ bloc(gr,GBOX,mur,P,[x,h,z],null,[w*1.08,h*.04,d*1.08]);
+ bloc(gr,CONE4,toit,PT,[x,h+w*.45*haut,z],[0,Math.PI/4,0],[w*1.45,w*.9*haut,d*1.45]);
+ for(let r=0;r<2;r++)for(let k=0;k<3;k++)bloc(gr,GBOX,0xffd890,{em:nuit?0xffa040:0xffc870,ei:nuit?2:.6},[x-w*.28+k*w*.28,h*(.5+r*.22),z+d*.505],null,[w*.08,h*.08,.01]);}
+// maison à colombages : enduit, poutres apparentes, toit débordant, cheminée, fenêtres à volets
+let ENDUIT=0xf4efe6;
+function colombage(gr,w,d,h,toit,nuit,PR=PTU,porte=true){bloc(gr,GBOX,ENDUIT,PE,[0,h/2,0],null,[w,h,d]);
+ const pt=0x4a3220;const e=Math.min(w,h)*.045;
+ for(const sx of [-1,1])for(const sz of [-1,1])bloc(gr,GBOX,pt,PP,[sx*w/2,h/2,sz*d/2],null,[e,h,e]);
+ for(const y of [0,h*.5,h])for(const sz of [-1,1])bloc(gr,GBOX,pt,PP,[0,y,sz*d/2],null,[w,e,e]);
+ for(const sx of [-1,1])for(const y of [0,h*.5,h])bloc(gr,GBOX,pt,PP,[sx*w/2,y,0],null,[e,e,d]);
+ for(const sz of [1])for(const sx of [-.25,.25]){const L=Math.hypot(w*.25,h*.5);bloc(gr,GBOX,pt,PP,[sx*w,h*.25,sz*d/2+.001],[0,0,Math.atan2(h*.5,w*.25)*(sx>0?1:-1)],[L,e*.8,e*.8]);}
+ // toit à deux pans débordant
+ bloc(gr,PRISME,toit,PR,[0,h,0],null,[w*1.18,w*.62,d*1.15]);
+ bloc(gr,GBOX,0x6a5a4e,PM3,[w*.28,h+w*.38,-d*.15],null,[w*.12,w*.42,w*.12]);
+ for(const sx of [-.28,.28]){bloc(gr,GBOX,nuit?0xffd890:0x2a2a30,nuit?{em:0xffa040,ei:1.8}:{r:.2,m:.3},[sx*w,h*.72,d/2+.005],null,[w*.13,h*.16,.01]);for(const s2 of [-1,1])bloc(gr,GBOX,0x3a4a2a,PP,[sx*w+s2*w*.1,h*.72,d/2+.01],null,[w*.06,h*.17,.012]);}
+ if(porte)bloc(gr,GBOX,0x3a2412,PP,[0,h*.2,d/2+.008],null,[w*.2,h*.4,.012]);}
+// fusion par matière (meshes statiques) : un appel de dessin par matière
+function fusionner(gr,garder=o=>false){gr.updateMatrixWorld(true);const lots=new Map(),hors=[];const inv=new T.Matrix4().copy(gr.matrixWorld).invert();
+ gr.traverse(o=>{if(!o.isMesh||o===gr)return;if(garder(o)||o.isInstancedMesh||o.userData.face||o.material.isMeshBasicMaterial){hors.push(o);return;}const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();
+  for(const k of Object.keys(g.attributes))if(!['position','normal'].includes(k))g.deleteAttribute(k);g.applyMatrix4(new T.Matrix4().multiplyMatrices(inv,o.matrixWorld));(lots.get(o.material)||lots.set(o.material,[]).get(o.material)).push(g);});
+ const out=new T.Group();out.position.copy(gr.position);out.rotation.copy(gr.rotation);out.scale.copy(gr.scale);out.userData=gr.userData;
+ for(const [m,gs] of lots){const g=T.BGU.mergeGeometries(gs,false);gs.forEach(x=>x.dispose());const me=new T.Mesh(g,m);me.castShadow=me.receiveShadow=true;out.add(me);}
+ for(const o of hors){const wm=new T.Matrix4().multiplyMatrices(inv,o.matrixWorld);o.parent.remove(o);wm.decompose(o.position,o.quaternion,o.scale);out.add(o);}
+ return out;}
 function villeMesh(v){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const P=PM;
  if(v.fac==='horde'||v.fac==='sylve'){const bois=v.fac==='horde'?0x7a5228:0x8a6238;
-  for(let k=0;k<26;k++){const a=k/26*Math.PI*2;if(Math.abs(a-Math.PI/2)<.3)continue;bloc(gr,CYL,bois,PB,[Math.cos(a)*1.25,.28,Math.sin(a)*.95],null,[.09,.56+(k%2)*.08,.09]);bloc(gr,CONE,bois,PB,[Math.cos(a)*1.25,.62,Math.sin(a)*.95],null,[.09,.12,.09]);}
+  for(let k=0;k<26&&v.fac==='horde';k++){const a=k/26*Math.PI*2;if(Math.abs(a-Math.PI/2)<.3)continue;bloc(gr,CYL,bois,PB,[Math.cos(a)*1.25,.28,Math.sin(a)*.95],null,[.09,.56+(k%2)*.08,.09]);bloc(gr,CONE,bois,PB,[Math.cos(a)*1.25,.62,Math.sin(a)*.95],null,[.09,.12,.09]);}
   if(v.fac==='horde'){for(const [x,z,s] of [[-.6,-.3,.5],[.6,-.3,.5],[0,-.15,.75]]){bloc(gr,CYL,0x9a7448,PB,[x,.22*s/.5,z],null,[s,.44*s/.5,s]);bloc(gr,CONE,0xc9a050,PC,[x,(.44+.35)*s/.5,z],null,[s*1.25,.7*s/.5,s*1.25]);}
    for(const s of [-1,1])bloc(gr,CONE,0xe8dcc4,{},[s*.32,1.55,-.15],[0,0,s*-.5],[.06,.4,.06]);}
-  else{for(const [x,z,s] of [[-.7,-.2,1],[.7,-.2,1],[0,-.35,1.3]]){bloc(gr,CYL,0x6a4a2a,PB,[x,.55*s,z],null,[.16*s,1.1*s,.16*s]);for(let k=0;k<4;k++)bloc(gr,SPH,0x3f7a34,{},[x+(k%2-.5)*.3*s,1.1*s+(k>>1)*.18*s,z+((k>>1)-.5)*.2*s],null,[.5*s,.42*s,.5*s]);bloc(gr,BOX,0x9a7448,PB,[x,.75*s,z+.12*s],null,[.3*s,.22*s,.24*s]);bloc(gr,CONE4,toit,PT,[x,.95*s,z+.12*s],[0,Math.PI/4,0],[.36*s,.2*s,.36*s]);}}
-  bloc(gr,BOX,0x3a2412,PB,[0,.25,.95],null,[.4,.5,.06]);}
- else{const forme=v.fac==='necro'?'fleche':'cone';
-  // remparts
-  for(const [x,z,w,d] of [[0,-.85,2.3,.16],[-1.15,0,.16,1.7],[1.15,0,.16,1.7],[-.75,.85,.8,.16],[.75,.85,.8,.16]]){bloc(gr,BOX,mur,P,[x,.3,z],null,[w,.6,d]);const n=Math.round(Math.max(w,d)/.18);for(let k=0;k<n;k++){const t=(k+.5)/n-.5;bloc(gr,BOX,mur,P,[x+(w>d?t*w:0),.66,z+(w>d?0:t*d)],null,[.09,.12,.09]);}}
-  for(const [x,z] of [[-1.15,-.85],[1.15,-.85],[-1.15,.85],[1.15,.85]])tour(gr,x,z,.2,.95,mur,toit,forme,P);
-  tour(gr,-.4,.85,.17,.8,mur,toit,forme,P);tour(gr,.4,.85,.17,.8,mur,toit,forme,P);
-  // donjon
-  bloc(gr,BOX,mur,P,[0,.75,-.2],null,[.9,1.5,.75]);bloc(gr,CONE4,toit,PT,[0,1.5+(forme==='fleche'?.6:.4),-.2],[0,Math.PI/4,0],[1.25,forme==='fleche'?1.2:.8,1.05]);
-  tour(gr,-.42,-.55,.16,1.75,mur,toit,forme,P);tour(gr,.42,-.55,.16,1.75,mur,toit,forme,P);
-  for(let k=0;k<3;k++)bloc(gr,BOX,0xffd87a,{em:0xffb040,ei:.8},[-.25+k*.25,1.05,.18],null,[.08,.14,.02]);
-  bloc(gr,BOX,0x3a2412,PB,[0,.22,.88],null,[.36,.44,.08]);
-  if(v.fac==='necro')bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2},[0,1.2,.2],null,[.12,.12,.12]);}
- gr.scale.setScalar(.95);gr.userData.drap=drapeauMesh(gr,0,v.fac==='horde'||v.fac==='sylve'?2.0:2.25,-.2,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
- return gr;}
+  else{const pm={tri:'mur2',r:.9};const vt=0x5a7a62;const C8=[];for(let k=0;k<8;k++){const a=k/8*Math.PI*2+Math.PI/8;C8.push([Math.cos(a)*1.2,Math.sin(a)*.95]);}
+   for(let k=0;k<8;k++){if(k===1)continue;rempart(gr,C8[k],C8[(k+1)%8],.42,.12,0xe8e2d4,pm);}
+   for(const k of [0,3,5,7]){const [x,z]=C8[k];tourR(gr,x,z,.12,1.05+(k%3)*.15,0xece6d8,vt,'fleche',pm);}
+   tourR(gr,0,-.25,.2,1.75,0xece6d8,vt,'fleche',pm);const h0=new T.Group();h0.position.set(.35,0,.15);h0.scale.setScalar(.6);colombage(h0,.8,.6,.45,vt,false,PT);gr.add(h0);
+   impObj(gr,'feuillu_b',1.5,-.55,-.1);impObj(gr,'feuillu_a',1.3,.6,-.45,1);impObj(gr,'feuillu_b',1.1,-.2,.45,1);}
+  if(v.fac==='horde')bloc(gr,BOX,0x3a2412,PB,[0,.25,.95],null,[.4,.5,.06]);}
+ else{const forme=v.fac==='necro'?'fleche':'cone';const nuit=v.fac==='necro';
+  const C=[[-1.15,-.85],[1.15,-.85],[1.15,.82],[-1.15,.82]];
+  rempart(gr,C[0],C[1],.62,.16,mur,P);rempart(gr,C[1],C[2],.62,.16,mur,P);rempart(gr,C[3],C[0],.62,.16,mur,P);rempart(gr,C[2],[.36,.82],.62,.16,mur,P);rempart(gr,[-.36,.82],C[3],.62,.16,mur,P);
+  for(const [x,z] of C)tourR(gr,x,z,.21,1.0,mur,toit,forme,P);
+  porteF(gr,0,.82,.62,.62,mur,toit,forme,P);
+  donjon(gr,-.05,-.25,.9,.72,1.45,mur,toit,P,nuit,nuit?1.5:1);
+  tourR(gr,.5,-.5,.17,1.85,mur,toit,forme,P);tourR(gr,-.58,-.48,.15,1.6,mur,toit,forme,P);
+  // cour pavée et maisons dans l'enceinte
+  bloc(gr,GBOX,0xb8b0a0,PV,[0,.015,.3],null,[2.1,.03,1.0]);
+  for(const [x,z,w] of [[.75,.35,.36],[-.78,.4,.32]]){const h0=new T.Group();h0.position.set(x,0,z);h0.scale.setScalar(.55);colombage(h0,w*1.6,w*1.2,w*1.1,toit,nuit,nuit?PA2:PTU);gr.add(h0);}
+  if(nuit)bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[-.05,2.6,-.25],null,[.12,.12,.12]);}
+ const drap=drapeauMesh(gr,0,v.fac==='horde'||v.fac==='sylve'?2.0:2.5,-.25,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
+ const out=fusionner(gr,o=>o===drap);out.scale.setScalar(.95);out.userData.drap=drap;return out;}
 function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.25,o.id);const col={or:0x8a7a5a,minerai:0x7a7670,mercure:0x6a7078,soufre:0x8a7a40,cristal:0x6a5a6a,gemmes:0x5a6a6a,bois:0x6a5a3a}[o.res];
  if(o.res==='bois'){bloc(gr,BOX,0x8a6238,PB,[0,.25,-.1],null,[.8,.5,.5]);bloc(gr,CONE4,0x6a4a2a,PB,[0,.65,-.1],[0,Math.PI/4,0],[1.1,.35,.75]);for(let k=0;k<3;k++)bloc(gr,CYL,0xa87a48,PB,[-.25+k*.15,.08+k%2*.06,.35],[0,0,Math.PI/2],[.12,.5,.12]);
   const roue=new T.Group();roue.position.set(.45,.45,-.1);for(let k=0;k<4;k++)bloc(roue,BOX,0xc8b48a,PB,[0,0,0],[0,0,k*Math.PI/4],[.06,.7,.04]);gr.add(roue);gr.userData.tourne=roue;}
- else{const m=bloc(gr,g,0xd8d0c4,{tri:'roche2',r:.95,ech:.5},[0,0,-.15],null,[1.1,1.1,1]);bloc(gr,BOX,0x120c08,{r:1},[0,.17,.32],null,[.3,.34,.1]);for(const s of [-1,1])bloc(gr,BOX,0x7a5228,PB,[s*.18,.2,.36],null,[.05,.4,.05]);bloc(gr,BOX,0x7a5228,PB,[0,.4,.36],null,[.42,.05,.05]);
+ else{const m=bloc(gr,g,0xd8d0c4,{tri:'roche2',r:.95,ech:.5},[0,0,-.15],null,[1.1,1.1,1]);bloc(gr,BOX,0x0e0a08,{r:1},[0,.17,.32],null,[.3,.34,.1]);for(const s2 of [-1,1])bloc(gr,GBOX,0x4a3424,PP,[s2*.18,.2,.38],null,[.05,.42,.05]);bloc(gr,GBOX,0x4a3424,PP,[0,.42,.38],null,[.46,.05,.06]);for(let k=0;k<4;k++)bloc(gr,GBOX,0x4a3a30,PP,[0,.005,.5+k*.12],null,[.3,.01,.03]);
   const pile={or:0xf2c23a,minerai:0x9a9a9a,mercure:0xd8e8f0,soufre:0xe8d23a,cristal:0xe0384a,gemmes:0x3ac85a}[o.res];for(let k=0;k<5;k++)bloc(gr,o.res==='cristal'||o.res==='gemmes'?new T.OctahedronGeometry(.08):SPH,o.res==='gemmes'?[0x3a7ae8,0x3ac85a,0xe83a8a,0xf0d03a,0x3ac8e8][k]:pile,{r:.3,m:o.res==='or'||o.res==='mercure'?.7:0,em:o.res==='cristal'||o.res==='gemmes'?pile:null,ei:.25},[-.3+k*.14,.07,.48+(k%2)*.08],null,o.res==='cristal'||o.res==='gemmes'?[1,1.6,1]:[.14,.1,.14]);}
  if(RES.atlas&&o.res!=='bois'){impObj(gr,'tonneau',.22,-.42,.42);impObj(gr,'caisse',.16,.45,.45,1);}gr.userData.drap=drapeauMesh(gr,.3,.95,-.1,o.prop>=0?COULEURS[G.joueurs[o.prop].coul].c:'#d8d2c2',.9);return gr;}
 function pileMesh(o){const gr=new T.Group();const r=o.res;
+ if(typeof IMGICO!=='undefined'&&IMGICO[r]&&r!=='bois'&&r!=='minerai'){const p=panneau(iconeRes(r,96),'ico'+r+'96',.6);p.position.z=.05;gr.add(p);return gr;}
  if(RES.atlas){if(r==='bois'){impObj(gr,'mort_a',.1,-.05,-.05);impObj(gr,'mort_a',.1,.05,.1,1);return gr;}if(r==='minerai'){impObj(gr,'roc_b',.22,-.1,0);impObj(gr,'roc_c',.16,.12,.08,1);impObj(gr,'roc_d',.12,0,.15);return gr;}if(r==='mercure'){impObj(gr,'seau',.2,0,0);bloc(gr,SPH,0xcfe3ea,{r:.05,m:1},[0,.18,.02],null,[.12,.03,.12]);return gr;}}
  if(r==='or'){for(let k=0;k<7;k++)bloc(gr,CYL,0xf2c23a,{r:.3,m:.45,em:0x6a4a00,ei:.4},[(k%3-1)*.12,.03+(k/3|0)*.05,((k*7)%3-1)*.08],null,[.14,.04,.14]);}
  else if(r==='bois'){for(let k=0;k<5;k++)bloc(gr,CYL,0x8a5a30,PB,[(k%3-1)*.1,.06+(k>2?.1:0),0],[Math.PI/2,0,.3],[.1,.45,.1]);}
@@ -237,20 +297,21 @@ function pileMesh(o){const gr=new T.Group();const r=o.res;
  return gr;}
 function impObj(gr,nom,ht,x,z,mir){const o=RES.atlas?planImp('h',nom,ht,!!mir,new T.Quaternion().setFromEuler(new T.Euler(-C3.tang*.75,0,0))):null;if(o){o.position.set(x,0,z);gr.add(o);}return o;}
 function coffreMesh(){const gr=new T.Group();if(impObj(gr,'coffre',.32,0,0))return gr; bloc(gr,BOX,0x8a5a2a,PB,[0,.14,0],null,[.5,.28,.32]);bloc(gr,CYL,0x9a6a32,PB,[0,.28,0],[0,0,Math.PI/2],[.32,.5,.32]);bloc(gr,BOX,0xd8b040,{m:.7,r:.3},[0,.2,.17],null,[.08,.1,.02]);return gr;}
+const _GS=new T.SphereGeometry(.5,16,12);function GSPH(){return _GS;}
 function lieuMesh(o){const gr=new T.Group();const b=o.b;
  switch(b){
- case 'moulin':{bloc(gr,CYL,0xd8cbb0,PM2,[0,.5,0],null,[.45,1,.45]);bloc(gr,CONE,0x8a3a2a,PTU,[0,1.15,0],null,[.6,.35,.6]);const ail=new T.Group();ail.position.set(0,.9,.27);for(let k=0;k<4;k++)bloc(ail,BOX,0xe8dcc0,{},[0,0,0],[0,0,k*Math.PI/2],[.08,.9,.02]).geometry=new T.BoxGeometry(1,1,1).translate(0,.5,0);gr.add(ail);gr.userData.tourne=ail;break;}
- case 'puits':bloc(gr,CYL,0x9a948a,PM,[0,.15,0],null,[.5,.3,.5]);bloc(gr,CYL,0x2a5a7a,{r:.1},[0,.29,0],null,[.4,.02,.4]);for(const s of [-1,1])bloc(gr,BOX,0x6a4a2a,PB,[s*.22,.45,0],null,[.04,.6,.04]);bloc(gr,CONE4,0x8a3a2a,PTU,[0,.82,0],[0,Math.PI/4,0],[.7,.3,.5]);break;
- case 'autel':bloc(gr,BOX,0xa8a296,PM,[0,.18,0],null,[.6,.36,.4]);bloc(gr,CONE,0xff8a2a,{em:0xff6a1a,ei:2.5},[0,.48,0],null,[.18,.35,.18]);break;
+ case 'moulin':{tourR(gr,0,0,.24,.95,0xd8d0c0,0x7a5a3a,'cone',PM3,PB);const ail=new T.Group();ail.position.set(0,.98,.3);for(let k=0;k<4;k++){const a=new T.Group();a.rotation.z=k*Math.PI/2;bloc(a,GBOX,0x5a4030,PP,[0,.45,0],null,[.03,.9,.03]);for(let j=1;j<6;j++)bloc(a,GBOX,0x6a4a34,PP,[.06,j*.15,0],null,[.12,.012,.01]);bloc(a,GBOX,0xd8d0bc,PE,[.07,.5,-.005],null,[.12,.66,.004]);ail.add(a);}gr.add(ail);gr.userData.tourne=ail;break;}
+ case 'puits':bloc(gr,GCYL,0xb0a898,PM3,[0,.16,0],null,[.5,.32,.5]);bloc(gr,GCYL,0x1a3a4a,{r:.05},[0,.3,0],null,[.4,.02,.4]);for(const s2 of [-1,1])bloc(gr,GBOX,0x5a4030,PP,[s2*.22,.5,0],null,[.05,.66,.05]);bloc(gr,GBOX,0x5a4030,PP,[0,.72,0],[Math.PI/2,0,0],[.04,.04,.5]);bloc(gr,PRISME,0x7a7a82,PT,[0,.84,0],null,[.62,.28,.5]);break;
+ case 'autel':bloc(gr,GBOX,0xb8b0a0,PM3,[0,.06,0],null,[.75,.12,.55]);bloc(gr,GBOX,0xb8b0a0,PM3,[0,.24,0],null,[.55,.26,.35]);bloc(gr,GCONE,0xff8a2a,{em:0xff6a1a,ei:3},[0,.5,0],null,[.16,.3,.16]);for(const s2 of [-1,1])bloc(gr,GCYL,0xc0b8a8,PM3,[s2*.32,.35,-.2],null,[.07,.7,.07]);break;
  case 'pierre':bloc(gr,BOX,0x7a7a84,PM,[0,.45,0],[0,0,.08],[.28,.9,.18]);bloc(gr,BOX,0x9ae8ff,{em:0x7ad8ff,ei:2},[0,.5,.095],null,[.05,.4,.01]);break;
  case 'arbre':{const g=geoArbre('feuillu',1);const m=new T.Mesh(g,mat(0xffd860,{vc:1,em:0x806000,ei:.35,vent:'.03'}));m.scale.setScalar(2);m.castShadow=true;gr.add(m);break;}
- case 'tour':tour(gr,0,0,.22,1.4,0x9a948a,0x6a6a72,'plat',PM);break;
- case 'sanctuaire':bloc(gr,BOX,0xd8d2c2,PM2,[0,.05,0],null,[.8,.1,.6]);for(let k=0;k<4;k++)bloc(gr,CYL,0xece6d6,PM2,[(k%2-.5)*.6,.4,((k>>1)-.5)*.4],null,[.08,.7,.08]);bloc(gr,CONE4,0xd8d2c2,{},[0,.95,0],[0,Math.PI/4,0],[1.05,.35,.85]);bloc(gr,SPH,0xd8c0ff,{em:0xbfa0ff,ei:2},[0,.45,0],null,[.12,.12,.12]);break;
- case 'ecurie':bloc(gr,BOX,0x9a6a3a,PB,[0,.25,0],null,[.9,.5,.55]);bloc(gr,CONE4,0x7a3a2a,PTU,[0,.62,0],[0,Math.PI/4,0],[1.25,.3,.8]);bloc(gr,BOX,0x3a2412,PB,[0,.2,.28],null,[.25,.4,.02]);break;
+ case 'tour':tourR(gr,0,0,.24,1.5,0xa8a090,0x6a6a72,'plat',PM);bloc(gr,GBOX,0x3a2412,PP,[0,.18,.24],null,[.12,.24,.02]);break;
+ case 'sanctuaire':bloc(gr,GBOX,0xd8d2c2,PM2,[0,.05,0],null,[.85,.1,.62]);bloc(gr,GBOX,0xd8d2c2,PM2,[0,.11,0],null,[.75,.04,.54]);for(let k=0;k<6;k++)bloc(gr,GCYL,0xece6d6,PM2,[(k%3-1)*.3,.45,((k/3|0)-.5)*.4],null,[.07,.66,.07]);bloc(gr,GBOX,0xd8d2c2,PM2,[0,.8,0],null,[.8,.06,.55]);bloc(gr,PRISME,0x8a8a92,PT,[0,.83,0],null,[.9,.32,.62]);bloc(gr,GSPH(),0xd8c0ff,{em:0xbfa0ff,ei:2},[0,.4,0],null,[.12,.12,.12]);break;
+ case 'ecurie':{const h0=new T.Group();colombage(h0,.9,.55,.38,0xc9a050,false,PC);gr.add(h0);for(let k=0;k<5;k++)bloc(gr,GBOX,0x5a4030,PP,[-.6+k*.3,.14,.55],null,[.035,.28,.035]);bloc(gr,GBOX,0x5a4030,PP,[0,.24,.55],null,[1.25,.03,.03]);break;}
  case 'feu':if(RES.atlas){impObj(gr,'feu',.18,0,.1);impObj(gr,'tonneau',.3,-.32,-.05);impObj(gr,'caisse',.2,.32,-.05,1);bloc(gr,CONE,0xffb03a,{em:0xff8a2a,ei:3},[0,.14,.12],null,[.1,.22,.1]);break;}for(const s of [-1,1])bloc(gr,CONE4,0xc8b48a,PB,[s*.32,.22,0],[0,Math.PI/4,0],[.45,.44,.45]);bloc(gr,CONE,0xffb03a,{em:0xff8a2a,ei:2.5},[0,.15,.2],null,[.14,.3,.14]);bloc(gr,CYL,0xf2c23a,{m:.8,r:.3},[.2,.03,.3],null,[.12,.04,.12]);break;
- case 'fontaine':bloc(gr,CYL,0x9a948a,PM,[0,.08,0],null,[.75,.16,.75]);bloc(gr,CYL,0x4a9ac8,{r:.1,m:.2},[0,.15,0],null,[.65,.02,.65]);bloc(gr,CYL,0xbcb6aa,PM,[0,.35,0],null,[.08,.5,.08]);bloc(gr,SPH,0xbfe8ff,{transp:.6,em:0x6ab8e8,ei:.4},[0,.62,0],null,[.18,.12,.18]);break;
+ case 'fontaine':bloc(gr,GCYL,0xc0b8a8,PM3,[0,.09,0],null,[.8,.18,.8]);bloc(gr,GCYL,0x1a4a5a,{r:.04,m:.1},[0,.17,0],null,[.7,.02,.7]);bloc(gr,GCYL,0xc8c0b0,PM3,[0,.36,0],null,[.1,.5,.1]);bloc(gr,GCYL,0xc8c0b0,PM3,[0,.6,0],null,[.32,.06,.32]);bloc(gr,GSPH(),0xbfe8ff,{transp:.55,em:0x6ab8e8,ei:.3},[0,.45,0],null,[.28,.3,.28]);break;
  case 'obelisque':bloc(gr,CONE4,0x8a8478,PM,[0,.65,0],[0,Math.PI/4,0],[.32,1.3,.32]);bloc(gr,BOX,0xffe08a,{em:0xffd060,ei:2},[0,.6,.09],null,[.04,.5,.01]);bloc(gr,BOX,0x9a948a,PM,[0,.05,0],null,[.5,.1,.5]);break;
- case 'habitation':{let g=new T.SphereGeometry(.5,14,8,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.25,o.id+3);bloc(gr,g,0x7a6a52,{},[0,0,-.1],null,[1.1,1.1,1]);bloc(gr,BOX,0x120c08,{},[0,.15,.38],null,[.3,.3,.05]);break;}
+ case 'habitation':{let g=new T.SphereGeometry(.5,24,12,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.3,o.id+3);bloc(gr,g,0xd0c8bc,{tri:'roche2',r:.95,ech:.5},[0,0,-.1],null,[1.15,1.1,1]);bloc(gr,GBOX,0x0e0a08,{r:1},[0,.16,.4],null,[.3,.32,.06]);for(const s2 of [-1,1])bloc(gr,GBOX,0x4a3424,PP,[s2*.17,.18,.42],null,[.04,.36,.04]);bloc(gr,GBOX,0x4a3424,PP,[0,.35,.42],null,[.42,.04,.04]);break;}
  }return gr;}
 function artefactMesh(o){const gr=new T.Group();bloc(gr,CYL,0xbcb6aa,PM,[0,.06,0],null,[.32,.12,.32]);const g=bloc(gr,new T.OctahedronGeometry(.13),0xffe08a,{em:0xffc040,ei:1.6,r:.2,m:.5},[0,.38,0],null,[1,1.5,1]);gr.userData.flotte=g;return gr;}
 // ---------- panneaux (créatures, héros, habitants) ----------
@@ -428,33 +489,37 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
 const PRISME=(()=>{const g=new T.CylinderGeometry(.5,.5,1,3,1);g.rotateZ(Math.PI/2);g.rotateX(Math.PI/6);g.translate(0,.25,0);g.scale(1,1.15,1);return g;})();// toit à deux pans (axe x)
 function fenetres(gr,n,larg,y,z,coul,nuit){for(let k=0;k<n;k++)bloc(gr,BOX,coul,{em:nuit?0xffb040:0xffd890,ei:nuit?2.2:.5},[(k-(n-1)/2)*larg/n,y,z],null,[larg/n*.4,larg/n*.55,.04]);}
 function maison(gr,w,h,mur,toit,P,nuit,porte=true,PR=PT){bloc(gr,BOX,mur,P,[0,h/2,0],null,[w,h,w*.75]);bloc(gr,PRISME,toit,PR,[0,h,0],null,[w*1.12,w*.6,w*.92]);fenetres(gr,2,w*.8,h*.62,w*.38,0xffd87a,nuit);if(porte)bloc(gr,BOX,0x3a2412,PB,[0,h*.22,w*.38],null,[w*.22,h*.44,.04]);}
-function batiment3D(b,v,u,P,nuit){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const fac=v.fac;const bois=fac==='horde'?0x8a6238:0x9a7448;
+function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?0x7c7684:v.fac==='horde'?0xc8b490:0xf0eae0;const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const fac=v.fac;const bois=fac==='horde'?0x8a6238:0x9a7448;
  if(b==='fort'||b==='citadelle'||b==='chateau'){const n=b==='chateau'?3:b==='citadelle'?2:1;const L=u;// u = largeur des remparts
   if(fac==='horde'){for(let x=-L/2;x<=L/2;x+=.45){bloc(gr,CYL,0x7a5228,PB,[x,1.1,0],null,[.4,2.2+(Math.abs(x*7)%3)*.15,.4]);bloc(gr,CONE,0x7a5228,PB,[x,2.4,0],null,[.4,.5,.4]);}
    for(let k=0;k<=n;k++){const x=-L/2+L*k/n;bloc(gr,BOX,0x8a6238,PB,[x,2.2,0],null,[1.3,4.4+n*.4,1.3]);bloc(gr,CONE4,0xc9a050,PC,[x,4.4+n*.4+.7,0],[0,Math.PI/4,0],[2.2,1.5,2.2]);for(const s of [-1,1])bloc(gr,CONE,0xe8dcc4,{},[x+s*.5,5.4+n*.4,0],[0,0,-s*.5],[.15,1.2,.15]);}
    bloc(gr,BOX,0x3a2412,PB,[0,1,.3],null,[2,2,.2]);return gr;}
-  const ht=2.2;bloc(gr,BOX,mur,P,[0,ht/2,0],null,[L,ht,.9]);for(let x=-L/2+.3;x<L/2;x+=.7)bloc(gr,BOX,mur,P,[x,ht+.22,.3],null,[.42,.45,.3]);
-  for(let k=0;k<=n;k++){const x=-L/2+L*k/n;tour(gr,x,.1,1.1,ht+2.6+n*.7,mur,toit,fac==='necro'?'fleche':'cone',P);fenetres(gr,1,.8,ht+1.4,.95,0xffd87a,nuit);}
-  // donjon central
-  bloc(gr,BOX,mur,P,[0,(ht+3.6+n)/2,-1.6],null,[4.4,ht+3.6+n,3]);bloc(gr,CONE4,toit,PT,[0,ht+3.6+n+1.5,-1.6],[0,Math.PI/4,0],[6.4,3,4.6]);
-  for(const s of [-1,1])tour(gr,s*2.4,-1.6,.75,ht+5+n,mur,toit,fac==='necro'?'fleche':'cone',P);
-  for(let r=0;r<2;r++)fenetres(gr,3,3.2,ht+1.4+r*1.5,-.08,0xffd87a,nuit);
-  bloc(gr,BOX,0x2a1a0c,PB,[0,.9,.47],null,[1.6,1.8,.06]);if(fac==='necro')bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[0,ht+3.6+n+3.6,-1.6],null,[.5,.5,.5]);
+  const forme=fac==='necro'?'fleche':'cone';const ht=2.4+n*.3;const D=7+n;
+  // enceinte en U ouverte vers la ville : courtine avant (avec porte), flancs, courtine arrière
+  rempart(gr,[-L/2,0],[-1.6,0],ht,.8,mur,P);rempart(gr,[1.6,0],[L/2,0],ht,.8,mur,P);rempart(gr,[-L/2,0],[-L/2,-D],ht,.8,mur,P);rempart(gr,[L/2,0],[L/2,-D],ht,.8,mur,P);rempart(gr,[-L/2,-D],[L/2,-D],ht,.8,mur,P);
+  porteF(gr,0,0,3.2,ht*.95,mur,toit,forme,P);
+  for(let k=0;k<=n+1;k++){const x=-L/2+L*k/(n+1);if(Math.abs(x)<2)continue;tourR(gr,x,0,1.1,ht+2.2+n*.5,mur,toit,forme,P);}
+  for(const x of [-L/2,L/2])tourR(gr,x,-D,1.2,ht+2.6+n*.5,mur,toit,forme,P);
+  donjon(gr,0,-D*.55,5.2,4.2,ht+4+n*1.2,mur,toit,P,nuit,nuit?1.6:1.1);
+  for(const s2 of [-1,1])tourR(gr,s2*2.9,-D*.55+1.5,.9,ht+6+n*1.2,mur,toit,forme,P);
+  if(n>=2)tourC(gr,-L/2+2.2,-D*.6,2.2,ht+3.2,mur,toit,P);if(n>=3)tourC(gr,L/2-2.2,-D*.6,2.2,ht+3.6,mur,toit,P);
+  if(fac==='necro')bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[0,ht+4+n*1.2+5.8,-D*.55],null,[.5,.5,.5]);
   return gr;}
  const w=u;
- if(b==='conseil'||b==='mairie'||b==='hotelville'||b==='capitole'){maison(gr,w,w*.75,mur,toit,P,nuit);if(b!=='conseil')tour(gr,0,-w*.1,w*.16,w*1.25,mur,toit,'cone',P);
-  if(b==='hotelville'||b==='capitole')for(const s of [-1,1])tour(gr,s*w*.55,0,w*.1,w*.95,mur,toit,'cone',P);if(b==='capitole')bloc(gr,SPH,0xf0c040,{em:0xd0a020,ei:1,m:.8,r:.2},[0,w*1.25+w*.62,-w*.1],null,[w*.22,w*.22,w*.22]);return gr;}
+ if(b==='conseil'||b==='mairie'||b==='hotelville'||b==='capitole'){bloc(gr,GBOX,mur,P,[0,w*.18,0],null,[w*1.02,w*.36,w*.78]);const h1=new T.Group();h1.position.y=w*.36;colombage(h1,w,w*.75,w*.4,toit,nuit,PT,false);gr.add(h1);bloc(gr,GBOX,0x3a2412,PP,[0,w*.13,w*.4],null,[w*.18,w*.26,.02]);bloc(gr,GARC,0x3a2412,PP,[0,w*.26,w*.4],null,[w*.18,.02,w*.18]);
+  if(b!=='conseil')tourC(gr,0,-w*.12,w*.22,w*1.2,mur,toit,P);
+  if(b==='hotelville'||b==='capitole')for(const s of [-1,1])tourR(gr,s*w*.55,0,w*.1,w*.85,mur,toit,'cone',P);if(b==='capitole')bloc(gr,SPH,0xf0c040,{em:0xd0a020,ei:1,m:.8,r:.2},[0,w*1.25+w*.62,-w*.1],null,[w*.22,w*.22,w*.22]);return gr;}
  if(b==='graal'){bloc(gr,CONE4,fac==='necro'?0x5a4a7a:fac==='sylve'?0x5a9a4a:0xf0e0a0,{em:0xffd060,ei:.6,tri:P.tri},[0,w*1.3,0],[0,Math.PI/4,0],[w*.6,w*2.6,w*.6]);bloc(gr,SPH,0xfff0b0,{em:0xffe080,ei:3},[0,w*2.75,0],null,[w*.3,w*.3,w*.3]);return gr;}
- if(b.startsWith('guilde')){const n=+b[6];tour(gr,0,0,w*.3,w*(.9+n*.4),mur,toit,'fleche',P);bloc(gr,SPH,0xc8b0ff,{em:0xa080ff,ei:2.5},[0,w*(.9+n*.4)+w*1.25,0],null,[w*.22,w*.22,w*.22]);return gr;}
- if(b==='taverne'){maison(gr,w,w*.6,0xc0a080,0xb06040,PM2,nuit,true,PTU);bloc(gr,BOX,0x3a2a1a,PB,[w*.62,w*.5,w*.3],null,[w*.3,.06,.06]);bloc(gr,BOX,0xc89040,{},[w*.7,w*.38,w*.3],null,[w*.18,w*.16,.04]);for(let k=0;k<2;k++)bloc(gr,CYL,0x8a5a30,PB,[-w*.65+k*.3,w*.12,w*.35],null,[w*.16,w*.24,w*.16]);return gr;}
- if(b==='marche'){for(let k=0;k<3;k++){const x=(k-1)*w*.42;for(const sx of [-1,1])for(const sz of [-1,1])bloc(gr,CYL,0x6a4a2a,PB,[x+sx*w*.15,w*.22,sz*w*.12],null,[.06,w*.44,.06]);bloc(gr,CONE4,[0x8a3a2a,0xc8b890,0x3a5a7a][k],{},[x,w*.52,0],[0,Math.PI/4,0],[w*.48,w*.18,w*.4]);bloc(gr,BOX,0x9a6a3a,PB,[x,w*.16,0],null,[w*.32,w*.08,w*.22]);for(let j=0;j<3;j++)bloc(gr,SPH,[0xe85a3a,0xf0c040,0x6ac84a][(j+k)%3],{},[x+(j-1)*w*.08,w*.22,0],null,[w*.06,w*.06,w*.06]);}return gr;}
- if(b==='silo'){bloc(gr,CYL,0xa87a48,PB,[0,w*.45,0],null,[w*.7,w*.9,w*.7]);bloc(gr,SPH,0x7a3a2a,PTU,[0,w*.9,0],null,[w*.75,w*.6,w*.75]);return gr;}
+ if(b.startsWith('guilde')){const n=+b[6];tourR(gr,0,0,w*.3,w*(.9+n*.4),mur,toit,'fleche',P);bloc(gr,SPH,0xc8b0ff,{em:0xa080ff,ei:2.5},[0,w*(.9+n*.4)+w*1.25,0],null,[w*.22,w*.22,w*.22]);return gr;}
+ if(b==='taverne'){bloc(gr,GBOX,0xd8d0c4,PM3,[0,w*.17,0],null,[w*1.02,w*.34,w*.78]);const h1=new T.Group();h1.position.y=w*.34;colombage(h1,w,w*.76,w*.36,0x9a6a54,nuit,PTU,false);gr.add(h1);bloc(gr,GBOX,0x3a2412,PP,[0,w*.13,w*.4],null,[w*.18,w*.26,.02]);bloc(gr,BOX,0x3a2a1a,PB,[w*.62,w*.5,w*.3],null,[w*.3,.06,.06]);bloc(gr,BOX,0xc89040,{},[w*.7,w*.38,w*.3],null,[w*.18,w*.16,.04]);for(let k=0;k<2;k++)bloc(gr,CYL,0x8a5a30,PB,[-w*.65+k*.3,w*.12,w*.35],null,[w*.16,w*.24,w*.16]);return gr;}
+ if(b==='marche'){for(let k=0;k<3;k++){const x=(k-1)*w*.42;for(const sx of [-1,1])for(const sz of [-1,1])bloc(gr,CYL,0x6a4a2a,PB,[x+sx*w*.15,w*.22,sz*w*.12],null,[.06,w*.44,.06]);bloc(gr,CONE4,[0x8a4a3a,0xc8bca0,0x4a5a6a][k],PE,[x,w*.52,0],[0,Math.PI/4,0],[w*.48,w*.18,w*.4]);bloc(gr,BOX,0x9a6a3a,PB,[x,w*.16,0],null,[w*.32,w*.08,w*.22]);for(let j=0;j<3;j++)bloc(gr,SPH,[0xe85a3a,0xf0c040,0x6ac84a][(j+k)%3],{},[x+(j-1)*w*.08,w*.22,0],null,[w*.06,w*.06,w*.06]);}return gr;}
+ if(b==='silo'){tourR(gr,0,0,w*.32,w*.85,0xd8d0c0,0x8a6a4a,'cone',PM3,PB);bloc(gr,GBOX,0x3a2412,PP,[0,w*.15,w*.33],null,[w*.16,w*.3,.02]);return gr;}
  // habitations
  const niv=+b[3];
  if(fac==='sylve'){bloc(gr,CYL,0x6a4a2a,PB,[0,w*.55,0],null,[w*.2,w*1.1,w*.2]);{const o=RES.atlas?planImp('b','feuillu_b',w*2.4,false,null):null;if(o){o.position.set(0,0,-w*.2);o.userData.face=1;gr.add(o);}else for(let k=0;k<5;k++){const a=k*1.26;bloc(gr,SPH,0x3f7a34,{},[Math.cos(a)*w*.28,w*(1.15+(k%2)*.12),Math.sin(a)*w*.2],null,[w*.5,w*.42,w*.5]);}}const n0=gr.children.length;maison(gr,w*.6,w*.3,0x9a7448,toit,PB,nuit,false);gr.children.slice(n0).forEach(m=>m.position.y+=w*.45);}
  else if(fac==='horde'){bloc(gr,CYL,0x9a7448,PB,[0,w*.25,0],null,[w,w*.5,w*.9]);bloc(gr,CONE,0xc9a050,PC,[0,w*.5+w*.3,0],null,[w*1.25,w*.6,w*1.15]);bloc(gr,BOX,0x2a1608,PB,[0,w*.16,w*.44],null,[w*.26,w*.32,.04]);}
  else if(fac==='necro'){bloc(gr,BOX,teinteHex(mur,-.15),P,[0,w*.3,0],null,[w,w*.6,w*.8]);bloc(gr,CONE4,teinteHex(mur,-.3),P,[0,w*.6+w*.25,0],[0,Math.PI/4,0],[w*1.2,w*.5,w*1]);bloc(gr,BOX,0x120c18,{},[0,w*.2,w*.41],null,[w*.3,w*.4,.04]);for(const s of [-1,1])bloc(gr,BOX,0x7cf7a2,{em:0x7cf7a2,ei:1.5},[s*w*.3,w*.42,w*.41],null,[w*.08,w*.12,.03]);}
- else maison(gr,w,w*(.55+niv*.03),mur,toit,P,nuit);
+ else colombage(gr,w,w*.75,w*(.5+niv*.03),niv%2?0x9a6a54:toit,nuit,niv%2?PTU:PT);
  return gr;}
 function teinteHex(h,k){const c=new T.Color(h);c.multiplyScalar(1+k);return c.getHex();}
 // profondeur et taille dans la scène pour chaque emplacement de l'ancien panorama
@@ -489,7 +554,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const P=v.fac==='sylve'?PM2:v.fac==='horde'?PB:PM;
  const ordre=Object.keys(PANO).filter(b=>v.bat[b]).filter(b=>!(b==='conseil'&&(v.bat.mairie))&&!(b==='mairie'&&v.bat.hotelville)&&!(b==='hotelville'&&v.bat.capitole)&&!(b==='fort'&&v.bat.citadelle)&&!(b==='citadelle'&&v.bat.chateau)&&!(b==='guilde1'&&v.bat.guilde2)&&!(b==='guilde2'&&v.bat.guilde3));
  const objs=[];for(const b of ordre){const z=ZV[b]??0;const fx=PANO[b][0];const L=vis(z);const u=(b==='fort'||b==='citadelle'||b==='chateau')?Math.min(26,L*.62):Math.min(UV[b]||2.4,PANO[b][2]*L*1.05);
-  const gr=batiment3D(b,v,u,P,nuit);gr.position.set((fx-.5)*L*.94,0,z);if(b.startsWith('hab')||b==='taverne'||b==='marche'||b==='silo')gr.rotation.y=-(fx-.5)*.5;gr.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(gr);gr.updateMatrixWorld(true);gr.traverse(o=>{if(o.userData.face){const pq=o.parent.getWorldQuaternion(new T.Quaternion()).invert();o.quaternion.copy(pq.multiply(cam.quaternion));}});objs.push([b,gr,u]);}
+  const gr=fusionner(batiment3D(b,v,u,P,nuit));gr.position.set((fx-.5)*L*.94,0,z);if(b.startsWith('hab')||b==='taverne'||b==='marche'||b==='silo')gr.rotation.y=-(fx-.5)*.5;gr.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(gr);gr.updateMatrixWorld(true);gr.traverse(o=>{if(o.userData.face){const pq=o.parent.getWorldQuaternion(new T.Quaternion()).invert();o.quaternion.copy(pq.multiply(cam.quaternion));}});objs.push([b,gr,u]);}
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure;
  R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);
  const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);
@@ -498,7 +563,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};
  const tri=objs.slice().sort((a,b)=>a[1].position.z-b[1].position.z);
  for(const [b,gr,u] of tri){bb.setFromObject(gr);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let k=0;k<8;k++){const [sx,sy]=pr(k&1?bb.max.x:bb.min.x,k&2?bb.max.y:bb.min.y,k&4?bb.max.z:bb.min.z);x0=Math.min(x0,sx);x1=Math.max(x1,sx);y0=Math.min(y0,sy);y1=Math.max(y1,sy);}
-  if(b.startsWith('hab')){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const [bx,by]=pr(gr.position.x+u*.35,0,gr.position.z+u*.65);const [bx2]=pr(gr.position.x+u*.35+u,0,gr.position.z+u*.65);const S=Math.max(24,Math.abs(bx2-bx)*1.25);
+  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const [bx,by]=pr(gr.position.x+u*.35,0,gr.position.z+u*.65);const [bx2]=pr(gr.position.x+u*.35+u,0,gr.position.z+u*.65);const S=Math.max(24,Math.abs(bx2-bx)*1.25);
    cg.drawImage(spriteCreature(cre,Math.round(S)),bx-S*.5,by-S*.9);x1=Math.max(x1,bx+S*.4);y1=Math.max(y1,by);}
   zones.push({b,x:x0,y:y0,w:x1-x0,h:y1-y0});}
  // drapeaux animés en 2D au sommet du château

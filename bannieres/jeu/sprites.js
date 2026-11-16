@@ -259,7 +259,9 @@ function portrait(h,S=64){const k='p'+h.id+':'+h.portrait+':'+S+(IMGP[h.classe+0
  SPR_CACHE[k]=c;return c;}
 
 // ---------- icônes de ressources ----------
-function iconeRes(r,S=32){const k='r'+r+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);const g=c.getContext('2d');g.scale(S/32,S/32);
+var IMGICO={};if(typeof ICO3D!=='undefined')for(const r in ICO3D){const im=new Image();im.onload=()=>{IMGICO[r]=im;for(const k in SPR_CACHE)if(k.startsWith('r'+r+':'))delete SPR_CACHE[k];if(typeof majUI==='function'&&typeof G!=='undefined'&&G)try{majUI();}catch(e){}};im.src=ICO3D[r];}
+function iconeRes(r,S=32){const k='r'+r+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];if(IMGICO[r]){const c=mkC(S,S);const g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(IMGICO[r],-S*.06,-S*.06,S*1.12,S*1.12);SPR_CACHE[k]=c;return c;}
+ const c=mkC(S,S);const g=c.getContext('2d');g.scale(S/32,S/32);
  ombreSol(g,16,27,12,3.5,.35);
  switch(r){
  case 'or':for(const [x,y] of [[10,22],[18,23],[14,18],[22,19],[17,14],[11,16]]){ell(g,x,y,5.5,3,'#f2c23a',{lw:1});}g.fillStyle='#fff6b0';g.fillRect(15,12,2,1.2);break;

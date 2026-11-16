@@ -204,3 +204,5 @@ h1,h2,h3,.t{font-family:var(--t);font-weight:400;letter-spacing:.04em;margin:0}
 .guide h3{font-size:20px;margin:14px 0 4px}.guide p{margin:0;color:#d6d4cb;line-height:1.55;font-size:14px}
 .acc-sauv{display:flex;flex-direction:column;align-items:center;gap:4px;margin:-2px 0 6px}.acc-sauv div{display:flex;gap:4px}.acc-sauv span{width:34px;height:40px;border-radius:7px;overflow:hidden;background:#111;border:1px solid #3a3d4a}.acc-sauv svg{width:100%;height:100%;display:block}.acc-sauv small{color:#cfcdc4;font-size:12px;text-shadow:0 1px 3px #000}
 @media (max-width:480px){#ctrl{gap:5px;flex-wrap:wrap}#ctrl .btn.petit{padding:8px 9px;font-size:12px}}
+
+.acc-credits{margin-top:10px;font-size:11px;opacity:.45;letter-spacing:.02em}

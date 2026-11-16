@@ -33,7 +33,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | **Variété des parties simulées** (parties trop semblables, écarts par origine, choix dominants) | `une-vie/outils/rapport_vies.py` (lit l'export par partie `VIES=` de `harness.js`) | |
 | **Ombres de contact bon marché** (meubles posés au sol, 1 appel) | `une-vie/jeu/index_src.html` : `cshad` + texture `soft` dans `buildHome` | |
 | **Apps Mac / Windows** | `president-de-club/outils/app-bureau/` (Electron) | |
-| **Textures réalistes** | `valdragon/outils/ressources/ph_tex2.py` (couleur + relief, rugosité dans le bleu de `_n`) | `bannieres/outils/ressources/tex3d.py` |
+| **Textures réalistes** | `valdragon/outils/ressources/ph_tex2.py` (couleur + relief, rugosité dans le bleu de `_n`) | `bannieres/outils/ressources/tex3d.py` ; page unique sans réseau : `cage-et-gloire/outils/prep_tex.py` (recadre au lieu de réduire pour garder le relief) + intégration base64 dans `jeu/build.py` / `texImg()` d'arene.js |
 | **Décors 3D légers** | `valdragon/outils/ressources/pack_phprops.mjs`, `simp_kit.mjs` | imposteurs `bannieres/outils/studio3d/imposteur.py` |
 | **Portraits / sprites pré-rendus en 3D** | `bannieres/outils/studio/portraits.py` + `pack_portraits.py` (`jeu/sprites3d.js`) | |
 | **Personnages animés Mixamo** | `valdragon/outils/ressources/fbx61.py` (FBX 6.1) | `cage-et-gloire/outils/prep_xbot.mjs` (mannequin Xbot) |

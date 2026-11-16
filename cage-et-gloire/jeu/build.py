@@ -20,6 +20,11 @@ def inl(m):
     return '<script>\n/* %s */\n%s\n</script>'%(src,code)
 html=re.sub(r'<script src="([^"]+)"></script>',inl,html)
 html=html.replace('<body>','<body>\n<script type="text/plain" id="xbot">'+f64(os.path.join(d,'xbot.glb'))+'</script>',1)
+# textures réalistes (Poly Haven, CC0 ; outils/prep_tex.py) : <script type="text/plain" id="tex-NOM">
+td=os.path.join(d,'tex')
+if os.path.isdir(td):
+    tx=''.join('<script type="text/plain" id="tex-%s">%s</script>'%(fn.rsplit('.',1)[0],f64(os.path.join(td,fn))) for fn in sorted(os.listdir(td)) if fn.endswith('.jpg'))
+    html=html.replace('<body>','<body>\n'+tx,1)
 out=sys.argv[1] if len(sys.argv)>1 else os.path.join(R,'build','cage-et-gloire.html')
 os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True)
 open(out,'w',encoding='utf-8').write(html)

@@ -55,6 +55,10 @@ Construction : `npm i` à la racine du dossier (three 0.160, esbuild, @fontsourc
 - Ligues → Records : bilan de l'écurie et records (série, KO et soumission les plus rapides, ceintures…) sur les combattants actuels et anciens (`f.anc`).
 - Précompilation des shaders en fin de `Arene.preparer` (évite un gel au premier coup sur Mac). Le banc 🧪 écarte les pauses > 1 s (fenêtre cachée) et les signale (`pauses`, `pauseMax`).
 
+## Arène réaliste (v10)
+- Textures Poly Haven (CC0) dans `jeu/tex/` (préparées par `outils/prep_tex.py`), intégrées en base64 par `build.py` (`<script type="text/plain" id="tex-NOM">`, lues par `texImg()` dans arene.js). Ne pas oublier de les versionner.
+- Pas de carte d'environnement (PMREM) : trop chère sur Mac Intel/téléphone. Relief du tapis seulement en Haute.
+
 ## Outils de chasse aux bugs
 - `node outils/audit.js 4 12` : 4 parties de 12 ans avec un joueur au hasard ; vérifie NaN, bornes, combats en double, ceintures vacantes, champions partis, offres orphelines, taille de la sauvegarde.
 - `python3 outils/monkey.py build/index.html dossier 900 390 844 1` : robot qui clique au hasard (vrais clics) ; rapporte erreurs JS, écrans bloquants, boutons les plus cliqués.

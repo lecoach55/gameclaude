@@ -45,3 +45,12 @@ Tests : evtest 32 événements + 8 spéciaux sans erreur ; parcours au doigt, vu
 - Simulations : audit 4×12 ans et 2×8 ans sans aucune incohérence ; sim_monde 3×12 ans 0 erreur ; 7 robots cliqueurs (≈ 5 500 clics, téléphone et ordinateur) : 1 erreur trouvée et corrigée (cote du pré-combat mise à jour après fermeture de la fenêtre).
 - Constat : après ~6 ans la salle est au maximum et l'argent s'accumule (5-10 M€ à 12 ans) → complexe (4 bâtiments) comme objectif de fin de partie. Titres APEX très rares (1 en 36 années simulées) : signalé, non modifié.
 - Banc swiftshader inchangé : 216 / 240 / 203 ms (perf_v9.json).
+
+## v10 — 16/11/2026 — passe graphique de l'arène
+- Tapis moins blanc et usé (coutures, traces, taches, logo patiné) ; relief de toile Poly Haven `rough_linen` (CC0, `jeu/tex/tapis_n.jpg`, `outils/prep_tex.py`) en qualité Haute seulement.
+- Grillage d'acier lisible de loin (Lambert, alphaTest .12 au lieu de Standard .35 qui le faisait disparaître avec les mipmaps), rembourrages et rail supérieur plus épais, poteaux métal.
+- Bandeau LED défilant au pied des gradins (couleurs et nom de l'organisation ; pas en Basse), public redessiné (épaules, cheveux, casquettes, bras levés, téléphones) et éclairé par rang, faisceaux fusionnés en 1 objet (Haute), lumière de contour chaude sur les combattants, éclairage de gala (ambiance plus sombre, projecteur central plus marqué). Crédits Mixamo + Poly Haven sur l'accueil.
+- `construire()` libère maintenant matériaux et textures de l'arène précédente (fuite mémoire GPU à chaque combat).
+- Essayé et retiré : carte d'environnement PMREM (+40 % de temps d'image au banc) ; relief vinyle (texture trop plate).
+- Banc swiftshader (PX=1, Moyenne, paires alternées, même minute) : avant ≈ 234-245 / 257-268 / 240-247 ms ; après ≈ 236-250 / 265-276 / 240-250 ms (−4 à +5 %, dans le bruit) ; appels 24→25, triangles +256. Estimation Mac Intel : 53/48 img/s au lieu de 54,7/49,3.
+- Tests : combat3d, vues 1280×800, parcours 390×844, sauvegarde (identique, 148 ko), ancienne sauvegarde reprise, 3 qualités + deux combats d'affilée, monkey 94 semaines : 0 erreur. Revue Studio : relecteur ORANGE (corrigé), graphiste ORANGE (corrigé), technicien VERT, testeur VERT.

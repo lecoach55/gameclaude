@@ -7,10 +7,10 @@ from playwright.sync_api import sync_playwright
 html = os.path.abspath(sys.argv[1]); minutes = float(sys.argv[2]) if len(sys.argv) > 2 else 3; rng = random.Random(int(sys.argv[3]) if len(sys.argv) > 3 else 7)
 EVITER = ['Nouvelle maison', 'Tirer une autre maison', 'Fonder une nouvelle', 'Abandonner', 'Effets sonores', 'Musique', 'Revoir le guide', 'Mode test', 'Signaler', 'Passer en chronique libre', 'Chronique libre']
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
+    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox']+(['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] if os.environ.get('V3D')=='1' else []))
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, reduced_motion='reduce')
     pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)[:300]))
-    pg.add_init_script("try{if(!sessionStorage.getItem('x')){localStorage.clear();sessionStorage.setItem('x','1')}localStorage.setItem('cl_guide','1');localStorage.setItem('cl_sound',JSON.stringify({sfx:false,music:false}))}catch(e){}")
+    pg.add_init_script("try{if(!sessionStorage.getItem('x')){localStorage.clear();sessionStorage.setItem('x','1')}localStorage.setItem('cl_guide','1');localStorage.setItem('cl_3d','"+('1' if os.environ.get('V3D')=='1' else '0')+"');localStorage.setItem('cl_sound',JSON.stringify({sfx:false,music:false}))}catch(e){}")
     pg.goto('file://' + html); pg.wait_for_timeout(700)
     pg.get_by_text('Fonder la maison').click(); pg.wait_for_timeout(800)
     t0 = time.time(); clics = 0; same = 0; last = ''; vus = {}; parties = 0; ans = set(); blocages = 0

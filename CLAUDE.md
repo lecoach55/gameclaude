@@ -11,6 +11,7 @@ Simulation dynastique médiévale en une page HTML (SVG, sans dépendance). Arte
 - Construire : `cd couronnes-et-lignees/jeu && python3 build.py`, publier `index.html`.
 - Équilibre : bot attentif 72-80 % (`node -e "require('./sim.js').run('heur',1000)"`), aucun choix > 95 % (`outils/tests/analyze.js`). Ne pas changer la difficulté sans accord.
 - Avant publication : `outils/tests/pass1test.py` (partie + anciennes sauvegardes), `mock.py` (IA), `explore.py` (au doigt), `mesure/captures.py` + `outils-communs/compare.py` contre `references/`.
+- Carte 3D en cours (`PLAN_3D.md`, `jeu/rendu3d.js`) : tester aussi avec `V3D=1` (captures, explore, geste), références `references/3d/`.
 - Voir `couronnes-et-lignees/README.md`.
 
 ## Hameau 3D (`hameau/`)

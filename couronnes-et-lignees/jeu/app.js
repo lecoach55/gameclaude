@@ -917,6 +917,7 @@ function boardSVG() {
   const dec = MAP2.decor(S.seed, S.regions);
   const coastD = MAP2.wpath(g.coast);
   const own = i => holdOwner[i] != null ? holdOwner[i] : S.regions[i].owner;
+  const V3 = R3.on();
   let s = `<defs>
    <radialGradient id="seaG" cx=".5" cy=".5" r=".75"><stop offset=".55" stop-color="#9fb8b0"/><stop offset="1" stop-color="#5f7f86"/></radialGradient>
    <radialGradient id="landG" cx=".45" cy=".4" r=".75"><stop offset="0" stop-color="#f1e4c0"/><stop offset=".8" stop-color="#e2cf9f"/><stop offset="1" stop-color="#cdb582"/></radialGradient>
@@ -925,34 +926,36 @@ function boardSVG() {
    <filter id="soft"><feGaussianBlur stdDeviation="2.2"/></filter>
    <clipPath id="landClip"><path d="${coastD}"/></clipPath>
    <radialGradient id="vig" cx=".5" cy=".5" r=".72"><stop offset=".62" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#1f150a" stop-opacity=".42"/></radialGradient></defs>`;
+  if (!V3) {
   s += `<rect x="-900" y="-900" width="${g.W + 1800}" height="${g.H + 1800}" fill="#86a5a5"/>` + MAP2.sea(g);
   // côtes hachurées (lignes concentriques)
   [14, 9, 5].forEach((w, k) => { s += `<path d="${coastD}" fill="none" stroke="#e9f1ea" stroke-width="${w}" opacity="${0.12 + k * 0.1}" stroke-linejoin="round"/>`; });
   s += `<path d="${coastD}" fill="url(#landG)"/>`;
+  }
   // terres : couleurs des propriétaires
   s += `<g clip-path="url(#landClip)">`;
   g.cells.forEach((c, i) => {
     const o = own(i), d = MAP2.wpath(c.poly);
     const fill = o === 'me' ? me.robe : o === 'rival' ? 'url(#rh)' : A.arms(o).robe;
-    const op = o === 'me' ? 0.42 : o === 'rival' ? 1 : 0.1;
+    const op = V3 ? (o === 'me' ? 0.14 : o === 'rival' ? 0.45 : 0.001) : o === 'me' ? 0.42 : o === 'rival' ? 1 : 0.1;
     const R = S.regions[i];
     const isT = targetMode && targets.has(i) && (targetMode !== 'vassal' || o !== 'rival');
     const cls = ['rg', o === 'me' ? 'own' : o === 'rival' ? 'riv' : 'neu', selRegion === i ? 'sel' : '', isT ? (targetMode === 'vassal' ? 'tgt vas' : 'tgt') : '', R.flip === S.year && holdOwner[i] == null ? 'flipped' : '', R.won && S.year - R.won <= 3 && holdOwner[i] == null ? 'fresh' : '', R.lost && S.year - R.lost <= 3 && holdOwner[i] == null ? 'lostr' : ''].join(' ');
     s += `<path class="${cls}" data-i="${i}" d="${d}" fill="${fill}" fill-opacity="${op}" stroke="none" onclick="tapRegion(${i})"/>`;
   });
-  s += `</g><g filter="url(#paper)" pointer-events="none"><path d="${coastD}" fill="#fff" fill-opacity=".01"/></g>`;
-  s += `<g pointer-events="none">${dec.under}</g>`;
+  s += V3 ? '</g>' : `</g><g filter="url(#paper)" pointer-events="none"><path d="${coastD}" fill="#fff" fill-opacity=".01"/></g><g pointer-events="none">${dec.under}</g>`;
   // frontières : fines entre seigneurs, épaisses autour du royaume
   g.cells.forEach((c, i) => { s += `<path d="${MAP2.wpath(c.poly)}" fill="none" stroke="#6b5230" stroke-width=".9" stroke-dasharray="${own(i) === 'me' ? '' : '2.5 2'}" opacity=".75" pointer-events="none"/>`; });
   g.cells.forEach((c, i) => { if (own(i) === 'me') s += `<path d="${MAP2.wpath(c.poly)}" fill="none" stroke="${me.robe}" stroke-width="3" opacity=".55" pointer-events="none" clip-path="url(#landClip)"/>`; });
   // routes entre vos châteaux
   g.cells.forEach((c, i) => { if (own(i) !== 'me') return; for (const j of g.adj[i]) if (j > i && own(j) === 'me') { const a = c.c, b = g.cells[j].c, mx = (a[0] + b[0]) / 2 + (a[1] - b[1]) * 0.12, my = (a[1] + b[1]) / 2 + (b[0] - a[0]) * 0.12; s += `<path d="M${a[0]} ${a[1] + 6} Q${mx} ${my} ${b[0]} ${b[1] + 6}" fill="none" stroke="#8a6a3c" stroke-width="1.3" stroke-dasharray="3 2.2" opacity=".8" pointer-events="none"/>`; } });
-  s += `<g pointer-events="none">${dec.over}</g>`;
-  s += `<path d="${coastD}" fill="none" stroke="#4a3620" stroke-width="2.4" pointer-events="none"/>`;
+  if (!V3) s += `<g pointer-events="none">${dec.over}</g>`;
+  s += `<path d="${coastD}" fill="none" stroke="#4a3620" stroke-width="${V3 ? 1.2 : 2.4}" opacity="${V3 ? .5 : 1}" pointer-events="none"/>`;
   // châteaux, villages, blasons, noms
   g.cells.forEach((c, i) => {
     const R = S.regions[i], o = own(i), [x, y] = c.c;
-    if (o === 'me') {
+    if (V3) { if (o !== 'me') s += `<g pointer-events="none">${nestedShield(ownerArms(o), x + 13, y - 8, o === 'rival' ? 16 : 12)}</g>`; }
+    else if (o === 'me') {
       s += R.cap ? MAP2.castle(x, y - 6, me.robe, true) : MAP2.castle(x, y - 4, me.robe, false);
       { const bl = (R.bl || []).slice(-3), spots = R.cap ? [[-21, 13], [-48, 13], [-62, -4]] : [[-20, 6], [20, 6], [-33, 2]];
         bl.forEach((k, j) => { s += MAP2.edifice(k, x + spots[j][0], y + spots[j][1]); });
@@ -962,7 +965,7 @@ function boardSVG() {
       s += MAP2.tower(x, y - 4, o === 'rival' ? '#7a1e12' : A.arms(o).robe);
       s += `<g pointer-events="none">${nestedShield(ownerArms(o), x + 13, y - 8, o === 'rival' ? 16 : 12)}</g>`;
     }
-    if (R.wealth >= 4 && o !== 'me') s += MAP2.hamlet(x - 16, y + 6, 2);
+    if (!V3 && R.wealth >= 4 && o !== 'me') s += MAP2.hamlet(x - 16, y + 6, 2);
     const nm = R.cap ? R.name : R.name.replace(/^(Comté|Baronnie|Vicomté|Seigneurie|Châtellenie|Marche) de /, '');
     const lx = Math.max(36, Math.min(g.W - 36, x));
     s += `<text x="${lx}" y="${y + 19}" class="rname ${o === 'me' ? 'm' : o === 'rival' ? 'r' : ''}" text-anchor="middle" pointer-events="none">${esc(nm)}</text>`;
@@ -974,7 +977,7 @@ function boardSVG() {
     s += `<g transform="translate(${x - 13} ${y - 26})" pointer-events="none"><circle r="6.5" fill="${H.traite === 'commerce' ? '#f3dc96' : '#e9f2e4'}" stroke="#3b2a18" stroke-width=".7"/>${H.traite === 'commerce' ? '<path d="M-3.6 -1 h7.2 M0 -3.6 v6.4 M-3.6 -1 l-1.4 3 h2.8 Z M3.6 -1 l-1.4 3 h2.8 Z M-2 3 h4" stroke="#6b4a1a" stroke-width=".8" fill="#e0b04a"/>' : '<path d="M-3 2.6 q0 -5 3.4 -6 q-1 3 1.6 3.4 q-3.4 .6 -5 2.6 Z" fill="#7a9a5a" stroke="#3b5a2a" stroke-width=".5"/><path d="M-3 3 L3.4 -3" stroke="#3b5a2a" stroke-width=".6"/>'}</g>`; });
   if (S.war) { const W = S.war, seen = new Set(); g.cells.forEach((c, i) => { const R = S.regions[i]; if (R.owner !== W.a) return; for (const j of g.adj[i]) { if (S.regions[j].owner !== W.b || seen.has(i + '-' + j)) continue; seen.add(i + '-' + j); const d = g.cells[j].c, mx = (c.c[0] + d[0]) / 2, my = (c.c[1] + d[1]) / 2;
       s += `<g class="warx" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)})" pointer-events="none"><circle r="7" fill="#7a1e12" opacity=".85" stroke="#f3dc96" stroke-width=".8"/><path d="M-4 -4 L4 4 M4 -4 L-4 4" stroke="#f3dc96" stroke-width="1.4" stroke-linecap="round"/><path d="M-4.6 -2.6 l2 -2 M2.6 -4.6 l2 2" stroke="#f3dc96" stroke-width="1"/></g>`; } }); }
-  s += MAP2.ship(g.W * 0.08, g.H * 0.6, me.robe) + MAP2.serpent(g.W * 0.86, g.H * 0.04) + MAP2.compass(30, g.H - 26);
+  s += (V3 ? '' : MAP2.ship(g.W * 0.08, g.H * 0.6, me.robe) + MAP2.serpent(g.W * 0.86, g.H * 0.04)) + MAP2.compass(30, g.H - 26);
   // pions
   const cap = g.cells[S.capital].c;
   s += `<g class="token me" id="tokMe" transform="translate(${cap[0] + 28} ${cap[1] - 16})" pointer-events="none"><circle r="13.5" fill="url(#tokG)" stroke="#e8c15a" stroke-width="2"/><g transform="translate(-9 -10) scale(.38)" stroke="#f3dc96" stroke-width="3.2" fill="none">${A_IC('armee')}</g><rect x="-13" y="12" width="26" height="12" rx="6" fill="#f3e6c6" stroke="#1c2f5e"/><text y="21.5" text-anchor="middle" class="tokn">${S.army}</text></g>`;
@@ -983,7 +986,7 @@ function boardSVG() {
     const front = S.regions.filter(r => own(r.i) === 'rival').map(r => [r, Math.min(...D.myRegions(S).map(m => Math.hypot(g.cells[m.i].c[0] - g.cells[r.i].c[0], g.cells[m.i].c[1] - g.cells[r.i].c[1])))]).sort((a, b) => a[1] - b[1])[0];
     if (front) { const [x, y] = g.cells[front[0].i].c; s += `<g class="token foe ${S.menace > 60 ? 'hot' : ''}" id="tokFoe" transform="translate(${x - 24} ${y - 18})" onclick="rivalSheet()" style="cursor:pointer"><circle r="12.5" fill="url(#tokR)" stroke="#f0a33a" stroke-width="2"/><g transform="translate(-8 -9) scale(.34)" stroke="#ffd9b0" stroke-width="3.4" fill="none">${A_IC('epees')}</g><rect x="-13" y="11" width="26" height="12" rx="6" fill="#f6e3d6" stroke="#7a1e12"/><text y="20.5" text-anchor="middle" class="tokn r">${S.menace}</text></g>`; }
   }
-  return `<svg viewBox="0 0 ${g.W} ${g.H}" class="board" id="board" role="img" aria-label="Carte du royaume">${s}</svg>`;
+  return `<svg viewBox="0 0 ${g.W} ${g.H}" class="board${V3 ? ' b3d' : ''}" id="board" role="img" aria-label="Carte du royaume">${s}</svg>`;
 }
 function inPoly(poly, x, y) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) c = !c; } return c; }
 function A_IC(n) { return A.icon(n, 48).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, ''); }
@@ -1120,6 +1123,7 @@ function menuSheet() {
    <button onclick="closeM();setTab('cour')">${A.icon('eglise', 24)}<span>La cour<small>Souverain, famille, politiques, trésor</small></span></button>
    <button onclick="closeM();setTab('lignee')">${A.icon('marier', 24)}<span>La lignée<small>Arbre et succession</small></span></button>
    <button onclick="closeM();setTab('chronique')">${A.icon('plume', 24)}<span>La chronique<small>Tout ce qui s'est passé</small></span></button>
+   ${R3.supported() ? `<button onclick="R3.setPref(!R3.pref());location.reload()"><span class="em">🧊</span><span>Carte en 3D (essai)<small>${R3.pref() ? 'activée — toucher pour revenir au dessin' : 'en construction — toucher pour l\'essayer'}</small></span></button>` : ''}
    <button onclick="reportBug(this)"><span class="em">🐞</span><span>Signaler un problème<small>Envoie à Claude l'écran et l'état de la partie</small></span></button>
    <button onclick="titlesSheet()">${A.icon('prestige', 24)}<span>Titres de gloire<small>${Object.keys(titlesGot()).length} sur ${TITLES.length} débloqués</small></span></button>
    <button onclick="closeM();setTab('labo')">${A.icon('fiole', 24)}<span>Le laboratoire<small>Simulations et équilibrage</small></span></button>
@@ -1152,11 +1156,13 @@ function applyView(live) {
   if (live && vBase && b._vb === vBase) {
     const k = vBase.w / view.w, tx = (vBase.x - view.x) / view.w * innerWidth, ty = (vBase.y - view.y) / view.h * innerHeight;
     b.style.transformOrigin = '0 0'; b.style.transform = `translate3d(${tx.toFixed(1)}px,${ty.toFixed(1)}px,0) scale(${k.toFixed(4)})`;
+    R3.setLive(b.style.transform);
     clearTimeout(vTimer); vTimer = setTimeout(() => applyView(), 160); return;
   }
   clearTimeout(vTimer); b.style.transform = '';
   b.setAttribute('viewBox', `${view.x.toFixed(1)} ${view.y.toFixed(1)} ${view.w.toFixed(1)} ${view.h.toFixed(1)}`); b.setAttribute('preserveAspectRatio', 'xMidYMid meet');
   vBase = { x: view.x, y: view.y, w: view.w, h: view.h }; b._vb = vBase;
+  if (R3.on()) { R3.setLive(''); R3.render(view); }
 }
 function zoomAt(f, px, py) {
   if (!view) view = fitView();
@@ -1371,6 +1377,7 @@ const JOURNAL = [
   ['Portraits et blasons', '0 %', '75 %', 'Les portraits vieillissent davantage (plis, poches sous les yeux, taches de l\'âge) et s\'habillent selon l\'époque de leur jeunesse : maille pour les braves de l\'âge des barons, surcot à bordure à l\'âge des cathédrales, col montant à l\'âge des fléaux. Les traits se voient : croix pectorale et tonsure du pieux, regard cerné du cruel, sourcils inquiets du couard, sourire du charismatique, bouche bée du simplet. Après un mariage d\'alliance, les armes du couple sont parties : moitié de votre blason, moitié de celui de l\'épouse ou de l\'époux, dans la Cour et l\'arbre.'],
   ['Le monde bouge sans vous', '0 %', '77 %', 'Les maisons voisines se font de vraies guerres, qui durent plusieurs années et font changer les terres de main (épées croisées sur la carte, le long du front). On vous demande d\'y prendre parti : soutenir un camp lui donne l\'avantage, arbitrer la paix demande du prestige, profiter de leurs querelles affaiblit leurs garnisons. Avec une maison bienveillante, on peut sceller un traité de commerce (+2 or par tour) ; avec une maison neutre, un pacte de non-agression (moins de menace, plus de pillage) : au plus trois traités, signalés par un sceau sur la carte, et les rompre en l\'attaquant fait de vous un parjure. Épouser quelqu\'un d\'une maison voisine la rapproche de vous, et une maison amie se montre moins exigeante sur votre prestige.'],
   ['Scènes et lumière', '0 %', '77 %', 'Sept nouvelles scènes dessinées à la main illustrent les événements : le tournoi (lices, tribune, chevaliers lance couchée), le chantier de cathédrale (échafaudages, grue à roue), la foire (étals à auvents, foule), les noces (portail d\'église, pluie de pétales), le couronnement (salle du trône, couronne dans la lumière), le siège (remparts, trébuchet, fumées) et le port (quai, entrepôts, phare, cogues). Toute une trentaine d\'événements y gagnent une image qui leur ressemble. La lumière change avec l\'âge : dorée à l\'âge des cathédrales, plombée à l\'âge des fléaux.'],
+  ['Plan 3D, phase 1 : la carte en relief', '0 %', '76 %', 'Premier pas vers la 3D réaliste : la carte peut être dessinée par la puce graphique, en vue cavalière comme les plans anciens. Terrain photographique (herbe, forêt, roche, sable, marais), relief des collines, lits des rivières, mer, forêts d\'arbres en volume et premiers châteaux. Les frontières, les noms et les pions restent dessinés par-dessus, si bien que tout se touche comme avant. À essayer dans le menu ☰ (« Carte en 3D ») : elle deviendra la carte par défaut quand châteaux et édifices seront en 3D.'],
 ];
 function viewLabo() {
   const C = { victoire: '#2f6b55', extinction: '#6b3a78', revolte: '#a8321f', conquete: '#b98a2e', timeout: '#888' };
@@ -1738,6 +1745,7 @@ function render() {
   $('tabs').querySelectorAll('button[aria-current]').forEach(b => b.setAttribute('aria-current', 'page'));
   $('tabs').querySelector('.tabbar').style.transform = `translateX(${ti * 100}%)`;
   $('minibar').innerHTML = miniBar(); onScroll();
+  if (tab === 'plateau' && R3.on()) { R3.sync(S); const im = document.querySelector('.imm'); if (im) R3.attach(im); }
   if (tab === 'plateau') wireMap();
 }
 function onScroll() { $('minibar').classList.toggle('on', tab === 'cour' && scrollY > 240); }

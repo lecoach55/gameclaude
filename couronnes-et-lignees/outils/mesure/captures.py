@@ -22,16 +22,16 @@ VUES = [
  ('edifices', "closeM();setTab('plateau');S.gold=5000;const cap=S.regions.find(r=>r.cap),o=D.myRegions(S).find(r=>!r.cap);for(const [k,r] of [['moulin',o],['marche',o],['abbaye',o],['donjon',cap],['lices',cap]]){D.playTurn(S,'construire',r.i,k);if(S.event)D.resolveEvent(S,0);}S.event=null;S.cathedral=true;render();const c=D.mapGeom(S.seed).cells[cap.i].c;view={x:c[0]-75,y:c[1]-150,w:150,h:150*844/390};applyView()"),
 ]
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
+    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, reduced_motion='reduce')
     pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.add_init_script("try{localStorage.clear();localStorage.setItem('cl_guide','1');localStorage.setItem('cl_sound',JSON.stringify({sfx:false,music:false}))}catch(e){}")
+    pg.add_init_script("try{localStorage.clear();localStorage.setItem('cl_3d','"+('1' if os.environ.get('V3D')=='1' else '0')+"');localStorage.setItem('cl_guide','1');localStorage.setItem('cl_sound',JSON.stringify({sfx:false,music:false}))}catch(e){}")
     pg.goto('file://' + page_html); pg.wait_for_timeout(600)
     pg.evaluate("startTest();for(let i=0;i<8;i++){D.playTurn(S,'attendre');if(S.event)D.resolveEvent(S,0);}S.event=null;D.autoCouncil(S);render()")
     pg.evaluate("document.querySelectorAll('[id^=tk],div[style*=\"9999\"]').forEach(e=>e.remove())")
     for nom, js in VUES:
         pg.evaluate("closeM()"); pg.wait_for_timeout(150)
-        pg.evaluate(js); pg.wait_for_timeout(700)
+        pg.evaluate(js); pg.wait_for_timeout(2500 if os.environ.get('V3D')=='1' else 700)
         pg.evaluate("document.querySelectorAll('div[style*=\"9999\"]').forEach(e=>e.remove())")
         pg.screenshot(path=f'{out}/{nom}.png')
     # fin de partie

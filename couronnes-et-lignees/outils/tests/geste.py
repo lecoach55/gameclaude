@@ -3,9 +3,9 @@ import sys, os
 from playwright.sync_api import sync_playwright
 html = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else 'index.html')
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox']); pg = b.new_page(viewport={'width': 390, 'height': 844})
+    b = p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox']+(['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] if os.environ.get('V3D')=='1' else [])); pg = b.new_page(viewport={'width': 390, 'height': 844})
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.add_init_script("localStorage.setItem('cl_guide','1')"); pg.goto('file://' + html); pg.wait_for_timeout(800); pg.evaluate("startTest()")
+    pg.add_init_script("localStorage.setItem('cl_guide','1');localStorage.setItem('cl_3d','"+('1' if os.environ.get('V3D')=='1' else '0')+"')"); pg.goto('file://' + html); pg.wait_for_timeout(800); pg.evaluate("startTest()")
     vb = lambda: pg.evaluate("document.getElementById('board').getAttribute('viewBox')")
     v0 = vb(); pg.mouse.move(200, 450); pg.mouse.down()
     for i in range(12): pg.mouse.move(200 - i * 8, 450 - i * 5)

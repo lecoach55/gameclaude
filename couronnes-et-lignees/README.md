@@ -23,6 +23,9 @@ Artefact publié : slug `c14b9bc8-e782-45aa-b06c-06126bd542d0` (https://claude.a
 - `mesure/perf.py index.html sortie.json` : banc de performance (graine 1234, processeur ralenti ×4 comme un téléphone) : rendu de chaque onglet, fiches, tour, img/s pendant un zoom et un glissé. Référence : `mesures/perf_apres.json`.
 - `tests/geste.py index.html` : glisser, molette et toucher une terre sur la carte.
 
+## Carte 3D (plan en cours, voir `PLAN_3D.md`)
+`jeu/rendu3d.js` (Three.js r160 en vue cavalière sous la couche SVG), `jeu/tex3d.js` (textures Poly Haven). `V3D=1` devant `captures.py`, `explore.py`, `geste.py` pour tester en 3D ; références dans `references/3d/`.
+
 ## Mesures (`mesures/`)
 Référence 15/11/2026 : bot attentif 74,5 % de victoires sur 1000 parties, hasard 0,3 % ; banc navigateur et explorateur sans erreur.
 

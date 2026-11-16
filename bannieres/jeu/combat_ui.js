@@ -74,6 +74,7 @@ async function explosion(c){const fx={t:'explo',x:c.x,y:c.y-CB.geo.h*.3,t0:perfo
 async function etincelles(c,coul,zone){const fx={t:'spark',x:c.x,y:c.y-CB.geo.h*.4,coul,t0:performance.now(),d:600,r:zone?CB.geo.w*1.6:CB.geo.w*.7};CB.fx.push(fx);await pause(560);}
 
 function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');const g=cv.getContext('2d');const G2=CB.geo;g.setTransform(CB.dpr,0,0,CB.dpr,0,0);const now=performance.now();
+ if(!CB.fond&&CB.c3&&R3.pret&&!R3.pret()){g.fillStyle='#1a1610';g.fillRect(0,0,G2.W,G2.H+60);return;}
  if(!CB.fond){let f3=null;if(CB.c3){try{f3=R3.fondCombat(C,G2,CB.c3.cam,G2.H+60,CB.dpr);}catch(e){console.error(e);}}if(f3){CB.fond=f3.fond;CB.obst3=f3.obst;}else{CB.fond=fondCombat(C.terrain,Math.round(G2.W),Math.round(G2.H+60),7,G2.port?.05:.24);CB.obst3=null;}}g.drawImage(CB.fond,0,0,G2.W,G2.H+60);
  if(C.ville&&!CB.obst3){const s=spriteVille(C.ville.fac);const w=G2.W*.32,h=w*s.height/s.width;g.globalAlpha=.9;g.drawImage(s,G2.W-w*.95,G2.oy-h*.92,w,h);g.globalAlpha=1;}
  // grille

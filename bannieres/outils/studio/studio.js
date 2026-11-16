@@ -49,6 +49,8 @@ export const DEFS={
  h_chaman:{f:'hx_brute',o:{s:.6,set:'mx',hue:.35,gsat:.55,gdk:1.1,gamt:.15,ghc:.2,wR:['skstaff'],wx:{skstaff:{p:[0,.2,.02],s:.42}}},lift:.15,aura:0xff9a4a},
  h_chevmort:{f:'hx_aldric',o:{s:1.04,set:'mx',gsat:.3,gdk:.6,gamt:.3,gmet:.3,recol:{h:.75,to:.8,w:.2,s:1.1}},lift:.1,yeux:0x7cf7a2},
  h_necromancien:{f:'hx_cult',o:{s:1,set:'mx',recol:{h:0,to:.75,w:.2,s:.6},gsat:.6,gdk:1,gamt:.2,wR:['skstaff'],wx:{skstaff:{p:[0,.2,.02],s:.42}}},lift:.12,aura:0x7cf7a2},
+ ogre:{f:'hx_brute',o:{s:.92,set:'mx',hue:.6,gsat:.5,gdk:1.0,gamt:.25,ghc:.2,wR:['skaxe'],wx:{skaxe:{p:[0,.1,.02],s:.38}}},lift:.1,atk:'atk'},
+ cyclope:{f:'hx_brute',o:{s:1.08,set:'mx',hue:1.8,gsat:.45,gdk:.95,gamt:.3,ghc:.2},lift:.1,atk:'atk',yeux:0xff5a2a},
  wyverne:{f:'hx_dragon',o:{s:.0015,set:'dr',ground:1,hue:.5,gsat:.55,gdk:.9,gamt:.3,gsc:3},lift:.07,atk:'atk',dragon:1,yeux:0xffb040},
 };
 function fabriquer(id){const D=DEFS[id];const R=makeChar(D.f,Object.assign({kind:'mon'},D.o));mxLift(R,D.lift||.12);
@@ -58,7 +60,7 @@ function fabriquer(id){const D=DEFS[id];const R=makeChar(D.f,Object.assign({kind
  return R;}
 function pose(R,k,t){R.mixer.stopAllAction();const a=R.act(k)||R.act('idle');a.reset();a.play();a.setEffectiveWeight(1);a.paused=false;a.time=t*a.getClip().duration;R.mixer.update(0);a.time=t*a.getClip().duration;R.mixer.update(0);R.applyFix&&R.applyFix();}
 // rend toutes les images d'une créature ; renvoie {frames:{anim:[dataURL]}, ...}
-W.rendreCreature=async(id,opts)=>{await ready;const D=DEFS[id]||{};const Qd=QDEFS[id];const FW=opts.fw,FH=opts.fh;if(!renderer)init(FW,FH);renderer.setSize(FW,FH);
+W.rendreCreature=async(id,opts)=>{await ready;const D=DEFS[id]||{};const Qd=QDEFS[id];const FW=opts.fw,FH=opts.fh;if(!renderer)init(FW,FH);renderer.setSize(FW,FH);renderer.toneMappingExposure=Qd?(Qd.expo||1.0):1.55;
  const R=Qd?Qd.c():fabriquer(id);scene.add(R.root);R.root.rotation.y=Qd?-.5:Math.PI/2-.5;
  // échelle commune : u unités du monde = hauteur du cadre
  const U=opts.u;cam=new THREE.OrthographicCamera(-U*FW/FH/2,U*FW/FH/2,U*.5,-U*.5,.1,50);const pitch=.42;cam.position.set(0,Math.sin(pitch)*12+U*.38,Math.cos(pitch)*12);cam.lookAt(0,U*.38,0);

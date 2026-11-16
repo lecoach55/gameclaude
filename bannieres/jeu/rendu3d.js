@@ -335,7 +335,7 @@ A.vue=()=>{const pts=[];for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){v2.s
 A.qualite=q=>{S.qual=Math.max(0,Math.min(2,q));if(soleil)soleil.castShadow=S.qual>=2;if(scene)scene.traverse(o=>{if(o.material&&o.material.needsUpdate!==undefined&&o.isMesh)o.material.needsUpdate=true;});A.redim();};A.niveau=()=>S.qual;
 A.ouvrir=()=>{document.getElementById('carte3d').style.display='block';V.vide=false;};
 A.fermer=()=>{A.actif=false;document.getElementById('carte3d').style.display='none';V.fogDirty=true;V.vide=false;};
-A._scene=()=>scene;A._pi=(...a)=>planImp(...a);A._res=RES;A._ren=()=>ren;
+A.pret=()=>RES.pret;A._scene=()=>scene;A._pi=(...a)=>planImp(...a);A._res=RES;A._ren=()=>ren;
 A.info=()=>ren?{calls:ren.info.render.calls,tris:ren.info.render.triangles,geo:ren.info.memory.geometries,tex:ren.info.memory.textures}:null;
 
 // =========================================================

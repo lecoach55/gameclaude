@@ -3,6 +3,13 @@
 Dépôt de Victor (lecoach55) : ses jeux créés avec Claude et les outils de fabrication, partagés entre conversations.
 Réponds à Victor en français. Il joue surtout sur téléphone et sur un MacBook Pro Intel (puce graphique modeste).
 
+## Le Bureau (`bureau/`) — à lire en premier
+Espace commun à toutes les conversations : chantiers en cours, journal, catalogue des outils (`bureau/ressources.md`), mises en commun à faire (`bureau/a-mutualiser.md`). Mode d'emploi complet : `bureau/README.md`.
+- **En arrivant** : `python3 bureau/outils/bureau.py` (état), lire les demandes de Victor et les messages (`db_list` sur le slug de `bureau/ARTEFACT.txt`, collections `demandes` et `messages`), puis `bureau.py arrivee <dossier> "objet"` + commit/push.
+- **Avant d'écrire un outil** : chercher dans `bureau/ressources.md`, il existe souvent dans un autre jeu.
+- **En repartant** : reporter dans `outils-communs/` tout outil amélioré utile ailleurs, `bureau.py depart <dossier> "bilan chiffré"`, `bureau.py page` puis republier `bureau/build/index.html` (publish_files, mode patch, slug de `bureau/ARTEFACT.txt`), marquer les demandes traitées (`db_write` : `etat: "fait"`, `reponse`), commit/push.
+- Toujours `git pull --rebase` avant de pousser : plusieurs conversations travaillent en parallèle.
+
 ## Outils communs (`outils-communs/`)
 `testkit.js` (🐞 signalement, compteur d'img/s, banc, envoi en base ; jeux SVG : option `capture` + `svgCapture`), `sauvegarde-en-ligne.js` (grosses sauvegardes compressées et découpées, reprise sur un autre appareil), `atelier.py` (serveur, pages, mesures, captures), `compare.py`. À intégrer dans chaque nouveau jeu.
 

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Le Bureau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE : un bureau de production calme et précis, chiffres d'abord.
+   IDEA : le plan d'un plateau de bureaux vu de dessus, un poste par jeu, la lampe allumée quand une conversation y travaille.
+   PICTURE : le plan des postes (moquette, bureaux, lampes) en tête de page, puis le panneau de liège des demandes.
+   COLOUR and TYPE : moquette bleu pétrole, plateaux bois clair, lampe jaune ; Archivo 800 pour les titres, Inter pour le texte.
+   LAYOUT : plan pleine largeur, puis tableau d'affichage, chantiers, couverture des outils, mises en commun, journal. */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0d1518);--ink:light-dark(#14202a,#e6eef0);--mute:light-dark(#5b6873,#93a4ab);
+--floor:light-dark(#1d4e57,#10343b);--floor2:light-dark(#22606a,#143f47);--desk:light-dark(#e9d9bd,#c9b48f);--desk2:light-dark(#d6c19c,#a8916b);
+--lamp:#ffcf3a;--line:light-dark(#e1e6e9,#22323a);--card:light-dark(#f4f7f8,#13212a);--ok:#1f8a5b;--warn:#c8531c;--note:light-dark(#fff3b0,#3b3517)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2{font-family:Archivo,Inter,sans-serif;letter-spacing:-.01em;margin:0}
+h1{font-size:clamp(32px,6vw,48px);font-weight:800;line-height:1.05;text-wrap:balance}
+h2{font-size:24px;font-weight:700;line-height:1.15;margin-bottom:14px}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px)}.wrap{max-width:1240px;margin:0 auto}
+.sub{color:var(--mute);margin:8px 0 0;max-width:70ch}
+.plan{background:var(--floor);background-image:repeating-linear-gradient(45deg,var(--floor) 0 14px,var(--floor2) 14px 15px);color:#eaf4f5}
+.plan .wrap{display:grid;gap:18px}
+.plan .sub{color:#b9d3d6}
+.postes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:18px}
+.poste{position:relative;border:0;text-align:left;color:#1b2329;background:linear-gradient(160deg,var(--desk),var(--desk2));border-radius:10px;padding:16px 16px 14px 18px;box-shadow:0 10px 0 -4px rgba(0,0,0,.25),0 18px 30px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.55);min-height:132px;cursor:pointer;font:inherit}
+.poste:focus-visible{outline:3px solid var(--lamp);outline-offset:3px}
+.poste .nom{font:700 17px/1.2 Archivo,sans-serif;padding-right:34px}
+.poste .meta{font-size:13px;color:#4a4134;margin-top:6px}
+.poste .ecran{position:absolute;left:18px;right:18px;bottom:12px;height:6px;border-radius:3px;background:#2a3238;opacity:.75}
+.poste .ecran i{display:block;height:100%;border-radius:3px;background:#6fd1a8}
+.lampe{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:#7b6f5c;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.poste.actif .lampe{background:var(--lamp);box-shadow:0 0 0 6px rgba(255,207,58,.25),0 0 26px 8px rgba(255,207,58,.55)}
+.poste .tag{display:inline-block;margin-top:8px;font-size:13px;font-weight:600;background:rgba(255,255,255,.55);border-radius:6px;padding:1px 7px}
+.legende{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:14px;color:#cfe3e5}
+.legende b{color:#fff}
+.chiffres{display:flex;flex-wrap:wrap;gap:10px 34px}
+.chiffres div{font-size:14px;color:#cfe3e5}.chiffres strong{display:block;font:800 clamp(26px,4vw,34px)/1 Archivo,sans-serif;color:#fff}
+.grille2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:32px}
+@media(max-width:860px){.grille2{grid-template-columns:minmax(0,1fr)}}
+.liege{background:light-dark(#c9a77a,#5a4630);border-radius:12px;padding:16px;display:grid;gap:12px;box-shadow:inset 0 0 0 6px light-dark(#a8875c,#46361f)}
+.note{background:var(--note);color:var(--ink);border-radius:4px;padding:12px 14px;box-shadow:0 6px 14px -8px rgba(0,0,0,.5)}
+.note.fait{opacity:.6}.note .q{font-size:13px;color:var(--mute);display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.note p{margin:4px 0}.note .rep{font-size:14px;border-top:1px dashed rgba(0,0,0,.2);padding-top:6px;margin-top:6px}
+.vide{color:var(--mute);font-size:15px;padding:6px 2px}
+form{display:grid;gap:10px;margin-top:14px}
+textarea,select,input{font:16px Inter,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+textarea{min-height:84px;resize:vertical}
+textarea:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #2a8a97;outline-offset:1px}
+.ligne{display:flex;gap:10px;flex-wrap:wrap}.ligne>*{flex:1 1 180px}
+button.b{min-height:44px;border:0;border-radius:8px;background:var(--floor);color:#fff;font:600 15px Inter,sans-serif;padding:0 18px;cursor:pointer}
+button.p{min-height:36px;border:1px solid rgba(0,0,0,.2);background:transparent;border-radius:6px;font:500 13px Inter,sans-serif;color:var(--ink);padding:0 10px;cursor:pointer}
+.etatbase{font-size:13px;color:var(--mute);margin-top:8px}
+.msg{border-left:3px solid var(--floor2);padding:6px 12px;margin-bottom:10px}
+.msg .q{font-size:13px;color:var(--mute)}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;font-size:14px;color:var(--mute)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.c{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+td.c0{color:var(--warn)}
+.cell{display:inline-block;min-width:32px;border-radius:6px;padding:2px 6px}
+.scroll{overflow-x:auto}
+.alerte{background:var(--card);border-radius:10px;padding:14px 16px;margin-bottom:10px}
+.alerte b{font-family:Archivo,sans-serif}
+.journal li{margin-bottom:6px}.journal time{color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;margin-right:8px;font-size:14px}
+ul{padding-left:20px;margin:0}
+.fiche{background:var(--card);border-radius:12px;padding:18px;margin-top:6px}
+.fiche h3{font:700 19px Archivo,sans-serif;margin:0 0 6px}
+.fiche code{font-size:13px;word-break:break-all}
+.pied{font-size:13px;color:var(--mute)}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flex;justify-content:space-between;gap:12px;border:0;padding:3px 0}.stack td::before{content:attr(data-l);color:var(--mute);font-weight:500}}
+@media(prefers-reduced-motion:no-preference){.poste{transition:transform .15s}.poste:hover{transform:translateY(-2px)}}
+</style>
+</head>
+<body>
+<section class="band plan">
+ <div class="wrap">
+  <div>
+   <h1>Le Bureau</h1>
+   <p class="sub" id="accroche">Un poste par jeu. La lampe s'allume quand une conversation y travaille.</p>
+  </div>
+  <div class="chiffres" id="chiffres"></div>
+  <div class="postes" id="postes"></div>
+  <div class="legende"><span><b>●</b> lampe jaune : chantier ouvert</span><span>barre verte : activité des 7 derniers jours</span><span>touchez un poste pour sa fiche</span></div>
+  <div id="fiche"></div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap grille2">
+  <div>
+   <h2>Demandes de Victor</h2>
+   <p class="sub">Ce que vous écrivez ici, chaque conversation le lit en arrivant au bureau et le marque comme fait.</p>
+   <div class="liege" id="demandes"><div class="vide">Chargement du tableau…</div></div>
+   <form id="fdem">
+    <label for="dtxt" class="pied">Nouvelle demande</label>
+    <textarea id="dtxt" placeholder="Par exemple : rendre Valdragon plus fluide sur mon Mac en combat" required></textarea>
+    <div class="ligne"><select id="dpour" aria-label="Pour quel projet"></select><button class="b" type="submit">Épingler</button></div>
+    <div class="etatbase" id="etatbase"></div>
+   </form>
+  </div>
+  <div>
+   <h2>Messages entre conversations</h2>
+   <p class="sub">Ce qu'une conversation veut faire savoir aux autres, jeux ou non.</p>
+   <div id="messages"><div class="vide">Chargement…</div></div>
+   <h2 style="margin-top:28px">Chantiers ouverts</h2>
+   <div id="chantiers"></div>
+  </div>
+ </div>
+</section>
+
+<section class="band" style="background:var(--card)">
+ <div class="wrap">
+  <h2>Qui a quels outils</h2>
+  <p class="sub">Nombre d'outils de fabrication par jeu et par famille. Une case vide est un manque qu'un autre jeu peut combler.</p>
+  <div class="scroll" style="margin-top:14px"><table class="stack" id="matrice"></table></div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap grille2">
+  <div>
+   <h2>À mettre en commun</h2>
+   <div id="alertes"></div>
+  </div>
+  <div>
+   <h2>Derniers passages</h2>
+   <ul class="journal" id="journal"></ul>
+  </div>
+ </div>
+</section>
+
+<section class="band" style="padding-top:0"><div class="wrap pied" id="pied"></div></section>
+
+<script>
+{
+const E=/*ETAT*/null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const J=E?E.jeux:[];
+const ouvert=new Set((E?E.chantiers:[]).map(c=>c.jeu));
+const nomDe=d=>({commun:'Outils communs',autre:'Autre projet',toutes:'Toutes'})[d]||(J.find(j=>j.dossier===d)||{}).nom||d;
+const jours=d=>{if(!d)return 99;return Math.max(0,Math.round((Date.now()-new Date(d+'T12:00:00'))/864e5));};
+const nbOutils=j=>Object.values(j.outils).reduce((a,v)=>a+v.length,0);
+
+function postes(){
+ if(!E){$('postes').innerHTML='<div class="vide" style="color:#fff">État du dépôt absent : refabriquer la page avec bureau.py page.</div>';return;}
+ const tot=J.reduce((a,j)=>a+nbOutils(j),0);
+ $('chiffres').innerHTML=[[J.length,'jeux'],[ouvert.size,'chantiers ouverts'],[tot,'outils de fabrication'],[E.alertes.outils_repetes.length+E.alertes.testkit_locaux.length,'mises en commun repérées']]
+  .map(([n,l])=>`<div><strong>${n}</strong>${l}</div>`).join('');
+ $('postes').innerHTML=J.map(j=>{const a=jours(j.dernier);const w=Math.max(4,100-a*14);
+  return `<button class="poste${ouvert.has(j.dossier)?' actif':''}" data-d="${esc(j.dossier)}" aria-label="${esc(j.nom)}">
+  <span class="lampe"></span><div class="nom">${esc(j.nom)}</div>
+  <div class="meta">${a===0?"modifié aujourd'hui":a===1?'modifié hier':'il y a '+a+' jours'} · ${j.commits} envois · ${j.taille_mo} Mo</div>
+  ${ouvert.has(j.dossier)?'<span class="tag">en travail</span>':''}
+  <span class="ecran"><i style="width:${w}%"></i></span></button>`;}).join('');
+ $('postes').querySelectorAll('.poste').forEach(b=>b.addEventListener('click',()=>fiche(b.dataset.d)));
+}
+function fiche(d){
+ const j=J.find(x=>x.dossier===d);if(!j)return;
+ const c=(E.chantiers||[]).find(x=>x.jeu===d);
+ const fams=E.familles.map(f=>`<li>${esc(f.nom)} : ${j.outils[f.id].length?j.outils[f.id].map(x=>'<code>'+esc(x.split('/').pop())+'</code>').join(', '):'<span style="color:var(--warn)">aucun</span>'}</li>`).join('');
+ $('fiche').innerHTML=`<div class="fiche" style="color:var(--ink)"><h3>${esc(j.nom)}</h3>
+ <div class="pied">Dossier <code>${esc(j.dossier)}/</code>${j.slug?' · artefact <code>'+esc(j.slug)+'</code>':''} · trousse de test : ${esc(j.testkit)}</div>
+ <p style="margin:10px 0">${c?'<b>En travail</b> : '+esc(c.objet)+' (depuis '+esc(c.depuis)+')':'Dernier envoi : '+esc(j.message)}</p>
+ <ul>${fams}</ul></div>`;
+ $('fiche').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function matrice(){
+ if(!E)return;
+ const F=E.familles;
+ $('matrice').innerHTML=`<thead><tr><th>Jeu</th>${F.map(f=>`<th style="text-align:center">${esc(f.nom)}</th>`).join('')}</tr></thead><tbody>`+
+ J.map(j=>`<tr><td data-l="Jeu"><b>${esc(j.nom)}</b></td>${F.map(f=>{const n=j.outils[f.id].length;const a=Math.min(1,n/5);
+  return `<td data-l="${esc(f.nom)}" class="c${n?'':' c0'}"><span class="cell" style="background:rgba(34,96,106,${(a*.45).toFixed(2)})">${n||'—'}</span></td>`}).join('')}</tr>`).join('')+'</tbody>';
+}
+function alertes(){
+ if(!E)return;
+ const A=E.alertes,h=[];
+ if(A.testkit_locaux.length)h.push(`<div class="alerte"><b>Trousse de test différente de la version commune</b><br>${A.testkit_locaux.map(nomDe).map(esc).join(', ')} : recopier la version commune (et y reporter d'abord leurs améliorations).</div>`);
+ const sansTk=J.filter(j=>j.testkit==='absent');
+ if(sansTk.length)h.push(`<div class="alerte"><b>Sans trousse de test</b><br>${sansTk.map(j=>esc(j.nom)).join(', ')} : pas de 🐞 ni de mesure sur vos appareils.</div>`);
+ A.outils_repetes.slice(0,6).forEach(o=>h.push(`<div class="alerte"><b>${esc(o.outil)}</b> existe en ${o.jeux.length} versions : ${o.jeux.map(nomDe).map(esc).join(', ')}.</div>`));
+ A.doublons.forEach(d=>h.push(`<div class="alerte"><b>Fichier en double</b><br>${d.map(esc).join(' = ')}</div>`));
+ $('alertes').innerHTML=h.join('')||'<div class="vide">Rien à signaler.</div>';
+ $('journal').innerHTML=(E.journal||[]).slice(0,14).map(l=>`<li><time>${esc(l.quand.slice(5).replace('-','/'))}</time><b>${esc(nomDe(l.jeu))}</b> — ${esc(l.quoi)}</li>`).join('')||'<li class="vide">Le journal commence.</li>';
+ $('chantiers').innerHTML=(E.chantiers||[]).map(c=>`<div class="msg"><b>${esc(nomDe(c.jeu))}</b> — ${esc(c.objet)}<div class="q">depuis ${esc(c.depuis)}</div></div>`).join('')||'<div class="vide">Aucun chantier ouvert au moment de la mise à jour.</div>';
+ $('pied').textContent=`Page fabriquée le ${E.genere} à partir du dépôt lecoach55/gameclaude (${E.commit}). Elle se met à jour quand une conversation repart du bureau.`;
+}
+// ---------- tableau d'affichage (base de l'artefact) ----------
+let DB=null,dems=[],msgs=[];
+const opts=[['toutes','Toutes les conversations'],...J.map(j=>[j.dossier,j.nom]),['commun','Outils communs'],['autre','Autre projet (hors jeux)']];
+$('dpour').innerHTML=opts.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('');
+const pourNom=v=>(opts.find(o=>o[0]===v)||[v,v])[1];
+const date=t=>{try{return new Date(t).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
+function rendreDemandes(){
+ const L=dems.slice().sort((a,b)=>(a.etat==='fait')-(b.etat==='fait')||String(b.quand).localeCompare(String(a.quand)));
+ $('demandes').innerHTML=L.map(d=>`<div class="note${d.etat==='fait'?' fait':''}"><div class="q"><b>${esc(pourNom(d.pour))}</b><span>${date(d.quand)}</span><span>${d.etat==='fait'?'✓ fait':'à faire'}</span></div>
+ <p>${esc(d.texte)}</p>${d.reponse?`<div class="rep">${esc(d.reponse)}</div>`:''}
+ <div class="ligne" style="margin-top:6px;flex-wrap:nowrap"><button class="p" data-a="bascule" data-id="${esc(d.id)}">${d.etat==='fait'?'Rouvrir':'Marquer fait'}</button><button class="p" data-a="suppr" data-id="${esc(d.id)}">Retirer</button></div></div>`).join('')
+ ||'<div class="vide" style="color:#2b2116">Aucune demande épinglée.</div>';
+}
+function rendreMessages(){
+ const L=msgs.slice().sort((a,b)=>String(b.quand).localeCompare(String(a.quand))).slice(0,20);
+ $('messages').innerHTML=L.map(m=>`<div class="msg"><div class="q">${esc(m.de||'?')} → ${esc(pourNom(m.pour||'toutes'))} · ${date(m.quand)}</div>${esc(m.texte)}</div>`).join('')||'<div class="vide">Aucun message pour l\'instant.</div>';
+}
+$('demandes').addEventListener('click',async e=>{
+ const b=e.target.closest('button[data-a]');if(!b||!DB)return;
+ const ref=DB.doc('demandes/'+b.dataset.id);
+ try{
+  if(b.dataset.a==='suppr')await ref.delete();
+  else{const d=dems.find(x=>x.id===b.dataset.id);await ref.update({etat:d&&d.etat==='fait'?'a_faire':'fait'});}
+ }catch(err){$('etatbase').textContent='Modification refusée : '+(err&&err.message||err);}
+});
+$('fdem').addEventListener('submit',async e=>{
+ e.preventDefault();const t=$('dtxt').value.trim();if(!t)return;
+ if(!DB){$('etatbase').textContent='Le tableau d\'affichage n\'est pas joignable ici (ouvrez la page sur claude.ai, connecté).';return;}
+ const id='d'+Date.now().toString(36);
+ try{await DB.doc('demandes/'+id).set({texte:t.slice(0,2000),pour:$('dpour').value,quand:new Date().toISOString(),etat:'a_faire'});$('dtxt').value='';$('etatbase').textContent='Épinglé.';}
+ catch(err){$('etatbase').textContent='Épinglage refusé : '+(err&&err.message||err);}
+});
+async function base(){
+ const minuteur=setTimeout(()=>{if(!DB){$('demandes').innerHTML='<div class="vide" style="color:#2b2116">Tableau d\'affichage non joignable pour l\'instant.</div>';$('messages').innerHTML='<div class="vide">—</div>';}},10000);
+ try{
+  const c=window.claude;if(!c||!c.use){for(let i=0;i<50&&!(window.claude&&window.claude.use);i++)await new Promise(r=>setTimeout(r,200));}
+  if(!window.claude||!window.claude.use)throw new Error('hors de claude.ai');
+  const db=await window.claude.use('db');if(!db)throw new Error('non connecté');
+  DB=db;clearTimeout(minuteur);
+  const lire=s=>s.docs?s.docs.map(d=>({id:d.id,...(typeof d.data==='function'?d.data():d.data)})):[];
+  DB.collection('demandes').onSnapshot(s=>{dems=lire(s);rendreDemandes();},err=>{$('etatbase').textContent='Lecture refusée : '+(err&&err.message||err);});
+  DB.collection('messages').onSnapshot(s=>{msgs=lire(s);rendreMessages();},()=>{});
+ }catch(err){clearTimeout(minuteur);$('demandes').innerHTML='<div class="vide" style="color:#2b2116">Tableau d\'affichage indisponible ('+esc(err.message||err)+').</div>';$('messages').innerHTML='<div class="vide">—</div>';}
+}
+postes();matrice();alertes();base();
+}
+</script>
+</body>
+</html>

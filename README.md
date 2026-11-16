@@ -12,4 +12,6 @@ Les jeux de Victor créés avec Claude, et les outils de fabrication partagés e
 - `couronnes-et-lignees/` — Couronnes & Lignées, simulation dynastique (jeu, outils de test et d'équilibrage, captures de référence)
 - `cage-et-gloire/` — Cage & Gloire, management de combattants de MMA (organisations, classements, arène 3D)
 
+- `bureau/` — **Le Bureau** : espace commun à toutes les conversations (chantiers en cours, journal, catalogue des outils, mises en commun) ; page « Le Bureau » pour Victor
+
 Dans une nouvelle conversation, il suffit de dire à Claude : « utilise mon dépôt GitHub lecoach55/gameclaude ».

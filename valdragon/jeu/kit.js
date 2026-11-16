@@ -8,7 +8,7 @@ import {elTex} from './vfx.js';
 import {mxClips,MXSET,drClips,DRSET} from './mxanim.js';
 
 export const K={ok:false,g:{},piece:{},geo:{}};
-const FILES=['forest','spider','weapons','dungeon'];/* anciens personnages (secours) retirés : jamais utilisés, ils ralentissaient le lancement */
+const FILES=['forest','spider','weapons','dungeon','phprops'];/* anciens personnages (secours) retirés : jamais utilisés, ils ralentissaient le lancement */
 export let progress=0;
 export const ready=(async()=>{
  try{const L=new GLTFLoader();let n=0;
@@ -22,6 +22,8 @@ export const ready=(async()=>{
   for(const f of ['hx_aldric','hx_maelle','hx_ysolde','hx_brute','hx_cult','hx_dragon']){try{if(document.getElementById('vdm-'+f)||location.protocol.startsWith('http'))K.g[f]=await one(f);}catch(e){console.warn('héros',f,e);}}
   const PT=(()=>{const t=['wood_d','wood_n','crypt_w_d','crypt_w_n'].map(n=>elTex(n));if(t.some(x=>!x))return null;t.forEach(x=>{x.wrapS=x.wrapT=THREE.RepeatWrapping;x.anisotropy=4;});return{wd:t[0],wn:t[1],sd:t[2],sn:t[3]};})();
   const MC={};for(const s of [K.g.dungeon.scene,K.g.weapons.scene,K.g.forest.scene])s.children.forEach(c=>{K.piece[c.name]=c;const cat=/banner/.test(c.name)?'b':/candle/.test(c.name)?'c':/pillar|wall|column|stair|arch|floor_tile/.test(c.name)?'s':'p';c.traverse(m=>{if(!m.isMesh||!m.material||Array.isArray(m.material))return;const ck=m.material.uuid+cat;if(!MC[ck]){MC[ck]=m.material.clone();MC[ck].userData={};}m.material=MC[ck];if(!m.material.userData.grime)grime(m.material,/banner/.test(c.name)?{cut:1,prop:PT,sc:1.5,amt:.35,sat:.6,dk:.66,base:.3,rough:.5,met:0}:/candle/.test(c.name)?{sc:1.5,amt:.3,sat:.6,dk:.56,base:0,rough:.5,met:0}:{prop:PT,pstone:cat==='s',cut:cat==='s',nowax:s!==K.g.forest.scene,sc:1.5,amt:.3,sat:.75,dk:.84,base:.45,rough:.4,met:.0});});});
+  // décors photoréalistes Poly Haven : remplacent les pièces KayKit de même nom (matières PBR d'origine, légère usure)
+  if(K.g.phprops)K.g.phprops.scene.children.slice().forEach(c=>{K.piece[c.name]=c;c.traverse(m=>{if(m.isMesh&&m.material&&!m.material.userData.grime){m.material.userData.ph=1;grime(m.material,{sc:1.5,amt:.18,sat:.85,dk:.9,base:.25,rough:0,met:0});}});});
   K.ok=true;}catch(e){console.warn('Modèles 3D indisponibles, rendu procédural',e);K.ok=false;K.err=String(e&&e.message||e);}
  return K.ok;})();
 
@@ -38,7 +40,7 @@ export function piece(name,s=1,shadow=true){const p=K.piece[name];if(!p)return n
 
 /* ---------- personnages ---------- */
 const HUE_GLSL=`vec3 vdHue(vec3 c,float h){const vec3 k=vec3(.57735);float ca=cos(h);return c*ca+cross(k,c)*sin(h)+k*dot(k,c)*(1.-ca);}`;
-export const RIM={col:new THREE.Color(1,.85,.65),i:{value:.2}};
+export const RIM={col:new THREE.Color(1,.85,.65),i:{value:.6}};
 function prepMat(m,o){if(o.grime===false)return prepMat0(m,o);return grime(prepMat0(m,o),{sc:o.gsc||4.5,amt:o.gamt??.3,sat:o.gsat??.72,dk:o.gdk??.9,base:0,rough:.3,met:o.gmet||0,hc:o.ghc||0,mat:o.set==='mx'?0:1,recol:o.recol||null});}
 function prepMat0(m,o){m=m.clone();if(o.rim!==false&&m.isMeshStandardMaterial){const hue={value:o.hue||0},rc={value:o.rimCol?new THREE.Color(o.rimCol):RIM.col};
   m.onBeforeCompile=sh=>{sh.uniforms.vdH=hue;sh.uniforms.rimC=rc;sh.uniforms.rimI=RIM.i;sh.fragmentShader='uniform float vdH;uniform vec3 rimC;uniform float rimI;\n'+HUE_GLSL+'\n'+sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb=vdHue(diffuseColor.rgb,vdH);').replace('#include <opaque_fragment>','float vdR=1.-abs(dot(normalize(normal),normalize(vViewPosition)));outgoingLight+=rimC*pow(vdR,2.6)*rimI;\n#include <opaque_fragment>');};

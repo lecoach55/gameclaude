@@ -149,7 +149,9 @@ function updParticles(dt){let n=0;for(let i=pData.length-1;i>=0;i--){const p=pDa
 const _fh=n=>{const s=Math.sin(n*127.1)*43758.5453;return s-Math.floor(s);};const vn1=x=>{const i=Math.floor(x),f=x-i,u=f*f*(3-2*f);return _fh(i)*(1-u)+_fh(i+1)*u;};
 const flick=(t,i)=>.78+.16*vn1(t*6.3+i*17.1)+.08*vn1(t*17.7+i*5.3)-.05*(vn1(t*1.3+i*3.1)>.82?1:0);
 // Nombre FIXE de lumières ponctuelles par scène : sinon chaque scène (étage, combat, marchand) recompile tous les shaders.
-const NPL=6;function padPL(sc){let n=0;sc.traverse(o=>{if(o.isPointLight)n++;});for(;n<NPL;n++){const l=new THREE.PointLight(0,0,1,2);l.position.set(0,-50,0);sc.add(l);}}
+const NPL=6;
+// échelle des textures de sol par biome (crypte, cavernes, forge, givre) : taille réelle des pierres
+const FSC=[.22,.13,.16,.19];function padPL(sc){let n=0;sc.traverse(o=>{if(o.isPointLight)n++;});for(;n<NPL;n++){const l=new THREE.PointLight(0,0,1,2);l.position.set(0,-50,0);sc.add(l);}}
 function lightPool(scene,n){const L=[];for(let i=0;i<n;i++){const l=new THREE.PointLight(0xffa050,0,6,2);l.userData.dec=10;scene.add(l);L.push(l);}return L;}
 
 /* ===================== EXPLORATION ===================== */
@@ -253,9 +255,16 @@ const Wd=VD.W,Hd=VD.H,fl=v=>v===1||v===2||v===3||v===4,isF=(x,y)=>fl(VD.at(x,y))
  for(let y=0;y<Hd;y++)for(let x=0;x<Wd;x++){const v=VD.map[y*Wd+x];if(!fl(v))continue;const k=y*Wd+x;
   put(pick(KFLOOR[tier],hr(x*3+7,y*5+11,11+tier)),k,x+.5,0,y+.5,((hr(x,y,12)*4)|0)*Math.PI/2,.25,.25,.25,'f');
   [[0,-1,0],[0,1,Math.PI],[-1,0,Math.PI/2],[1,0,-Math.PI/2]].forEach(([dx,dy,r],j)=>{if(isF(x+dx,y+dy))return;
-   const cx=x+.5+dx*.625,cz=y+.5+dy*.625;put(pick(KWALL,hr(x,y,20+j)),k,cx,0,cz,r,.25,WH,.25,'w');});}
+   const cx=x+.5+dx*.625,cz=y+.5+dy*.625;put(pick(KWALL,hr(x,y,20+j)),k,cx,0,cz,r,.25,WH,.25,'w');
+   // éboulis au pied des murs (roche photographiée Poly Haven), instanciés avec le sol
+   if(K.piece.rock_scatter&&hr(x,y,40+j)<.22&&VD.map[k]===1){const n=1+((hr(x,y,41+j)*2.2)|0);for(let i=0;i<n;i++){const a=hr(x,y,42+j+i*3),b=hr(x,y,43+j+i*3),sc=.22+hr(x,y,44+j+i*3)*.4;
+    const ox=x+.5+dx*(.34-sc*.15)+(dy?(a-.5)*.8:0),oz=y+.5+dy*(.34-sc*.15)+(dx?(b-.5)*.8:0);put('rock_scatter',k,ox,-.02,oz,a*TAU,sc,sc*(.7+b*.5),sc,'r');}}});}
+ // masse rocheuse : dessus plein au niveau du haut des murs autour des salles (plus de « vide » coloré entre les couloirs)
+ {const wp=pieceGeo('wall');let capY=1.7;if(wp){wp.geo.computeBoundingBox();capY=wp.geo.boundingBox.max.y*WH;}
+  for(let y=0;y<Hd;y++)for(let x=0;x<Wd;x++){if(fl(VD.map[y*Wd+x]))continue;let best=-1,bd=9;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=Wd||Y>=Hd||!fl(VD.map[Y*Wd+X]))continue;const d=Math.max(Math.abs(dx),Math.abs(dy));if(d<bd){bd=d;best=Y*Wd+X;}}
+   if(best>=0)put('__cap',best,x+.5,capY-.01,y+.5,0,1.002,1,1.002,'c');}}
  if(EX.aoT)EX.aoT.dispose();EX.aoT=aoTexture(VD);EX.aoT.userData.keep=0;
- const MC={};for(const key in sets){const S=sets[key],name=S.name,pg=((S.c==='w'&&name!=='wall_gated')||(S.c==='f'&&/^floor_(tile|dirt)_large$/.test(name)))?wallBox(name):pieceGeo(name);if(!pg)continue;const mk=name+S.c;let m=MC[mk];if(!m){m=MC[mk]=pg.mat.clone();const TF=bioTex(tier,'f'),TW=bioTex(tier,'w');if(S.c==='f'){m.color.copy(tc);grime(m,TF?{sc:1.1,amt:.25,sat:.9,dk:1,base:0,rough:.2,ao:EX.aoT,tex:{d:TF.d,n:TF.n,s:.24,b:1.4}}:{sc:1.1,amt:.5,sat:.6,dk:.86,base:0,rough:.45,ao:EX.aoT});}else{m.color.copy(tc).lerp(new THREE.Color(1,1,1),.35);grime(m,TW?{cut:1,sc:1.4,amt:.25,sat:.9,dk:1,base:.5,rough:.2,tex:{d:TW.d,n:TW.n,s:[.42,.36,.42,.3][tier],b:1.5,wall:1}}:{cut:1,sc:1.4,amt:.42,sat:.58,dk:.86,base:.6,rough:.4});}}
+ const capG=(()=>{const g=new THREE.PlaneGeometry(1,1);g.rotateX(-Math.PI/2);return g;})();const MC={};for(const key in sets){const S=sets[key],name=S.name,pg=S.c==='c'?(pieceGeo('wall')?{geo:capG,mat:pieceGeo('wall').mat}:null):S.c==='r'?pieceGeo(name):((S.c==='w'&&name!=='wall_gated')||(S.c==='f'&&/^floor_(tile|dirt)_large$/.test(name)))?wallBox(name):pieceGeo(name);if(!pg)continue;const mk=name+S.c;let m=MC[mk];if(!m){m=MC[mk]=pg.mat.clone();const TF=bioTex(tier,'f'),TW=bioTex(tier,'w');if(S.c==='r'){m.color.copy(tc).lerp(new THREE.Color(1,1,1),.5).multiplyScalar(1.15);}else if(S.c==='c'){const TW=bioTex(tier,'w');m.color.copy(tc).multiplyScalar(.55);grime(m,TW?{cut:1,sc:1.4,amt:.35,sat:.8,dk:.9,base:0,rough:.3,tex:{d:TW.d,n:TW.n,s:.3,b:1.5}}:{cut:1,sc:1.4,amt:.42,sat:.58,dk:.7,base:0,rough:.4});}else if(S.c==='f'){m.color.copy(tc);grime(m,TF?{sc:1.1,amt:.25,sat:.9,dk:1,base:0,rough:.2,ao:EX.aoT,tex:{d:TF.d,n:TF.n,s:FSC[tier],b:1.4}}:{sc:1.1,amt:.5,sat:.6,dk:.86,base:0,rough:.45,ao:EX.aoT});}else{m.color.copy(tc).lerp(new THREE.Color(1,1,1),.35);grime(m,TW?{cut:1,sc:1.4,amt:.25,sat:.9,dk:1,base:.5,rough:.2,tex:{d:TW.d,n:TW.n,s:[.42,.36,.42,.3][tier],b:1.5,wall:1}}:{cut:1,sc:1.4,amt:.42,sat:.58,dk:.86,base:.6,rough:.4});}}
   const im=new THREE.InstancedMesh(pg.geo,m,S.list.length);im.receiveShadow=true;im.castShadow=false;/* murs : pas d'ombre portée (lumière quasi verticale), une passe d'ombre bien plus légère */const ks=new Int32Array(S.list.length);
   S.list.forEach(([k,x,y,z,rot,sx,sy,sz],i)=>{q.setFromAxisAngle(up,rot);m4.compose(pv.set(x,y,z),q,sv.set(sx,sy,sz));im.setMatrixAt(i,m4);im.setColorAt(i,new THREE.Color(0,0,0));ks[i]=k;});
   im.computeBoundingSphere();scW.add(im);EX.fog.push({mesh:im,ks,c:new THREE.Color(1,1,1)});}
@@ -395,7 +404,7 @@ function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);ke
  if(K.ok){fl.material.color.setRGB(.25,.25,.28);fl.visible=false;/* recouvert par les dalles : inutile de le dessiner */const T=KTINT[tier],tc=new THREE.Color(T[0],T[1],T[2]);const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0),cells=[];
   for(let j=-6;j<6;j++)for(let i=-6;i<6;i++){const x=i*1.6+.8,z=j*1.6+.8-.5;if(Math.hypot(x,z+.5)<9.4)cells.push([x,z,i,j]);}
   const byN={};cells.forEach(c=>{const n=pick(KFLOOR[tier],hr(c[2]+40,c[3]+40,11));(byN[n]=byN[n]||[]).push(c);});
-  for(const n in byN){const pg=/^floor_(tile|dirt)_large$/.test(n)?wallBox(n):pieceGeo(n);if(!pg)continue;const TFa=bioTex(tier,'f');const m=grime(pg.mat.clone(),TFa?{sc:1.1,amt:.25,sat:.9,dk:1,rough:.2,tex:{d:TFa.d,n:TFa.n,s:.24,b:1.5}}:{sc:1.1,amt:.5,sat:.6,dk:.86,rough:.45});m.color.copy(tc).multiplyScalar([1.3,.85,1.3,1.2][tier]);const im=new THREE.InstancedMesh(pg.geo,m,byN[n].length);im.receiveShadow=true;
+  for(const n in byN){const pg=/^floor_(tile|dirt)_large$/.test(n)?wallBox(n):pieceGeo(n);if(!pg)continue;const TFa=bioTex(tier,'f');const m=grime(pg.mat.clone(),TFa?{sc:1.1,amt:.25,sat:.9,dk:1,rough:.2,tex:{d:TFa.d,n:TFa.n,s:FSC[tier],b:1.5}}:{sc:1.1,amt:.5,sat:.6,dk:.86,rough:.45});m.color.copy(tc).multiplyScalar([1.3,.85,1.3,1.2][tier]);const im=new THREE.InstancedMesh(pg.geo,m,byN[n].length);im.receiveShadow=true;
    byN[n].forEach(([x,z,i,j],k)=>{q.setFromAxisAngle(up,((hr(i,j,12)*4)|0)*Math.PI/2);m4.compose(new THREE.Vector3(x,.0,z),q,new THREE.Vector3(.4,.4,.4));im.setMatrixAt(k,m4);});scB.add(im);}}
  const ring=new THREE.Mesh(new THREE.RingGeometry(5.6,5.9,64),new THREE.MeshStandardMaterial({color:0x0c0a08,roughness:1,transparent:true,opacity:.5}));ring.rotation.x=-Math.PI/2;ring.position.y=.01;scB.add(ring);
  // runes au sol
@@ -552,7 +561,7 @@ let qLvl=-1,shFix=null,shEvery=1,shN=0;function setLevel(l){l=Math.max(0,Math.mi
  if(EX.key)EX.key.shadow.mapSize.set(l>=3?1024:512,l>=3?1024:512);resize();
  if(shOld!==renderer.shadowMap.enabled){scW.traverse(o=>{if(o.material)o.material.needsUpdate=true;});scB.traverse(o=>{if(o.material)o.material.needsUpdate=true;});}}
 function setQuality(hi){setLevel(hi?2:0);}
-export const G3={unfocus(){BT.focus=null;BT.zoom=null;},setQuality,init,buildFloor,updExplo,buildArena,updBattle,render,rotIn,setYaw,get yaw(){return EX.yaw||0;},project,screenOf,hitTest,act,hit,die,revive,FX,shake,zoom,setTarget,setBloom,part,burst,worldPos,get mode(){return mode;},get mapRef(){return EX.mapRef;},focus,victory,get cine(){return !!BT.cine;},buildTitle,updTitle,endTitle,portrait,setLevel,get level(){return qLvl;},flash,smoke,get kitErr(){return K.ok?null:(K.err||'inconnu');},setUiBottom(px){BT.uiB=Math.max(BT.uiB||0,px);},set mode(m){mode=m;rp.scene=m==='battle'?scB:scW;},
+export const G3={unfocus(){BT.focus=null;BT.zoom=null;},set camZoom(v){camZoom=v;},get camZoom(){return camZoom;},setQuality,init,buildFloor,updExplo,buildArena,updBattle,render,rotIn,setYaw,get yaw(){return EX.yaw||0;},project,screenOf,hitTest,act,hit,die,revive,FX,shake,zoom,setTarget,setBloom,part,burst,worldPos,get mode(){return mode;},get mapRef(){return EX.mapRef;},focus,victory,get cine(){return !!BT.cine;},buildTitle,updTitle,endTitle,portrait,setLevel,get level(){return qLvl;},flash,smoke,get kitErr(){return K.ok?null:(K.err||'inconnu');},setUiBottom(px){BT.uiB=Math.max(BT.uiB||0,px);},set mode(m){mode=m;rp.scene=m==='battle'?scB:scW;},
  exploBurst(x,y,col,n=20){burst(new THREE.Vector3(x,.5,y),col,n,3);},exploScreen(x,y,h=1.2){return project(new THREE.Vector3(x,h*(K.ok?.7:1),y));},refreshParty(VD){if(!EX.party)return;EX.party.forEach(R=>{scW.remove(R.root);purgeObj(R.root);});EX.party=VD.P.heroes.map(h=>{const R=heroM(h.cls,eqOf(h));R.root.scale.multiplyScalar(EXS());scW.add(R.root);return R;});},unitOf,ready:kitReady,isReady:()=>K.ok!==undefined&&kitDone};
 let kitDone=false;kitReady.then(()=>{kitDone=true;});
-window.G3=G3;G3._d=()=>({scW,scB,cam,renderer,composer,rp,bloom,grade,EX,BT,CUT,K});
+window.G3=G3;G3._d=()=>({scW,scB,cam,renderer,composer,rp,bloom,grade,EX,BT,CUT,K,THREE});

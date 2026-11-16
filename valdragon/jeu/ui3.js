@@ -381,7 +381,7 @@ function loop(t){if(TEST)testFrame(t);const dt=Math.min(.05,(t-last)/1000);last=
  if(!started&&G3.mode==='title'){G3.updTitle(dt,ts);G3.render(ts,dt);}
  if(started&&VD.P){if(!ST.active&&!paused)perfTick((t-last0)/1000);last0=t;
   if(mode==='explo'){if(!paused){const px=VD.P.x,py=VD.P.y;VD.step(dt,input());const mv=Math.hypot(VD.P.x-px,VD.P.y-py);stepD+=mv;if(stepD>stepN){stepD=0;stepN=.5+Math.random()*.14;sfx('step',.5+Math.random()*.35);}exploEvents();}
-   if(mode==='explo'){fogT-=dt;if(fogT<=0){fogDirty=true;fogT=.15;}G3.updExplo(VD,dt,ts,fogDirty);fogDirty=false;G3.render(ts,dt);drawExploOverlay(dt);hudT-=dt;if(hudT<=0){hud();drawMini(mx,216);hudT=.1;}}}
+   if(mode==='explo'){fogT-=dt;if(fogT<=0){fogDirty=true;fogT=.15;}G3.updExplo(VD,dt,ts,fogDirty);fogDirty=false;if(!window.__skipR)G3.render(ts,dt);drawExploOverlay(dt);hudT-=dt;if(hudT<=0){hud();drawMini(mx,216);hudT=.1;}}}
   if(mode==='battle'&&VD.B){const db=dt*tsc;updBattle(db);G3.updBattle(VD,db,ts);G3.render(ts,db);drawBattle(cx,db,ts);}}
  requestAnimationFrame(loop);}
 title();titleLoop();requestAnimationFrame(loop);
@@ -401,7 +401,12 @@ async function measure(ms){TF.rec=[];TF.renders=0;let tr=0,ca=0,k=0;const iv=set
 function seedRng(seed){let s=seed;Math.random=()=>{s=(s*16807)%2147483647;return (s-1)/2147483646;};}
 function skipStory(){const k=document.querySelector('#story .sskip');if(ST.active&&k)k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));}
 async function toExplo(){for(let i=0;i<5&&ST.active;i++){skipStory();await wait(250);}paused=true;if(VD.B){const i=VD.E.indexOf(VD.B.pack);if(i>=0)VD.E.splice(i,1);VD.B.over='win';VD.closeBattle();}if(mode==='battle'||VD.B){leaveBattle();paused=true;}VD.ev.length=0;await wait(300);}
-async function runBench(){if(TF.busy)return;TF.busy=true;const btn=$('tbench');btn.disabled=true;const res=[],rnd=Math.random;
+let BENV=null;
+// Environnement du banc : batterie (économie d'énergie = image limitée) et cadence maximale de l'écran sans rendu 3D
+async function benchEnv(){const e={};try{if(navigator.getBattery){const b=await navigator.getBattery();e.batterie={branche:b.charging,niveau:Math.round(b.level*100)};}}catch(_){}
+ try{e.cadenceMax=await new Promise(r=>{window.__skipR=1;let n=0,t0=0;const f=t=>{if(!t0)t0=t;n++;if(t-t0<1000)requestAnimationFrame(f);else{window.__skipR=0;r(Math.round(n*1000/(t-t0)));}};requestAnimationFrame(f);});}catch(_){window.__skipR=0;}
+ e.cachee=document.hidden;return e;}
+async function runBench(){if(TF.busy)return;TF.busy=true;BENV=await benchEnv();const btn=$('tbench');btn.disabled=true;const res=[],rnd=Math.random;
  const SC=window.__SC||[['explo',2],['explo',6],['explo',10],['explo',14],['combat',6],['boss',8]],LV=window.__LV||[0,1,2,3];
  try{for(const lv of LV){qSet(lv);for(const [k,F] of SC){btn.textContent=`${QN[lv]} · ${k} ${F}…`;await toExplo();seedRng(4242+F);paused=true;VD.newGame(VD.P,4242+F);VD.startFloor(F);const keep=k==='explo'?null:VD.E.find(e=>k==='boss'?e.boss:!e.boss);VD.E.length=0;if(keep)VD.E.push(keep);exploEvents();paused=false;await wait(400);
    if(k==='explo'){const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await wait(2500);}
@@ -409,12 +414,12 @@ async function runBench(){if(TF.busy)return;TF.busy=true;const btn=$('tbench');b
    skipStory();await wait(200);const m=await measure(5000);res.push(Object.assign({scene:k+' '+F,niveau:QN[lv]},m));}}
  }catch(e){res.push({erreur:String(e)});}
  Math.random=rnd;await toExplo();qSet(1);
- const out={date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};
+ const out={date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res,env:BENV};
  try{localStorage.setItem('valdragon_mesures',JSON.stringify(out));}catch(e){}const ok=await cloudPut('mesures_'+Date.now(),out);
  btn.disabled=false;btn.textContent='▶ Banc';TF.busy=false;showBench(out,ok);}
 function showBench(o,ok){const rows=o.res.map(r=>`<tr><td>${r.niveau||''}</td><td>${r.scene||r.erreur}</td><td><b>${r.fps??''}</b></td><td>${r.low1??''}</td><td>${r.pire??''}</td><td>${r.tris?(r.tris/1000|0)+'k':''}</td></tr>`).join('');
  const p=document.createElement('div');p.style.cssText='position:fixed;inset:40px 8px auto 8px;z-index:100;background:rgba(10,8,6,.95);color:#e8dcc4;font:12px sans-serif;padding:10px;border:1px solid #6a5a40;border-radius:8px;max-height:80vh;overflow:auto';
- p.innerHTML=`<b>Banc de mesure</b> · ${o.gpu}<br><span style="opacity:.7">${o.ecran} · ${ok?'enregistré dans la base ✓':'enregistré sur cet appareil'}</span><table style="width:100%;margin-top:6px;border-collapse:collapse"><tr><th>Qualité</th><th>Scène</th><th>img/s</th><th>1 % bas</th><th>pire ms</th><th>tri</th></tr>${rows}</table><button style="margin-top:8px">Fermer</button>`;
+ p.innerHTML=`<b>Banc de mesure</b> · ${o.gpu}<br><span style="opacity:.7">${o.ecran} · ${ok?'enregistré dans la base ✓':'enregistré sur cet appareil'}</span>${o.env?`<br><span style="opacity:.85">Écran : ${o.env.cadenceMax||'?'} img/s au maximum${o.env.batterie?` · batterie ${o.env.batterie.niveau} % ${o.env.batterie.branche?'(branché)':'(sur batterie)'}`:''}${o.env.cadenceMax&&o.env.cadenceMax<45?' · <b style="color:#ffb060">limité par l\'économie d\'énergie</b>':''}</span>`:''}<table style="width:100%;margin-top:6px;border-collapse:collapse"><tr><th>Qualité</th><th>Scène</th><th>img/s</th><th>1 % bas</th><th>pire ms</th><th>tri</th></tr>${rows}</table><button style="margin-top:8px">Fermer</button>`;
  document.body.appendChild(p);p.querySelector('button').onclick=()=>p.remove();}
 const ERRS=[];addEventListener('error',e=>{ERRS.push(String(e.message||e).slice(0,300));if(ERRS.length>20)ERRS.shift();});addEventListener('unhandledrejection',e=>{ERRS.push('promesse: '+String(e.reason).slice(0,300));});
 $('bugb').onclick=()=>report();

@@ -7,6 +7,9 @@
 - **`sauvegarde-en-ligne.js`** — sauvegarde dans la base de l'artefact pour les grosses parties (gzip + découpage en morceaux), avec reprise proposée quand un autre appareil a une partie plus récente. Utilisée par Wall Street.
 - **`compare.py`** — comparaison d'images référence / nouvelle version, tolérante aux petits décalages de caméra. Signale les changements visuels involontaires. `python3 compare.py refs/ nouvelles/ planche.png`
 
+- **`phget.py`** — ressources **Poly Haven** (CC0, sans attribution obligatoire mais créditées) : `python3 phget.py id1,id2 2k Diffuse,Displacement,Rough,AO` télécharge des textures ; `phget.model('wine_barrel_01')` télécharge un modèle glTF complet. Liste des ressources : `https://api.polyhaven.com/assets?t=textures|models|hdris`. Victor a autorisé `polyhaven.com`, `api.polyhaven.com`, `dl.polyhaven.org` et `ambientcg.com` (une en-tête User-Agent est nécessaire, le script la met).
+- **`planche_modeles.py`** (+ `planche_modeles.html`) — planche-contact de modèles 3D : une vignette par modèle (ou par objet d'un même .glb) sous le même éclairage, avec taille en mètres et nombre de triangles. Sert à choisir des décors avant de les intégrer, puis à vérifier le paquet final. Copier les deux fichiers dans `/home/claude/outils/` ; Three.js est lu dans `/home/claude/t3d/node_modules` (adapter l'importmap sinon). `python3 planche_modeles.py planche.png a.gltf b.glb …`
+
 ## Règle d'or
 1. Rendre le jeu **reproductible** : une graine fixe (`Math.random` remplacé) et une fonction pour se placer dans une scène donnée.
 2. Mesurer avant/après (banc), capturer et comparer aux références, tester avec un parcours automatique, puis publier.

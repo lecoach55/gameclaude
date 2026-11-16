@@ -39,6 +39,8 @@ RPG 3D au tour par tour (Three.js r160). Artefact publié : slug `6899e11c-5894-
 - `mesure/bprof.py` : coût de chaque catégorie d'objets en combat.
 - `mesure/captures.py dossier [niveau]` + `mesure/compare.py references/normale dossier planche.png` : comparaison d'images avec les références (`valdragon/references/normale`). À lancer après chaque modification visuelle ; une alerte = changement visuel à vérifier ou à assumer (puis mettre à jour les références).
 - `mesure/pieds_capture.py` + `pieds_analyse.py` : glissement et contact au sol des pieds.
+- `mesure/captures.py` écrit aussi `lisibilite.json` (luminance des personnages vs leur entourage, contraste de silhouette « bord ») ; `mesure/vue_haute.py` : vue d'ensemble d'étages entiers révélés (architecture, habillage).
+- `ressources/ph_tex2.py` : textures de biome Poly Haven (couleur + relief, **rugosité dans le canal bleu de `_n`**) ; `ressources/pack_phprops.mjs` : décors photoréalistes Poly Haven → `mq/phprops.glb` (nœuds nommés comme les pièces KayKit qu'ils remplacent). Sources via `outils-communs/phget.py`.
 - `tests/explore.py minutes 1,5,9,13` + `agent2.js` : testeur exhaustif (vrai joystick, toutes les cases, objets, marchand, menus, compétences, boss).
 - `tests/scen.py`, `tests/sauvegarde.py`, `tests/hors_ligne.py`, `tests/bot.py`, `tests/sim.js` + `analyze.js`.
 - `ressources/` : simplification de modèles (simp_kit.mjs), textures Poly Haven (ph_tex.py, rockfix.py), conversion FBX 6.1 Mixamo (fbx61.py).

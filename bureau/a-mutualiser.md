@@ -23,3 +23,4 @@ Les alertes automatiques à jour sont dans `python3 bureau/outils/bureau.py`.
 
 ## Fait
 - [x] 16/11 — filtre des pauses de `cage-et-gloire/jeu/testkit.js` reporté dans `outils-communs/testkit.js`.
+- Trousse de test (16/11, Président) : le rapport de secours n'a plus de lien de téléchargement direct (inopérant dans le visualiseur) ; « Copier tout » + « Enregistrer » via claude.use('downloads') seulement. Copies locales encore à l'ancien bouton : couronnes-et-complots (version construite, disparaît à la prochaine construction) et trone-de-braise (ui.js, a.download à remplacer) — reprendre outils-communs/testkit.js à leur prochaine construction.

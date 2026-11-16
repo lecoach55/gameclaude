@@ -38,6 +38,14 @@ def _():
         c = os.path.join(d, 'tk.js'); open(c, 'w').write('\n'.join(l[7:] if l.startswith('export ') else l for l in src.split('\n'))); run('node', '--check', c)
 
 
+@controle('testkit.js : aucun lien de téléchargement direct (inopérant dans le visualiseur ; passer par claude.use("downloads"))')
+def _():
+    src = open(os.path.join(OC, 'testkit.js'), encoding='utf-8').read()
+    for motif in ('.download=', '.download =', 'createObjectURL', 'showSaveFilePicker'):
+        if motif in src:
+            raise RuntimeError(f'motif interdit dans testkit.js : {motif}')
+
+
 @controle('sauvegarde-en-ligne.js : syntaxe')
 def _():
     with tempfile.TemporaryDirectory() as d:

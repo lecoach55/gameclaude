@@ -1,6 +1,7 @@
 (function(){
 "use strict";
 const E=ENGINE, ST=DATA.stocks, SECS=DATA.sectors, TK=Object.keys(ST);
+E.use(DATA);
 const FEE_RATE=0.001, FEE_MIN=1, PRO_DAYS=21;
 const $=s=>document.querySelector(s);
 const nf2=new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -69,13 +70,14 @@ const SHOP=[
  {id:'island',n:'Île privée',d:'Un coin de paradis au large de la baie.',p:200000000,pr:2500,r:4}
 ];
 function ensureGame(){
-  if(G.game){const g=G.game;if(g.contrib==null){g.contrib=G.cap;g.cool={};g.reroll=0;g.hist=[];g.rivals.forEach(r=>r.contrib=r.start);}if(!g.orders){g.orders=[];g.fav={};g.oseq=0;}if(!G.game.stats)G.game.stats={dil:0,spec:0,pop:0,md:{},mf:{},rk:{0:G.day},pay:[]};return;}
+  if(G.game){const g=G.game;if(g.contrib==null){g.contrib=G.cap;g.cool={};g.reroll=0;g.hist=[];g.rivals.forEach(r=>r.contrib=r.start);}if(!g.orders){g.orders=[];g.fav={};g.oseq=0;}if(!G.game.stats)G.game.stats={dil:0,spec:0,pop:0,md:{},mf:{},rk:{0:G.day},pay:[]};if(!g.scen)g.scen={list:[],next:G.day+15+Math.floor(rnd()*20),n:0,ok:0,last:[],hist:[]};if(!g.specLast)g.specLast=[];return;}
   const v=E.value(G);
   G.game={xp:0,rank:0,missions:[],done:0,shorts:{},items:{},pend:[],msgs:[],
     rivals:RIVALS.map(r=>({id:r.id,cash:G.cap,pos:{},start:G.cap,contrib:G.cap,mem:{},resets:0})),contrib:G.cap,cool:{},reroll:0,hist:[],orders:[],fav:{},oseq:0,diff:chosenDiff,
     nextEvent:G.day+6+Math.floor(rnd()*6),nextSpecial:G.day+50+Math.floor(rnd()*60),lastRank:[],flags:{},lock:0,weekV:v,weekM:G.idx[G.idx.length-1],tutorial:true};
   G.game.stats={dil:0,spec:0,pop:0,md:{},mf:{},rk:{0:G.day},pay:[]};
   G.game.missions=[mk('first'),mk('days'),mk('terminal')];
+  G.game.scen={list:[],next:G.day+35+Math.floor(rnd()*25),n:0,ok:0,last:[],hist:[]};G.game.specLast=[];
 }
 const GM=()=>G.game;
 
@@ -330,27 +332,141 @@ function applyShock(spec,perm){
   if(spec.oil)G.macro.oil*=spec.oil;
 }
 function special(){
-  const S=pickA(SPECIALS);GM().stats.spec++;
+  const g=GM();g.specLast=g.specLast||[];let L=SPECIALS.filter(x=>!g.specLast.includes(x.id));if(!L.length)L=SPECIALS;const S=pickA(L);g.specLast.push(S.id);if(g.specLast.length>4)g.specLast.shift();g.stats.spec++;
   if(S.merger){const a=randStock(),b=randStock(t=>t!==a&&ST[t].s===ST[a].s);shockStock(b,0.3,2,true);shockStock(a,-0.05,3,true);G.st[b].g+=0.02;breaking({title:ST[a].n+' rachète '+ST[b].n,x:'Une offre avec une prime de 30 %. Les actionnaires de '+ST[b].n+' jubilent.',tk:b,good:true});return;}
   applyShock(S,!S.bubble);
   breaking({title:S.t,x:S.x,good:(S.mk||0)>=0&&!S.burst});
   if(S.after){GM().pend.push({day:G.day+S.after[0]+Math.floor(rnd()*(S.after[1]-S.after[0])),k:'burst',id:S.id});}
 }
 function breaking(n){
-  addGameNews({title:n.title,x:n.x,tk:n.tk,big:true});
+  const nw=addGameNews({title:n.title,x:n.x,tk:n.tk,big:true,fl:1,good:!!n.good});
   const el=$('#breaking');el.innerHTML='<div class="in'+(n.good?' gold':'')+'" role="alert"><div class="k"><span>FLASH SPÉCIAL</span><span>'+dShort(G.date)+'</span></div><h2>'+esc(n.title)+'</h2><p>'+esc(n.x)+'</p></div>';
   if(!n.good){document.body.classList.remove('shake','redflash');void document.body.offsetWidth;document.body.classList.add('shake','redflash');SND.bad();}else SND.bell();
   breaking.hit=1;clearTimeout(breaking.tm);breaking.tm=setTimeout(()=>el.innerHTML='',4500);
   if(auto)stopAuto();
+  return nw;
 }
 $('#breaking').addEventListener('click',()=>$('#breaking').innerHTML='');
-function addGameNews(n){G.news.push(Object.assign({cat:'jeu',day:G.day,date:G.date,id:++G.seq},n));}
+function addGameNews(n){const o=Object.assign({cat:'jeu',day:G.day,date:G.date,id:++G.seq},n);G.news.push(o);return o;}
+/* ---------- feuilletons de marché : événements annoncés à l'avance, en plusieurs actes, avec pronostic ----------
+   Le cours intègre toujours l'espérance des issues : à l'annonce, à chaque dépêche (qui change les probabilités)
+   et au dénouement (seule la surprise reste). Les chocs ont lieu avant la séance, donc avant que le joueur puisse agir :
+   rien de gratuit à exploiter. Le pronostic ne rapporte que de l'expérience (40 XP), jamais d'argent. */
+const secTK=s=>TK.filter(t=>ST[t].s===s);
+function jolt(t,size){if(!size)return;const o=G.st[t];o.pe*=Math.exp(size*0.9);o.fair*=Math.exp(size*0.85);o.drift.push({v:size*0.1/8,n:8});}
+const CANDS=[{n:'Daniel Harper',c:'conservateur',w:'baisses d\'impôts et dérégulation',fx:{'Banque':0.09,'Énergie':0.11,'Finance':0.06,'Santé':0.03},mk:0.012},
+             {n:'Elena Ruiz',c:'progressiste',w:'grands travaux et prix des médicaments plafonnés',fx:{'Industrie':0.09,'Matières premières':0.08,'Énergie':-0.09,'Banque':-0.05,'Santé':-0.07},mk:-0.008}];
+const SCN={
+ elect:{n:'Élection présidentielle',art:'mountain',kick:'Élection',dur:[55,70],opts:['Harper','Ruiz'],
+  init:s=>{const a=0.38+rnd()*0.24;s.p=[a,1-a];s.acts=[14,28,40,s.len-6].map(d=>s.start+d);},
+  intro:s=>({title:'Élection présidentielle dans '+s.len+' séances',text:CANDS[0].n+' ('+CANDS[0].c+') promet '+CANDS[0].w+'. '+CANDS[1].n+' ('+CANDS[1].c+') promet '+CANDS[1].w+'. Premier sondage : '+poll(s)+'. Les cours reflètent déjà les sondages.'}),
+  act:(s,k)=>{const a=clamp(s.p[0]+(rnd()-0.5)*0.16,0.2,0.8);s.p=[a,1-a];return{title:(k===2?'Débat télévisé : ':'Nouveau sondage : ')+poll(s),x:'Les secteurs concernés réagissent à chaque point gagné ou perdu.'};},
+  fx:(s,o)=>({mk:CANDS[o].mk,sec:CANDS[o].fx}),
+  end:(s,o)=>{const C=CANDS[o];return{title:C.n+' remporte l\'élection présidentielle',x:'Programme : '+C.w+'.',good:C.mk>=0,secs:Object.keys(C.fx)};}},
+ trial:{n:'Procès antitrust',art:'doc',kick:'Justice',dur:[35,50],opts:['Relaxe','Amende','Démantèlement'],
+  pick:()=>randStock(t=>['Technologie','Médias','Jeux vidéo'].includes(ST[t].s)),
+  init:s=>{s.p=[0.45,0.40,0.15];s.acts=[s.start+Math.round(s.len*0.55)];},
+  intro:s=>({title:'Procès antitrust contre '+ST[s.t].n,text:'Le gouvernement accuse '+ST[s.t].n+' d\'abus de position dominante. Verdict attendu dans '+s.len+' séances : relaxe, lourde amende… ou démantèlement.'}),
+  act:s=>{const lean=rnd()<0.5?0:1;s.p=lean===0?[0.6,0.3,0.1]:[0.3,0.48,0.22];return{title:lean===0?'Procès '+ST[s.t].n+' : le juge se montre sceptique face à l\'accusation':'Procès '+ST[s.t].n+' : des courriels internes embarrassants dévoilés',x:'Les chroniqueurs judiciaires ne sont pas toujours bons pronostiqueurs.',tk:s.t};},
+  fx:(s,o)=>({tk:{[s.t]:[0.10,-0.07,-0.17][o]}}),
+  end:(s,o)=>({title:['Relaxe pour '+ST[s.t].n,'Amende record pour '+ST[s.t].n,ST[s.t].n+' condamnée au démantèlement'][o],x:['Le tribunal rejette les accusations. Soulagement chez les actionnaires.','Plusieurs milliards à payer, mais l\'entreprise reste entière.','Le groupe devra se séparer de plusieurs activités.'][o],good:o===0,tk:s.t})},
+ fda:{n:'Essai clinique',art:'heart',kick:'Santé',dur:[28,42],opts:['Succès','Échec'],
+  pick:()=>randStock(t=>ST[t].s==='Santé'),
+  init:s=>{s.p=[0.5,0.5];s.drug=pickA(['Cardiozen','Neurolys','Oncavir','Glycora','Pulmetra']);s.acts=[s.start+Math.round(s.len*0.5)];},
+  intro:s=>({title:ST[s.t].n+' attend le verdict sur le '+s.drug,text:'Les résultats de la dernière phase d\'essai de son médicament vedette tombent dans '+s.len+' séances. Succès : un blockbuster. Échec : des années de recherche perdues.'}),
+  act:s=>{const sig=rnd()<0.5;s.p=sig?[0.65,0.35]:[0.35,0.65];return{title:sig?'Le '+s.drug+' : des médecins évoquent des premiers résultats encourageants':'Le '+s.drug+' : des effets secondaires signalés chez quelques patients',x:'Une indiscrétion, pas un résultat officiel.',tk:s.t};},
+  fx:(s,o)=>({tk:{[s.t]:o===0?0.19:-0.17}}),
+  end:(s,o)=>({title:o===0?'Succès pour le '+s.drug+' de '+ST[s.t].n:'Échec de l\'essai du '+s.drug+' : '+ST[s.t].n+' chute',x:o===0?'Les autorités sanitaires donnent leur feu vert.':'Le médicament ne fait pas mieux que le placebo.',good:o===0,tk:s.t})},
+ opa:{n:'OPA hostile',art:'duel',kick:'Fusions',dur:[22,32],opts:['Surenchère','Rachat conclu','Échec de l\'offre'],
+  pick:()=>randStock(t=>secTK(ST[t].s).length>=3),
+  init:s=>{s.by=randStock(t=>t!==s.t&&ST[t].s===ST[s.t].s);s.p=[0.3,0.45,0.25];s.acts=[s.start+Math.round(s.len*0.5)];},
+  intro:s=>({title:ST[s.by].n+' lance une OPA hostile sur '+ST[s.t].n,text:'Une offre 25 % au-dessus du cours, que la direction de '+ST[s.t].n+' juge « inamicale ». Issue dans '+s.len+' séances environ.'}),
+  now:s=>{jolt(s.t,0.2);jolt(s.by,-0.03);},
+  act:s=>{const k=rnd();s.p=k<0.35?[0.5,0.35,0.15]:k<0.7?[0.2,0.6,0.2]:[0.15,0.4,0.45];return{title:k<0.35?'Un chevalier blanc s\'intéresserait à '+ST[s.t].n:k<0.7?'Les grands actionnaires de '+ST[s.t].n+' apportent leurs titres':'Le conseil de '+ST[s.t].n+' adopte une « pilule empoisonnée »',x:'La bataille boursière continue.',tk:s.t};},
+  fx:(s,o)=>({tk:{[s.t]:[0.09,0.02,-0.16][o],[s.by]:o<2?-0.02:0}}),
+  end:(s,o)=>({title:[ST[s.t].n+' : bataille d\'enchères, l\'offre est relevée','OPA réussie : '+ST[s.by].n+' s\'empare de '+ST[s.t].n,'OPA abandonnée : '+ST[s.t].n+' retombe'][o],x:['Un concurrent surenchérit de 10 %.','Les actionnaires ont apporté leurs titres au prix proposé.','Faute de soutien, l\'acheteur jette l\'éponge.'][o],good:o<2,tk:s.t})},
+ tariff:{n:'Ultimatum commercial',art:'plug',kick:'Commerce',dur:[30,45],opts:['Accord','Droits de douane'],
+  init:s=>{s.p=[0.55,0.45];s.acts=[s.start+12,s.start+Math.round(s.len*0.75)];},
+  intro:s=>({title:'Ultimatum commercial : '+s.len+' séances pour un accord',text:'Washington menace de taxer lourdement les importations si les négociations échouent. Semi-conducteurs, automobile et industrie en première ligne.'}),
+  act:s=>{const up=rnd()<0.5,a=clamp(s.p[0]+(up?0.12:-0.12),0.25,0.8);s.p=[a,1-a];return{title:up?'Négociations commerciales : « des progrès significatifs »':'Négociations commerciales : la délégation quitte la table',x:'Chances d\'accord estimées par les économistes : '+Math.round(a*100)+' %.'};},
+  fx:(s,o)=>o===0?{mk:0.022,sec:{'Semi-conducteurs':0.06,'Automobile':0.06,'Industrie':0.04}}:{mk:-0.026,sec:{'Semi-conducteurs':-0.09,'Automobile':-0.09,'Industrie':-0.06,'Distribution':-0.04}},
+  end:(s,o)=>({title:o===0?'Accord commercial signé : soulagement général':'Pas d\'accord : les droits de douane entrent en vigueur',x:o===0?'Les entreprises exportatrices respirent.':'Les chaînes d\'approvisionnement vont devoir se réorganiser.',good:o===0,secs:['Semi-conducteurs','Automobile','Industrie'].concat(o?['Distribution']:[])})},
+ strike:{n:'Grève',art:'truck',kick:'Social',dur:[18,28],opts:['Accord rapide','Conflit prolongé'],
+  init:s=>{s.sec=pickA(['Automobile','Transport']);s.p=[0.5,0.5];s.acts=[s.start+Math.round(s.len*0.5)];},
+  intro:s=>({title:'Grève massive dans le secteur '+(s.sec==='Automobile'?'automobile':'des transports'),text:'Les syndicats réclament de fortes hausses de salaire. Les usines sont à l\'arrêt. Médiation : verdict dans '+s.len+' séances.'}),
+  now:s=>secTK(s.sec).forEach(t=>jolt(t,-0.05)),
+  act:s=>{const up=rnd()<0.5;s.p=up?[0.68,0.32]:[0.32,0.68];return{title:up?'Grève : les deux camps se rapprochent':'Grève : les négociations sont rompues',x:'Les piquets de grève tiennent toujours.'};},
+  fx:(s,o)=>({sec:{[s.sec]:o===0?0.08:-0.08}}),
+  end:(s,o)=>({title:o===0?'Fin de la grève : accord trouvé':'La grève s\'enlise',x:o===0?'Les chaînes de production redémarrent.':'Les pertes s\'accumulent, les livraisons sont repoussées.',good:o===0,secs:[s.sec]})}
+};
+function poll(s){const a=Math.round(s.p[0]*100);return 'Harper '+a+' %, Ruiz '+(100-a)+' %';}
+function scenFx(s,o){ // effet de l'issue o, titre par titre (facteurs propres fixés une fois pour toutes)
+  const e=SCN[s.k].fx(s,o),m={};s.f=s.f||{};
+  const add=(t,v)=>{if(v)m[t]=(m[t]||0)+v;};
+  if(e.mk)TK.forEach(t=>add(t,e.mk*ST[t].b));
+  for(const sc in e.sec||{})secTK(sc).forEach(t=>{if(s.f[t]==null)s.f[t]=+(0.75+rnd()*0.5).toFixed(2);add(t,e.sec[sc]*s.f[t]);});
+  for(const t in e.tk||{})add(t,e.tk[t]);
+  return m;
+}
+function scenPrice(s,target){ // amène le cours de l'espérance déjà intégrée (s.px) à la nouvelle cible
+  const px=s.px||{},ks=new Set(Object.keys(px).concat(Object.keys(target)));
+  ks.forEach(t=>jolt(t,(target[t]||0)-(px[t]||0)));s.px=target;
+}
+function scenExp(s){const m={};s.p.forEach((p,o)=>{const f=scenFx(s,o);for(const t in f)m[t]=(m[t]||0)+p*f[t];});return m;}
+function scenStart(){
+  const g=GM(),S=g.scen,ks=Object.keys(SCN).filter(k=>!S.last.includes(k)&&!S.list.some(x=>x.k===k));if(!ks.length)return;
+  const k=pickA(ks),D=SCN[k],len=D.dur[0]+Math.floor(rnd()*(D.dur[1]-D.dur[0]));
+  const s={id:++S.n,k,start:G.day,len,day:G.day+len,pred:null,done:0,q:[]};if(D.pick)s.t=D.pick();D.init(s);
+  if(D.now)D.now(s);
+  scenPrice(s,scenExp(s));
+  S.list.push(s);S.last.push(k);if(S.last.length>3)S.last.shift();
+  evQueue.push({scen:s.id});
+}
+function scenOf(id){return GM().scen.list.find(x=>x.id===id);}
+const xpPro=()=>Math.round(40*DIFF.xp[GM().diff??1]);
+function canPredict(s){return s.pred==null&&!s.done&&G.day<=s.start+Math.max(5,Math.round(s.len*0.3));}
+function showScen(id){
+  const s=scenOf(id);if(!s)return nextPopup();const D=SCN[s.k],it=D.intro(s);GM().stats.last='scen_'+s.k;
+  if(!s.ann){s.ann=1;addGameNews({title:it.title,x:it.text,tk:s.t,big:true,scen:s.id,intro:1});}
+  if(!canPredict(s)){nextPopup();return;}
+  const ch=D.opts.map((l,k)=>({l:'Pronostic : '+l,s:'Juste : +'+xpPro()+' XP',f:()=>{s.pred=k;toast('Pronostic noté : '+l+'. Réponse dans '+(s.day-G.day)+' séances.','var(--gold)');}}));
+  ch.push({l:'Ne pas me prononcer',s:'Suivre l\'affaire dans « À la une »',f:()=>{s.pred=-1;}});
+  curEvent={D:{id:'scen'},d:{ch}};
+  const a=ART[D.art]||ART.doc,left=s.day-G.day;
+  $('#evDlg').innerHTML='<div class="ev-art" style="background:'+a[0]+'"><span class="ev-kicker">'+D.kick+' · '+left+' séances</span><svg viewBox="0 0 120 110" aria-hidden="true">'+a[1]+'</svg></div><div class="dlg-body"><h2 id="evTitle" style="font-size:28px">'+esc(it.title)+'</h2><p style="margin:8px 0 0;color:var(--muted)">'+esc(it.text)+'</p><div class="choices">'+ch.map((c,k)=>'<button class="choice" data-c="'+k+'"><b>'+esc(c.l)+'</b>'+(c.s?'<small>'+esc(c.s)+'</small>':'')+'</button>').join('')+'</div></div>';
+  $('#mEvent').hidden=false;SND.bell();const f=$('#evDlg .choice');if(f)f.focus();
+}
+function scenPre(){ // avant la séance : dépêches et dénouements font bouger les cours de la séance même
+  const S=GM().scen;if(!S)return;
+  S.list.forEach(s=>{if(s.done)return;const D=SCN[s.k];s.q=s.q||[];
+    s.acts.forEach((d,k)=>{if(d>0&&G.day+1>=d&&G.day+1<s.day){s.acts[k]=-1;s.q.push(D.act(s,k));scenPrice(s,scenExp(s));}});
+    if(G.day+1>=s.day){const r=rnd();let o=0,c=0;for(;o<s.p.length-1;o++){c+=s.p[o];if(r<c)break;}scenPrice(s,scenFx(s,o));s.res=Object.assign({o},D.end(s,o));s.done=1;}
+  });
+  if(G.day+1>=S.next){S.next=G.day+55+Math.floor(rnd()*55);scenStart();}
+}
+function scenPost(){
+  const g=GM(),S=g.scen;if(!S)return;
+  S.list.forEach(s=>{const D=SCN[s.k];
+    (s.q||[]).forEach(n=>{addGameNews({title:n.title,x:n.x,tk:n.tk||s.t,big:false,scen:s.id});toast(n.title,'var(--gold)');});s.q=[];
+    if(s.done===1){s.done=2;const r=s.res,nw=breaking({title:r.title,x:r.x,tk:r.tk,good:r.good});if(nw){if(r.secs)nw.secs=r.secs;nw.scen=s.id;}
+      if(s.pred>=0){if(s.pred===r.o){S.ok++;addXP(40,'pronostic juste');SND.ding();}else toast('Pronostic manqué : '+r.title+'.','var(--muted)');}
+      S.hist.push({k:s.k,o:r.o,pred:s.pred,date:G.date});if(S.hist.length>40)S.hist.shift();}
+  });
+  S.list=S.list.filter(s=>s.done!==2);
+}
+function scenHTML(){
+  const S=GM().scen;if(!S||!S.list.length)return'';
+  return '<div class="avenir">'+S.list.map(s=>{const D=SCN[s.k],n=Math.max(0,s.day-G.day);const fil=G.news.filter(x=>x.scen===s.id&&!x.intro).slice(-1)[0];
+    return '<div class="fe"><span class="fe-n" style="--p:'+Math.round(100*(1-n/s.len))+'"><b>'+n+'</b><small>séance'+(n>1?'s':'')+'</small></span><div><div class="meta"><span class="cat" style="--c:#e0a526">'+D.kick+'</span>'+(s.t?'<button class="tk" data-t="'+s.t+'" style="--h:'+hueOf(s.t)+'">'+s.t+'</button>':'')+(s.pred>=0?'<span>votre pronostic : <b>'+esc(D.opts[s.pred])+'</b></span>':canPredict(s)?'<button class="linkb" data-prono="'+s.id+'">Pronostiquer</button>':'')+'</div><h3>'+esc(fil?fil.title:D.n+(s.t?' · '+ST[s.t].n:''))+'</h3></div></div>';}).join('')+'</div>';
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-prono]');if(!b||!G)return;const s=scenOf(+b.dataset.prono);if(s&&canPredict(s)&&$('#mEvent').hidden&&$('#mInfo').hidden)showScen(s.id);});
 function preStep(){ // effets à appliquer avant que la séance ne soit calculée
   const g=GM(),due=g.pend.filter(p=>!p.fired&&p.day<=G.day+1&&(p.k==='drift'||p.k==='burst'));
   due.forEach(p=>{
     if(p.k==='drift'){const o=G.st[p.t];o.fair*=Math.exp(p.v*0.8);o.pe*=Math.exp(p.v*0.4);o.drift.push({v:p.v*0.6/p.n,n:p.n});p.fired=1;}
     if(p.k==='burst'){const S=SPECIALS.find(s=>s.id===p.id);applyShock(S.burst,true);p.fired=1;}
   });
+  scenPre();
 }
 function postStep(){
   const g=GM();
@@ -378,6 +494,7 @@ function postStep(){
   // déclencheurs
   if(G.day>=g.nextEvent){g.nextEvent=G.day+20+Math.floor(rnd()*16);evQueue.push('dilemma');}
   if(G.day>=g.nextSpecial){g.nextSpecial=G.day+90+Math.floor(rnd()*110);special();}
+  scenPost();
 }
 let evQueue=[];
 
@@ -550,6 +667,7 @@ function renderUne(){
   const score=n=>(n.cat==='jeu'?6:0)+(n.big?4:0)+(n.tk&&G.pos[n.tk]?3:0)+(n.cat==='macro'?2:0)+(n.cat==='rumeur'||n.cat==='resultats'?1:0);
   const top=today.slice().sort((a,b)=>score(b)-score(a)).slice(0,3);
   let h='<div class="row" style="justify-content:space-between"><h2>À la une</h2>'+(today.length>top.length?'<button class="linkb" id="goFil">Les '+today.length+' dépêches du jour</button>':'')+'</div>';
+  h+=scenHTML();
   h+=top.length?top.map(n=>newsItem(n,true)).join(''):'<div class="quiet">Séance calme, aucune dépêche notable.</div>';
   $('#une').innerHTML=h;const g=$('#goFil');if(g)g.onclick=()=>{setTab('terminal');setSub('fil');};
 }
@@ -681,6 +799,7 @@ function renderTerminal(){
     h+='<div class="tiles">'+tl('Taux directeur',nf2.format(M.rate*100)+' %','fixé par la banque centrale')+tl('Inflation',nf1.format(M.infl*100)+' %','sur un an')+tl('Chômage',nf1.format(M.unemp*100)+' %','de la population active')+tl('Croissance',sgn(M.gdp)+nf1.format(Math.abs(M.gdp*100))+' %','PIB, rythme annuel')+tl('Pétrole',nf0.format(M.oil)+' $','le baril')+tl('Indice de peur',nf0.format(M.fear),fearL)+'</div>';
     h+='<h3 class="st">Agenda</h3><table><tbody>';
     const ag=[[M.nextFed,'Réunion de la banque centrale',M.fedExp?'Le marché anticipe '+M.fedExp.lbl+' ('+Math.round(M.fedExp.p*100)+' %)':'Anticipations publiées 5 séances avant'],[M.nextCPI,'Chiffre de l\'inflation','Plus fort que prévu : crainte de hausse des taux'],[M.nextJobs,'Chiffre du chômage','En baisse : bonne nouvelle pour l\'activité'],[M.nextGDP,'Croissance trimestrielle','Surprise positive : soutien aux cycliques']].sort((a,b)=>a[0]-b[0]);
+    (GM().scen?GM().scen.list:[]).forEach(s=>{const D=SCN[s.k];ag.push([s.day-G.day,D.n+(s.t?' · '+ST[s.t].n:''),'Issues possibles : '+D.opts.join(', ')+(s.pred>=0?'. Votre pronostic : '+D.opts[s.pred]:'')]);});ag.sort((a,b)=>a[0]-b[0]);
     ag.forEach(a=>h+='<tr><td><b>'+a[1]+'</b><div class="muted" style="font-size:13px">'+a[2]+'</div></td><td><b>'+dShort(dateIn(a[0]))+'</b><div class="muted" style="font-size:13px">dans '+a[0]+' séance'+(a[0]>1?'s':'')+'</div></td></tr>');
     h+='</tbody></table><h3 class="st">Comment l\'économie fait bouger les cours</h3><ul style="max-width:72ch;padding-left:18px;color:var(--muted)"><li>Hausse des taux : les PER se compriment, surtout pour la tech, les télécoms et la consommation de base. Les banques gagnent davantage sur leurs prêts.</li><li>Pétrole en hausse : bon pour l\'énergie et les matières premières, mauvais pour l\'aérien et le tourisme.</li><li>Récession : les bénéfices des cycliques chutent bien plus que ceux de la santé ou de la consommation.</li><li>Indice de peur élevé : les cours bougent fort dans les deux sens.</li></ul>';
   }
@@ -756,6 +875,7 @@ const TROPHIES=[
  {id:'podium',n:'Investisseur de l\'année',d:'Finir premier à une cérémonie de fin d\'année.',i:'M10 24V14h10v10M4 24v-6h6M20 24v-8h6'},
  {id:'duel',n:'Duelliste',d:'Remporter un défi contre un rival.',i:'M6 24L24 6M24 24L6 6'},
  {id:'luxe',n:'La belle vie',d:'S\'offrir un bien de luxe.',i:'M8 12l7-6 7 6-7 12z'},
+ {id:'oracle',n:'Oracle',d:'Réussir trois pronostics sur les grands feuilletons du marché.',i:'M15 6a9 9 0 100 18 9 9 0 000-18M15 11a4 4 0 100 8 4 4 0 000-8'},
  {id:'legend',n:'Légende',d:'Atteindre le grade de Légende de Wall Street.',i:'M5 20l3-10 7 6 7-6 3 10z'}
 ];
 function trophyCheck(){
@@ -763,7 +883,7 @@ function trophyCheck(){
   const ok={first:G.tx.some(x=>x.s==='A'),div:G.tx.some(x=>x.s==='D'),five:new Set(Object.keys(G.pos).map(t=>ST[t].s)).size>=5,ten:Object.keys(G.pos).length>=10,
     k100:v>=100000,m1:v>=1e6,beat:!!G.ach.beat,storm:G.macro.reg==='recession'&&inv>v*0.5,panic:G.tx.some(x=>x.s==='A'&&x.fear>35),short:G.tx.some(x=>x.s==='C'&&x.pl>0),
     prog:G.tx.some(x=>x.prog),double:Object.keys(G.pos).some(t=>G.pos[t].q*P(t)>=2*G.pos[t].cost),big:G.tx.some(x=>(x.s==='V'||x.s==='C')&&x.pl>=10000),
-    podium:!!g.flags.podium,duel:!!g.flags.duel,luxe:Object.keys(g.items).length>0,legend:g.rank>=5};
+    podium:!!g.flags.podium,duel:!!g.flags.duel,oracle:!!(g.scen&&g.scen.ok>=3),luxe:Object.keys(g.items).length>0,legend:g.rank>=5};
   TROPHIES.forEach(t=>{if(ok[t.id]&&!T[t.id]){T[t.id]=G.date;if(silent)return;toast('Trophée débloqué : '+t.n,'var(--gold)');SND.ding();confetti(90);addXP(30);}});
 }
 function trophyHTML(){const T=GM().trophies||{},n=Object.keys(T).length;
@@ -846,10 +966,13 @@ function chart(canvas,series,labels,fmt,marks,lines){
     if(s.dot){const x=X(n-1),y=Y(s.d[n-1]);c.beginPath();c.arc(x,y,7,0,7);c.fillStyle=s.c+'33';c.fill();c.beginPath();c.arc(x,y,3.5,0,7);c.fillStyle=s.c;c.fill();}});
   (lines||[]).forEach(l=>{const y=Math.round(Y(l.v))+.5;c.strokeStyle=l.c;c.lineWidth=1.5;c.setLineDash([6,4]);c.beginPath();c.moveTo(L,y);c.lineTo(W-R,y);c.stroke();c.setLineDash([]);c.font='600 11px '+(css('--body')||'sans-serif');const tw=c.measureText(l.lab).width+10;c.fillStyle=l.c;roundRect(c,W-R-tw-4,y-9,tw,18,6);c.fill();c.fillStyle='#fff';c.textAlign='left';c.textBaseline='middle';c.fillText(l.lab,W-R-tw+1,y+.5);c.textBaseline='alphabetic';});
   (marks||[]).forEach(mk=>{if(mk.k<0||mk.k>=n)return;const x=X(mk.k);const base=series[series.length-1].d[mk.k];const y=Y(base);
+    if(mk.kind==='e'){const gc=css('--gold');c.strokeStyle=gc;c.globalAlpha=.45;c.setLineDash([3,3]);c.beginPath();c.moveTo(x,T+9);c.lineTo(x,y-5);c.stroke();c.setLineDash([]);c.globalAlpha=1;c.fillStyle=mk.good===false?css('--down'):gc;c.strokeStyle=css('--surface');c.lineWidth=1.5;c.beginPath();c.moveTo(x,T-1);c.lineTo(x+6,T+5);c.lineTo(x,T+11);c.lineTo(x-6,T+5);c.closePath();c.fill();c.stroke();c.fillStyle='#fff';c.font='700 9px '+(css('--body')||'sans-serif');c.textAlign='center';c.textBaseline='middle';c.fillText('!',x,T+5.5);c.textBaseline='alphabetic';return;}
     if(mk.kind==='r'){c.fillStyle=css('--gold');c.beginPath();c.arc(x,H-B-4,3.5,0,7);c.fill();c.strokeStyle=css('--gold');c.globalAlpha=.35;c.setLineDash([2,3]);c.beginPath();c.moveTo(x,H-B-8);c.lineTo(x,y+6);c.stroke();c.setLineDash([]);c.globalAlpha=1;return;}
     const up=mk.kind==='b';c.fillStyle=up?css('--up'):css('--down');c.strokeStyle=css('--surface');c.lineWidth=1.5;c.beginPath();
     if(up){c.moveTo(x,y+6);c.lineTo(x-6,y+16);c.lineTo(x+6,y+16);}else{c.moveTo(x,y-6);c.lineTo(x-6,y-16);c.lineTo(x+6,y-16);}c.closePath();c.fill();c.stroke();});
-  canvas._m={X,n,labels,series,L,R,W,fmt};
+  canvas._m={X,n,labels,series,L,R,W,fmt,marks:marks||[]};
+  const dl=series.find(s=>s.dot);if(dl&&n>1){let pu=wrap.querySelector('.pulse');if(!pu){pu=document.createElement('i');pu.className='pulse';pu.setAttribute('aria-hidden','true');wrap.appendChild(pu);}
+    const px=X(n-1),py=Y(dl.d[n-1]),key=n+'|'+labels[n-1]+'|'+Math.round(py);pu.style.transform='translate('+(px-9)+'px,'+(py-9)+'px)';pu.style.setProperty('--pc',dl.c);if(pu._k&&pu._k!==key&&pu._lab!==labels[n-1]){pu.classList.remove('go');void pu.offsetWidth;pu.classList.add('go');}pu._k=key;pu._lab=labels[n-1];}
 }
 function drawStock(){
   const a=G.st[sel].p,n=Math.min(range,a.length),d=a.slice(-n),labels=G.dates.slice(-n),first=G.dates.length-n;
@@ -859,13 +982,14 @@ function drawStock(){
   const idxOf={};labels.forEach((x,k)=>idxOf[x]=k);
   const marks=[];
   G.tx.forEach(x=>{if(x.t===sel&&idxOf[x.date]!=null&&'AVSC'.includes(x.s))marks.push({k:idxOf[x.date],kind:(x.s==='A'||x.s==='C')?'b':'s'});});
-  G.news.forEach(x=>{if(x.cat==='resultats'&&x.tk===sel&&idxOf[x.date]!=null)marks.push({k:idxOf[x.date],kind:'r'});});
+  G.news.forEach(x=>{if(x.cat==='resultats'&&x.tk===sel&&idxOf[x.date]!=null)marks.push({k:idxOf[x.date],kind:'r'});
+    else if(x.cat==='jeu'&&(x.big||x.scen)&&idxOf[x.date]!=null&&(x.tk===sel||(x.secs&&x.secs.includes(ST[sel].s))))marks.push({k:idxOf[x.date],kind:'e',t:x.title,good:x.good});});
   const lines=GM().orders.filter(o=>o.t===sel).map(o=>({v:o.px,c:o.s==='A'?css('--up'):(o.dir==='le'?css('--down'):css('--gold')),lab:(o.s==='A'?'Achat ':o.dir==='le'?'Stop ':'Objectif ')+nf2.format(o.px)}));
   if(omode==='cond'&&+$('#cPx').value>0)lines.push({v:+$('#cPx').value,c:css('--accent'),lab:'Déclencheur '+nf2.format(+$('#cPx').value)});
   chart($('#cStock'),series,labels,v=>nf2.format(v),marks,lines);
 }
-function drawPort(){const sp=startPos(),labels=G.dates.slice(sp),base=G.idx[sp];const idx=G.idx.slice(sp).map(x=>G.cap*x/base),vals=G.vals.slice(sp);const cv=$('#cPort');if(labels.length<2){cv.getContext('2d').clearRect(0,0,cv.width,cv.height);return;}chart(cv,[{d:idx,c:hex(css('--muted')),w:1.6,dash:[5,4]},{d:vals,c:hex(css('--gold')),fill:true,dot:true}],labels,v=>nf0.format(v));}
-function hover(canvas,ev){const m=canvas._m,tip=canvas.parentElement.querySelector('.tip');if(!m)return;const r=canvas.getBoundingClientRect();let k=Math.round((ev.clientX-r.left-m.L)/(m.W-m.L-m.R)*(m.n-1));k=Math.max(0,Math.min(m.n-1,k));tip.textContent=dShort(m.labels[k])+'  '+m.series.slice().reverse().map(s=>m.fmt(s.d[k])).join(' / ');tip.style.display='block';tip.style.left=Math.max(0,Math.min(m.X(k)+10,r.width-tip.offsetWidth-4))+'px';tip.style.top='0px';}
+function drawPort(){const sp=startPos(),labels=G.dates.slice(sp),base=G.idx[sp];const idx=G.idx.slice(sp).map(x=>G.cap*x/base),vals=G.vals.slice(sp);const cv=$('#cPort');if(labels.length<2){cv.getContext('2d').clearRect(0,0,cv.width,cv.height);return;}const io={};labels.forEach((x,k)=>io[x]=k);const mks=G.news.filter(x=>x.fl&&io[x.date]!=null).map(x=>({k:io[x.date],kind:'e',t:x.title,good:x.good}));chart(cv,[{d:idx,c:hex(css('--muted')),w:1.6,dash:[5,4]},{d:vals,c:hex(css('--gold')),fill:true,dot:true}],labels,v=>nf0.format(v),mks);}
+function hover(canvas,ev){const m=canvas._m,tip=canvas.parentElement.querySelector('.tip');if(!m)return;const r=canvas.getBoundingClientRect();let k=Math.round((ev.clientX-r.left-m.L)/(m.W-m.L-m.R)*(m.n-1));k=Math.max(0,Math.min(m.n-1,k));const em=(m.marks||[]).filter(x=>x.kind==='e'&&Math.abs(x.k-k)<=Math.max(1,Math.round(m.n/120))).pop();tip.textContent=dShort(m.labels[k])+'  '+m.series.slice().reverse().map(s=>m.fmt(s.d[k])).join(' / ')+(em?'  ·  '+(em.t.length>64?em.t.slice(0,62)+'…':em.t):'');tip.style.display='block';tip.style.left=Math.max(0,Math.min(m.X(k)+10,r.width-tip.offsetWidth-4))+'px';tip.style.top='0px';}
 ['#cStock','#cPort'].forEach(id=>{const c=$(id);c.addEventListener('mousemove',e=>hover(c,e));c.addEventListener('mouseleave',()=>c.parentElement.querySelector('.tip').style.display='none');});
 new ResizeObserver(()=>{if(G){drawStock();if(tab==='portef')drawPort();}}).observe($('#cStock').parentElement);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>G&&renderAll());
@@ -938,7 +1062,7 @@ $('#coach').addEventListener('click',e=>{const b=e.target.closest('[data-co]');i
 function nextPopup(){
   if(!$('#mInfo').hidden||!$('#mEvent').hidden)return;
   if(promoQueue.length){showPromo(promoQueue.shift());return;}
-  if(evQueue.length){evQueue.shift();showDilemma();return;}
+  if(evQueue.length){const e=evQueue.shift();if(e&&e.scen)showScen(e.scen);else showDilemma();return;}
   if(popQueue.length){const h=popQueue.shift();info(h);if(h.includes('data-fx')){SND.fanfare();confetti(200);}return;}
 }
 function step(n){

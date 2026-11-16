@@ -195,6 +195,7 @@ body.has-recap .toasts{bottom:var(--recap-h,300px)}
 .mk.b{background:var(--up);clip-path:polygon(50% 0,100% 100%,0 100%)}
 .mk.s{background:var(--down);clip-path:polygon(0 0,100% 0,50% 100%)}
 .mk.r{background:var(--gold);border-radius:50%}
+.mk.e{background:var(--gold);transform:rotate(45deg) scale(.85);border-radius:2px}
 /* répartition */
 .alloc{display:grid;grid-template-columns:180px 1fr;gap:18px;align-items:center;margin:16px 0 4px}
 .alloc svg{width:180px;height:180px}
@@ -309,7 +310,7 @@ body.has-recap .toasts{bottom:var(--recap-h,300px)}
       <div class="fp"><span class="big" id="fPx">—</span><span id="fChg"></span></div>
       <div class="seg" id="ranges"><button data-r="21">1 mois</button><button data-r="63">3 mois</button><button data-r="126">6 mois</button><button data-r="252" class="on">1 an</button><button data-r="1260">5 ans</button></div>
       <div class="chart"><canvas id="cStock"></canvas><div class="tip"></div></div>
-      <div class="chart-leg"><label><input type="checkbox" id="maT" checked> Moyenne 50 séances</label><span><i class="mk b"></i>vos achats</span><span><i class="mk s"></i>vos ventes</span><span><i class="mk r"></i>résultats</span></div>
+      <div class="chart-leg"><label><input type="checkbox" id="maT" checked> Moyenne 50 séances</label><span><i class="mk b"></i>vos achats</span><span><i class="mk s"></i>vos ventes</span><span><i class="mk r"></i>résultats</span><span><i class="mk e"></i>événements</span></div>
     </div>
     <div class="card order">
       <div class="side" id="sideSeg" role="group" aria-label="Type d'ordre"></div>

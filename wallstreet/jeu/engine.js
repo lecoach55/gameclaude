@@ -353,6 +353,7 @@ function step(G){
   G.vals.push(value(G)); if(G.vals.length>G.dates.length)G.vals.shift();
   if(G.news.length>700)G.news=G.news.slice(-600);
 }
-return {init:init,step:step,value:value,P:P,REG:REG,FIRMS:FIRMS,f2:f2,pc:pc,nextDate:nextDate};
+function use(data){D=data;TK=Object.keys(D.stocks);} // partie rechargée : le moteur doit connaître les données sans refaire init
+return {init:init,use:use,step:step,value:value,P:P,REG:REG,FIRMS:FIRMS,f2:f2,pc:pc,nextDate:nextDate};
 })();
 if(typeof module!=="undefined")module.exports=ENGINE;

@@ -13,7 +13,7 @@ async def main():
         nav=await navigateur(p); pg=await page(nav,base+'index.html?graine=7',W,H)
         await pg.wait_for_timeout(1200); await capturer(pg,f'{out}/01_titre.png')
         await pg.click('#bNouvelle'); await pg.wait_for_timeout(600); await capturer(pg,f'{out}/02_creation.png')
-        await pg.click('.carte-classe[data-c="chevalier"]'); await pg.click('#cGo'); await pg.wait_for_timeout(1000)
+        await pg.click('.carte-classe[data-c="chevalier"]'); await pg.click('#cGo'); await pg.wait_for_timeout(1000); await pg.evaluate("()=>{JEU.G.options.d3=false}")  # donjon 2D (le 3D a son propre test : expe3d.py)
         await capturer(pg,f'{out}/03_intro.png')
         await pg.click('#fen .pied .btn >> nth=0'); await pg.wait_for_timeout(300); await pg.click('#fen .pied .btn >> nth=0'); await pg.wait_for_timeout(600)
         # sélectionner Val-Sombre

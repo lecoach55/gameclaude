@@ -6,6 +6,15 @@ Artefact publié : slug `ad95fb12-6952-4fbd-8b8b-ff66978db6c6` (capacités db + 
 ## Code (`jeu/`)
 `data.js` (maisons, provinces, monstres, classes, objets) · `objets.js` (butin, statistiques du héros) · `monde.js` (géographie déterministe) · `donjon.js` (génération, combat, IA, boss, robot joueur — sans DOM, testable sous Node) · `royaume.js` (saisons, économie, guerres, IA des maisons, dynastie — sans DOM) · `evenements.js` (~35 événements) · `rendu.js` (donjons en Canvas 2D, lumière, personnages) · `carte.js` (carte du royaume, blasons) · `sons.js` (sons et musique synthétisés) · `nuage.js` (sauvegarde en ligne `partie`) · `ui.js` · `testkit.js`.
 Construire : `python3 jeu/build.py` → `build/trone-de-braise.html`, à publier en `index.html` (publish_files).
+
+## Donjons 3D au tour par tour (v5, `donjon3d/`)
+Par défaut, les expéditions (provinces, Faille, charge du champion, combats d'événements) se jouent dans le moteur 3D réaliste de Valdragon, au tour par tour, avec un groupe de 3 : le héros du royaume, son compagnon s'il en a un, complétés par un sergent, une sœur guérisseuse ou une éclaireuse. Le donjon 2D en temps réel reste disponible (Menu → « Donjons ») et sert de repli si la 3D ne se charge pas (WebGL absent, délai de 90 s).
+- `donjon3d/src/` : copie adaptée de `valdragon/jeu` (mode expédition dans `core.js` : `lancerExpedition`, `bilanExpedition`, `G.tier()/G.lair()` ; soldats, arbalétriers et champion des maisons ; pas de marchand ni de réapparition ; `ui3.js` piloté par messages `expe3d` / `pret3d` / `fin3d` ; `cloud.js` neutralisé : la page 3D n'écrit JAMAIS dans la base ni dans `localStorage`). Modèles, textures et bruitages lus dans `valdragon/jeu` (non dupliqués).
+- `donjon3d/pont.js` : conversions royaume ↔ donjon 3D (classes, compagnon, niveau → étage `round(0,88 n + 0,15 max(0, n−8))`, rareté de l'équipement +1 cran, gardien à 70 % de PV, or et XP ramenés à l'échelle du royaume, butin recréé avec `genObjet`).
+- Construire : `python3 donjon3d/build.py` (node_modules : lien vers `/home/claude/t3d/node_modules`, voir `valdragon/outils/preparer.sh`) → `build/donjon3d.html` (12 Mio, non versionné), puis `python3 jeu/build.py`. Publier `index.html` + `donjon3d.html` (publish_files). Version Mac hors ligne en un fichier : `python3 jeu/build.py sortie.html --avec3d` (17 Mio).
+- Équilibre : `node outils/sim_expe3d.js niveau N [etages] [combat]`. Repères 16/11/2026 (bot attentif, héros en équipement magique) : niveau 3 → 90 %, 5 → 95 %, 8 → 92 %, 12 → 100 %, 16 → 95 % ; ~11 combats, ~+1 niveau, or ≈ 450 + 200 × niveau ; charge du champion 93-100 %.
+- Test : `python3 outils/expe3d.py [mac]` (chargement, exploration, combat, retraite, victoire, défaite, aucune sauvegarde parasite). `parcours.py` et `fumee.py` forcent le donjon 2D.
+- Crédits 3D obligatoires : dragon « Drago » d'Oscar Creativo (CC BY 4.0), personnages Adobe Mixamo, textures Poly Haven (CC0), décors KayKit et Quaternius (CC0).
 Graine fixe : `index.html?graine=7`. Sauvegarde locale `tdb-v1` (ne pas changer la clé) + document en ligne `partie` (ne jamais le modifier).
 
 ## Version 2 (15/11/2026, soir)

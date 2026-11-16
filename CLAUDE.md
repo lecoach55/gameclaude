@@ -78,6 +78,7 @@ Action-RPG façon Diablo + royaume (dés, diplomatie, dynastie). Canvas 2D, une 
 - Équilibre : `outils/sim_donjon.js` et `outils/sim_royaume.js` (repères dans le README) ; ne pas changer la difficulté sans accord.
 - Avant publication : `outils/parcours.py`, `outils/fumee.py`, `outils/perf.py` (référence `mesures/perf_v4_cpu4.json` à CPU ×4 ; `FIGE=0` pour mesurer avec la résolution adaptative). Voir `trone-de-braise/README.md`.
 - Sauvegardes : locale `tdb-v1` + en ligne `partie` (ne jamais les modifier) ; tout nouveau champ doit être ajouté dans `completer(G)` (royaume.js) pour les anciennes parties.
+- Donjons 3D au tour par tour (moteur Valdragon, `donjon3d/`) : `python3 donjon3d/build.py` avant `jeu/build.py`, publier aussi `build/donjon3d.html` ; équilibre `outils/sim_expe3d.js`, test `outils/expe3d.py`. La page 3D ne doit jamais sauvegarder (cloud.js neutralisé). Crédits Valdragon obligatoires.
 
 ## Président de Club (`president-de-club/`)
 Gestion d'un club de foot français du Régional 2 à la Ligue 1 (une page HTML/JS). Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144`, publier `president-de-club/jeu/index.html` en `index.html` (publish_files, mode patch).

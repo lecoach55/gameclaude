@@ -15,7 +15,7 @@ async def main():
     async with async_playwright() as p:
         nav=await navigateur(p); pg=await page(nav,base+'index.html?graine=21',1280,800)
         await pg.wait_for_timeout(600)
-        await cliquer(pg,'#bNouvelle'); await cliquer(pg,'#cMort button[data-v="1"]'); await cliquer(pg,'#cGo')
+        await cliquer(pg,'#bNouvelle'); await cliquer(pg,'#cMort button[data-v="1"]'); await cliquer(pg,'#cGo'); await pg.evaluate("()=>{JEU.G.options.d3=false}")  # parcours du donjon 2D
         await cliquer(pg,'#fen .pied .btn'); await cliquer(pg,'#fen .pied .btn')
         # 1. événement tournoi -> combat -> victoire
         await pg.evaluate("()=>{JEU.G.evts.push({id:'tournoi'});traiterFile();}"); await pg.wait_for_timeout(300)

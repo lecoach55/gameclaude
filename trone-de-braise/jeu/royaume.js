@@ -57,6 +57,7 @@ function entretien(G, m) { return Math.round(troupesDe(G, m) * .75 + (m === 'jou
 function completer(G) {
  const J = G.joueur;
  if (J.compagnon === undefined) J.compagnon = null;
+ if (G.options && G.options.d3 === undefined) G.options.d3 = true; // donjons 3D au tour par tour (v5)
  if (!J.heros.talents) J.heros.talents = {};
  for (const e of J.enfants) if (e.classe === undefined) e.classe = null;
  if (!G.objectifs) G.objectifs = { n: 0, faits: [] };

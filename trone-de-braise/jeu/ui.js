@@ -351,6 +351,7 @@ $('#bChron').onclick = fenetreChronique;
 function fenetreChronique() { fenetre('La chronique', `<div class="chron">${G.chronique.map(c => `<div class="t-${c.type}"><span class="d">${SAISONS[c.s]} ${c.an}</span>${esc(c.txt)}</div>`).join('')}</div>`, [{ t: 'Fermer', f: () => { fermer(); if (G.fin) verifierFin(); } }]); }
 $('#bMenu').onclick = () => fenetre('Menu', `<p>${TEST ? '🧪 Mode test : rien n’est sauvegardé.' : 'La partie est sauvegardée automatiquement (sur cet appareil et en ligne).'}</p>`, [
  { t: AUDIO.actif() ? '🔇 Couper le son' : '🔊 Activer le son', f: () => { AUDIO.regler(!AUDIO.actif()); if (AUDIO.actif()) AUDIO.musiqueDe(MODE === 'donjon' ? 'donjon' : 'royaume'); fermer(); } },
+ { t: G.options.d3 === false ? '🗡️ Donjons : 2D en temps réel (passer en 3D au tour par tour)' : '🐉 Donjons : 3D au tour par tour (passer en 2D en temps réel)', f: () => { G.options.d3 = G.options.d3 === false; sauver(); fermer(); toast(G.options.d3 ? 'Les prochains donjons seront en 3D, au tour par tour.' : 'Les prochains donjons seront en 2D, en temps réel.'); } },
  { t: RENDU.haute ? '🖥️ Qualité : haute (passer en normale)' : '🖥️ Qualité : normale (passer en haute)', f: () => { RENDU.haute = !RENDU.haute; try { localStorage.setItem('tdb-qualite', RENDU.haute ? '1' : '0'); } catch (e) { } redim(); fermer(); } },
  { t: '📖 Comment jouer', f: aide },
  { t: '🐞 Signaler un problème à Claude', f: async () => { fermer(); if (!TK) return toast('Trousse de test indisponible'); const ok = await TK.signaler(); toast(ok ? 'Signalement envoyé ✓' : 'Signalement enregistré sur cet appareil'); } },
@@ -431,7 +432,42 @@ function ongletForge(h) {
 
 /* ---------- expéditions (donjon) ---------- */
 let surFin = null, entree = { haut: 0, bas: 0, gauche: 0, droite: 0, clic: false, shift: false, mx: 0, my: 0, sx: 0, sy: 0, comp: [0, 0, 0, 0], potion: false, action: false };
-function lancerExpedition(cfg, fin) {
+/* ---------- Donjons 3D au tour par tour (moteur de Valdragon, page donjon3d.html dans un cadre) ---------- */
+const D3 = { cadre: null, pret: false, err: null, att: null, fin: null, cfg: null, X: null, minuteur: 0 };
+function d3Dispo() { if (G.options.d3 === false || UI.auto) return false; try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } }
+function d3Cadre() {
+ if (D3.cadre) return D3.cadre;
+ const f = document.createElement('iframe'); f.id = 'cadre3d'; f.title = 'Donjon en 3D'; f.allow = 'autoplay; fullscreen';
+ f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:60;background:#000;display:none';
+ const blob = document.getElementById('donjon3d-b64');
+ if (blob) { const bin = atob(blob.textContent.trim()), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); f.src = URL.createObjectURL(new Blob([u8], { type: 'text/html' })); }
+ else f.src = 'donjon3d.html';
+ document.body.appendChild(f); D3.cadre = f; return f;
+}
+addEventListener('message', ev => {
+ const m = ev.data; if (!m || typeof m !== 'object' || !D3.cadre || ev.source !== D3.cadre.contentWindow) return;
+ if (m.t === 'pret3d') { D3.pret = true; D3.err = m.err; if (D3.att) { const a = D3.att; D3.att = null; a(); } }
+ if (m.t === 'fin3d') finD3(m.b);
+});
+function lancerD3(cfg, fin) {
+ const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
+ const c = PONT3D.configExpedition({ heros: h, compagnon: G.joueur.compagnon, type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, arene: cfg.arene, nom: cfg.nom });
+ c.muet = !AUDIO.actif(); D3.cfg = c; D3.fin = fin; D3.h = h;
+ const f = d3Cadre(); fermer(); AUDIO.musiqueDe(null);
+ $('#chargement3d').classList.add('on'); MODE = 'donjon3d';
+ const go = () => { clearTimeout(D3.minuteur); $('#chargement3d').classList.remove('on'); f.style.display = 'block'; f.focus(); f.contentWindow.postMessage({ t: 'expe3d', cfg: c }, '*'); };
+ if (D3.pret) go();
+ else { D3.att = go; clearTimeout(D3.minuteur); D3.minuteur = setTimeout(() => { if (D3.pret) return; D3.att = null; $('#chargement3d').classList.remove('on'); MODE = 'royaume'; toast('Le donjon 3D n’a pas pu se charger : expédition en 2D.', 4000); lancer2D(cfg, fin); }, 90000); }
+}
+function finD3(b) {
+ const h = D3.h, c = D3.cfg, X = PONT3D.versTdB(b, h, c, genObjet); const fin = D3.fin; D3.fin = null;
+ const avant = h.niveau, up = PONT3D.appliquerXp(h, X.xpGagne); h.potions = Math.max(0, b.pot | 0);
+ D3.cadre.style.display = 'none'; montrer('royaume');
+ if (up) setTimeout(() => toast(`${esc(h.nom)} passe au niveau ${h.niveau} ! (+${h.niveau - avant} point${up > 1 ? 's' : ''} de compétence)`, 3500), 900);
+ fin && fin(X);
+}
+function lancerExpedition(cfg, fin) { if (d3Dispo()) return lancerD3(cfg, fin); return lancer2D(cfg, fin); }
+function lancer2D(cfg, fin) {
  const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
  XP = creerExpedition({ type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, heros: h, generation: G.joueur.generation, arene: cfg.arene, boss: cfg.boss, nomLieu: cfg.nom, couleurs: [G.maisons.joueur.c1, G.maisons.joueur.c2], inventaire: G.joueur.inventaire, dif: G.options.difficulte, compagnon: G.joueur.compagnon, chanceOr: G.chanceOr });
  G.chanceOr = false;

@@ -278,3 +278,12 @@ body.tact .niv{display:none}
 }
 @keyframes feuille{from{transform:translateY(30px);opacity:0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* chargement du donjon 3D */
+#chargement3d{position:fixed;inset:0;z-index:59;display:none;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at 50% 60%,#2a0f08,#050302 70%);color:#ead9b8;font-family:var(--titre,Georgia),serif}
+#chargement3d.on{display:flex}
+#chargement3d b{display:block;font-size:22px;letter-spacing:.02em;margin:10px 0 6px}
+#chargement3d small{display:block;opacity:.7;font-family:system-ui,sans-serif;font-size:13px}
+#chargement3d .cle3d{font-size:44px;animation:souffle3d 1.6s ease-in-out infinite}
+@keyframes souffle3d{50%{transform:scale(1.12);filter:drop-shadow(0 0 12px #ff7a2a)}}
+@media (prefers-reduced-motion:reduce){#chargement3d .cle3d{animation:none}}

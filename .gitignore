@@ -4,3 +4,5 @@ bundle.js
 index_local.html
 valdragon3d.html
 *.log
+trone-de-braise/build/donjon3d.html
+trone-de-braise/donjon3d/src/node_modules

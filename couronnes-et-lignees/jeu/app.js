@@ -722,6 +722,78 @@ const SCENE = (() => {
     inside: ['#3a2416', '#2a1a10', '#1e130b', '#140c07'],
   };
   let uid = 0;
+
+  // ---------- nouvelles scènes dessinées à la main ----------
+  const INK = '#2b1e12';
+  function pennant(x, y, s, col) { return `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 0 V-26" stroke="${INK}" stroke-width="1.2"/><path class="flag" d="M0 -26 l14 3 l-14 4 Z" fill="${col}"/></g>`; }
+  function knight(x, y, s, col, dir) { return `<g transform="translate(${x} ${y}) scale(${s * dir} ${s})"><path d="M-14 0 l2 -12 q2 -6 10 -6 l12 -1 l4 -6 l3 2 l-1 6 q1 5 -3 7 l-2 10 M-10 0 v-8 M8 0 v-8" fill="#d7c9b0" stroke="${INK}" stroke-width="1"/><path d="M-12 -12 q2 6 22 4 l-1 4 q-14 2 -22 -2 Z" fill="${col}" opacity=".9"/><path d="M-4 -18 q0 -8 6 -9 q5 1 5 8 l-1 2 Z" fill="${col}" stroke="${INK}" stroke-width=".8"/><rect x="-1" y="-34" width="6" height="7" rx="2" fill="#b9c2c9" stroke="${INK}" stroke-width=".7"/><path d="M-4 -24 L34 -30" stroke="#7a5a30" stroke-width="2"/></g>`; }
+  function tournoi(W, H, r, o) {
+    let s = `<rect y="${H * 0.82}" width="${W}" height="${H * 0.18}" fill="#c9b47a"/>`;
+    s += `<path d="M20 ${H * 0.86} H${W - 20}" stroke="#7a5a30" stroke-width="3"/>` + Array.from({ length: 18 }, (_, i) => `<path d="M${20 + i * 19} ${H * 0.86} v-10" stroke="#5a4024" stroke-width="1.6"/>`).join('');
+    s += `<path d="M20 ${H * 0.79} H${W - 20}" stroke="#8a6a40" stroke-width="2"/>`;
+    [[40, o.flag || '#1d4b97'], [W - 40, o.foe || '#7a1e12']].forEach(([x, c]) => { s += `<g transform="translate(${x} ${H * 0.74})"><path d="M-16 0 L0 -26 L16 0 Z" fill="#efe6cf" stroke="${INK}" stroke-width=".8"/><path d="M-8 0 L0 -26 L8 0" fill="${c}"/><path d="M0 -26 v-8" stroke="${INK}"/><path class="flag" d="M0 -34 l8 2 l-8 3 Z" fill="${c}"/></g>`; });
+    s += `<rect x="120" y="${H * 0.46}" width="120" height="${H * 0.18}" fill="#7a3a2a" stroke="${INK}" stroke-width=".8"/><path d="M114 ${H * 0.46} H246 L240 ${H * 0.38} H120 Z" fill="${o.flag || '#1d4b97'}"/>` + Array.from({ length: 6 }, (_, i) => `<path d="M${120 + i * 24} ${H * 0.46} l12 6 l12 -6" fill="#f2ede2" opacity=".9"/>`).join('') + Array.from({ length: 9 }, (_, i) => `<circle cx="${128 + i * 13}" cy="${H * 0.6}" r="3.4" fill="${['#e8c9a6', '#d9b48c', '#c9a07a'][i % 3]}"/>`).join('');
+    s += knight(130, H * 0.8, 1.2, o.flag || '#1d4b97', 1) + knight(232, H * 0.8, 1.2, o.foe || '#7a1e12', -1);
+    s += [70, 110, 250, 290].map((x, i) => pennant(x, H * 0.79, 0.8, i % 2 ? '#e0b04a' : (o.flag || '#1d4b97'))).join('');
+    return s;
+  }
+  function chantier(W, H, r) {
+    let s = cathedral(150, H * 0.86, 0.95, '#6b5a4a', false);
+    s += `<g stroke="#8a6a40" stroke-width="1.4"><path d="M196 ${H * 0.86} V${H * 0.28} M226 ${H * 0.86} V${H * 0.28} M190 ${H * 0.7} H232 M190 ${H * 0.54} H232 M190 ${H * 0.38} H232"/><path d="M196 ${H * 0.7} L226 ${H * 0.54} M226 ${H * 0.7} L196 ${H * 0.54} M196 ${H * 0.54} L226 ${H * 0.38}" stroke-width=".9"/></g>`;
+    s += `<rect x="198" y="${H * 0.5}" width="26" height="${H * 0.36}" fill="#b8a888" opacity=".75"/>`;
+    s += `<g transform="translate(280 ${H * 0.86})"><path d="M0 0 L10 -60 L20 0" fill="none" stroke="#5a4024" stroke-width="2.2"/><path d="M10 -60 L-40 -78" stroke="#5a4024" stroke-width="2"/><path d="M-36 -77 v26" stroke="${INK}" stroke-width=".8"/><rect x="-42" y="-52" width="12" height="9" fill="#b8a888" stroke="${INK}" stroke-width=".6"/><circle cx="10" cy="-14" r="13" fill="none" stroke="#5a4024" stroke-width="2"/><path d="M-3 -14 h26 M10 -27 v26 M1 -23 l18 18 M19 -23 l-18 18" stroke="#5a4024" stroke-width=".8"/></g>`;
+    for (let i = 0; i < 6; i++) { const x = 40 + r() * 100; s += `<g transform="translate(${x.toFixed(0)} ${H * 0.9})"><circle cy="-12" r="2.4" fill="#d9b48c"/><path d="M-3 0 l1 -9 h4 l1 9" fill="#6b5a3a"/></g>`; }
+    s += `<rect x="60" y="${H * 0.86}" width="40" height="8" fill="#b8a888" stroke="${INK}" stroke-width=".5"/><rect x="66" y="${H * 0.82}" width="22" height="7" fill="#c9b99a" stroke="${INK}" stroke-width=".5"/>`;
+    return s;
+  }
+  function foire(W, H, r, o) {
+    let s = `<rect y="${H * 0.84}" width="${W}" height="${H * 0.16}" fill="#b89a6a"/>`;
+    s += house(40, H * 0.82, 1.4, '#efe2c6', '#a8743c') + house(330, H * 0.82, 1.3, '#efe2c6', '#8c3a2c') + cathedral(300, H * 0.8, 0.5, '#6b5a4a', false);
+    const cols = ['#c43d2a', '#2c4f8a', '#d6a62e', '#3f7a4a', '#7a3a6a'];
+    [[80, 0], [150, 1], [220, 2], [270, 3]].forEach(([x, k]) => { const c = cols[k]; s += `<g transform="translate(${x} ${H * 0.88})"><rect x="-26" y="-18" width="52" height="18" fill="#a07a4a" stroke="${INK}" stroke-width=".7"/><path d="M-30 -18 L-24 -34 H24 L30 -18 Z" fill="${c}" stroke="${INK}" stroke-width=".7"/>${[-20, -8, 4, 16].map(dx => `<path d="M${dx} -34 v16 h-6 v-16 Z" fill="#f2ede2" opacity=".85"/>`).join('')}<path d="M-30 -18 q5 4 10 0 q5 4 10 0 q5 4 10 0 q5 4 10 0 q5 4 10 0 q5 4 10 0" fill="${c}"/>${Array.from({ length: 4 }, (_, i) => `<circle cx="${-18 + i * 12}" cy="-21" r="2.6" fill="${['#e0b04a', '#c43d2a', '#7a9a3a', '#e8dcc0'][(i + k) % 4]}"/>`).join('')}</g>`; });
+    for (let i = 0; i < 14; i++) { const x = 20 + r() * (W - 40), y = H * (0.92 + r() * 0.06), c = cols[Math.floor(r() * 5)]; s += `<g transform="translate(${x.toFixed(0)} ${y.toFixed(0)})"><circle cy="-13" r="2.6" fill="#d9b48c"/><path d="M-3.4 0 l1 -10 h4.8 l1 10 Z" fill="${c}"/></g>`; }
+    s += pennant(150, H * 0.62, 0.9, o.flag || '#1d4b97');
+    return s;
+  }
+  function noces(W, H, r, o) {
+    let s = `<rect y="${H * 0.86}" width="${W}" height="${H * 0.14}" fill="#c9b47a"/>`;
+    s += `<g transform="translate(180 ${H * 0.86})"><rect x="-60" y="-70" width="120" height="70" fill="#e8dcc0" stroke="${INK}" stroke-width=".8"/><path d="M-66 -70 L0 -100 L66 -70 Z" fill="#7a6a5a" stroke="${INK}" stroke-width=".8"/><path d="M-26 0 V-38 Q-26 -60 0 -62 Q26 -60 26 -38 V0 Z" fill="#3b2a18"/><path d="M-20 0 V-36 Q-20 -54 0 -56 Q20 -54 20 -36 V0" fill="none" stroke="#c9a24a" stroke-width="1.2"/><circle cy="-80" r="9" fill="#2c4f8a" stroke="${INK}" stroke-width=".7"/><path d="M0 -89 v18 M-9 -80 h18 M-6 -86 l12 12 M6 -86 l-12 12" stroke="#e8c15a" stroke-width=".6"/></g>`;
+    s += `<g transform="translate(168 ${H * 0.86})"><circle cy="-30" r="4.4" fill="#e8c9a6"/><path d="M-6 0 l2 -24 h8 l2 24 Z" fill="${o.flag || '#1d4b97'}"/><path d="M-3 -34 l3 -3 l3 3" fill="#e0b04a"/></g>`;
+    s += `<g transform="translate(192 ${H * 0.86})"><circle cy="-29" r="4.2" fill="#ecd2b4"/><path d="M-9 0 q2 -14 4 -24 h10 q2 10 4 24 Z" fill="#f2ede2"/><path d="M-5 -32 q5 -6 10 0 l1 12 q-6 -6 -12 0 Z" fill="#f6f2ea" opacity=".85"/></g>`;
+    for (let i = 0; i < 26; i++) s += `<circle class="petal" style="animation-delay:${(-r() * 6).toFixed(1)}s" cx="${(60 + r() * 240).toFixed(0)}" cy="${(r() * H * 0.7).toFixed(0)}" r="${(1 + r() * 1.4).toFixed(1)}" fill="${['#e88a9a', '#f6e2a8', '#ffffff'][i % 3]}"/>`;
+    [[40, 1], [70, .9], [290, 1], [320, .9]].forEach(([x, sc]) => s += tree(x, H * 0.9, sc * 1.2, '#4f6a3a'));
+    return s;
+  }
+  function couronnement(W, H, o, id) {
+    let s = `<rect width="${W}" height="${H}" fill="#2a1a10"/><rect y="${H - 30}" width="${W}" height="30" fill="#3b2617"/>`;
+    s += `<radialGradient id="${id}cr" cx=".5" cy=".35" r=".55"><stop offset="0" stop-color="#ffe7a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffe7a0" stop-opacity="0"/></radialGradient><rect width="${W}" height="${H}" fill="url(#${id}cr)"/>`;
+    for (let i = 0; i < 9; i++) s += `<path d="M180 ${H * 0.2} L${60 + i * 30} -10" stroke="#ffe7a0" stroke-width="${i % 2 ? 1 : 2}" opacity=".18"/>`;
+    s += `<path d="M150 ${H - 30} V${H * 0.42} q30 -26 60 0 V${H - 30} Z" fill="#6b1e14"/><path d="M160 ${H - 30} V${H * 0.5} h40 V${H - 30} Z" fill="${o.flag || '#1d4b97'}"/>`;
+    s += `<g transform="translate(180 ${H * 0.28})"><path d="M-16 8 L-18 -6 L-8 1 L0 -10 L8 1 L18 -6 L16 8 Z" fill="#e0b04a" stroke="#7a5512" stroke-width=".8"/><circle cy="4" r="2" fill="#b3261e"/><circle cx="-10" cy="5" r="1.4" fill="#1d4b97"/><circle cx="10" cy="5" r="1.4" fill="#1d4b97"/></g>`;
+    [[40, 0], [320, 1]].forEach(([x]) => { s += `<path d="M${x - 10} ${H - 30} V20 h20 V${H - 30} Z" fill="#4a2e1c"/><path d="M${x} 20 v-6" stroke="#d6a62e" stroke-width="2"/>`; });
+    [80, 110, 250, 280].forEach(x => s += candle(x, H - 48));
+    for (let i = 0; i < 10; i++) s += `<circle cx="${70 + i * 24}" cy="${H - 18}" r="5" fill="#1a1008"/><path d="M${64 + i * 24} ${H} q6 -14 12 0" fill="#1a1008"/>`;
+    return s;
+  }
+  function siege(W, H, r, o) {
+    let s = `<g transform="translate(240 ${H * 0.86})"><rect x="-70" y="-50" width="140" height="50" fill="#a89a80" stroke="${INK}" stroke-width=".8"/>${Array.from({ length: 12 }, (_, i) => `<rect x="${-70 + i * 12}" y="-56" width="7" height="7" fill="#a89a80" stroke="${INK}" stroke-width=".6"/>`).join('')}<rect x="-20" y="-82" width="30" height="82" fill="#9a8c72" stroke="${INK}" stroke-width=".8"/><path d="M-24 -82 L-5 -100 L14 -82 Z" fill="#6b3a2a"/><path d="M-5 -100 v-10" stroke="${INK}"/><path class="flag" d="M-5 -110 l12 3 l-12 4 Z" fill="${o.foe || '#7a1e12'}"/><path d="M-12 0 v-16 q7 -10 14 0 v16" fill="#3b2a18"/><path d="M40 -50 l10 18 l-8 4 Z" fill="#6b6050" opacity=".7"/></g>`;
+    s += `<g transform="translate(80 ${H * 0.88})"><path d="M-22 0 L0 -40 L22 0" fill="none" stroke="#5a4024" stroke-width="2.4"/><path d="M-26 0 H26" stroke="#5a4024" stroke-width="3"/><path d="M0 -36 L40 -70" stroke="#6b4a2a" stroke-width="2.2"/><path d="M0 -36 L-14 -26" stroke="#6b4a2a" stroke-width="2.2"/><rect x="-22" y="-30" width="12" height="10" fill="#4a3a2a"/><path d="M40 -70 q4 8 0 16" fill="none" stroke="${INK}" stroke-width=".8"/><circle cx="40" cy="-52" r="3" fill="#7a7a72"/></g>`;
+    s += `<path d="M122 ${H * 0.4} q40 -30 80 -6" fill="none" stroke="#fff" stroke-width=".8" stroke-dasharray="2 3" opacity=".6"/><circle cx="204" cy="${H * 0.36}" r="3" fill="#5a5a52"/>`;
+    s += tent(30, H * 0.9, 0.9, '#e8dcc0', o.flag || '#1d4b97') + tent(140, H * 0.92, 0.8, '#e8dcc0', o.flag || '#1d4b97');
+    for (let i = 0; i < 4; i++) s += `<path d="M${200 + r() * 90} ${H * 0.6} q${-4 + r() * 8} -14 ${-2 + r() * 4} -26" stroke="#d9d4c8" stroke-width="${3 + r() * 3}" opacity=".35" fill="none"/>`;
+    return s;
+  }
+  function port(W, H, r, o) {
+    let s = `<rect y="${H * 0.66}" width="${W}" height="${H * 0.34}" fill="#4a7488"/>`;
+    for (let i = 0; i < 14; i++) { const x = r() * W, y = H * 0.7 + r() * H * 0.25; s += `<path class="wave" d="M${x.toFixed(0)} ${y.toFixed(0)} q5 -3 10 0 q5 3 10 0" stroke="#cfe3ea" stroke-width="1" fill="none" opacity=".6"/>`; }
+    s += `<rect x="0" y="${H * 0.62}" width="170" height="${H * 0.1}" fill="#8a7a5a" stroke="${INK}" stroke-width=".6"/>` + Array.from({ length: 9 }, (_, i) => `<path d="M${8 + i * 19} ${H * 0.72} v${H * 0.12}" stroke="#5a4024" stroke-width="2"/>`).join('');
+    s += house(30, H * 0.62, 1.5, '#e8dcc0', '#8c3a2c') + house(70, H * 0.62, 1.3, '#efe2c6', '#a8743c') + house(108, H * 0.62, 1.6, '#e8dcc0', '#6b5a4a');
+    s += `<g transform="translate(150 ${H * 0.62})"><rect x="-4" y="-36" width="8" height="36" fill="#e8dcc0" stroke="${INK}" stroke-width=".7"/><path d="M-6 -36 l6 -8 l6 8 Z" fill="#8c3a2c"/><circle cy="-30" r="2.6" fill="#ffd77a"/></g>`;
+    s += [[130, H * 0.62, 6], [150, H * 0.62, 5]].map(([x, y, n]) => Array.from({ length: n }, (_, i) => `<rect x="${x - 40 + i * 7}" y="${y - 6}" width="6" height="6" fill="#a07a4a" stroke="${INK}" stroke-width=".4"/>`).join('')).join('');
+    s += shipSil(230, H * 0.8, 1.2, '#2b1e12', '#efe6cf', o.flag || '#a8321f') + shipSil(320, H * 0.74, 0.7, '#2b3a48', '#c8c4b4', '#7a1e12');
+    for (let i = 0; i < 3; i++) s += `<path d="M${200 + i * 40} ${30 + i * 8} q4 -3 8 0 q4 -3 8 0" stroke="${INK}" fill="none" stroke-width="1"/>`;
+    return s;
+  }
   function ridge(r, W, H, base, amp, freq) {
     const ph = r() * 9, ph2 = r() * 9; let d = `M0 ${H}`;
     for (let x = 0; x <= W; x += 6) { const y = base + Math.sin(x * freq + ph) * amp + Math.sin(x * freq * 2.7 + ph2) * amp * 0.35; d += ` L${x} ${y.toFixed(1)}`; }
@@ -756,13 +828,15 @@ const SCENE = (() => {
   function svg(kind, opts) {
     opts = opts || {};
     const W = 360, H = opts.h || 150, id = 'sc' + (++uid), r = rng(opts.seed || kind.length * 97 + 13);
-    const skyKey = { chateau: 'dusk', eglise: 'dawn', village: 'day', bataille: 'gold', cour: 'inside', mer: 'day', nuit: 'night', peste: 'grey' }[kind] || 'dusk';
+    const skyKey = { chateau: 'dusk', eglise: 'dawn', village: 'day', bataille: 'gold', cour: 'inside', mer: 'day', nuit: 'night', peste: 'grey', tournoi: 'day', chantier: 'dawn', foire: 'day', noces: 'gold', couronnement: 'inside', siege: 'dusk', port: 'dawn' }[kind] || 'dusk';
     const sk = SKY[skyKey];
     let s = `<defs><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sk[3]}"/><stop offset=".55" stop-color="${sk[2]}"/><stop offset=".85" stop-color="${sk[1]}"/><stop offset="1" stop-color="${sk[0]}"/></linearGradient>
       <radialGradient id="${id}g" cx=".72" cy=".62" r=".5"><stop offset="0" stop-color="#fff2c4" stop-opacity=".85"/><stop offset="1" stop-color="#fff2c4" stop-opacity="0"/></radialGradient>
       <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient></defs>`;
     s += `<rect width="${W}" height="${H}" fill="url(#${id}s)"/>`;
-    if (kind === 'cour') {
+    if (kind === 'couronnement') {
+      s += couronnement(W, H, opts, id);
+    } else if (kind === 'cour') {
       s += `<rect width="${W}" height="${H}" fill="#2a1a10"/>`;
       s += `<rect x="0" y="${H - 34}" width="${W}" height="34" fill="#3b2617"/>`;
       for (let x = -20; x < W; x += 30) s += `<path d="M${x} ${H - 34} L${x + 30} ${H}" stroke="#4a3220" stroke-width="1"/>`;
@@ -810,14 +884,22 @@ const SCENE = (() => {
           s += banner(132, H * 0.92, 1, opts.flag || '#1d4b97', '#f2ede2') + banner(232, H * 0.92, 1, opts.foe || '#7a1e12', '#f2ede2');
           s += `<ellipse cx="180" cy="${H * 0.9}" rx="70" ry="10" fill="#e8c88a" opacity=".45" style="filter:blur(2px)"/>`;
         }
+        if (kind === 'tournoi') s += tournoi(W, H, r, opts);
+        if (kind === 'chantier') s += chantier(W, H, r);
+        if (kind === 'foire') s += foire(W, H, r, opts);
+        if (kind === 'noces') s += noces(W, H, r, opts);
+        if (kind === 'siege') s += siege(W, H, r, opts);
+        if (kind === 'port') s += port(W, H, r, opts);
         if (kind === 'chateau') { [24, 46, 300, 330].forEach(x => s += tree(x, H * 0.92, 1.2, '#2e3a2a')); }
         if (kind === 'eglise') { [40, 70, 300].forEach(x => s += tree(x, H * 0.95, 1.1, '#2e2a3a')); }
       }
       s += `<rect width="${W}" height="${H}" fill="url(#${id}f)"/>`;
     }
+    { let era = 0; try { era = D.eraOf(S); } catch (e) {} if (kind !== 'cour' && kind !== 'couronnement' && kind !== 'nuit') s += era === 1 ? `<rect width="${W}" height="${H}" fill="#ffcf7a" opacity=".14"/>` : era === 2 ? `<rect width="${W}" height="${H}" fill="#4a5260" opacity=".24"/>` : ''; }
     return `<svg viewBox="0 0 ${W} ${H}" class="scene" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${s}</svg>`;
   }
   const OF = { peste: 'peste', peste_noire: 'peste', famine: 'peste', recolte: 'village', revolte: 'village', jacquerie: 'village', brigands: 'village', mine: 'village', marchand: 'mer', foires: 'mer', croisade: 'mer', condottiere: 'bataille', bouvines: 'bataille', albigeois: 'bataille', centans: 'bataille', tournoi: 'bataille', duel: 'bataille', insulte: 'bataille', heritier_ost: 'bataille', eveque: 'eglise', heresie: 'eglise', relique: 'eglise', cathedrale: 'eglise', templiers: 'eglise', universite: 'eglise', complot: 'nuit', complot_familial: 'nuit', astrologue: 'nuit', comete: 'nuit', maladie: 'nuit' };
+  Object.assign(OF, { tournoi: 'tournoi', duel: 'tournoi', rival_defi: 'tournoi', croise_retour: 'tournoi', cathedrale: 'chantier', pont_pierre: 'chantier', universite: 'chantier', foires: 'foire', guilde: 'foire', salaires: 'foire', marchand: 'port', carte_templier: 'port', carte_templier_2: 'port', proposition: 'noces', mesalliance: 'noces', rival_noces: 'noces', voisin_noces: 'noces', amour_secret_2: 'noces', veuve: 'noces', choix_regent: 'couronnement', testament: 'couronnement', usurpation: 'couronnement', cassel: 'siege', centans_2: 'siege', grandes_compagnies: 'siege', baron_felon: 'siege', guerre_voisins: 'siege', voisin_raid: 'village', pastoureaux: 'village', flagellants: 'peste', voeu_croisade: 'eglise', voeu_croisade_2: 'mer', rival_trahison: 'nuit', conseiller_felon: 'nuit' });
   const of = id => OF[id] || 'cour';
   return { svg, of };
 })();
@@ -1288,6 +1370,7 @@ const JOURNAL = [
   ['Chevaliers, archers et piétaille', '0 %', '75 %', 'L\'ost a désormais une composition. Recruter propose trois troupes : la piétaille (bon marché, nombreuse), les archers (forts au siège et sur les murs contre les invasions) et les chevaliers (puissants à l\'assaut et en rase campagne, chers à entretenir). Les tactiques en tiennent compte : un siège avec beaucoup d\'archers ou un assaut mené par des chevaliers gagne plusieurs points de chances. Les lices forment des chevaliers, les mercenaires amènent archers et piétons. Sur 1 000 parties, une ost bien composée gagne 75 % des parties contre 74 % pour une ost de piétons seuls.'],
   ['Portraits et blasons', '0 %', '75 %', 'Les portraits vieillissent davantage (plis, poches sous les yeux, taches de l\'âge) et s\'habillent selon l\'époque de leur jeunesse : maille pour les braves de l\'âge des barons, surcot à bordure à l\'âge des cathédrales, col montant à l\'âge des fléaux. Les traits se voient : croix pectorale et tonsure du pieux, regard cerné du cruel, sourcils inquiets du couard, sourire du charismatique, bouche bée du simplet. Après un mariage d\'alliance, les armes du couple sont parties : moitié de votre blason, moitié de celui de l\'épouse ou de l\'époux, dans la Cour et l\'arbre.'],
   ['Le monde bouge sans vous', '0 %', '77 %', 'Les maisons voisines se font de vraies guerres, qui durent plusieurs années et font changer les terres de main (épées croisées sur la carte, le long du front). On vous demande d\'y prendre parti : soutenir un camp lui donne l\'avantage, arbitrer la paix demande du prestige, profiter de leurs querelles affaiblit leurs garnisons. Avec une maison bienveillante, on peut sceller un traité de commerce (+2 or par tour) ; avec une maison neutre, un pacte de non-agression (moins de menace, plus de pillage) : au plus trois traités, signalés par un sceau sur la carte, et les rompre en l\'attaquant fait de vous un parjure. Épouser quelqu\'un d\'une maison voisine la rapproche de vous, et une maison amie se montre moins exigeante sur votre prestige.'],
+  ['Scènes et lumière', '0 %', '77 %', 'Sept nouvelles scènes dessinées à la main illustrent les événements : le tournoi (lices, tribune, chevaliers lance couchée), le chantier de cathédrale (échafaudages, grue à roue), la foire (étals à auvents, foule), les noces (portail d\'église, pluie de pétales), le couronnement (salle du trône, couronne dans la lumière), le siège (remparts, trébuchet, fumées) et le port (quai, entrepôts, phare, cogues). Toute une trentaine d\'événements y gagnent une image qui leur ressemble. La lumière change avec l\'âge : dorée à l\'âge des cathédrales, plombée à l\'âge des fléaux.'],
 ];
 function viewLabo() {
   const C = { victoire: '#2f6b55', extinction: '#6b3a78', revolte: '#a8321f', conquete: '#b98a2e', timeout: '#888' };
@@ -1515,14 +1598,14 @@ function mapToasts(list) {
 function showEra(q) {
   SND.play('era');
   const E = D.ERAS[q.era], unlock = q.era === 1 ? 'Nouvelle décision : le pèlerinage.' : q.era === 2 ? 'Nouvelle décision : engager des mercenaires.' : '';
-  sheet(`${scn(['chateau', 'eglise', 'peste'][q.era], null, false, 130)}<div class="eraorn" style="margin-top:-34px;position:relative">${A.shieldSVG(S.house, 50)}</div><div class="sc center" style="color:var(--ink2)">${ROMAN(E.from)} – ${ROMAN(E.from + 50)}</div>
+  sheet(`<div class="erasc">${scn(['tournoi', 'chantier', 'siege'][q.era], null, false, 160)}<div class="erabar">${['Barons', 'Cathédrales', 'Fléaux'].map((n, i) => `<span class="${i === q.era ? 'on' : i < q.era ? 'past' : ''}">${n}</span>`).join('')}</div></div><div class="eraorn" style="margin-top:-34px;position:relative">${A.shieldSVG(S.house, 50)}</div><div class="sc center" style="color:var(--ink2)">${ROMAN(E.from)} – ${ROMAN(E.from + 50)}</div>
    <h2 class="frak" style="font-size:36px;color:var(--lapis)">${E.name}</h2><p class="story">${esc(E.desc)}</p>${unlock ? `<p class="center"><b>${unlock}</b></p>` : ''}
    <p class="center" style="margin:14px 0 0"><button class="btn" onclick="nextQ()">Entrer dans cet âge</button></p>`, false, 'era');
 }
 function showSucc(q) {
   SND.play('toll'); SND.play('crown');
   const old = S.people[q.old], nu = S.people[q.nu], a = S.amb && S.rulerId === nu.id ? D.AMBITIONS[S.amb.k] : null;
-  sheet(`${scn('chateau', null, false, 90, { seed: 3 })}<h2 class="frak" style="font-size:30px">${old.sex === 'M' ? 'Le roi est mort' : 'La reine est morte'}…</h2>
+  sheet(`${scn('couronnement', null, false, 90, { seed: 3 })}<h2 class="frak" style="font-size:30px">${old.sex === 'M' ? 'Le roi est mort' : 'La reine est morte'}…</h2>
    <div class="succ"><div class="old"><span class="niche">${portrait(old, 92)}</span><b>${esc(FN(old))}</b><small>${old.ruledFrom} – ${old.died}<br>${esc(old.cause)}</small></div>
    <div class="arrow frak">⁂</div>
    <div class="new"><span class="halo"></span><span class="niche">${portrait(nu, 92)}</span><b>${esc(nu.title)}</b><small>${ANS(D.age(S, nu))}</small></div></div>

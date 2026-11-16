@@ -11,6 +11,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | `sauvegarde-en-ligne.js` | grosses sauvegardes gzip découpées + reprise sur un autre appareil (Wall Street). |
 | `compare.py` | comparaison d'images référence / nouvelle version, tolérante aux petits décalages ; colonne informative « détail fin » (taille réelle, ±1 px) qui voit les changements de texte/pictogrammes que la vue réduite ignore (16/11) ; `--json fichier` et `--strict` (code 1 si alerte ou image manquante) pour l'automatisation (16/11). |
 | `horloge.js` | temps virtuel + `Math.random` à graine injectés avant le jeu : captures reproductibles au pixel (caméras qui oscillent, particules au hasard). Une ligne dans un script Playwright : `await pg.add_init_script(path='outils-communs/horloge.js')` puis `pg.evaluate('__horloge.avancer(16,162)')` avant la capture. Cage & Gloire : écart entre deux séries 18-51 % → 0-4 % des pixels (16/11). |
+| `sonde.py` + `sonde.js` | robots : **`cliquer(pg,'texte')`** attend un bouton visible, actif, non recouvert (erreur qui liste les boutons visibles) ; **`debordements(pg)`** trouve les contenus coupés dans les blocs qui défilent, `overflow:hidden` et bords d'écran, pas seulement la largeur de page. Sync et async. |
 | `phget.py` | textures et modèles Poly Haven (CC0), avec l'en-tête nécessaire. |
 | `tests/verifier_outils.py` | contrôle de non-régression des outils communs |
 | `planche_modeles.py` + `.html` | planche-contact de modèles 3D (taille, triangles). |
@@ -22,7 +23,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | **Fluidité 2D / Canvas** | `trone-de-braise/outils/perf.py` (bâti sur `atelier.py`, CPU ×4, `FIGE=0`) | `sedes-petri`, `couronnes-et-complots` (SVG) |
 | **Captures de vues fixes** | `valdragon/outils/mesure/studio.py` + `captures.py` (avec `lisibilite.json`) | `couronnes-et-lignees/outils/mesure/captures.py` (jeu DOM/SVG), `bannieres/outils/capt.py` |
 | **Robot qui joue au doigt (3D)** | `valdragon/outils/tests/explore.py` + `agent2.js` (vrai joystick, toutes les cases) | `trone-de-braise/outils/parcours.py` |
-| **Robot qui joue au doigt (DOM/SVG)** | `couronnes-et-lignees/outils/tests/explore.py` (générique, relève blocages et couverture) | `bannieres/outils/parcours.py`, `cage-et-gloire/outils/parcours.py` |
+| **Robot qui joue au doigt (DOM/SVG)** | `couronnes-et-lignees/outils/tests/explore.py` (générique, relève blocages et couverture) ; clics et débordements : `outils-communs/sonde.py` | `bannieres/outils/parcours.py`, `cage-et-gloire/outils/parcours.py` |
 | **Clics au hasard** | `bannieres/outils/monkey.py` (ordinateur + téléphone, graine) | `cage-et-gloire`, `sedes-petri` |
 | **Redondance du contenu** (événements, illustrations, textes et chronique qui reviennent trop souvent) | `sedes-petri/outils/redondance.js` (parties complètes par robots ; fréquence par événement, écart moyen, part de l'illustration la plus vue, textes revus mot pour mot en moins de 20 ans, lignes de chronique répétées) | à adapter à tout jeu à événements textuels (Couronnes & Lignées, Une vie, Président de Club) |
 | **Parties automatiques dans Chrome** | `wallstreet/outils/gsim.py` | |

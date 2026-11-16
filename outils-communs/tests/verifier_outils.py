@@ -73,7 +73,7 @@ def _():
 def _():
     spec = importlib.util.spec_from_file_location('atelier', os.path.join(OC, 'atelier.py'))
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-    for f in ('serveur', 'navigateur', 'page', 'mesurer', 'capturer', 'figer_page', 'avancer', 'attendre'):
+    for f in ('serveur', 'navigateur', 'page', 'mesurer', 'capturer', 'figer_page', 'avancer', 'attendre', 'cliquer', 'debordements'):
         if not hasattr(m, f):
             raise RuntimeError('fonction manquante : ' + f)
 
@@ -157,6 +157,62 @@ asyncio.run(m())
         raise RuntimeError('pas de mesure : ' + out[-200:])
 
 
+SONDE_JEU = """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><body style="margin:0;overflow-x:hidden;font:14px sans-serif">
+<aside id=aside style="overflow:auto;max-height:200px"><div id=fiche style="min-width:480px">Fiche trop large</div></aside>
+<div class=tw style="overflow-x:auto"><table style="width:900px"><tr><td>tableau large voulu</td></tr></table></div>
+<div class=tabs style="display:flex;overflow-x:auto">""" + ''.join(f'<button style="flex:none;width:90px">Onglet {i}</button>' for i in range(8)) + """</div>
+<div id=tape style="overflow:hidden;white-space:nowrap"><span style="display:inline-block;animation:d 9s linear infinite">""" + 'AAPL 215 +1 % ' * 400 + """</span></div>
+<style>@keyframes d{to{transform:translateX(-50%)}}</style>
+<div id=nom style="width:120px;overflow:hidden;white-space:nowrap">Un nom beaucoup trop long pour sa case</div>
+<div id=coupe-ok style="width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Un nom tronqué avec des points</div>
+<div id=pied style="position:relative;left:300px;width:200px">Bouton à moitié hors écran</div>
+<nav id=tiroir style="position:fixed;top:0;left:100%;width:250px">Menu fermé</nav>
+<div id=case style="width:80px;overflow:hidden;white-space:nowrap">Monseigneur Bartholomé de Montfort-l'Amaury, comte palatin</div>
+<div class=card style="width:200px;overflow:hidden;position:relative">Carte<i style="position:absolute;left:150px;width:120px;height:8px;background:gold"></i></div>
+<svg width=120 height=40><g onclick="window.svg=1"><rect width=120 height=40 fill=#357 /><text x=10 y=25>Jouer sur la carte</text></g></svg>
+<button id=pd>Pointeur</button><script>pd.addEventListener('pointerdown',()=>window.pdown=1)</script>
+<button id=cache onclick="window.cache=1">Sous le voile</button><div id=voile style="position:fixed;inset:0;background:#0003"></div>
+<script>setTimeout(()=>{const b=document.createElement('button');b.textContent='Naître';b.onclick=()=>window.ne=(window.ne||0)+1;document.body.prepend(b)},700);
+setTimeout(()=>document.getElementById('voile').remove(),1500)</script>"""
+
+
+@controle('sonde : débordements (bloc, coupé, bord vus ; tableau, onglets, bandeau, tiroir, « … » ignorés) et cliquer robuste (sync, async, figé)')
+def _():
+    code = r"""
+import asyncio,sys,os,tempfile,re,time
+sys.path.insert(0,sys.argv[1])
+from sonde import cliquer,debordements,SONDE
+from atelier import serveur,navigateur,page
+from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
+d=tempfile.mkdtemp();open(os.path.join(d,'index.html'),'w',encoding='utf-8').write(sys.argv[2]);u='file://'+os.path.join(d,'index.html')
+with sync_playwright() as p:
+    b=p.chromium.launch();pg=b.new_page(viewport={'width':360,'height':780})
+    pg.goto(u);pg.wait_for_timeout(300)
+    deb=debordements(pg);print('DEB',sorted((x['genre'],x['sel'].split('>')[-1]) for x in deb))
+    print('IGN',len(debordements(pg,ignorer=['#aside','#nom','#pied','#case'])))
+    try:cliquer(pg,'Introuvable',delai=0.5);print('ABSENT non')
+    except TimeoutError as e:print('ABSENT',('Onglet 3' in str(e)))
+    print('CLIC',cliquer(pg,'naître'),pg.evaluate('window.ne'))
+    print('VOILE',cliquer(pg,re.compile('^Sous le'),delai=5),pg.evaluate('window.cache'))
+    print('SVG',cliquer(pg,'Jouer sur la carte',sel='g'),pg.evaluate('window.svg'))
+    print('SOURIS',cliquer(pg,'Pointeur',souris=True),pg.evaluate('window.pdown'))
+    b.close()
+async def m():
+    async with async_playwright() as p:
+        nav=await navigateur(p);pg=await page(nav,u,figer=3)
+        t0=time.time();await cliquer(pg,'Naître',delai=20);tv=(await pg.evaluate('__horloge.avancer(0,16)'))['t']
+        print('FIGE',await pg.evaluate('window.ne'),len(await debordements(pg)),'VIRTUEL',tv<=(time.time()-t0)*1000*0.2+100,round(tv))
+        await nav.close()
+asyncio.run(m())
+"""
+    out = run(sys.executable, '-c', code, OC, SONDE_JEU, timeout=90)
+    att = ["DEB [('bloc', 'aside#aside'), ('bord', 'div#pied'), ('coupe', 'div#case'), ('coupe', 'div#nom')]", 'IGN 0', 'ABSENT True', 'CLIC True 1', 'VOILE True 1', 'SVG True 1', 'SOURIS True 1', 'FIGE 1 4 VIRTUEL True']
+    manque = [a for a in att if a not in out]
+    if manque:
+        raise RuntimeError('attendu ' + ' / '.join(manque) + ' ; obtenu : ' + out[-400:])
+
+
 @controle('bureau.py : état, json, page')
 def _():
     run(sys.executable, 'bureau/outils/bureau.py')
@@ -164,6 +220,24 @@ def _():
     if len(e['jeux']) < 5:
         raise RuntimeError('trop peu de jeux détectés')
     run(sys.executable, 'bureau/outils/bureau.py', 'page')
+
+
+@controle('bureau.py chronos : regroupement des étapes « x (1) »/« x (2) », total, échecs, fenêtre de jours')
+def _():
+    spec = importlib.util.spec_from_file_location('bureau_t', os.path.join(RAC, 'bureau', 'outils', 'bureau.py'))
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, 'retours-outils')); m.B = d
+        maint = m.maintenant()
+        lignes = [{'quand': maint, 'jeu': 'a', 'etape': 'studio (1)', 'secondes': 20, 'code': 0},
+                  {'quand': maint, 'jeu': 'a', 'etape': 'studio (2)', 'secondes': 30, 'code': 1},
+                  {'quand': maint, 'jeu': 'b', 'etape': 'verifier (10 contrôles)', 'secondes': 5, 'code': 0},
+                  {'quand': '2000-01-01 00:00', 'jeu': 'a', 'etape': 'studio', 'secondes': 999, 'code': 0}]
+        open(os.path.join(d, 'retours-outils', 'chronos.jsonl'), 'w').write('\n'.join(json.dumps(x) for x in lignes) + '\nligne cassée\n')
+        r = m.lire_chronos(7)
+        if [(x['jeu'], x['etape'], x['fois'], x['total'], x['echecs']) for x in r] != [('a', 'studio', 2, 50.0, 1), ('b', 'verifier', 1, 5.0, 0)]:
+            raise RuntimeError('regroupement inattendu : ' + json.dumps(r)[:300])
+    run(sys.executable, 'bureau/outils/bureau.py', 'chronos')
 
 
 if '--reseau' in sys.argv:

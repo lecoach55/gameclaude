@@ -41,3 +41,7 @@ async def attendre(pg,condition,images_par_pas=5,pas=1000/60,delai=60):
     while not await pg.evaluate(f"()=>!!({condition})"):
         if time.time()-t0>delai:raise TimeoutError('attendre : condition jamais vraie : '+condition)
         await avancer(pg,images_par_pas,pas)
+# Clics robustes et contenus coupés (sonde.py) : await cliquer(pg,'Jouer'), await debordements(pg)
+import sys as _sys
+if os.path.dirname(os.path.abspath(__file__)) not in _sys.path:_sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
+from sonde import cliquer, debordements, boutons, resume  # noqa: E402

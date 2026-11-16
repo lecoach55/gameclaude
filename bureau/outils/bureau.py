@@ -8,6 +8,7 @@ Usage (depuis la racine du dépôt) :
   python3 bureau/outils/bureau.py page            fabrique bureau/build/index.html (page « Bureau » à publier)
   python3 bureau/outils/bureau.py outil JEU "outil : ce qui a gêné ou manqué"   retour pour l'équipe Outils
   python3 bureau/outils/bureau.py chrono JEU "nom de l'étape" -- commande …     lance une commande et note sa durée
+  python3 bureau/outils/bureau.py chronos [jours=7]   étapes les plus coûteuses (temps total, fréquence, échecs)
 
 JEU = nom du dossier (bannieres, valdragon, …) ou « commun » pour outils-communs / bureau.
 Rien n'est poussé automatiquement : faire le commit et le push ensuite (voir bureau/README.md).
@@ -288,6 +289,49 @@ def chrono(jeu, etape, cmd):
     sys.exit(r.returncode)
 
 
+def lire_chronos(jours=7):
+    """Regroupe chronos.jsonl par (jeu, étape) sur les `jours` derniers jours ; « studio (1) », « studio (2) » et « verifier (10 contrôles) » se regroupent par nom."""
+    p = os.path.join(B, 'retours-outils', 'chronos.jsonl')
+    if not os.path.exists(p):
+        return []
+    lim = (datetime.datetime.now(PARIS) - datetime.timedelta(days=jours)).strftime('%Y-%m-%d %H:%M')
+    g = {}
+    for l in open(p, encoding='utf-8'):
+        try:
+            c = json.loads(l)
+        except ValueError:
+            continue
+        if c.get('quand', '') < lim:
+            continue
+        et = re.sub(r'\s*\(\d+[^)]*\)$', '', c.get('etape', '?')).strip()
+        k = (c.get('jeu', '?'), et)
+        x = g.setdefault(k, {'jeu': k[0], 'etape': et, 'fois': 0, 'total': 0.0, 'max': 0.0, 'echecs': 0, 'dernier': ''})
+        s_ = float(c.get('secondes') or 0)
+        x['fois'] += 1; x['total'] += s_; x['max'] = max(x['max'], s_); x['echecs'] += 1 if c.get('code') else 0
+        x['dernier'] = max(x['dernier'], c.get('quand', ''))
+    out = sorted(g.values(), key=lambda x: -x['total'])
+    for x in out:
+        x['moyenne'] = round(x['total'] / x['fois'], 1); x['total'] = round(x['total'], 1)
+    return out
+
+
+def afficher_chronos(jours=7):
+    l = lire_chronos(jours)
+    if not l:
+        print('Aucun chrono noté (bureau.py chrono JEU "étape" -- commande).'); return
+    tot = sum(x['total'] for x in l)
+    print(f"Étapes chronométrées sur {jours} j : {sum(x['fois'] for x in l)} lancements, {tot / 60:.1f} min en tout\n")
+    print(f"{'jeu':<22}{'étape':<38}{'fois':>5}{'total':>9}{'moy.':>8}{'max':>8}  échecs")
+    for x in l[:25]:
+        print(f"{x['jeu'][:21]:<22}{x['etape'][:37]:<38}{x['fois']:>5}{x['total']:>8.0f}s{x['moyenne']:>7.0f}s{x['max']:>7.0f}s  {x['echecs'] or ''}")
+    lent = [x for x in l if x['moyenne'] >= 60]
+    if lent:
+        print('\nÀ accélérer en priorité (≥ 1 min par lancement) : ' + ', '.join(f"{x['jeu']}/{x['etape']}" for x in lent[:6]))
+    ech = [x for x in l if x['echecs']]
+    if ech:
+        print('Échecs : ' + ', '.join(f"{x['jeu']}/{x['etape']} ({x['echecs']}/{x['fois']})" for x in ech[:6]))
+
+
 def lire_retours(n=30):
     out = []
     for p in sorted(glob.glob(os.path.join(B, 'retours-outils', '*.md'))):
@@ -323,6 +367,8 @@ if __name__ == '__main__':
         retour_outil(a[1], ' '.join(a[2:]))
     elif cmd == 'chrono' and '--' in a and len(a) >= 5:
         i = a.index('--'); chrono(a[1], ' '.join(a[2:i]), a[i + 1:])
+    elif cmd == 'chronos':
+        afficher_chronos(int(a[1]) if len(a) > 1 and a[1].isdigit() else 7)
     elif cmd == 'page':
         page(etat())
     elif cmd == 'json':

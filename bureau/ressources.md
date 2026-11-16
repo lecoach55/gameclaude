@@ -18,7 +18,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 ## Par besoin
 | Besoin | Référence | Autres versions utiles |
 |---|---|---|
-| **Fluidité 3D** (ms/image, appels, triangles, shaders) | `valdragon/outils/mesure/perf.py` + `bprof.py` (coût par catégorie d'objets) | `cage-et-gloire/outils/perf.py`, `bannieres/outils/perf.py` |
+| **Fluidité 3D** (ms/image, appels, triangles, shaders) | `valdragon/outils/mesure/perf.py` + `bprof.py` (coût par catégorie d'objets) + `appels.py` (décompose les appels de dessin : ombres, objets groupés par nom/géométrie — repère vite les objets à instancier) + `banc_jeu.py` (rejoue le banc 🧪 du jeu en entier, relève erreurs et boucle morte) | `cage-et-gloire/outils/perf.py`, `bannieres/outils/perf.py` |
 | **Fluidité 2D / Canvas** | `trone-de-braise/outils/perf.py` (bâti sur `atelier.py`, CPU ×4, `FIGE=0`) | `sedes-petri`, `couronnes-et-complots` (SVG) |
 | **Captures de vues fixes** | `valdragon/outils/mesure/studio.py` + `captures.py` (avec `lisibilite.json`) | `couronnes-et-lignees/outils/mesure/captures.py` (jeu DOM/SVG), `bannieres/outils/capt.py` |
 | **Robot qui joue au doigt (3D)** | `valdragon/outils/tests/explore.py` + `agent2.js` (vrai joystick, toutes les cases) | `trone-de-braise/outils/parcours.py` |
@@ -57,3 +57,6 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 Une ligne ici (besoin, référence, où), et si l'outil sert à plusieurs jeux, le copier dans `outils-communs/` avec une ligne dans son README.
 
 | `hameau/outils/mesure/saccades.py`, `profil_scene.py` | Saccades par scène d'un banc (programmes compilés, pire image) et profil JS (CDP) du passage à une scène ; adaptables à tout jeu Three.js. En rendu logiciel, seuls les comptes sont fiables. |
+
+- **Piège three r160 `compileAsync`** : plante dans une minuterie (`reading 'isReady'`) si un matériau est jeté pendant la compilation, la promesse ne se résout jamais. Version sûre : `compA()` dans `valdragon/jeu/g3d.js` (à recopier dans tout jeu Three.js qui attend compileAsync).
+- **Qualité auto qui ne baisse pas pour rien** (écran bridé à 30 img/s par l'économie d'énergie) : `perfTick` de `valdragon/jeu/ui3.js` (annule une baisse qui ne gagne pas 12 %).

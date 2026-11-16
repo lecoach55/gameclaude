@@ -1,0 +1,199 @@
+{
+ "avant": {
+  "0|explo F2": {
+   "ms": 325.5,
+   "calls": 74,
+   "tris": 61724,
+   "prog": 50,
+   "geo": 49,
+   "tex": 50
+  },
+  "0|explo F6": {
+   "ms": 212.6,
+   "calls": 77,
+   "tris": 70744,
+   "prog": 50,
+   "geo": 53,
+   "tex": 57
+  },
+  "0|explo F10": {
+   "ms": 270.9,
+   "calls": 98,
+   "tris": 73547,
+   "prog": 50,
+   "geo": 64,
+   "tex": 67
+  },
+  "0|explo F14": {
+   "ms": 298,
+   "calls": 90,
+   "tris": 73898,
+   "prog": 55,
+   "geo": 69,
+   "tex": 55
+  },
+  "0|combat F6": {
+   "ms": 246.4,
+   "calls": 107,
+   "tris": 72775,
+   "prog": 69,
+   "geo": 97,
+   "tex": 60
+  },
+  "0|boss F8": {
+   "ms": 283.9,
+   "calls": 162,
+   "tris": 75704,
+   "prog": 73,
+   "geo": 151,
+   "tex": 76
+  },
+  "1|explo F2": {
+   "ms": 495,
+   "calls": 77,
+   "tris": 61821,
+   "prog": 59,
+   "geo": 68,
+   "tex": 54
+  },
+  "1|explo F6": {
+   "ms": 375.3,
+   "calls": 75,
+   "tris": 67764,
+   "prog": 57,
+   "geo": 59,
+   "tex": 58
+  },
+  "1|explo F10": {
+   "ms": 509.7,
+   "calls": 99,
+   "tris": 73456,
+   "prog": 57,
+   "geo": 68,
+   "tex": 67
+  },
+  "1|explo F14": {
+   "ms": 500.7,
+   "calls": 98,
+   "tris": 76071,
+   "prog": 63,
+   "geo": 87,
+   "tex": 63
+  },
+  "1|combat F6": {
+   "ms": 426.5,
+   "calls": 107,
+   "tris": 72137,
+   "prog": 77,
+   "geo": 102,
+   "tex": 62
+  },
+  "1|boss F8": {
+   "ms": 522.2,
+   "calls": 163,
+   "tris": 77268,
+   "prog": 80,
+   "geo": 157,
+   "tex": 80
+  }
+ },
+ "apres": {
+  "0|explo F2": {
+   "ms": 292.3,
+   "calls": 74,
+   "tris": 61724,
+   "prog": 51,
+   "geo": 54,
+   "tex": 52
+  },
+  "0|explo F6": {
+   "ms": 207.7,
+   "calls": 77,
+   "tris": 70744,
+   "prog": 51,
+   "geo": 74,
+   "tex": 57
+  },
+  "0|explo F10": {
+   "ms": 277.2,
+   "calls": 98,
+   "tris": 73547,
+   "prog": 50,
+   "geo": 63,
+   "tex": 67
+  },
+  "0|explo F14": {
+   "ms": 272.3,
+   "calls": 90,
+   "tris": 73898,
+   "prog": 56,
+   "geo": 71,
+   "tex": 55
+  },
+  "0|combat F6": {
+   "ms": 233.3,
+   "calls": 107,
+   "tris": 72775,
+   "prog": 69,
+   "geo": 103,
+   "tex": 63
+  },
+  "0|boss F8": {
+   "ms": 286.2,
+   "calls": 114,
+   "tris": 76056,
+   "prog": 75,
+   "geo": 105,
+   "tex": 77
+  },
+  "1|explo F2": {
+   "ms": 502.2,
+   "calls": 74,
+   "tris": 60988,
+   "prog": 59,
+   "geo": 74,
+   "tex": 60
+  },
+  "1|explo F6": {
+   "ms": 402.2,
+   "calls": 79,
+   "tris": 71901,
+   "prog": 58,
+   "geo": 61,
+   "tex": 62
+  },
+  "1|explo F10": {
+   "ms": 475.5,
+   "calls": 99,
+   "tris": 73548,
+   "prog": 58,
+   "geo": 68,
+   "tex": 68
+  },
+  "1|explo F14": {
+   "ms": 494.5,
+   "calls": 99,
+   "tris": 74227,
+   "prog": 65,
+   "geo": 84,
+   "tex": 61
+  },
+  "1|combat F6": {
+   "ms": 488.8,
+   "calls": 107,
+   "tris": 74291,
+   "prog": 77,
+   "geo": 101,
+   "tex": 62
+  },
+  "1|boss F8": {
+   "ms": 504.3,
+   "calls": 115,
+   "tris": 77620,
+   "prog": 81,
+   "geo": 108,
+   "tex": 79
+  }
+ },
+ "note": "16/11 : pièces du boss instanciées ; SwiftShader 390x780"
+}

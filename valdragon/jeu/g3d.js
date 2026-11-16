@@ -108,7 +108,7 @@ const glowTex=()=>canvasTex('glow',64,(g,s)=>{const r=g.createRadialGradient(s/2
 
 /* ---------- libération mémoire GPU ---------- */
 const TEXK=['map','emissiveMap','bumpMap','normalMap','alphaMap','roughnessMap','metalnessMap','aoMap'];
-function purgeObj(root,seen=new Set()){root.traverse(o=>{if(o===pts||o.userData.keep)return;if(o.isSkinnedMesh&&o.skeleton&&!seen.has(o.skeleton)){seen.add(o.skeleton);o.skeleton.dispose();}if(o.userData.R&&o.userData.R.mixer){o.userData.R.mixer.stopAllAction();o.userData.R.mixer.uncacheRoot(o.userData.R.model);}if(o.geometry&&!o.geometry.userData.keep&&!seen.has(o.geometry)){seen.add(o.geometry);o.geometry.dispose();}
+function purgeObj(root,seen=new Set()){root.traverse(o=>{if(o===pts||o.userData.keep)return;if(o.isInstancedMesh)o.dispose();if(o.isSkinnedMesh&&o.skeleton&&!seen.has(o.skeleton)){seen.add(o.skeleton);o.skeleton.dispose();}if(o.userData.R&&o.userData.R.mixer){o.userData.R.mixer.stopAllAction();o.userData.R.mixer.uncacheRoot(o.userData.R.model);}if(o.geometry&&!o.geometry.userData.keep&&!seen.has(o.geometry)){seen.add(o.geometry);o.geometry.dispose();}
  const ms=o.material?[].concat(o.material):[];ms.forEach(m=>{if(!m||m.userData.keep||seen.has(m))return;seen.add(m);TEXK.forEach(k=>{const t=m[k];if(t&&!t.userData.keep&&!seen.has(t)){seen.add(t);t.dispose();}});if(m.uniforms&&m.uniforms.map&&m.uniforms.map.value&&!m.uniforms.map.value.userData.keep){m.uniforms.map.value.dispose();}m.dispose();});});}
 function purge(sc){if(sc===scW&&EX.key&&EX.key.shadow.map){EX.key.shadow.map.dispose();EX.key.shadow.map=null;}if(sc===scB&&BT.key&&BT.key.shadow.map){BT.key.shadow.map.dispose();BT.key.shadow.map=null;}purgeObj(sc);while(sc.children.length)sc.remove(sc.children[0]);}
 function keepAll(){if(!K.ok)return;Object.values(K.g).forEach(gl=>gl.scene.traverse(o=>{if(o.geometry)o.geometry.userData.keep=1;[].concat(o.material||[]).forEach(m=>{m.userData.keep=1;TEXK.forEach(k=>{if(m[k])m[k].userData.keep=1;});});}));Object.values(K.geo).forEach(p=>{if(p&&p.geo)p.geo.userData.keep=1;});}
@@ -442,7 +442,7 @@ function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);ke
   else if(tier===3){const c=new THREE.Mesh(new THREE.OctahedronGeometry(.3,0),mat(0x8fa8b8,{em:0x3a6a8a,ei:.25,flat:1}));c.scale.y=2.5;c.position.set(x,.6,z);c.rotation.z=(hr(i,9)-.5)*.6;scB.add(c);}
   else if(tier===2){const c=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.18),new THREE.MeshBasicMaterial({color:0xff6a1a}));c.rotation.x=-Math.PI/2;c.rotation.z=hr(i,9)*3;c.position.set(x,.02,z);scB.add(c);}
   else{const sk=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),mat(0xd8d0b8));sk.position.set(x,.1,z);const b=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.5,5),mat(0xcfc7b0));b.rotation.z=Math.PI/2;b.position.set(x+.2,.04,z+.1);scB.add(sk,b);}}
- if(VD.F%4===0)for(let i=0;i<60;i++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.02,8),mat(0xf2c14a,{std:{metalness:.9,roughness:.3}}));c.position.set((hr(i,1)-.5)*10,.01,(hr(i,2)-.5)*6-2.5);scB.add(c);}
+ if(VD.F%4===0){const c=new THREE.InstancedMesh(new THREE.CylinderGeometry(.06,.06,.02,8),mat(0xf2c14a,{std:{metalness:.9,roughness:.3}}),60),m4=new THREE.Matrix4();for(let i=0;i<60;i++){m4.makeTranslation((hr(i,1)-.5)*10,.01,(hr(i,2)-.5)*6-2.5);c.setMatrixAt(i,m4);}c.frustumCulled=false;scB.add(c);}// trésor du boss : 60 pièces en 1 appel au lieu de 60
  // lumière principale avec ombres + contre-jour
  BT.key=new THREE.SpotLight(0xffe0c0,62,26,.75,.5,1.3);BT.key.position.set(2.5,9,7);BT.key.target.position.set(0,0,-.8);BT.key.castShadow=true;BT.key.shadow.mapSize.set(qLvl>=2?1024:512,qLvl>=2?1024:512);BT.key.shadow.bias=-.0006;scB.add(BT.key,BT.key.target);
  BT.lavas=[];BT.rays=[];scB.add(smokeSys());smokeClear();
@@ -558,10 +558,15 @@ function setTarget(fn){for(const[u,R]of BT.units)R.selTarget=fn?fn(u):false;}
 // Préparation des shaders SANS bloquer : compileAsync lance la compilation (en parallèle si le GPU le permet),
 // et on n'affiche pas la nouvelle scène tant qu'elle n'est pas prête (au plus 4 s) -> plus de gel de plusieurs secondes.
 let needComp=0,hold=0,holdT=0;
+// compileAsync de three r160 plante (minuterie, erreur non rattrapable) si un matériau est jeté pendant la compilation :
+// la promesse ne se résout alors jamais et l'image reste figée 4 s. Version sûre : un matériau sans programme compte comme prêt.
+function compA(sc,c,tg){const mats=renderer.compile(sc,c,tg||null);if(!renderer.extensions.has('KHR_parallel_shader_compile'))return Promise.resolve();
+ return new Promise(res=>{const t0=performance.now();const chk=()=>{try{mats.forEach(m=>{const q=renderer.properties.get(m).currentProgram;if(!q||q.isReady())mats.delete(m);});}catch(e){mats.clear();}
+  if(!mats.size||performance.now()-t0>4000)res();else setTimeout(chk,10);};chk();});}
 function precompile(sc,block){const hid=[];sc.traverse(o=>{if(!o.visible&&!o.isLight){hid.push(o);o.visible=true;}});let p=null;
- try{p=renderer.compileAsync?renderer.compileAsync(sc,cam):(renderer.compile(sc,cam),null);}catch(e){}hid.forEach(o=>o.visible=false);
+ try{p=compA(sc,cam);}catch(e){}hid.forEach(o=>o.visible=false);
  if(p&&block){const id=++hold;holdT=performance.now();p.catch(()=>{}).then(()=>{if(hold===id)hold=0;});}}
-function warm(obj,sc){if(!renderer)return;const v=obj.visible;obj.visible=true;try{const p=renderer.compileAsync(obj,cam,sc);p&&p.catch(()=>{});}catch(_){}obj.visible=v;}
+function warm(obj,sc){if(!renderer)return;const v=obj.visible;obj.visible=true;try{compA(obj,cam,sc);}catch(_){}obj.visible=v;}
 function render(t,dt){if(!renderer.shadowMap.autoUpdate&&(++shN%shEvery===0||needComp))renderer.shadowMap.needsUpdate=true;if(needComp&&rp&&rp.scene){needComp++;if(needComp===2)precompile(rp.scene,true);else if(needComp===20&&!hold)precompile(rp.scene,false);if(needComp>20&&!hold)needComp=0;}
  if(hold){if(performance.now()-holdT<4000)return;hold=0;}if(grade){const G=GRADE.tier[(mode==='battle'?BT.tier:mode==='title'?0:EX.tier)||0];grade.uniforms.tint.value.set(...G.tint);grade.uniforms.sat.value=G.sat;grade.uniforms.con.value=G.con;grade.uniforms.vig.value=G.vig*(mode==='battle'?1.1:1);grade.uniforms.t.value=(t*7)%100;grade.uniforms.asp.value=W/H;flashV=Math.max(0,flashV-(dt||.016)*3.5);grade.uniforms.flash.value=flashV;}composer.render(dt);}
 function flash(v){flashV=Math.max(flashV,v);}

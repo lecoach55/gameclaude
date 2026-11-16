@@ -38,7 +38,9 @@ Three.js r160 (global `THREE`, avec RoomEnvironment) intégré à la page. Menu 
 - Carte : sol mélangé par case dans le shader (`matSol` : texture tableau, bords irréguliers, routes et rivières d'après un masque, lueur de la lave), forêts en imposteurs instanciés avec ombres, montagnes à crêtes en texture de roche triplanaire et neige selon la pente, eau à vagues animées, éclairage par un ciel (`envCiel`). Bâtiments en matières triplanaires (`PM`, `PT`, `PB`…).
 - Combat et ville : mêmes sols, arbres et rochers ; ville : nuages et montagnes adoucis.
 - Créatures : humanoïdes et dragons pré-rendus en 3D par `outils/studio` (modèles Mixamo de Valdragon, dragon « Drago » CC BY 4.0) → `jeu/sprites3d.js` (`pack.py` : couleurs relevées). Les créatures sans modèle réaliste (griffon, cavaliers, centaure, pégase, licorne, tréant, loups, roc, béhémoth) restent dessinées, avec contours fins et grain de matière (`LWK`, `eclairage`) ; les quadrupèdes construits par le code restent écartés (aspect « jouet »).
-- Page : ~5,3 Mo. Crédits affichés sur l'accueil.
+- Héros de la carte : personnages Mixamo pré-rendus (`h_<classe>` dans `outils/studio/studio.js`, repos + 4 images de marche) avec la bannière du joueur (`spriteHeros3D`).
+- Accessoires Poly Haven en imposteurs : coffre au trésor, tonneaux, caisse, seau, feu de camp, lanterne (coffres, tas de ressources, mines, campements). Toits des villes en ardoise à peine teintée (`toitNat`).
+- Page : ~5,8 Mo. Crédits affichés sur l'accueil.
 
 ## Contenu ajouté la nuit du 15 au 16/11/2026
 Horde (4e faction, portraits Warrok), 28 créatures améliorées (habitations améliorées, amélioration des troupes en ville), le Graal (obélisques, carte au trésor, merveille ; option de victoire), sorts d'aventure (Vision lointaine, Portail de ville), semaine de la créature, créatures qui proposent de rejoindre le héros, combat rapide contre les proies faciles, perspective et cadavres en combat, effets d'éclair et de boule de feu, rivières, musique générative et bruitages repris de Valdragon.

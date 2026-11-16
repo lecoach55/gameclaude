@@ -28,7 +28,7 @@ export const DEFS={
  archer:{f:'hx_maelle',o:{s:.95,set:'mx',gsat:.85,gdk:1.2,gamt:.1,recol:{h:.33,to:.62,w:.12,s:.9}},lift:.15,atk:'bow',tir:1},
  elfe:{f:'hx_maelle',o:{s:.95,set:'mx',gsat:1,gdk:1.2,gamt:.08,hue:.25},lift:.17,atk:'bow',tir:1},
  moine:{f:'hx_cult',o:{s:.9,set:'mx',recol:{h:0,to:.09,w:.16,s:.5},gsat:.7,gdk:1.2,gamt:.12,wR:['staff'],wx:{staff:{p:[0,.2,.02],s:.36}}},lift:.15,atk:'cast',tir:1,aura:0xffe79a},
- ange:{f:'hx_ysolde',o:{s:1.02,set:'mx',recol:{h:.11,to:.14,w:.5,s:.15},gsat:.4,gdk:1.6,gamt:.05,wR:['sword'],wx:{sword:{p:[0,.06,.02],s:.4}}},lift:.25,atk:'atk',ailes:0xfffaf0,halo:0xffe58a,vol:1},
+ ange:{f:'hx_ysolde',o:{s:1.02,set:'mx',recol:{h:.11,to:.14,w:.5,s:.15},gsat:.4,gdk:.8,gamt:.15,wR:['sword'],wx:{sword:{p:[0,.06,.02],s:.4}}},lift:.0,atk:'atk',ailes:0xe8e0d0,halo:0xffe58a,vol:1},
  vampire:{f:'hx_cult',o:{s:.95,set:'mx',gsat:.95,gdk:1.1,gamt:.1},lift:.14,atk:'atk',vol:1},
  liche:{f:'hx_cult',o:{s:.95,set:'mx',recol:{h:0,to:.75,w:.2,s:.7},gsat:.55,gdk:.8,gamt:.3,hue:.4,wR:['skstaff'],wx:{skstaff:{p:[0,.2,.02],s:.42}}},lift:.1,atk:'cast',tir:1,yeux:0x7cf7a2},
  squelette:{f:'hx_aldric',o:{s:.95,set:'mx',style:{sp:[.32,0,.06]},hue:.9,gsat:.15,gdk:1.35,gamt:.6,gsc:6,ghc:.5,recol:{h:.75,to:.3,w:.2,s:.2}},lift:.09,atk:'atk',yeux:0x9fffd0},
@@ -41,6 +41,14 @@ export const DEFS={
  nain:{f:'hx_brute',o:{s:.47,set:'mx',hue:-.5,gsat:.5,gdk:1.2,gamt:.15,ghc:.2,recol:{h:.0,to:.02,w:.12,s:.9},wR:['axe'],wx:{axe:{p:[0,.1,.02],s:.36}}},lift:.12,atk:'atk'},
  dragonvert:{f:'hx_dragon',o:{s:.0021,set:'dr',ground:1,hue:1.7,gsat:.65,gdk:1.05,gamt:.25,gsc:3},lift:.08,atk:'atk',dragon:1,yeux:0xffd84a},
  dragonos:{f:'hx_dragon',o:{s:.002,set:'dr',ground:1,hue:.3,gsat:.08,gdk:1.9,gamt:.5,gsc:4},lift:.12,atk:'atk',dragon:1,yeux:0x7cf7ff},
+ h_chevalier:{f:'hx_aldric',o:{s:1,set:'mx',gsat:.95,gdk:1.5,gamt:.06,recol:{h:.75,to:.6,w:.12,s:1.2}},lift:.22},
+ h_clerc:{f:'hx_ysolde',o:{s:1,set:'mx',gsat:.7,gdk:.75,gamt:.2,recol:{h:.11,to:.6,w:.5,s:.5},wR:['staff'],wx:{staff:{p:[0,.2,.02],s:.36}}},lift:.0,aura:0xffe79a},
+ h_rodeur:{f:'hx_maelle',o:{s:1,set:'mx',gsat:.9,gdk:1.3,gamt:.08,recol:{h:.33,to:.3,w:.12,s:.9}},lift:.2},
+ h_druide:{f:'hx_maelle',o:{s:1,set:'mx',gsat:.9,gdk:1.3,gamt:.08,hue:.3,wR:['staff'],wx:{staff:{p:[0,.2,.02],s:.36}}},lift:.2,aura:0x9aff9a},
+ h_barbare:{f:'hx_brute',o:{s:.62,set:'mx',hue:.05,gsat:.6,gdk:1.1,gamt:.15,ghc:.2,wR:['skaxe'],wx:{skaxe:{p:[0,.1,.02],s:.3}}},lift:.15},
+ h_chaman:{f:'hx_brute',o:{s:.6,set:'mx',hue:.35,gsat:.55,gdk:1.1,gamt:.15,ghc:.2,wR:['skstaff'],wx:{skstaff:{p:[0,.2,.02],s:.42}}},lift:.15,aura:0xff9a4a},
+ h_chevmort:{f:'hx_aldric',o:{s:1.04,set:'mx',gsat:.3,gdk:.6,gamt:.3,gmet:.3,recol:{h:.75,to:.8,w:.2,s:1.1}},lift:.1,yeux:0x7cf7a2},
+ h_necromancien:{f:'hx_cult',o:{s:1,set:'mx',recol:{h:0,to:.75,w:.2,s:.6},gsat:.6,gdk:1,gamt:.2,wR:['skstaff'],wx:{skstaff:{p:[0,.2,.02],s:.42}}},lift:.12,aura:0x7cf7a2},
  wyverne:{f:'hx_dragon',o:{s:.0015,set:'dr',ground:1,hue:.5,gsat:.55,gdk:.9,gamt:.3,gsc:3},lift:.07,atk:'atk',dragon:1,yeux:0xffb040},
 };
 function fabriquer(id){const D=DEFS[id];const R=makeChar(D.f,Object.assign({kind:'mon'},D.o));mxLift(R,D.lift||.12);

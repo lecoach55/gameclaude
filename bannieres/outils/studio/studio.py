@@ -27,7 +27,7 @@ async def main():
             await b.close();return
         for cid in IDS or info['ids']:
             fw,fh,u=info['q'][cid] if cid in info['q'] else TAILLE.get(cid,(168,168,2.35))
-            an=[a for a in ANIM]
+            an=[('idle','idle',[0,.35]),('atk','walk',[0,.25,.5,.75])] if cid.startswith('h_') else [a for a in ANIM]
             fr=await pg.evaluate("([id,o])=>rendreCreature(id,o)",[cid,{'fw':fw,'fh':fh,'u':u,'anims':an}])
             for nom,l in fr.items():
                 for i,d in enumerate(l):open(f'{OUT}/{cid}_{nom}{i}.png','wb').write(base64.b64decode(d.split(',')[1]))

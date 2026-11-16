@@ -14,7 +14,7 @@ def traiter(im):
     corps=Image.merge('RGBA',(*rgb.split(),a));contour.alpha_composite(corps);return contour
 res={}
 for f in sorted(glob.glob(D+'/*_idle0.png')):
-    cid=os.path.basename(f).split('_')[0];frames=[];nb={}
+    cid=os.path.basename(f)[:-len('_idle0.png')];frames=[];nb={}
     for an in ANIMS:
         l=sorted(glob.glob(f'{D}/{cid}_{an}[0-9].png'));nb[an]=len(l);frames+= [traiter(Image.open(x)) for x in l]
     bb=None

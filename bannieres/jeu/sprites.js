@@ -200,7 +200,17 @@ function eclairage(c){const g=c.getContext('2d');const W=c.width,H=c.height;g.sa
 function spriteMiroir(id,S){const k='m'+id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const s=spriteCreature(id,S);const c=mkC(S,S);const g=c.getContext('2d');g.translate(S,0);g.scale(-1,1);g.drawImage(s,0,0);SPR_CACHE[k]=c;return c;}
 
 // ---------- héros sur la carte (cavalier à la bannière) ----------
+// héros pré-rendu en 3D (personnage Mixamo) avec sa bannière ; f = image de marche (-1 = repos)
+function spriteHeros3D(h,S,f){const id='h_'+h.classe;if(!a3d(id))return null;const k='h3'+h.classe+':'+h.j+':'+S+':'+f;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);const g=c.getContext('2d');
+ const col=COULEURS[G.joueurs[h.j].coul];ombreSol(g,S*.5,S*.9,S*.26,S*.05,.45);
+ const D=SPR3D[id];let ppu=S*.86/1.75;const [,,,sw]=cadre3D(id,'idle',0);const e0=ppu/D.pxu;const f2=Math.min(1,S*.92/(D.ay*e0));ppu*=f2;
+ // bannière plantée derrière le héros
+ const bx=S*.36,by=S*.9;g.strokeStyle='#3a2a18';g.lineWidth=S*.022;g.beginPath();g.moveTo(bx,by);g.lineTo(bx,S*.06);g.stroke();
+ const gr=g.createLinearGradient(bx,0,bx+S*.26,0);gr.addColorStop(0,col.f);gr.addColorStop(.5,col.c);gr.addColorStop(1,col.f);g.fillStyle=gr;g.beginPath();g.moveTo(bx,S*.07);g.lineTo(bx+S*.24,S*.09);g.lineTo(bx+S*.2,S*.15);g.lineTo(bx+S*.24,S*.21);g.lineTo(bx,S*.23);g.closePath();g.fill();
+ g.globalAlpha=.25;g.fillStyle='#000';g.fillRect(bx,S*.07,S*.24,S*.012);g.globalAlpha=1;
+ dessiner3D(g,id,f<0?'idle':'atk',f<0?0:f,S*.52,S*.9,ppu,false);SPR_CACHE[k]=c;return c;}
 function spriteHeros(h,S){const k='h'+h.classe+':'+h.j+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);const g=c.getContext('2d');g.scale(S/100,S/100);
+ {const c3=spriteHeros3D(h,S,-1);if(c3){SPR_CACHE[k]=c3;return c3;}}
  const col=COULEURS[G.joueurs[h.j].coul];const fac=FAC[h.fac];const mag=['clerc','druide','necromancien'].includes(h.classe);
  ombreSol(g,50,92,32,6,.45);
  // bannière

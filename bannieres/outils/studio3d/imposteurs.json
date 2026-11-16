@@ -162,5 +162,41 @@
 {
 "enfant": "rock05"
 }
+],
+"coffre": [
+"treasure_chest",
+{
+"rot": 0.6
+}
+],
+"tonneau": [
+"wooden_barrels_01",
+{
+"enfant": "barrel01"
+}
+],
+"tonneau2": [
+"wine_barrel_01",
+{
+"rot": 0.3
+}
+],
+"caisse": [
+"wooden_crate_01",
+{
+"rot": 0.5
+}
+],
+"lanterne": [
+"wooden_lantern_01",
+{}
+],
+"feu": [
+"stone_fire_pit",
+{}
+],
+"seau": [
+"wooden_bucket_01",
+{}
 ]
 }

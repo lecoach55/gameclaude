@@ -20,8 +20,8 @@ async def main():
       const O=ORGS[4];const mk=i=>({id:'p'+i,sexe:'H',div:'mm',app:{peau:[1,4][i],chev:[2,0][i],cc:0,short:['#c1121f','#1d4ed8'][i],gant:'#111'}});Arene.preparer(O,[mk(0),mk(1)]);Arene.demarrer();if(window.PX&&Arene.fixer)Arene.fixer(window.PX);}""")
     res={}
     for n,js in SC.items():
-      await pg.evaluate(js);await pg.wait_for_timeout(1500)
-      r=await pg.evaluate("""()=>new Promise(res=>{const a=[];let l=performance.now();const t0=l;function f(t){a.push(t-l);l=t;if(t-t0<5000)requestAnimationFrame(f);else{a.shift();a.sort((x,y)=>x-y);res({ms:+(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1),med:+a[a.length>>1].toFixed(1),n:a.length,info:Arene.infos(),px:Arene.px&&Arene.px()});}}requestAnimationFrame(f);})""")
+      await pg.evaluate(js);await pg.wait_for_timeout(int(os.environ.get('ATT','1500')))
+      r=await pg.evaluate("""()=>new Promise(res=>{const a=[];let l=performance.now();const t0=l;function f(t){a.push(t-l);l=t;if(t-t0<5000)requestAnimationFrame(f);else{a.shift();a.sort((x,y)=>x-y);res({ms:+(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1),med:+a[a.length>>1].toFixed(1),max:+a[a.length-1].toFixed(0),n:a.length,info:Arene.infos(),px:Arene.px&&Arene.px()});}}requestAnimationFrame(f);})""")
       res[n]=r;print(n,r,flush=True)
     json.dump({'res':res,'erreurs':errs},open(out,'w'),indent=1);print('erreurs',errs[:3]);await b.close()
 asyncio.run(main())

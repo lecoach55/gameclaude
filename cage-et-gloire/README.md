@@ -49,3 +49,12 @@ Construction : `npm i` à la racine du dossier (three 0.160, esbuild, @fontsourc
 - Décor fusionné par matériau (cage, gradins, lampes), public en un seul InstancedMesh animé par shader, étincelles en un seul Points : ~22-24 appels de dessin au lieu de 83-99.
 - Banc : `PX=1 python3 outils/perf.py build/index.html mesures/perf_v8.json 1` (771x755@2, scènes large/échanges/sol, résolution figée par `A.fixer`).
 - « ⚡ Temps forts » pendant les combats : saute les échanges sans touche.
+
+## Complexe, académie et records (v9)
+- Quand la salle est au niveau 5, l'onglet Salle propose quatre bâtiments (`CPX` dans moteur.js, `G.cpx`) : centre de récupération (−3 fatigue/sem.), studio média (popularité, sponsors +15 %), académie des jeunes (2 espoirs 18-20 ans tous les 6 mois, `f.academie`), arène de l'écurie (galas +50 %, réputation). Prix 0,9 à 4 M€, entretien hebdomadaire. Succès « Bâtisseur » et « Made in académie ».
+- Ligues → Records : bilan de l'écurie et records (série, KO et soumission les plus rapides, ceintures…) sur les combattants actuels et anciens (`f.anc`).
+- Précompilation des shaders en fin de `Arene.preparer` (évite un gel au premier coup sur Mac). Le banc 🧪 écarte les pauses > 1 s (fenêtre cachée) et les signale (`pauses`, `pauseMax`).
+
+## Outils de chasse aux bugs
+- `node outils/audit.js 4 12` : 4 parties de 12 ans avec un joueur au hasard ; vérifie NaN, bornes, combats en double, ceintures vacantes, champions partis, offres orphelines, taille de la sauvegarde.
+- `python3 outils/monkey.py build/index.html dossier 900 390 844 1` : robot qui clique au hasard (vrais clics) ; rapporte erreurs JS, écrans bloquants, boutons les plus cliqués.

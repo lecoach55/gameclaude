@@ -13,7 +13,7 @@ for(let g=1;g<=N;g++){
    for(const cid of [...G.aJouer]){M.jouerMonCombat(cid,M.preparerSim(cid,'equi'));}
    for(const f of M.mes()){f.train.i=f.fat>55?0:f.fat>35?1:2;const foc=['frappe','lutte','sol','physique','equi'];const a=f.at;
     f.train.f=f.fat>75?'repos':(a.lutte<a.frappe-8?'lutte':a.sol<a.frappe-10?'sol':a.cardio<60?'physique':foc[w%5]);}
-   if(strat==='bon'){const S=M.SALLES[G.salle.niv+1];if(S&&G.argent>S.prix*1.3)M.ameliorerSalle();
+   if(strat==='bon'){const S=M.SALLES[G.salle.niv+1];if(S&&G.argent>S.prix*1.3)M.ameliorerSalle();if(M.CPX)for(const k in M.CPX)if(G.argent>M.CPX[k].prix*1.5)M.construire(k);
     for(const k of ['boxe','lutte','jjb','physique','medecin'])if(G.coachs[k]<3&&G.argent>M.COACH_PAYE[G.coachs[k]+1]*40&&G.semRec-G.semDep>M.COACH_PAYE[G.coachs[k]+1])G.coachs[k]++;
     if(M.mes().length<M.SALLES[G.salle.niv].cap){const r=G.recrues.map(id=>G.F[id]).filter(f=>f&&f.prime<G.argent*.35).sort((a,b)=>(b.pot-a.pot))[0];if(r&&r.pot>70)M.signer(r.id);}}
    for(const f of M.mes()){const t=f.org?M.ORG(f.org).tier:-1;if(t>maxT)maxT=t;}
@@ -24,6 +24,6 @@ for(let g=1;g<=N;g++){
  console.log('— graine',g,'titres',G.stats.titres,'V-D',G.stats.v+'-'+G.stats.d,'max tier',maxT,'erreurs',err,'effectifs',JSON.stringify(nb),'combattants',Object.keys(G.F).length);
  log.forEach(l=>console.log('  ',l));
  tot.titres+=G.stats.titres;if(maxT>=4)tot.apex++;if(G.argent<0)tot.fail++;
- console.log('   objectifs/an:',(G.objHist||[]).map(x=>x.n).join(''),'commissions',M.mes().map(f=>Math.round(M.pctF(f)*100)).join('/'));console.log('   GP:',(G.gps||[]).map(x=>x.org+(G.F[x.v]&&G.F[x.v].mine?'*':'')).join(' '),'succès',Object.keys(G.succes||{}).length,'spons',(G.spons||[]).length,'prix',(G.prix||[]).length,'hof',(G.hof||[]).length);console.log('   trophées:',G.trophees.map(t=>M.ORG(t.org).court+'@'+(Math.floor(t.s/52)+1)).join(' '));
+ console.log('   objectifs/an:',(G.objHist||[]).map(x=>x.n).join(''),'commissions',M.mes().map(f=>Math.round(M.pctF(f)*100)).join('/'));console.log('   GP:',(G.gps||[]).map(x=>x.org+(G.F[x.v]&&G.F[x.v].mine?'*':'')).join(' '),'succès',Object.keys(G.succes||{}).length,'spons',(G.spons||[]).length,'prix',(G.prix||[]).length,'hof',(G.hof||[]).length,'complexe',Object.keys(G.cpx||{}).map(k=>k+'@'+(Math.floor(G.cpx[k]/52)+1)).join(' '),'académie signés',Object.values(G.F).filter(f=>f.academie&&f.mine).length);console.log('   trophées:',G.trophees.map(t=>M.ORG(t.org).court+'@'+(Math.floor(t.s/52)+1)).join(' '));
 }
 console.log('TOTAL',JSON.stringify(tot),((Date.now()-t0)/1000).toFixed(1)+'s');

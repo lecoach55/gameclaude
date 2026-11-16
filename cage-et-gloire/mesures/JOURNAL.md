@@ -39,3 +39,9 @@ Tests : evtest 32 événements + 8 spéciaux sans erreur ; parcours au doigt, vu
 - Banc swiftshader 771x755@2 : avant 1000 ms/image (83-99 appels, 151 k triangles) ; après, même résolution 1,6 : 381-425 ms (×2,6) ; qualité Moyenne par défaut : 205-243 ms (×4,5), 22-24 appels, 70 k triangles ; Basse ~52 ms.
 - Xbot simplifié à 45 %, décor fusionné, public instancié, éclairage réduit, ombres taches, résolution adaptative, menu Qualité 3D.
 - Ajouts : Temps forts, récap « Cette semaine », 6 nouveaux événements (section jeunes, sparring, nutritionniste…). Équilibre combat inchangé ; sim_monde 3 graines 0 erreur ; evtest 39+8 0 erreur ; sauvegarde rechargée identique.
+
+## v9 — 16/11/2026 — chasse aux bugs et enrichissement
+- Banc réel v8 (Mac Intel Iris Plus, 483x755) : arène large 54,7 img/s, au sol 49,3 (contre ~17 en v7) ; « échanges serrés » 7,8 à cause d'un gel unique de 15 s (fenêtre cachée ou compilation de shaders) → précompilation + banc qui écarte les pauses.
+- Simulations : audit 4×12 ans et 2×8 ans sans aucune incohérence ; sim_monde 3×12 ans 0 erreur ; 7 robots cliqueurs (≈ 5 500 clics, téléphone et ordinateur) : 1 erreur trouvée et corrigée (cote du pré-combat mise à jour après fermeture de la fenêtre).
+- Constat : après ~6 ans la salle est au maximum et l'argent s'accumule (5-10 M€ à 12 ans) → complexe (4 bâtiments) comme objectif de fin de partie. Titres APEX très rares (1 en 36 années simulées) : signalé, non modifié.
+- Banc swiftshader inchangé : 216 / 240 / 203 ms (perf_v9.json).

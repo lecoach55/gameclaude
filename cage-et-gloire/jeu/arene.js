@@ -381,7 +381,9 @@ A.init=async function(cv,b64,qual){canvas=cv;A.qual=qual??1;
 A.preparer=function(O,F){construire(O);etincelles.length=0;initEtinc();habiller(A.f[0],F[0],true);habiller(A.f[1],F[1],false);
  ST.pos='S';ST.c.set(0,0,0);ST.ang=0;ST.dist=4;ST.fin=false;A.f.forEach(h=>{h.seq=[];h.cur=null;h.ttilt=0;h.tilt=0;h.ty=0;h.ph=Math.random()*6;});
  const R1=3.4;cible(A.f[0],Math.cos(2.4)*R1,Math.sin(2.4)*R1,0);cible(A.f[1],-Math.cos(2.4)*R1,-Math.sin(2.4)*R1,Math.PI);A.f.forEach(h=>{h.pos.copy(h.tpos);h.yaw=Math.atan2(-h.pos.x,-h.pos.z);h.tyaw=h.yaw;h.idle=POSES.attente;});
- A.arb.pos.set(0,0,3);A.arb.tpos=A.arb.pos.clone();A.arb.yaw=Math.PI;A.arb.lockT=0;CAM.mode='large';CAM.cur.set(6,3.5,6);taille();};
+ A.arb.pos.set(0,0,3);A.arb.tpos=A.arb.pos.clone();A.arb.yaw=Math.PI;A.arb.lockT=0;CAM.mode='large';CAM.cur.set(6,3.5,6);taille();
+ // précompilation des shaders (évite un gel au premier coup sur Mac/ANGLE)
+ try{const cv=[];S.traverse(o=>{if(!o.visible){cv.push(o);o.visible=true;}});R.compile(S,C);cv.forEach(o=>o.visible=false);}catch(e){}};
 A.action=action;A.demarrer=()=>{A.actif=true;clock.getDelta();taille();};A.arreter=()=>{A.actif=false;};A.taille=taille;A.cam=cam;
 A.capture=()=>{R.render(S,C);return R.domElement.toDataURL('image/jpeg',.7);};
 A.infos=()=>R?{calls:R.info.render.calls,tri:R.info.render.triangles,qual:A.qual,rs:A.rs,px:R.getPixelRatio(),fps:A.fps}:{};

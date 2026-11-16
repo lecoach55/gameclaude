@@ -28,13 +28,13 @@ function play(params,seed,days,prof){
     if(pop<cap-8&&!adv&&S.happy>40&&S.season()!==3)anomalies.push({d,type:'blocage_inexpliqué',pop,cap,happy:Math.round(S.happy)});
     lastPop=pop;
     rows.push({d,pop,cap,happy:Math.round(S.happy),food:Math.round(S.res.food),wood:Math.round(S.res.wood),stone:Math.round(S.res.stone),tools:Math.round(S.res.tools||0),fish:Math.round(S.res.fish||0),
-      jobs:{...S.info.jobs},sea:S.season(),ms,var:+(S.varietyF||0).toFixed(2),l2:S.buildings.filter(b=>b.level>=2).length,l3:S.buildings.filter(b=>b.level>=3).length,adv:adv&&adv.code});
+      jobs:{...S.info.jobs},sea:S.season(),ms,var:+(S.varietyF||0).toFixed(2),l2:S.buildings.filter(b=>b.level>=2).length,l3:S.buildings.filter(b=>b.level>=3).length,adv:adv&&adv.code,dth:S.stats.deaths,brt:S.stats.births,vag:!!S.vague});
   }
   const st=S.stats,tot=st.idleTime+st.workTime+st.walkTime||1;
   return {seed,prof,days,params,final:rows[rows.length-1],peak,starveDays:+(st.starveTime/DAY).toFixed(2),coldDays:+(st.coldTime/DAY).toFixed(2),
     idle:+(st.idleTime/tot).toFixed(3),walk:+(st.walkTime/tot).toFixed(3),haul:+(st.haulDist/(st.hauls||1)).toFixed(2),pathFailRate:+(st.pathFails/(st.pathCalls||1)).toFixed(4),
     departures:st.departures,msPerDay:Math.round(rows.reduce((a,r)=>a+r.ms,0)/rows.length),msLastDay:rows[rows.length-1].ms,anomalies:anomalies.slice(0,40),
-    series:rows.filter(r=>r.d%5===0).map(r=>[r.d,r.pop,r.cap,r.happy,r.food,r.wood,r.var,r.l2,r.l3,r.ms]),wall:Date.now()-t0};
+    gen:(()=>{let m=0;for(const r of rows){const r10=rows[r.d-11];m=Math.max(m,r.dth-(r10?r10.dth:0));}return {deaths:S.stats.deaths,births:S.stats.births,arrivals:S.stats.arrivals,maxDeaths10:m,arr:S.arr,genAdvDays:rows.filter(r=>r.adv==='gen').length,vagueDays:rows.filter(r=>r.vag).length,...(args.serie?{advVague:rows.filter(r=>r.vag).reduce((o,r)=>(o[r.adv||'aucun']=(o[r.adv||'aucun']||0)+1,o),{})}:{})};})(),series:rows.filter(r=>r.d%5===0).map(r=>[r.d,r.pop,r.cap,r.happy,r.food,r.wood,r.var,r.l2,r.l3,r.ms,r.dth,r.brt]),wall:Date.now()-t0};
 }
 const score=r=>r.final.pop-12*r.starveDays-10*r.coldDays-3*r.departures-(r.anomalies.filter(a=>a.type==='effondrement').length?40:0);
 // ---- espaces de recherche ----
@@ -42,9 +42,9 @@ const SPACE={harvestYield:[5,6,7],fieldGrow:[20,25,30],mealInterval:[9,10,12],he
   immigInterval:[4,5,7],winterGrow:[0.2,0.3,0.45],fishYield:[4,5,6],fishRegen:[30,40,55],storeDist:[8,10,12],plantPrio:[1.6,2.2,3],houseCap:[4,5],marketR:[8,9,11]};
 function randParams(R,base){const p={...base};for(const [k,v] of Object.entries(SPACE))if(R()<0.35)p[k]=v[(R()*v.length)|0];return p;}
 function log(o){fs.appendFileSync(out,JSON.stringify(o)+'\n');}
-const VAR={base:{},n10:{birthScale:0.1},n05:{birthScale:0.05},w:{weed:0.4,weedGain:0.12},w2:{weed:0.6,weedGain:0.2}};
-if(args.variant){for(const sd of String(args.seeds).split(',').map(Number)){const r=play(VAR[args.variant],sd,args.days,args.prof);
-  console.log(JSON.stringify({v:args.variant,seed:sd,prof:args.prof,pop:r.final.pop,pic:r.peak,creux:Math.min(...r.series.filter(x=>x[0]>=60).map(x=>x[1]).concat([r.final.pop])),famine:r.starveDays,froid:r.coldDays,dep:r.departures,happy:r.final.happy}));}process.exit(0);}
+const VAR={base:{},etale:{arrivees:'etale'},vague:{arrivees:'vague'},graine:{arrivees:'graine'},n10:{birthScale:0.1},n05:{birthScale:0.05},w:{weed:0.4,weedGain:0.12},w2:{weed:0.6,weedGain:0.2}};
+if(args.variant){for(const sd of String(args.seeds).split(',').map(Number)){const r=play(VAR[args.variant]||JSON.parse(args.variant),sd,args.days,args.prof);
+  console.log(JSON.stringify({v:args.variant,seed:sd,prof:args.prof,pop:r.final.pop,pic:r.peak,creux:Math.min(...r.series.filter(x=>x[0]>=60).map(x=>x[1]).concat([r.final.pop])),famine:r.starveDays,froid:r.coldDays,dep:r.departures,happy:r.final.happy,...r.gen,...(args.serie?{serie:r.series.filter(x=>x[0]%10===0).map(x=>[x[0],x[1],x[2],x[3],x[10],x[11]])}:{})}));}process.exit(0);}
 // ---- programme des vagues ----
 if(args.test){console.log(JSON.stringify(play({},1001,3,"expert").final));process.exit(0);}
 const end=Date.now()+minutes*60000;const R=mulberry(batch*1000+Date.now()%1000);let n=+(args.start||0);

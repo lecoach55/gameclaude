@@ -17,6 +17,8 @@ const DEFAULTS={
   marketR:9, autoStore:true, storeDist:12, storeDemand:25, startFood:60, startWood:24, startStone:6,
   bigFamily:true, terraces:true,
   gens:true, adultAge:14, elderAge:58, retireAge:66, deathAge:62, kidMeal:0.5, birthInterval:34, birthHappy:55, birthMaxKids:0.3, birthScale:0, ageRate:1,
+  // arrivées (décision de Victor 16/11) : 'graine' = tirée à la graine de la carte ; 'etale' = âges étalés et enfants ; 'vague' = jeunes adultes (une génération qui passe, annoncée par un conseil)
+  arrivees:'graine', arrKid:0.15, arrMin:16, arrMax:50,
   pasture:true, woolGrow:55, shearTime:3, woolYield:3, sheepPer:4, sheepBreed:45, sheepMax:30, sheepHay:0.12, clothWool:2, clothTime:6, clothUse:0.015, warmBonus:6, warmHeat:0.75,
   merchant:true, merchantStock:3,
   fert:true, fertUse:0.12, fertRegen:200, fertWinter:90, fertBase:0.62, fertGain:0.42, fallowMin:0.3, fallowOk:0.7
@@ -32,7 +34,7 @@ const P=Object.assign({},DEFAULTS,params||{});
 let R=rng||Math.random;
 const S={P,W,H,N,Z,T_GRASS,T_STONE,T_WATER,idx,inb,hash2,
   terrain:null,tree:null,stoneAmt:null,zone:null,traffic:null,fstate:null,fgrow:null,occ:null,reserved:null,unreach:null,elev:null,
-  buildings:[],bmap:new Map(),villagers:[],sheep:[],merchant:null,fert:null,rest:null,res:null,fishAmt:null,time:0,happy:60,starving:false,seed:1,hall:null,
+  buildings:[],bmap:new Map(),villagers:[],sheep:[],merchant:null,arr:'vague',vague:false,dlog:[],blog:[],fert:null,rest:null,res:null,fishAmt:null,time:0,happy:60,starving:false,seed:1,hall:null,
   cold:false,noTools:false,variety:false,info:{fields:0,forestTrees:0,quarryStone:0,houseZone:0,marketZone:0,shopZone:0,fishZone:0,chapelZone:0,spot:true,jobs:{}},
   stats:{pathFails:0,pathCalls:0,coldTime:0,starveTime:0,idleTime:0,workTime:0,walkTime:0,haulDist:0,hauls:0,arrivals:0,departures:0,built:0,births:0,deaths:0,sheared:0,trades:0},
   milestones:new Set(),onEvent:null,version:0,hist:[],trend:{food:0,wood:0,stone:0,tools:0,fish:0,wool:0,clothes:0}};
@@ -547,20 +549,27 @@ function festCheck(){if(!P.fest||!P.seasons)return;const sea=season();if(sea===S
       emit('toast','🎉 Fête des moissons ! Les réserves sont pleines : le village fait la fête (😄 bonheur ↑)');emit('fest',{});}
     else if(pop>=10)emit('toast','🌾 Pas de fête des moissons cette année : il faudrait plus de réserves');}}
 // ---- générations ----
-function die(v){release(v);if(v.carry)deposit(v);const k=S.villagers.indexOf(v);if(k>=0)S.villagers.splice(k,1);S.stats.deaths++;S.mourn=S.time+40;S.graves=(S.graves||0)+1;
+function die(v){release(v);if(v.carry)deposit(v);const k=S.villagers.indexOf(v);if(k>=0)S.villagers.splice(k,1);S.stats.deaths++;S.dlog.push(S.time);S.mourn=S.time+40;S.graves=(S.graves||0)+1;
   emit('toast',`🕯️ ${v.name} s'est éteint${v.fem?'e':''} à ${Math.floor(v.age)} ans, entouré${v.fem?'e':''} des siens`);emit('death',{x:v.x,y:v.y});}
+// vague des anciens (variante « vague ») : sur la dernière année, nettement plus de décès que de naissances
+function vagueCheck(){const t0=S.time-P.seasonLen*4;while(S.dlog.length&&S.dlog[0]<t0)S.dlog.shift();while(S.blog.length&&S.blog[0]<t0)S.blog.shift();
+  if(S.time<P.seasonLen)milestone('arr',S.arr==='etale'?'🧭 Des familles de tous âges s\'installent : enfants, adultes et anciens se relaieront':'🧭 Les colons sont jeunes : leur génération vieillira ensemble — pensez au renouveau');
+  if(S.arr!=='vague'){S.vague=false;return;}const d=S.dlog.length,b=S.blog.length,pop=S.villagers.length;
+  const on=d>=Math.max(6,pop*0.06)&&d>=b*2+4,off=d<Math.max(4,pop*0.05)||d<=b+2;
+  if(!S.vague&&on){S.vague=true;S.vagueT0=S.time;milestone('vague','🕯️ Les anciens s\'éteignent : la génération des fondateurs passe. Il faut du renouveau — des familles heureuses et bien nourries auront des enfants, et les maisons libérées attireront de nouveaux venus');}
+  else if(S.vague&&off)S.vague=false;}
 function genUpdate(dt){
   if(!P.gens)return;const da=dt/P.seasonLen*P.ageRate;
   for(const v of S.villagers){const a0=v.age;v.age+=da;if(a0<P.adultAge&&v.age>=P.adultAge){emit('toast',`🧑 ${v.name} a ${P.adultAge} ans : un bras de plus au travail`);if(v.job==='kid'){v.plan.length=0;v.cur=null;}}
     if(a0<P.retireAge&&v.age>=P.retireAge){v.plan.length=0;v.cur=null;}}
-  if((timers.death+=dt)>=10){timers.death=0;for(const v of S.villagers.slice())if(v.age>P.deathAge&&R()<(v.age-P.deathAge)*0.05*10/P.seasonLen)die(v);}
+  if((timers.death+=dt)>=10){timers.death=0;for(const v of S.villagers.slice())if(v.age>P.deathAge&&R()<(v.age-P.deathAge)*0.05*10/P.seasonLen)die(v);vagueCheck();}
   if((timers.birth+=dt)>=P.birthInterval){timers.birth=0;const pop=S.villagers.length,cap=capacity();
     if(pop<cap&&S.happy>=P.birthHappy&&!S.starving&&!S.cold&&S.res.food>=pop*3){let kids=0,fem=null,mal=0,nf=0;
       for(const v of S.villagers){if(isKid(v))kids++;else if(v.age<46){if(v.fem){fem=v;nf++;}else mal++;}}
       // birthScale (0 = règle actuelle, une tentative) : une tentative de plus par tranche de 1/birthScale femmes en âge d'avoir des enfants
       const tries=P.birthScale?1+Math.floor(Math.min(nf,mal)*P.birthScale):1;let nb=0;
       for(let k=0;k<tries&&S.villagers.length<cap;k++)if(fem&&mal&&kids+nb<pop*P.birthMaxKids&&R()<0.55){const hs=S.buildings.filter(b=>b.type==='house'&&b.built),b=hs.length?hs[(R()*hs.length)|0]:S.hall,f=frontOf(b);
-        const nv=spawnVillager(f.x+0.5,f.y+0.5,{age:0,skin:fem.skin});nb++;S.stats.births++;timers.immig=0;emit('toast',`👶 Naissance : ${nv.name} vient au monde`);emit('birth',{x:nv.x,y:nv.y});}}}
+        const nv=spawnVillager(f.x+0.5,f.y+0.5,{age:0,skin:fem.skin});nb++;S.stats.births++;S.blog.push(S.time);timers.immig=0;emit('toast',`👶 Naissance : ${nv.name} vient au monde`);emit('birth',{x:nv.x,y:nv.y});}}}
 }
 // ---- élevage ----
 let nextSid=1;
@@ -633,7 +642,7 @@ function step(dt){
     timers.immig=0;
     const idleN=S.villagers.filter(v=>v.job==='idle').length;S.idleShare=pop?idleN/pop:0;
     if(pop<cap&&S.happy>P.immigHappy&&(P.winterImmig||season()!==3)&&S.res.food>=pop*P.immigFood&&(!P.autumnGate||season()!==2||S.res.food>=(pop+1)*P.seasonLen/P.mealInterval*P.foodPerMeal*P.autumnGate)&&(!P.immigTrend||S.trend.food>=0||S.res.food>=pop*4)&&(!P.jobsGate||pop<12||S.idleShare<P.maxIdle)){
-      const [x,y]=edgeSpawn();const v=spawnVillager(x,y,{age:16+R()*22});const f=frontOf(S.hall);goTo(v,f.x,f.y);S.stats.arrivals++;
+      const [x,y]=edgeSpawn();const u=R(),v=spawnVillager(x,y,{age:S.arr==='etale'?(u<P.arrKid?3+u/P.arrKid*10:P.arrMin+(u-P.arrKid)/(1-P.arrKid)*(P.arrMax-P.arrMin)):16+u*22});const f=frontOf(S.hall);goTo(v,f.x,f.y);S.stats.arrivals++;
       const np=S.villagers.length;
       for(const m of [10,20,30,50,75,100,150])if(np>=m)milestone('pop'+m,`🎉 Le hameau compte ${m} habitants !`);
     }
@@ -663,17 +672,18 @@ function demolish(x,y){
 }
 function newGame(seed){
   alloc();S.seed=seed!=null?seed:(R()*1e9)|0;
-  S.buildings=[];S.bmap=new Map();S.villagers=[];S.sheep=[];S.merchant=null;S._lastSeaM=null;S.mourn=0;S.graves=0;nextVid=1;nextBid=1;nextSid=1;S.milestones.clear();
+  S.buildings=[];S.bmap=new Map();S.villagers=[];S.sheep=[];S.merchant=null;S._lastSeaM=null;S.mourn=0;S.graves=0;S.vague=false;S.dlog=[];S.blog=[];nextVid=1;nextBid=1;nextSid=1;S.milestones.clear();
   S.res={food:P.startFood,wood:0,stone:P.startStone,tools:0,fish:0,wool:0,clothes:0};S.time=0;S.happy=60;S.starving=false;
   for(const k in timers)timers[k]=0;demand.fill(0);
   for(const k in S.stats)S.stats[k]=0;S.hist=[];S.trend={food:0,wood:0,stone:0,tools:0,fish:0,wool:0,clothes:0};
+  S.arr=P.arrivees==='graine'?(hash2(S.seed|0,17,9001)<0.5?'etale':'vague'):P.arrivees;
   genTerrain();
   const cx=W>>1,cy=H>>1;
   for(let y=cy-4;y<=cy+5;y++)for(let x=cx-4;x<=cx+4;x++){const i=idx(x,y);if(Math.hypot(x-cx,y-cy)<4.6){S.terrain[i]=T_GRASS;S.stoneAmt[i]=0;S.tree[i]=0;}}
   S.hall=addBuilding('hall',cx-1,cy-1,3,3,true);
   S.res.wood=P.startWood;
   const f=frontOf(S.hall);
-  for(let k=0;k<6;k++)spawnVillager(f.x+0.5+(R()-0.5)*3,f.y+0.5+R()*1.5,{fem:k%2===0,age:19+R()*17});
+  for(let k=0;k<6;k++)spawnVillager(f.x+0.5+(R()-0.5)*3,f.y+0.5+R()*1.5,{fem:k%2===0,age:S.arr==='etale'?18+R()*30:19+R()*17});
   computeInfo();S.version++;
 }
 function serialize(){
@@ -681,7 +691,7 @@ function serialize(){
   return {v:3,seed:S.seed,time:S.time,happy:S.happy,res:S.res,nextBid,starving:S.starving,ms:[...S.milestones],
     terrain:Array.from(S.terrain),tree:r2(S.tree),stone:Array.from(S.stoneAmt),zone:Array.from(S.zone),traffic:r2(S.traffic),fstate:Array.from(S.fstate),fgrow:r2(S.fgrow),
     b:S.buildings.map(b=>({id:b.id,type:b.type,x:b.x,y:b.y,w:b.w,h:b.h,built:b.built,level:b.level,site:b.site?{need:{...b.site.need},have:{...b.site.have},prog:b.site.prog,asg:0}:null})),
-    vil:S.villagers.map(v=>[Math.round(v.x*10)/10,Math.round(v.y*10)/10,Math.round(v.age*100)/100,v.fem?1:0,v.name,v.skin]),sheep:S.sheep.map(a=>[Math.round(a.x*10)/10,Math.round(a.y*10)/10,Math.round(a.wool*100)/100,Math.round(a.age*100)/100]),merchant:S.merchant,fert:r2(S.fert),rest:Array.from(S.rest),mourn:S.mourn||0,graves:S.graves||0,lastSeaM:S._lastSeaM,hist:S.hist.slice(-180).map(h=>({t:Math.round(h.t),food:Math.round(h.food),wood:Math.round(h.wood),stone:Math.round(h.stone),tools:Math.round(h.tools),pop:h.pop,happy:Math.round(h.happy)}))};
+    vil:S.villagers.map(v=>[Math.round(v.x*10)/10,Math.round(v.y*10)/10,Math.round(v.age*100)/100,v.fem?1:0,v.name,v.skin]),sheep:S.sheep.map(a=>[Math.round(a.x*10)/10,Math.round(a.y*10)/10,Math.round(a.wool*100)/100,Math.round(a.age*100)/100]),merchant:S.merchant,fert:r2(S.fert),rest:Array.from(S.rest),mourn:S.mourn||0,graves:S.graves||0,arr:S.arr,vg:S.vague?1:0,vt:Math.round(S.vagueT0||0),dl:S.dlog.map(Math.round),bl:S.blog.map(Math.round),lastSeaM:S._lastSeaM,hist:S.hist.slice(-180).map(h=>({t:Math.round(h.t),food:Math.round(h.food),wood:Math.round(h.wood),stone:Math.round(h.stone),tools:Math.round(h.tools),pop:h.pop,happy:Math.round(h.happy)}))};
 }
 function deserialize(d){
   if(!d)return false;if(d.v!==3)return false;
@@ -693,7 +703,7 @@ function deserialize(d){
   for(const b of d.b){S.buildings.push(b);S.bmap.set(b.id,b);for(let dy=0;dy<b.h;dy++)for(let dx=0;dx<b.w;dx++)S.occ[idx(b.x+dx,b.y+dy)]=b.id;if(b.type==='hall')S.hall=b;}
   if(!S.hall)return false;
   S.villagers=[];nextVid=1;for(const e of d.vil){if(e.length>2)spawnVillager(e[0],e[1],{age:e[2],fem:!!e[3],name:e[4],skin:e[5]});else spawnVillager(e[0],e[1]);}
-  S.sheep=[];nextSid=1;for(const e of (d.sheep||[])){const a=spawnSheep(e[0],e[1],e[3]);a.wool=e[2];}S.merchant=d.merchant||null;S._lastSeaM=d.lastSeaM!=null?d.lastSeaM:null;S.mourn=d.mourn||0;S.graves=d.graves||0;
+  S.sheep=[];nextSid=1;for(const e of (d.sheep||[])){const a=spawnSheep(e[0],e[1],e[3]);a.wool=e[2];}S.merchant=d.merchant||null;S._lastSeaM=d.lastSeaM!=null?d.lastSeaM:null;S.mourn=d.mourn||0;S.graves=d.graves||0;S.arr=d.arr==='etale'?'etale':'vague';S.vague=!!d.vg&&S.arr==='vague';S.vagueT0=d.vt||0;S.dlog=(d.dl||[]).slice();S.blog=(d.bl||[]).slice();
   if(d.fert)S.fert.set(d.fert);if(d.rest)S.rest.set(d.rest);if(S.res.wool==null)S.res.wool=0;if(S.res.clothes==null)S.res.clothes=0;
   if(S.res.fish==null)S.res.fish=0;S.hist=d.hist||[];computeInfo();S.version++;return true;
 }
@@ -701,7 +711,13 @@ function genTerrainElevOnly(){for(let y=0;y<H;y++)for(let x=0;x<W;x++)S.elev[idx
 
 function nearOf(pred){const h=S.hall;let b=null,bd=1e9;for(let i=0;i<N;i++){if(!pred(i))continue;const d=Math.hypot(i%W-h.x,(i/W|0)-h.y);if(d<bd){bd=d;b=[i%W,i/W|0];}}return b;}
 const nearTree=()=>nearOf(i=>S.zone[i]===0&&S.tree[i]>=1),nearStone=()=>nearOf(i=>S.zone[i]===0&&S.terrain[i]===T_STONE);
-function advice(){
+// variante « vague » : au début de la vague (un an), quand les anciens s'éteignent plus vite qu'il ne naît d'enfants, le conseil l'annonce (le code du conseil ne change pas : même action proposée)
+function advice(){const a=advice0();if(!(P.gens&&S.arr==='vague'&&S.vague)||S.starving||S.cold)return a;
+  if(a&&S.time-(S.vagueT0||0)>P.seasonLen*4)return a; // l'annonce accompagne les conseils pendant un an, ensuite seulement quand il n'y a rien d'autre à faire (et dans le panneau population)
+  const d=S.dlog.length,b=S.blog.length,head='🕯️ Les anciens s\'éteignent, il faut du renouveau';
+  if(!a)return {code:'gen',text:`🕯️ Les anciens s'éteignent (${d} décès, ${b} naissance${b>1?'s':''} cette année) : il faut du renouveau. Bonheur ≥ 55 et réserves pleines font naître des enfants ; les maisons libérées attirent de nouvelles familles`};
+  return Object.assign({},a,{text:head+' — '+a.text});}
+function advice0(){
   const pop=S.villagers.length,cap=capacity(),info=S.info,res=S.res;
   const l2=S.buildings.some(b=>b.type==='house'&&b.level>=2);
   if(S.starving)return {code:'field',text:'⚠️ Famine ! Agrandis les champs 🌾'};

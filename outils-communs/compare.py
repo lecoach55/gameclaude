@@ -1,8 +1,17 @@
 # Comparaison d'images : référence vs nouvelle version. Signale les changements visuels involontaires.
-# usage : python3 compare.py dossier_ref dossier_nouveau planche.png [seuil_pct]
-import sys,os,numpy as np
+# usage : python3 compare.py dossier_ref dossier_nouveau planche.png [seuil_pct] [--json resultat.json] [--strict]
+#   --json f : écrit aussi le résultat (scènes, % changé, luminosité, détail fin, alerte, images manquantes) pour l'automatisation
+#   --strict : code de sortie 1 s'il y a une alerte, une image manquante ou aucune image comparée (sinon toujours 0, comme avant)
+import sys,os,json,numpy as np
 from PIL import Image,ImageFilter,ImageDraw,ImageFont
-ref,new,outp=sys.argv[1],sys.argv[2],sys.argv[3];SEUIL=float(sys.argv[4]) if len(sys.argv)>4 else 6
+_a=sys.argv[1:];JSON=None;STRICT='--strict' in _a;_a=[x for x in _a if x!='--strict']
+for x in list(_a):
+    if x.startswith('--json='):JSON=x[7:];_a.remove(x)
+if '--json' in _a:
+    i=_a.index('--json')
+    if i+1>=len(_a):sys.exit('compare.py : --json doit être suivi d\'un nom de fichier')
+    JSON=_a[i+1];del _a[i:i+2]
+ref,new,outp=_a[0],_a[1],_a[2];SEUIL=float(_a[3]) if len(_a)>3 else 6
 W,H=195,390
 def prep(p):
     im=Image.open(p).convert('RGB').resize((W,H),Image.LANCZOS)
@@ -19,9 +28,10 @@ def fin(pa,pb):
     return 100*(d[int(h*.08):int(h*.86)]>40).mean()
 try:f=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',11)
 except:f=None
-rows=[];tiles=[]
+rows=[];tiles=[];manquantes=[]
 for n in sorted(os.listdir(ref)):
-    if not n.endswith('.png') or not os.path.exists(os.path.join(new,n)):continue
+    if not n.endswith('.png'):continue
+    if not os.path.exists(os.path.join(new,n)):manquantes.append(n[:-4]);continue
     ia,a=prep(os.path.join(ref,n));ib,b=prep(os.path.join(new,n))
     m=np.zeros((H,W),bool);m[int(H*.08):int(H*.86),:]=True
     la=(a*[.299,.587,.114]).sum(-1);lb=(b*[.299,.587,.114]).sum(-1)
@@ -44,4 +54,10 @@ C.save(outp)
 print(f"{'scène':12s} {'changé':>8s} {'lum.':>6s}")
 for n,p,dl,al,fp in rows:print(f'{n:12s} {p:7.1f}% {dl:+6.1f}  '+('⚠ À VÉRIFIER' if al else 'ok')+(f'   détail fin {fp:.1f}%' if fp>=.05 else ''))
 if any(r[4]>=.3 and not r[3] for r in rows):print('Note : changements fins détectés (textes, petits détails) sans alerte : regarder la planche.')
+if manquantes:print('Images absentes de la nouvelle version :',', '.join(manquantes))
 print('ALERTES',sum(r[3] for r in rows),'/',len(rows))
+nal=sum(r[3] for r in rows)
+if JSON:
+    with open(JSON,'w',encoding='utf-8') as fj:json.dump({'reference':ref,'nouveau':new,'planche':outp,'seuil_pct':SEUIL,'alertes':int(nal),'total':len(rows),'manquantes':manquantes,
+        'scenes':[{'nom':n,'change_pct':round(float(p),2),'luminosite':round(float(dl),2),'detail_fin_pct':round(float(fp),2),'alerte':bool(al)} for n,p,dl,al,fp in rows]},fj,ensure_ascii=False,indent=1)
+if STRICT and (nal or manquantes or not rows):sys.exit(1)

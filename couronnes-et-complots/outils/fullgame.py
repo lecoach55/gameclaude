@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 import random
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome')
+    b=p.chromium.launch()
     pg=b.new_page(viewport={'width':1440,'height':860}); errs=[]; pg.on('pageerror',lambda e: errs.append(str(e)))
     pg.goto('file:///home/claude/gameclaude/couronnes-et-complots/jeu/couronnes-et-complots.html'); pg.wait_for_timeout(500)
     pg.select_option('#np','3'); pg.select_option('#pa1','facile'); pg.select_option('#pa2','facile'); pg.click('#go')

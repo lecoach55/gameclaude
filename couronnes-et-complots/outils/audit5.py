@@ -15,7 +15,7 @@ def run(pg,tag):
     pg.evaluate("()=>{S.claim=null;victory(alive()[0],'militaire','Capture de contrôle.')}"); pg.wait_for_timeout(600)
     pg.screenshot(path=f'e_{tag}_4fin.png')
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome')
+    b=p.chromium.launch()
     errs=[]
     for tag,(w,h) in {'L':(1440,860),'M':(1180,720),'S':(390,844)}.items():
         pg=b.new_page(viewport={'width':w,'height':h}); pg.on('pageerror',lambda e: errs.append(str(e)))

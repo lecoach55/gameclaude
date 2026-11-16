@@ -181,6 +181,7 @@ async function startTurn() {
     if (claim) {
       p.inf -= CROWN_COST;
       S.claim = { o, round: S.round }; sfx("sacre");
+      chron(o, "♛", `${fullName(o)} proclame sa souveraineté`);
       log(`👑 ${esc(p.name)} proclame sa souveraineté ! Sacre au début de son prochain tour si elle tient ${TERR[p.capital].n} avec ${CROWN_HOLD}+ de stabilité.`, "warn");
       render();
       if (p.ai && S.players.some(q => q.alive && !q.ai)) await modal(`<h2>${esc(p.name)} se proclame souveraine</h2><p>Elle sera sacrée au début de son prochain tour si elle tient encore <b>${TERR[p.capital].n}</b> avec au moins ${CROWN_HOLD} de stabilité.</p><p>Pour l'en empêcher : prends sa capitale, ou fais tomber sa stabilité sous ${CROWN_HOLD}. Chaque territoire qu'elle perd lui coûte 1 stabilité, et les révoltes fomentées en coûtent 1 ou 2.</p>`, [["Aux armes", true, "primary"]]);
@@ -249,6 +250,8 @@ async function endRound() {
   log(`<span class="r">Conseil des Couronnes</span>`);
   log(`${e.name} : pour ${pour}+🎲${dp} = ${pour + dp} contre ${contre}+🎲${dc} = ${contre + dc} → <b>${pass ? "ADOPTÉ" : "REJETÉ"}</b>.`);
   (S.hist ||= []).push(S.players.map((q, i) => ownedBy(i).length));
+  { const h = S.hist[S.hist.length - 1], best = Math.max(...h), top = h.indexOf(best);
+    if (h.filter(v => v === best).length === 1 && top !== S.lead) { if (S.lead !== undefined) chron(top, "⚑", `${fullName(top)} prend la tête (${best} territoires)`); S.lead = top; } }
   S.round++;
   S.active = null;
   let extra = "";
@@ -294,6 +297,7 @@ function eliminate(o, by) {
   p.alive = false;
   if (S.claim && S.claim.o === o) S.claim = null;
   S.pacts = S.pacts.filter(x => x.a !== o && x.b !== o);
+  chron(by >= 0 ? by : o, "☠", `${fullName(o)} est éliminée${by >= 0 ? ` par ${laName(by)}` : ""}`);
   log(`☠ ${esc(p.name)} est éliminée${by >= 0 ? ` par ${esc(P(by).name)}` : ""}.`, "warn");
   if (by >= 0) { P(by).inf += p.inf; if (p.inf) log(`${esc(P(by).name)} s'empare de son trésor (+${p.inf} influence).`); }
   p.inf = 0;
@@ -305,13 +309,26 @@ function eliminate(o, by) {
 function chronicleSVG() {
   const H = (S.hist || []).concat([S.players.map((q, i) => ownedBy(i).length)]);
   if (H.length < 2) return "";
-  const W = 560, Hh = 150, pad = 28, maxT = Math.max(...H.flat(), 10);
-  const x = k => pad + k * (W - pad - 8) / (H.length - 1), y = v => Hh - 20 - v * (Hh - 36) / maxT;
+  const W = 560, Hh = 175, pad = 28, maxT = Math.max(...H.flat(), 10);
+  const x = k => pad + k * (W - pad - 8) / (H.length - 1), y = v => Hh - 20 - v * (Hh - 60) / maxT;
   const grid = [0, Math.round(maxT / 2), maxT].map(v => `<line x1="${pad}" x2="${W - 8}" y1="${y(v)}" y2="${y(v)}" stroke="#b79d70" stroke-width=".6"/><text x="${pad - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#6e5838">${v}</text>`).join("");
   const lines = S.players.map((p, i) => { const c = PCOL[p.color]; const pts = H.map((r, k) => `${x(k).toFixed(1)},${y(r[i]).toFixed(1)}`).join(" "); const last = H[H.length - 1][i]; const dash = ["", "7 3", "2 3", "", "9 3 2 3"][p.color]; return `<polyline points="${pts}" fill="none" stroke="${c.c}" stroke-width="${p.color === 3 ? 3.4 : 2.4}" stroke-dasharray="${dash}" stroke-linejoin="round"/><circle cx="${x(H.length - 1)}" cy="${y(last)}" r="3.5" fill="${c.c}" stroke="#2b1d10" stroke-width=".8"/>`; }).join("");
-  return `<h3>Chronique du règne</h3><svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Territoires par Maison au fil des manches">${grid}${lines}<text x="${W - 8}" y="${Hh - 4}" text-anchor="end" font-size="11" fill="#6e5838">manche ${H.length}</text><text x="${pad}" y="${Hh - 4}" font-size="11" fill="#6e5838">manche 1</text></svg>
-    <div class="row small" style="gap:12px;margin-top:2px">${S.players.map((p, i) => `<span>${shieldSVG(i, 12)} ${esc(p.name.replace(/^Maison (d')?/i, ""))}</span>`).join("")}</div>`;
+  // moments clés : on garde d'abord les événements marquants, puis les changements de tête, au plus 7
+  let ev = (S.ev || []).slice();
+  while (ev.length > 7) { const k = ev.findIndex(e => e.i === "⚑"); ev.splice(k >= 0 ? k : 0, 1); }
+  const marks = ev.map(e => { const k = clamp(e.r - 1, 0, H.length - 1), v = H[k][e.o] ?? 0, c = PCOL[P(e.o).color]; const up = 13 + 18 * (ev.slice(0, ev.indexOf(e)).filter(q => q.r === e.r).length % 2); return `<g transform="translate(${x(k).toFixed(1)},${y(v).toFixed(1)})"><line y2="${-up}" stroke="${c.c}" stroke-width="1"/><circle r="2.2" fill="${c.c}"/><g transform="translate(0,${-up})"><circle r="8.5" fill="#f3e8cc" stroke="${c.c}" stroke-width="1.8"/><text y="4.3" text-anchor="middle" font-size="12" font-family="serif" fill="#2b1d10">${e.i}\uFE0E</text></g></g>`; }).join("");
+  const list = ev.length ? `<ul class="chron">${ev.map(e => `<li><span class="cr">M. ${e.r}</span> <span class="ci">${e.i}\uFE0E</span> ${e.t}</li>`).join("")}</ul>` : "";
+  return `<h3>Chronique du règne</h3><svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Territoires par Maison au fil des manches">${grid}${lines}${marks}<text x="${W - 8}" y="${Hh - 4}" text-anchor="end" font-size="11" fill="#6e5838">manche ${H.length}</text><text x="${pad}" y="${Hh - 4}" font-size="11" fill="#6e5838">manche 1</text></svg>
+    <div class="row small" style="gap:12px;margin-top:2px">${S.players.map((p, i) => `<span>${shieldSVG(i, 12)} ${esc(p.name.replace(/^Maison (d')?/i, ""))}</span>`).join("")}</div>${list}`;
 }
+// moments clés de la partie (affichés dans la chronique de fin) ; n'influence aucune règle
+function chron(o, icon, txt) {
+  if (!S) return; S.ev ||= [];
+  if (icon === "♜" && S.ev.some(e => e.t === txt)) return;   // une capitale qui change de mains plusieurs fois : on ne le raconte qu'une fois
+  S.ev.push({ r: S.round, o, i: icon, t: txt });
+}
+const shortName = o => esc(P(o).name.replace(/^Maison (d')?/i, ""));
+const fullName = o => esc(P(o).name), laName = o => "la " + esc(P(o).name);
 function victory(o, kind, why) {
   S.over = true; S.busy = false;
   log(`👑 Victoire ${kind} de ${esc(P(o).name)} !`, "warn");
@@ -350,6 +367,7 @@ function battle(f, t) {
   }
   F.a -= la; T.a -= ld;
   if (la) floatText(f, "−" + la, "loss"); if (ld) floatText(t, "−" + ld, "loss");
+  strikeFX(f, t, att, ld > 0 && T.a > 0);
   sfx("des");
   S.tray = { kind: "battle", A, D, mA, mD, lostA, lostD, txt: `${TERR[f].n} → ${TERR[t].n} : l'attaquant perd ${la}, le défenseur perd ${ld}.` };
   if (def >= 0 && ld) P(def).lost = true;
@@ -369,6 +387,7 @@ function conquer(f, t, minMove) {
     if (P(prev).capital === t) {
       P(prev).stab = clamp(P(prev).stab - 3, 0, 10);
       P(o).inf += 2;
+      chron(o, "♜", `${fullName(o)} prend ${TERR[t].n}, capitale de ${laName(prev)}`);
       log(`👑 La capitale de ${esc(P(prev).name)} tombe ! Sa stabilité chute de 3 ; ${esc(P(o).name)} pille le trésor royal (+2 influence).`, "warn");
     }
     if (!ownedBy(prev).length) eliminate(prev, o);
@@ -454,6 +473,7 @@ function breakPact(a, b) {
   P(a).stab = clamp(P(a).stab - 3, 0, 10);
   P(b).inf += 2;
   P(a).betrayed = S.round;
+  chron(a, "⚔", `${fullName(a)} trahit son pacte avec ${laName(b)}`);
   log(`🗡 ${esc(P(a).name)} trahit son pacte avec ${esc(P(b).name)} ! Stabilité −3 ; la victime gagne +2 influence.`, "warn");
 }
 async function proposePact(a, b, why) {
@@ -522,6 +542,23 @@ function plantFlag(t, o) {
   g.setAttribute("class", "flag"); g.setAttribute("transform", `translate(${x + 13},${y - 8})`);
   g.innerHTML = `<g class="flagIn"><path d="M0,0 V-26" stroke="#2a1608" stroke-width="1.6" stroke-linecap="round"/><path d="M0,-26 H15 L11,-20.5 L15,-15 H0Z" fill="${c.c}" stroke="#2a1608" stroke-width="1"/><circle cy="-27" r="1.6" fill="#e3b445"/></g>`;
   $("tokens").appendChild(g); setTimeout(() => g.remove(), 1700);
+}
+// trait d'attaque aux couleurs de l'assaillant + choc sur le territoire visé (un seul à la fois, purement visuel)
+let strikeT = 0, shakeTok = null;
+function strikeFX(f, t, o, hit) {
+  if (!tokEls[t] || typeof document === "undefined" || o < 0) return;
+  const old = $("tokens").querySelector(".strike"); if (old) old.remove();
+  const [x1, y1] = MAP.centers[f], [x2, y2] = MAP.centers[t], dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1;
+  const sx = x1 + dx * 16 / L, sy = y1 + dy * 16 / L, ex = x2 - dx * 19 / L, ey = y2 - dy * 19 / L;
+  const mx = (sx + ex) / 2 - dy * .18, my = (sy + ey) / 2 + dx * .18, c = PCOL[P(o).color].c;
+  const a = Math.atan2(ey - my, ex - mx) * 180 / Math.PI;
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("class", "strike" + (hit ? " hit" : ""));
+  g.innerHTML = `<path class="sk" d="M${sx.toFixed(1)},${sy.toFixed(1)}Q${mx.toFixed(1)},${my.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" pathLength="100" stroke="${c}"/><path class="sh" transform="translate(${ex.toFixed(1)},${ey.toFixed(1)}) rotate(${a.toFixed(0)})" d="M2,0 L-9,-6 L-6,0 L-9,6Z" fill="${c}"/><g class="clash" transform="translate(${x2},${y2})"><path d="M-9,-9 L9,9 M9,-9 L-9,9 M0,-12 V12 M-12,0 H12"/></g>`;
+  $("tokens").appendChild(g);
+  if (shakeTok) shakeTok.classList.remove("shake");
+  const tk = shakeTok = tokEls[t]; void tk.getBoundingClientRect(); if (hit) tk.classList.add("shake");
+  clearTimeout(strikeT); strikeT = setTimeout(() => { g.remove(); tk.classList.remove("shake"); shakeTok = null; }, 750);
 }
 function floatText(t, txt, cls) {
   if (!tokEls[t] || typeof document === "undefined") return;
@@ -1142,7 +1179,7 @@ function modal(html, buttons) {
     $("mbox").innerHTML = html + `<div class="btns">${buttons.map((b, k) => `<button data-k="${k}" class="${b[2] || ""}">${b[0]}</button>`).join("")}</div>`;
     $("modal").classList.remove("hidden");
     $("mbox").querySelectorAll("[data-k]").forEach(b => b.onclick = () => { $("modal").classList.add("hidden"); res(buttons[+b.dataset.k][1]); });
-    const last = $("mbox").querySelector(".btns button:last-child"); if (last) last.focus();
+    const last = $("mbox").querySelector(".btns button:last-child"); if (last) last.focus({ preventScroll: true }); $("mbox").scrollTop = 0;
   });
 }
 function setupDialog() {
@@ -1256,10 +1293,17 @@ function measureGeo() {
   const s0 = Math.min(W / cvb.w, H / cvb.h);
   geo = { s0, ox: (W - cvb.w * s0) / 2, oy: (H - cvb.h * s0) / 2, left: r.left, top: r.top };
 }
+// taille des noms de territoires : au moins ~11,5 px à l'écran (téléphone, volet étroit), sans dépasser ×1,6
+function labelScale() {
+  const m = $("map"); if (!m || !m.clientWidth) return;
+  const s = Math.min(m.clientWidth / cvb.w, m.clientHeight / cvb.h);
+  m.style.setProperty("--lk", clamp(11.5 / (13 * s), 1, 1.6).toFixed(3));
+}
 function commitVB() {
   const m = $("map");
   cvb = { ...vb };
   m.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  labelScale();
   m.style.transform = ""; m.classList.remove("gesture");
   m.classList.toggle("zoomed", vb.w < VB0.w - 1);
   geo = null;
@@ -1354,7 +1398,7 @@ function initZoom() {
   m.addEventListener("click", e => { if (justDragged) { e.stopPropagation(); e.preventDefault(); } }, true);
   m.addEventListener("dblclick", e => { const p = svgPt(e.clientX, e.clientY); zoomAt(1 / 1.6, p.x, p.y); });
   $("zIn").onclick = () => zoomCenter(1 / 1.3); $("zOut").onclick = () => zoomCenter(1.3); $("zReset").onclick = () => { vb = { ...VB0 }; applyVB(true); };
-  window.addEventListener("resize", () => { geo = null; placeShadow(); });
+  window.addEventListener("resize", () => { geo = null; placeShadow(); labelScale(); });
   placeShadow(); setTimeout(placeShadow, 300);
   $("legBtn").onclick = () => { const L = $("legend"); L.classList.toggle("closed"); $("legBtn").setAttribute("aria-expanded", !L.classList.contains("closed")); };
   $("legend").onclick = () => $("legBtn").click();

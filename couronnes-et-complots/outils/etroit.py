@@ -2,7 +2,7 @@
 from playwright.sync_api import sync_playwright
 U='file:///home/claude/gameclaude/couronnes-et-complots/jeu/couronnes-et-complots.html'
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path='/usr/bin/google-chrome'); errs=[]
+    b=p.chromium.launch(); errs=[]
     for nom,(w,h,touch) in {'volet':(483,755,False),'tel':(390,844,True)}.items():
         ctx=b.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch,device_scale_factor=2)
         pg=ctx.new_page(); pg.on('pageerror',lambda e: errs.append(str(e)))

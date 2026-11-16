@@ -63,7 +63,7 @@ main{flex:1;display:flex;min-height:0}
 .tok .shield{transition:fill .5s}
 .tok:hover .shield{stroke:#fff3cf}
 .tok text.n{font:700 13px var(--f-body);fill:#fff;text-anchor:middle;dominant-baseline:central;pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:2px}
-.tok text.lbl{font:italic 13px var(--f-map);fill:#24180c;text-anchor:middle;paint-order:stroke;stroke:#efe2c0;stroke-width:3.2px;stroke-linejoin:round;pointer-events:none;letter-spacing:.01em}
+.tok text.lbl{font:italic calc(13px * var(--lk, 1)) var(--f-map);transform:translateY(calc((var(--lk, 1) - 1) * 9px));fill:#24180c;text-anchor:middle;paint-order:stroke;stroke:#efe2c0;stroke-width:3.2px;stroke-linejoin:round;pointer-events:none;letter-spacing:.01em}
 .sea{font:italic 14px var(--f-map);fill:#d9e6e1;opacity:.72;letter-spacing:.18em;text-anchor:middle}
 .ring{fill:none;stroke-width:2.5;pointer-events:none}
 .ring.sel{stroke:#ffd76a;stroke-width:3}
@@ -92,7 +92,22 @@ main{flex:1;display:flex;min-height:0}
 #modal .crest{display:flex;justify-content:center;margin:-6px 0 2px}
 #modal .kicker{text-align:center;font-family:var(--f-map);font-style:italic;color:#6e5838;margin:0 auto 2px;font-size:14px}
 #modal:has(.crest){backdrop-filter:blur(4px) sepia(.25)}
-.float.loss{fill:#ffb3a8;font-size:15px}
+.strike{pointer-events:none}
+.strike .sk{fill:none;stroke-width:3.2;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;filter:drop-shadow(0 0 1.5px #1a0f06);animation:strikeDraw .28s ease-out forwards, strikeFade .75s ease-in forwards}
+.strike .sh{stroke:#1a0f06;stroke-width:.8;opacity:0;animation:strikeHead .75s ease-in forwards}
+.strike .clash path{fill:none;stroke:#fff6d8;stroke-width:2.2;stroke-linecap:round;opacity:0;transform:scale(.3);animation:clash .5s .22s ease-out forwards}
+.strike.hit .clash path{stroke:#ffcf6a}
+@keyframes strikeDraw{to{stroke-dashoffset:0}}
+@keyframes strikeFade{0%,65%{opacity:1}100%{opacity:0}}
+@keyframes strikeHead{0%,30%{opacity:0}40%,65%{opacity:1}100%{opacity:0}}
+@keyframes clash{0%{opacity:0;transform:scale(.3)}30%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+.tok.shake .body{animation:shake .32s .22s ease-in-out}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-2.5px)}75%{transform:translateX(2.5px)}}
+.chron{list-style:none;margin:6px 0 4px;padding:0;font-size:13px;columns:2 220px;column-gap:18px}
+.chron li{break-inside:avoid;padding:1px 0}
+.chron .ci{font-family:serif;color:#2b1d10;display:inline-block;width:1.1em;text-align:center}
+.chron .cr{color:#8a6d45;font-variant-numeric:tabular-nums;margin-right:2px}
+.float.loss{fill:#ffd2c8;font-size:17px;stroke-width:3.8px}
 .float{font:700 16px var(--f-body);fill:#fff;paint-order:stroke;stroke:#2a1608;stroke-width:3.5px;text-anchor:middle;pointer-events:none;animation:floatUp 1s ease-out forwards}
 @keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-26px)}}
 #tray{position:absolute;left:22px;bottom:20px;background:rgba(23,17,13,.94);border:1px solid var(--line);border-radius:8px;padding:9px 13px;display:none;gap:13px;align-items:center;max-width:calc(100% - 44px);box-shadow:0 8px 20px rgba(0,0,0,.5)}

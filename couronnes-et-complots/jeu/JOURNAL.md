@@ -115,3 +115,12 @@ Mesure de Victor (MacBook Pro Intel, Iris Plus, application Claude, volet de 483
 - Volet étroit / téléphone : la carte n'était plus lisible (largeur minimale de 840 px, défilement horizontal). Désormais ajustée à la largeur, départ zoomé ×1,8 sur la capitale du joueur, pincement à deux doigts, double appui (zoom / dézoom), en-tête compacté (son en icône).
 - Banc perf.py étendu à 483×755 : zoom 55,6 → 58,3 img/s, IA ≈ 57, sans erreur. Références téléphone mises à jour (changement voulu) ; vues ordinateur : 0,0 % de pixels changés.
 - Tests : pincement 584 → 329 unités de largeur, double appui OK (émulation tactile), partie complète en clics réels OK, A/B rusée vs normale 77 %, 0 erreur.
+
+## Cycle 13 (16 nov.) — parties sans fin, lisibilité, combats, chronique
+- Diagnostic « parties > 40 manches » : 480 parties (5 rusées, 4 normales, 2 rusées, 3 normales, tables mêlées 4J et 5J) → 0 partie non terminée, 0 erreur. Les ≈5 % datent d'avant la fin de règne (cycle 2) : la piste est close. Constat restant : à 5 rusées, 78 % des parties vont jusqu'à la manche 30 et se tranchent au Conseil (médiane 30) ; 4 normales : 1 % ; tables mêlées 4J/5J : 8-9 %.
+- Noms de territoires : taille à l'écran d'au moins ~11,5 px (variable --lk recalculée à chaque fin de geste et au redimensionnement, plafond ×1,6). Téléphone au départ : ~8 → ~11,5 px. Ordinateur inchangé (0,0 % de pixels).
+- Combat : trait d'attaque courbe aux couleurs de l'assaillant, pointe, choc (croix) sur la cible, secousse du blason qui résiste ; « −1 » plus clairs et plus grands.
+- Chronique de fin : repères sur le graphique et liste des moments clés (capitales prises, trahisons, proclamations, éliminations, changements de tête ; 7 au plus, capitale reprise plusieurs fois racontée une fois). Fenêtre de fin ouverte en haut (le focus faisait défiler sur téléphone).
+- Équilibre intact : 15/15 parties à graine fixe identiques avant/après ; rusée vs normale 78 % (120 parties, 4J) ; débutant vs facile 4J 51 % / 59 % avant (80 parties chacun, même code de jeu : bruit).
+- Fluidité (perf_v7.json vs version d'avant, même minute) : téléphone zoom 59 → 58,7 img/s, IA 59,5 → 59,5 ; 1440×900 IA 40 → 43,9 ; render 7,4 → 5,2 ms. Partie complète en clics réels : OK, 0 erreur. Référence téléphone mise à jour (changement voulu).
+- outils-communs/compare.py : colonne informative « détail fin » (taille réelle, tolérance ±1 px) — la vue réduite ne voyait pas l'agrandissement des noms (0,0 %).

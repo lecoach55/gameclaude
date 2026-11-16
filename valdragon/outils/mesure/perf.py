@@ -2,6 +2,7 @@
 # Sortie : temps moyen par image (rendu logiciel = indicateur relatif du coût GPU), appels, triangles, programmes.
 import asyncio,json,sys,os,statistics as S
 from playwright.async_api import async_playwright
+import os as _os;VD_URL=_os.environ.get('VD_URL','http://localhost:8765/index_local.html')  # autre version du jeu : VD_URL=http://localhost:8766/index_local.html
 SK="()=>{const s=document.getElementById('story');if(s.style.display==='block'){const k=s.querySelector('.sskip');if(k)k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));}}"
 MEAS="""async(n)=>{const d=G3._d();const gl=d.renderer.getContext(),px=new Uint8Array(4);d.composer.render(.016);gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);
  d.renderer.info.autoReset=false;d.renderer.info.reset();const ts=[];for(let i=0;i<n;i++){if(window.__SHALL)d.renderer.shadowMap.needsUpdate=true;const t0=performance.now();d.composer.render(.016);gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);ts.push(performance.now()-t0);}
@@ -21,7 +22,7 @@ async def main():
                 pg=await b.new_page(viewport={'width':390,'height':780},device_scale_factor=1)
                 pg.on('pageerror',lambda e:errs.append(str(e)[:200]))
                 await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','%d')}catch(e){}window.__noAutoQ=1;"%lvl)
-                await pg.goto('http://localhost:8765/index_local.html',timeout=180000);await pg.wait_for_timeout(1500)
+                await pg.goto(VD_URL,timeout=180000);await pg.wait_for_timeout(1500)
                 await pg.click('#nw',timeout=120000);await pg.wait_for_function("window.VD&&VD.P",timeout=60000);await pg.wait_for_timeout(2500)
                 for i in range(4): await pg.evaluate(SK);await pg.wait_for_timeout(300)
                 await pg.evaluate("()=>{VD.P.story.push('prologue','biome0','biome1','biome2','biome3','pre0','pre1','pre2','pre3');}")

@@ -7,6 +7,7 @@ import asyncio, sys, subprocess
 from playwright.async_api import async_playwright
 from PIL import Image, ImageDraw
 
+import os as _os;VD_URL=_os.environ.get('VD_URL','http://localhost:8765/index_local.html')  # autre version du jeu : VD_URL=http://localhost:8766/index_local.html
 SK = "()=>{const s=document.getElementById('story');if(s.style.display==='block'){s.querySelector('.sskip').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));return 1}return 0}"
 MEAS = """()=>{const d=G3._d();const gl=d.renderer.getContext(),px=new Uint8Array(4);d.renderer.info.autoReset=false;d.renderer.info.reset();
  const t0=performance.now();for(let i=0;i<3;i++){d.composer.render(.016);gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);}
@@ -22,7 +23,7 @@ async def skip(pg, n=4):
 async def fresh(b):
     pg = await b.new_page(viewport={'width': 390, 'height': 780}, device_scale_factor=1)
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)[:200]))
-    await pg.goto('http://localhost:8765/index_local.html', timeout=180000); await pg.wait_for_timeout(1200)
+    await pg.goto(VD_URL, timeout=180000); await pg.wait_for_timeout(1200)
     await pg.evaluate("()=>{try{localStorage.setItem('vd_q2','2')}catch(e){}}")
     return pg, errs
 

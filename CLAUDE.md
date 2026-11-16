@@ -48,7 +48,7 @@ RPG 3D au tour par tour (Three.js r160). Artefact publié : slug `6899e11c-5894-
 - `mesure/captures.py dossier [niveau]` + `mesure/compare.py references/normale dossier planche.png` : comparaison d'images avec les références (`valdragon/references/normale`). À lancer après chaque modification visuelle ; une alerte = changement visuel à vérifier ou à assumer (puis mettre à jour les références).
 - `mesure/pieds_capture.py` + `pieds_analyse.py` : glissement et contact au sol des pieds.
 - `mesure/captures.py` écrit aussi `lisibilite.json` (luminance des personnages vs leur entourage, contraste de silhouette « bord ») ; `mesure/vue_haute.py` : vue d'ensemble d'étages entiers révélés (architecture, habillage).
-- `ressources/ph_tex2.py` : textures de biome Poly Haven (couleur + relief, **rugosité dans le canal bleu de `_n`**) ; `ressources/pack_phprops.mjs` : décors photoréalistes Poly Haven → `mq/phprops.glb` (nœuds nommés comme les pièces KayKit qu'ils remplacent). Sources via `outils-communs/phget.py`.
+- `ressources/ph_tex2.py` : textures de biome Poly Haven (couleur + relief, **rugosité dans le canal bleu de `_n`**) ; `ressources/pack_phprops.mjs` : décors photoréalistes Poly Haven → `mq/phprops.glb` (nœuds nommés comme les pièces KayKit qu'ils remplacent). Sources via `outils-communs/phget.py`. ambientCG (CC0, dossier `/home/claude/assets/acg`) : coulures (`Leaking*`) et mousse (`Moss002`) mêlées aux murs par `ph_tex2.py`, lave (`tex/lava_d.jpg`, Lava001, `lavaDecal` dans vfx.js) et glace (`tex/ice_d.jpg`, Ice003, `iceSheet` dans g3d.js).
 - `tests/explore.py minutes 1,5,9,13` + `agent2.js` : testeur exhaustif (vrai joystick, toutes les cases, objets, marchand, menus, compétences, boss).
 - `tests/scen.py`, `tests/sauvegarde.py`, `tests/hors_ligne.py`, `tests/bot.py`, `tests/sim.js` + `analyze.js`.
 - `ressources/` : simplification de modèles (simp_kit.mjs), textures Poly Haven (ph_tex.py, rockfix.py), conversion FBX 6.1 Mixamo (fbx61.py).
@@ -60,6 +60,7 @@ Lire avec `db_list` (slug du jeu, collection `data/users/<id>`, id donné par `d
 
 ### Méthode qui marche
 Mesurer avant/après chaque changement (perf.py), vérifier visuellement (captures), tester (explore + scen + sauvegarde + hors ligne), puis publier et envoyer un bilan chiffré en français.
+**Raccourcis** (dans `mesure/`) : `verif.py rapide|complet` fait tout d'un coup (rapport `verif/rapport.html`, code 1 si échec) ; `avant_apres.py [révision]` compare au dépôt GitHub (images + banc dans la même minute) ; `poids.py` = budget des 16 Mio ; `gros_plan.py étage sortie.png zoom niveau cible` (statue, lave, glace, marchand, coffre, nom de pièce). Guide complet du graphisme : `valdragon/outils/GRAPHISME.md`. Ressources CC0 : `outils-communs/catalogue.py` (recherche Poly Haven + ambientCG avec planche d'aperçus).
 
 ## Sedes Petri — Le Trône de Pierre (`sedes-petri/`)
 Jeu de gestion (on incarne le pape, 1073-1517). Artefact : slug `e403381b-4eb6-4956-af79-666fc1dc0712`, publié tel quel depuis `sedes-petri/jeu` (publish_files, mode patch, pas de construction).

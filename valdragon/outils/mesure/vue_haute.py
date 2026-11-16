@@ -4,6 +4,7 @@
 import asyncio,sys
 from playwright.async_api import async_playwright
 from PIL import Image
+import os as _os;VD_URL=_os.environ.get('VD_URL','http://localhost:8765/index_local.html')  # autre version du jeu : VD_URL=http://localhost:8766/index_local.html
 SK="()=>{const s=document.getElementById('story');if(s&&s.style.display==='block'){const k=s.querySelector('.sskip');if(k)k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));}}"
 async def main():
     out=sys.argv[1];FL=[int(x) for x in (sys.argv[2] if len(sys.argv)>2 else '2,6,10,14').split(',')];Z=float(sys.argv[3]) if len(sys.argv)>3 else .42;lvl=int(sys.argv[4]) if len(sys.argv)>4 else 1
@@ -13,7 +14,7 @@ async def main():
         for F in FL:
             pg=await b.new_page(viewport={'width':700,'height':700})
             await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','%d')}catch(e){}window.__noAutoQ=1;"%lvl)
-            await pg.goto('http://localhost:8765/index_local.html',timeout=180000);await pg.wait_for_timeout(1500)
+            await pg.goto(VD_URL,timeout=180000);await pg.wait_for_timeout(1500)
             await pg.click('#nw');await pg.wait_for_function("window.VD&&VD.P");await pg.wait_for_timeout(2500)
             for i in range(4): await pg.evaluate(SK);await pg.wait_for_timeout(300)
             await pg.evaluate("()=>{VD.P.story.push('prologue','biome0','biome1','biome2','biome3','pre0','pre1','pre2','pre3');}")

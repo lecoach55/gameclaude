@@ -1,6 +1,7 @@
 # Profil du combat : coût de chaque catégorie d'objets (on la masque, on mesure, on la remet)
 import asyncio,json,sys
 from playwright.async_api import async_playwright
+import os as _os;VD_URL=_os.environ.get('VD_URL','http://localhost:8765/index_local.html')  # autre version du jeu : VD_URL=http://localhost:8766/index_local.html
 SK="()=>{const s=document.getElementById('story');if(s.style.display==='block'){const k=s.querySelector('.sskip');if(k)k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));}}"
 MEAS="""async(n)=>{const d=G3._d();const gl=d.renderer.getContext(),px=new Uint8Array(4);d.composer.render(.016);gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);
  d.renderer.info.autoReset=false;d.renderer.info.reset();const ts=[];for(let i=0;i<n;i++){const t0=performance.now();d.composer.render(.016);gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,px);ts.push(performance.now()-t0);}
@@ -20,7 +21,7 @@ async def main():
         b=await p.chromium.launch(args=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
         pg=await b.new_page(viewport={'width':390,'height':780})
         await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','1')}catch(e){}")
-        await pg.goto('http://localhost:8765/index_local.html',timeout=180000);await pg.wait_for_timeout(1500)
+        await pg.goto(VD_URL,timeout=180000);await pg.wait_for_timeout(1500)
         await pg.click('#nw',timeout=120000);await pg.wait_for_function("window.VD&&VD.P",timeout=60000);await pg.wait_for_timeout(2500)
         for i in range(4): await pg.evaluate(SK);await pg.wait_for_timeout(300)
         await pg.evaluate("()=>{VD.P.story.push('prologue','biome0','biome1','biome2','biome3','pre0','pre1','pre2','pre3');Math.random=(()=>{let s=99;return()=>{s=(s*16807)%2147483647;return (s-1)/2147483646;};})();VD.newGame(VD.P,4248);VD.startFloor(6);const e=VD.E.find(e=>!e.boss);VD.P.x=e.x;VD.P.y=e.y+.4;}")

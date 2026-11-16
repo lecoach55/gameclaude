@@ -1,5 +1,6 @@
 import asyncio,json
 from playwright.async_api import async_playwright
+import os as _os;VD_URL=_os.environ.get('VD_URL','http://localhost:8765/index_local.html')  # autre version du jeu : VD_URL=http://localhost:8766/index_local.html
 SK="()=>{const s=document.getElementById('story');if(s.style.display==='block'){s.querySelector('.sskip').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));return 1}return 0}"
 async def main():
     async with async_playwright() as p:
@@ -21,7 +22,7 @@ async def main():
                 if r!='go': return r
                 await pg.wait_for_timeout(400)
             return 'timeout'
-        await pg.goto('http://localhost:8765/index_local.html');await pg.wait_for_timeout(1500)
+        await pg.goto(VD_URL);await pg.wait_for_timeout(1500)
         await pg.evaluate("()=>{G3.render=()=>{};}")
         await pg.click('#nw');await pg.wait_for_function("window.VD&&VD.P",timeout=60000);await pg.wait_for_timeout(2500);await skip()
         await state('start')

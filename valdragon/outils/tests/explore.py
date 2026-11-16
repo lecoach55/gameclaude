@@ -1,6 +1,7 @@
 # Lance le testeur exhaustif (agent2.js) sur plusieurs tranches d'étages en parallèle, sans rendu (accéléré)
 import asyncio,sys,json,time
 from playwright.async_api import async_playwright
+import os as _os;VD_URL=_os.environ.get('VD_URL','http://localhost:8765/index_local.html')  # autre version du jeu : VD_URL=http://localhost:8766/index_local.html
 MIN=float(sys.argv[1]) if len(sys.argv)>1 else 8
 STARTS=[int(x) for x in (sys.argv[2] if len(sys.argv)>2 else '1,5,9,13').split(',')]
 async def run(b,idx,F0):
@@ -9,7 +10,7 @@ async def run(b,idx,F0):
     pg=await ctx.new_page();errs=[]
     pg.on('pageerror',lambda e:errs.append('PAGE:'+str(e)[:300]))
     pg.on('console',lambda m:errs.append('CON:'+m.text[:200]) if m.type=='error' and '404' not in m.text else None)
-    await pg.goto('http://localhost:8765/index_local.html',timeout=180000);await pg.wait_for_timeout(1500)
+    await pg.goto(VD_URL,timeout=180000);await pg.wait_for_timeout(1500)
     await pg.evaluate("()=>{G3.render=()=>{};}")
     await pg.click('#nw',timeout=120000);await pg.wait_for_function("window.VD&&VD.P",timeout=60000);await pg.wait_for_timeout(2500)
     await pg.evaluate(f"()=>{{const P=VD.P;P.story.push('prologue','biome0','biome1','biome2','biome3','pre0','pre1','pre2','pre3');if({F0}>1)VD.startFloor({F0});}}")

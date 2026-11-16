@@ -62,11 +62,16 @@ export function updSmoke(dt){if(!sm)return;let n=0;for(let i=sD.length-1;i>=0;i-
  const g=sm.geometry;g.setDrawRange(0,n);g.attributes.position.needsUpdate=g.attributes.color.needsUpdate=g.attributes.size.needsUpdate=g.attributes.rot.needsUpdate=true;}
 
 /* ---------- coulées de lave / givre (décalques animés) ---------- */
-export function lavaDecal(w,h,seed=0){const m=new THREE.ShaderMaterial({uniforms:{t:{value:0},s:{value:seed}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+// mare de lave : texture réelle ambientCG Lava001 (CC0), croûte sombre et veines incandescentes qui coulent lentement
+export function lavaDecal(w,h,seed=0){const tx=elTex('lava_d');if(tx){tx.wrapS=tx.wrapT=THREE.RepeatWrapping;}
+ const m=new THREE.ShaderMaterial({uniforms:{t:{value:0},s:{value:seed},tx:{value:tx}},transparent:true,depthWrite:false,
  vertexShader:'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
- fragmentShader:`uniform float t,s;varying vec2 vU;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+ fragmentShader:`uniform float t,s;uniform sampler2D tx;varying vec2 vU;float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
- void main(){vec2 p=vU*vec2(${w.toFixed(1)},${h.toFixed(1)})*2.+s;float a=n(p+vec2(t*.15,0.))*.6+n(p*2.3-vec2(0.,t*.2))*.4;float crack=(1.-smoothstep(.0,.03,abs(a-.5)))*smoothstep(.42,.62,n(p*.45+7.3));
-  float edge=smoothstep(0.,.25,vU.x)*smoothstep(1.,.75,vU.x)*smoothstep(0.,.25,vU.y)*smoothstep(1.,.75,vU.y);float pul=.75+.25*sin(t*2.+s);
-  vec3 c=mix(vec3(.7,.12,.01),vec3(1.,.55,.18),crack*crack);gl_FragColor=vec4(c*crack*edge*pul*.95,1.);}`});
+ void main(){vec2 q=vU*2.-1.;float r=length(q*vec2(1.,1.08));float b=.78+.22*(n(vU*5.+s)-.5)*2.;float edge=1.-smoothstep(b-.22,b,r);if(edge<=.002)discard;
+  vec2 uv=vU*vec2(${w.toFixed(2)},${h.toFixed(2)})*.55+vec2(s*.13,s*.07);vec3 a=texture2D(tx,uv+vec2(t*.012,t*.006)).rgb,c=texture2D(tx,uv*1.37-vec2(t*.009,-t*.004)+.5).rgb;
+  vec3 col=pow(mix(a,c,.45),vec3(2.2));float L=dot(col,vec3(.3,.59,.11));float hot=smoothstep(.015,.22,L)*(.8+.2*sin(t*1.7+s+L*9.))*(1.5-r*.7);
+  float rim=smoothstep(b-.22,b-.05,r);/* bord : croûte refroidie */vec3 o=col*(.3+hot*6.*(1.-rim*.85))+vec3(.9,.25,.03)*hot*(1.-rim)*.12+vec3(.03,.02,.015)*rim;
+  gl_FragColor=vec4(o,edge*(.92-rim*.2));}`});
+ if(!tx){m.fragmentShader='void main(){discard;}';}
  const o=new THREE.Mesh(new THREE.PlaneGeometry(w,h),m);o.rotation.x=-Math.PI/2;o.position.y=.03;return o;}

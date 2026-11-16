@@ -187,7 +187,8 @@ function buildFloor(VD){endTitle();mode='explo';needComp=1;EX.lavas=[];EX.bats=n
  VD.rooms.forEach((r,i)=>{for(let k=0;k<5;k++){const x=r.x+hr(i,k,1)*r.w,y=r.y+hr(i,k,2)*r.h;if(VD.solid(x,y))continue;const sel=hr(i,k,3);
   if(tier===1&&sel<.5){const g=new THREE.Group();for(let m=0;m<3;m++){const st=new THREE.Mesh(new THREE.CylinderGeometry(.03,.04,.2+m*.06,6),mat(0x8a8a7a));st.position.set((m-1)*.12,.1+m*.03,(m%2)*.08);g.add(st);const cp=new THREE.Mesh(new THREE.SphereGeometry(.1,12,6,0,TAU,0,Math.PI/2),mat(0x5a6a62,{em:0x3a8a90,ei:.35}));cp.position.set((m-1)*.12,.2+m*.06,(m%2)*.08);g.add(cp);}add(g,x,y);}
   else if(tier===3&&sel<.45){const g=new THREE.Group();for(let m=0;m<4;m++){const c=new THREE.Mesh(new THREE.OctahedronGeometry(.12,0),mat(0x8fa8b8,{em:0x3a6a8a,ei:.25,flat:1}));c.scale.set(.8,2+m*.6,.8);c.position.set((m-1.5)*.1,.25+m*.05,(m%2)*.07);c.rotation.z=(m-1.5)*.25;g.add(c);}add(g,x,y);}
-  else if(tier===2&&sel<.4){if(K.ok){const c=lavaDecal(1.1,.9,i*7+k);c.rotation.z=hr(i,k,4)*3;add(c,x,y);(EX.lavas=EX.lavas||[]).push(c);}else{const c=new THREE.Mesh(new THREE.PlaneGeometry(.9,.12),new THREE.MeshBasicMaterial({color:0xff6a1a}));c.rotation.x=-Math.PI/2;c.rotation.z=hr(i,k,4)*3;c.position.y=.015;add(c,x,y);}}
+  else if(tier===3&&sel<.75&&K.ok){const c=iceSheet(1.3+hr(i,k,5)*.8);c.rotation.z=hr(i,k,4)*3;c.userData.kind='glace';add(c,x,y);}
+  else if(tier===2&&sel<.4){if(K.ok){const c=lavaDecal(1.5,1.25,i*7+k);c.rotation.z=hr(i,k,4)*3;c.userData.kind='lave';add(c,x,y);(EX.lavas=EX.lavas||[]).push(c);}else{const c=new THREE.Mesh(new THREE.PlaneGeometry(.9,.12),new THREE.MeshBasicMaterial({color:0xff6a1a}));c.rotation.x=-Math.PI/2;c.rotation.z=hr(i,k,4)*3;c.position.y=.015;add(c,x,y);}}
   else if(sel<.6){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,5),mat(0xcfc7b0));b.rotation.z=Math.PI/2;b.position.y=.03;g.add(b);if(sel<.5){const sk=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),mat(0xd8d0b8));sk.position.set(.18,.07,.05);g.add(sk);}g.rotation.y=sel*9;add(g,x,y);}}});
  // objets (coffres, tonneaux, sanctuaires)
  EX.objs=new Map();VD.obj.forEach(o=>EX.objs.set(o,makeObj(o)));
@@ -247,6 +248,12 @@ let webTex=null;function cobweb(){if(webTex)return webTex;const c=document.creat
  const n=9,R=[];for(let i=0;i<n;i++){const a=i/(n-1)*Math.PI/2;R.push(a);g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(a)*128,Math.sin(a)*128);g.stroke();}
  for(let r=14;r<128;r+=11+Math.random()*6){g.beginPath();R.forEach((a,i)=>{const rr=r*(1+(Math.random()-.5)*.12);const x=Math.cos(a)*rr,y=Math.sin(a)*rr;if(i)g.quadraticCurveTo(Math.cos(a-.09)*rr*.9,Math.sin(a-.09)*rr*.9,x,y);else g.moveTo(x,y);});g.globalAlpha=.4+Math.random()*.4;g.stroke();}
  webTex=new THREE.CanvasTexture(c);webTex.userData.keep=1;return webTex;}
+// plaque de glace (givre) : texture réelle ambientCG Ice003 (CC0), lisse et brillante, bord irrégulier
+let iceA=null,iceM=null;function iceSheet(sz){if(!iceM){const tx=elTex('ice_d',true);if(tx){tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.repeat.set(.7,.7);}
+  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');const gr=g.createRadialGradient(64,64,10,64,64,62);gr.addColorStop(0,'#fff');gr.addColorStop(.7,'#eee');gr.addColorStop(1,'#666');g.fillStyle=gr;g.beginPath();
+  for(let i=0;i<=24;i++){const a=i/24*TAU,r=40+Math.sin(i*2.7)*13+Math.cos(i*1.3)*8+Math.sin(i*5.1)*4;g.lineTo(64+Math.cos(a)*r,64+Math.sin(a)*r);}g.fill();iceA=new THREE.CanvasTexture(c);iceA.userData.keep=1;
+  iceM=new THREE.MeshStandardMaterial({map:tx,alphaMap:iceA,transparent:true,depthWrite:false,roughness:.06,metalness:.05,color:0xe8f4ff,emissive:0x1a2a38,opacity:.9,envMapIntensity:3});iceM.userData.keep=1;}
+ const o=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz*.8),iceM);o.rotation.x=-Math.PI/2;o.position.y=.035;o.receiveShadow=true;o.renderOrder=1;return o;}
 function kitWorld(VD,tier){EX.tint=new Float32Array(VD.W*VD.H*3).fill(1);VD.rooms.forEach(r=>{const th=VD.obj.some(o=>o.t==='chest'&&o.gold&&o.x>=r.x&&o.x<r.x+r.w&&o.y>=r.y&&o.y<r.y+r.h)?'tresor':r.theme;r.th2=th;const c=THEMEC[th];if(!c)return;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){const k=(y*VD.W+x)*3;EX.tint[k]=c[0];EX.tint[k+1]=c[1];EX.tint[k+2]=c[2];}});
 const Wd=VD.W,Hd=VD.H,fl=v=>v===1||v===2||v===3||v===4,isF=(x,y)=>fl(VD.at(x,y));const T=KTINT[tier],tc=new THREE.Color(T[0],T[1],T[2]);
  const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),pv=new THREE.Vector3(),sv=new THREE.Vector3(),up=new THREE.Vector3(0,1,0);EX.fog=[];
@@ -271,7 +278,7 @@ const Wd=VD.W,Hd=VD.H,fl=v=>v===1||v===2||v===3||v===4,isF=(x,y)=>fl(VD.at(x,y))
  // piliers
  EX.pills=[];for(let y=0;y<Hd;y++)for(let x=0;x<Wd;x++)if(VD.map[y*Wd+x]===3){if((tier===0||tier===3)&&K.piece.statue&&hr(x,y,91)<.45){/* crypte et givre : statue sur socle à la place d'un pilier (case déjà infranchissable) */
    const g=new THREE.Group(),pl=piece('pillar',1);pl.scale.set(.3,.075,.3);g.add(pl);const st=fitH(piece('statue',1),1.25);st.position.y=.3;{const rr=VD.rooms.find(r=>x>=r.x-1&&x<=r.x+r.w&&y>=r.y-1&&y<=r.y+r.h)||VD.rooms[0];st.rotation.y=Math.atan2(rr.cx-x,rr.cy-y)+(hr(x,y,92)-.5)*.4;}g.add(st);
-   g.position.set(x+.5,0,y+.5);g.visible=false;g.userData.c=[x,y];scW.add(g);EX.pills.push(g);}
+   g.position.set(x+.5,0,y+.5);g.visible=false;g.userData.c=[x,y];g.userData.kind='statue';scW.add(g);EX.pills.push(g);}
   else{const p=piece('pillar',1);p.scale.set(.25,WH,.25);p.position.set(x+.5,0,y+.5);p.visible=false;p.userData.c=[x,y];scW.add(p);EX.pills.push(p);}}
  // bannières et accessoires le long des murs
  EX.kprops=[];const addP=(o,x,y)=>{o.visible=false;o.userData.c=[x|0,y|0];scW.add(o);EX.kprops.push(o);};

@@ -3,6 +3,7 @@
 # Écrit aussi lisibilite.json : luminance moyenne des personnages, de leur entourage, et contraste (lisibilité des silhouettes)
 import asyncio,sys,os
 from playwright.async_api import async_playwright
+import os as _os;VD_URL=_os.environ.get('VD_URL','http://localhost:8765/index_local.html')  # autre version du jeu : VD_URL=http://localhost:8766/index_local.html
 SK="()=>{const s=document.getElementById('story');if(s&&s.style.display==='block'){const k=s.querySelector('.sskip');if(k)k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));}}"
 SCN=[('explo_F2','explo',2),('explo_F6','explo',6),('explo_F10','explo',10),('explo_F14','explo',14),('combat_F6','battle',6),('boss_F8','boss',8)]
 
@@ -22,7 +23,7 @@ LIS="""()=>{const d=G3._d(),r=d.renderer,gl=r.getContext(),sc=d.rp.scene,cam=d.c
 async def one(b,out,lvl,tag,kind,F):
     pg=await b.new_page(viewport={'width':390,'height':780})
     await pg.add_init_script("try{localStorage.clear();localStorage.setItem('vd_q2','%d')}catch(e){}window.__noAutoQ=1;"%lvl)
-    await pg.goto('http://localhost:8765/index_local.html',timeout=180000);await pg.wait_for_timeout(1500)
+    await pg.goto(VD_URL,timeout=180000);await pg.wait_for_timeout(1500)
     await pg.click('#nw',timeout=120000);await pg.wait_for_function("window.VD&&VD.P",timeout=60000);await pg.wait_for_timeout(2500)
     for i in range(4): await pg.evaluate(SK);await pg.wait_for_timeout(300)
     await pg.evaluate("()=>{VD.P.story.push('prologue','biome0','biome1','biome2','biome3','pre0','pre1','pre2','pre3');}")

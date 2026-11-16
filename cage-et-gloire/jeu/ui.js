@@ -43,7 +43,7 @@ async function charge(){try{const z=localStorage.getItem(CLE+'z');if(z&&window.D
 async function accueil(){$('accueil').classList.remove('cache');$('app').classList.add('cache');$('combat').classList.add('cache');$('cv3d').style.display='block';
  const s=await charge();let h='';
  if(s){const ms=Object.values(s.F).filter(f=>f.mine&&!f.ret).sort((p,q)=>(q.v-q.d)-(p.v-p.d)).slice(0,4);h+=`<button class="btn or" id="bCont">Continuer · ${esc(s.nom)}</button><div class="acc-sauv"><div>${ms.map(f=>`<span>${Portrait.svg(f,{mini:1,nobg:true})}</span>`).join('')}</div><small>${esc(dateDe(s))} · ${M.fmtE(s.argent)} · ${s.stats.v}-${s.stats.d} · ${s.stats.titres} ceinture(s)</small></div>`;}
- h+=`<button class="btn ${s?'':'or'}" id="bNouv">Nouvelle carrière</button><button class="btn fant" id="bNuage" style="display:none">☁ Reprendre la partie d'un autre appareil</button><button class="btn fant petit" id="bTest">🧪 Mode test</button>`;
+ h+=`<button class="btn ${s?'':'or'}" id="bNouv">Nouvelle carrière</button><button class="btn fant" id="bNuage" style="display:none">☁ Reprendre la partie d'un autre appareil</button><button class="btn fant" id="bTest" style="min-height:46px">🧪 Mode test (mesures, partie à part)</button>`;
  $('accBtns').innerHTML=h;
  if(s)$('bCont').onclick=()=>{G=M.charger(s);completer(G);lancer();};
  $('bNouv').onclick=nouvelle;$('bTest').onclick=modeTest;

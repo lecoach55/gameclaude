@@ -59,6 +59,13 @@ Construction : `npm i` à la racine du dossier (three 0.160, esbuild, @fontsourc
 - Textures Poly Haven (CC0) dans `jeu/tex/` (préparées par `outils/prep_tex.py`), intégrées en base64 par `build.py` (`<script type="text/plain" id="tex-NOM">`, lues par `texImg()` dans arene.js). Ne pas oublier de les versionner.
 - Pas de carte d'environnement (PMREM) : trop chère sur Mac Intel/téléphone. Relief du tapis seulement en Haute.
 
+## Combattants crédibles (v11)
+- Le mannequin Xbot reste le squelette, mais sa matière est entièrement refaite dans le shader (`matPerso`, `GLSL_COULEUR` dans arene.js) à partir d'une position de repos commune aux deux maillages (attribut `bp` : x gauche, y hauteur 0-1, z avant, calculé dans `regions()`), plus deux bruits précalculés par sommet (`nzv`).
+- Short MMA (plis, ceinture sombre à liseré, bande latérale, ourlet ; couleur d'accent `uAcc` claire ou foncée selon le short), gants ouverts (bandages blancs au poignet, sangle à scratch, coussin des phalanges, doigts nus), coupes de cheveux selon `app.chev` (0 rasé, 1 tondeuse, 3 crête, autres courts), barbe en poils courts, visage (arcades, sourcils, nez, bouche), musculature en relief (abdominaux, pectoraux, dos ; hommes torse nu seulement). Le « ballon » du bassin du mannequin est aplati au chargement.
+- **Trois variantes de shader selon la distance à la caméra** (`proches()`, chaque image) : gros plan < 2,9 m (+ visage), proche < 4,3 m (relief, muscles, détails des matières), loin (couleurs seules, même coût qu'avant). Les trois sont précompilées dans `Arene.preparer`. Basse : jamais de détail.
+- Coins : seau, bouteille, serviette et poche de glace (un seul objet). Flashs du public et étincelles : sprites ronds (plus de carrés), cadence en nombre par seconde (≈ 3/s au calme, ≈ 45/s après un gros coup) indépendante des img/s.
+- `outils/studio.py` : horloge figée (`outils-communs/horloge.js`), poses `portrait0`, `portrait1`, `coin` en plus.
+
 ## Outils de chasse aux bugs
 - `node outils/audit.js 4 12` : 4 parties de 12 ans avec un joueur au hasard ; vérifie NaN, bornes, combats en double, ceintures vacantes, champions partis, offres orphelines, taille de la sauvegarde.
 - `python3 outils/monkey.py build/index.html dossier 900 390 844 1` : robot qui clique au hasard (vrais clics) ; rapporte erreurs JS, écrans bloquants, boutons les plus cliqués.

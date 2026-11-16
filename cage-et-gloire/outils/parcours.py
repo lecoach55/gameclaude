@@ -21,14 +21,14 @@ async def main():
     for k in range(30):
       n=await pg.evaluate("G.offres.filter(o=>o.type==='combat').length")
       if n:break
-      await pg.evaluate("avancer(1)");await pg.wait_for_timeout(150)
+      await pg.evaluate("avancer(1);0");await pg.wait_for_timeout(150)  # sans attendre la promesse : un événement ouvre une fenêtre qui attend un clic
       await pg.evaluate("document.querySelectorAll('#modal [data-i]').forEach((b,i)=>{if(i===0)b.click()})")
     await pg.click('#nav [data-v="offres"]');await pg.wait_for_timeout(500);await pg.screenshot(path=out+'/05_offres.png')
     await pg.evaluate("G.offres.filter(o=>o.type==='combat').forEach(o=>Moteur.accepterCombat(o.id));rendre()")
     await pg.click('#nav [data-v="ecurie"]');await pg.wait_for_timeout(200)
     for k in range(20):
       if await pg.evaluate("G.aJouer.length"):break
-      await pg.evaluate("avancer(1)");await pg.wait_for_timeout(150)
+      await pg.evaluate("avancer(1);0");await pg.wait_for_timeout(150)  # sans attendre la promesse : un événement ouvre une fenêtre qui attend un clic
       await pg.evaluate("document.querySelectorAll('#modal [data-i]').forEach((b,i)=>{if(i===0)b.click()})")
     await pg.wait_for_timeout(600);print('precombat',await pg.evaluate('G.sem'),flush=True)
     await pg.screenshot(path=out+'/06_precombat.png')

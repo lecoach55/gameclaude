@@ -25,7 +25,7 @@ E({ id: 'relique', w: 2, art: 'cross', cool: 14, make() {
    { t: 'Éconduire le marchand', d: 'Aucun effet', fx() { return 'Le marchand repart vers Venise, où l’on est moins regardant.'; } }] };
 }});
 
-E({ id: 'simonie', w: 3, art: 'coins', cool: 6, make() {
+E({ id: 'simonie', w: 3, art: 'coins', cool: 10, make() {
  const r = pickR(x => RL(x).ruler && !RL(x).ruler.c && RL(x).invest < 70); if (!r) return null;
  const sum = ri(3, 8) * 100;
  return { realm: r, title: `Un évêché vendu ${enR(r)}`, text: pick([`On rapporte que le nouvel évêque ${B(de_(cityOf(r)))} a versé ${sum} marcs d’argent ${auRuler(r)} pour obtenir la crosse et l’anneau. Il ne sait pas lire le latin, entretient une meute de chiens et deux concubines. Les chanoines en appellent au pape.`, `Le neveu ${B(duRuler(r))}, à peine âgé de quinze ans, vient d’être fait évêque ${B(de_(cityOf(r)))} : sa famille a remis ${sum} marcs ${auRuler(r)} le jour même de l’élection. Il n’a reçu ni la prêtrise ni l’ordre de diacre. Le chapitre en appelle au pape.`, `Un archidiacre ${B(de_(cityOf(r)))} dénonce un marché scandaleux : la crosse de son église a été adjugée, comme un fief, au plus offrant — ${sum} marcs versés ${auRuler(r)}. L’heureux élu revend déjà les cures du diocèse pour rentrer dans ses frais.`]),
@@ -82,7 +82,7 @@ E({ id: 'theologien', w: 2, art: 'book', cool: 24, make() {
    { t: 'Organiser une dispute publique (20 marcs)', d: 'Ferveur +2 · autorité +2', req: () => S.treasury >= 20 ? null : 'Trésor insuffisant', fx() { modT(-20); modF(r, 2); modA(2); } }] };
 }});
 
-E({ id: 'eveque_roi', w: 3, art: 'bishop', cool: 6, make() {
+E({ id: 'eveque_roi', w: 3, art: 'bishop', cool: 10, make() {
  const r = pickR(x => RL(x).ruler && !RL(x).ruler.c && RL(x).invest > 20); if (!r) return null; const v = ri(0, 2);
  return { realm: r, title: [`Le chancelier ${duRuler(r)}`, `Un courtisan crossé ${enR(r)}`, `Le confesseur ${duRuler(r)}`][v], text: ([`${B(capFirst(leRuler(r)))} entend faire élire son chancelier, un clerc de cour habile aux comptes mais ignorant des choses de Dieu, à l’archevêché ${B(de_(cityOf(r)))}. Le chapitre cathédral, menacé, a cédé. Le roi attend la confirmation du pape.`, `À la mort de l’archevêque ${B(de_(cityOf(r)))}, ${B(leRuler(r))} a fait porter la crosse à un jeune cousin de sa propre maison, à peine sous-diacre, qui chasse le faucon mieux qu’il ne lit le bréviaire. Les chanoines ont signé sous la menace des sergents. Le roi attend la confirmation du pape.`, `Le siège ${B(de_(cityOf(r)))} est vacant. Plutôt que d’attendre l’élection canonique, ${B(leRuler(r))} y a nommé son confesseur, un homme pieux mais qui doit tout au roi et ne contredira jamais la couronne. Les moines de la cathédrale protestent par lettre ; le roi attend la confirmation du pape.`])[v],
   opts: [{ t: 'Confirmer le candidat royal', d: 'Investitures −12 · relation +10', fx() { modInv(r, -12); modRel(r, 10); } },
@@ -614,4 +614,69 @@ E({ id: 'pise', hist: 1, once: 1, art: 'mitres', make() {
   opts: [{ t: 'Abdiquer pour l’unité de l’Église', d: 'Fin du schisme · votre pontificat s’achève · conclave', fx() { endSchism('concile'); S.popes.push(popeRecord('abdication')); S.pendingConclave = { reason: 'abdication' }; log(`${popeName()} abdique pour mettre fin au schisme.`, 'gold'); return 'Le geste est salué dans toute la Chrétienté.'; } },
    { t: 'Prendre la tête du concile', d: 'Un concile s’ouvre · autorité −3', fx() { modA(-3); if (!S.council) { S.flags.nPise = (S.flags.nPise || 0) + 1; S.council = { t: 2, place: 'Pise', num: S.flags.nPise }; } } },
    { t: 'Refuser : un pape ne se juge pas', d: 'Autorité −6 · loyauté des cardinaux −10', fx() { modA(-6); modLoy(-10); } }] };
+}});
+
+/* ---------- v17 : nouveaux événements courants (décision de Victor du 16/11 : moins de redite) ---------- */
+E({ id: 'appel_rome', w: 2, cool: 10, art: 'scroll', make() {
+ const r = pickR(); if (!r) return null; const c = cityOf(r);
+ const abb = pick(['Saint-Martin', 'Sainte-Marie', 'Saint-Pierre', 'Saint-Michel', 'Saint-Étienne', 'Saint-Nicolas', 'Saint-Jean', 'Sainte-Croix']);
+ const rome = S.curia === 'rome', avi = S.curia === 'avignon';
+ return { realm: r, title: pick([rome ? `Un procès en cour de Rome` : `Un procès en Curie`, `L’appel de l’abbé de ${abb}`, `Plaideurs ${deR(r)} ${rome ? 'au Latran' : avi ? 'à Avignon' : 'auprès de la Curie'}`]), text: pick([`L’abbé de ${B(abb)} et l’évêque ${B(de_(c))} se disputent depuis vingt ans les dîmes de quatre paroisses. Les deux parties ont envoyé à Rome leurs procureurs, chargés de chartes scellées — dont une, au moins, est sans doute fausse. L’auditeur de la Curie attend la sentence du pape.`, `Les moines de ${B(abb)} se disent exempts de la juridiction de l’évêque ${B(de_(c))} par un privilège « du temps du pape Grégoire ». L’évêque prétend que le parchemin sent encore l’encre fraîche. L’affaire est montée jusqu’au Saint-Siège et encombre la Chancellerie.`, `Un chanoine ${B(de_(c))} a fait appel au Saint-Siège contre son évêque, qui l’a dépouillé de sa prébende. Les avocats des deux camps logent ${rome ? 'au Trastevere' : avi ? 'en Avignon' : 'près de la Curie'} aux frais de leurs églises et multiplient les mémoires ; la cause pourrait durer des années.`]),
+  opts: [{ t: 'Juger vite, sur le fond', d: 'Autorité +3 · corruption −1 · relation −3', fx() { modA(3); modC(-1); modRel(r, -3); return 'La sentence est rendue en une audience. Le perdant parle de « justice expéditive », mais on admire la fermeté de Rome.'; } },
+   { t: 'Laisser la procédure suivre son cours', d: 'Trésor +25 · corruption +2', fx() { modT(25); modC(2); return 'Les taxes de chancellerie, les épices des auditeurs et les cadeaux aux portiers remplissent les coffres. Le procès n’est pas près de finir.'; } },
+   { t: 'Renvoyer l’affaire à des juges délégués sur place', d: 'Relation +3 · investitures +2 · autorité −1', fx() { modRel(r, 3); modInv(r, 2); modA(-1); return 'Trois abbés du pays jugeront au nom du pape. L’usage s’en répand.'; } }] };
+}});
+
+E({ id: 'commerce_infideles', w: 2, cool: 12, art: 'ship', make() {
+ const c4 = ['venise', 'genes', 'aragon', 'sicile'].filter(x => active(x) && isCath(x)); if (!c4.length) return null; const r = pick(c4);
+ const ville = { venise: 'Venise', genes: 'Gênes', aragon: 'Barcelone', sicile: 'Messine' }[r], dv = de_(ville), y = S.year;
+ const port = pick(['Alexandrie', 'Damiette', 'Tunis'].concat(y < 1104 || (y >= 1187 && y < 1191) || y > 1291 ? ['Acre', 'Beyrouth'] : []));
+ const maitres = y >= 1250 && y < 1517 ? 'Mamelouks' : 'Sarrasins';
+ return { realm: r, title: pick(['Du fer pour les Sarrasins', `Les galères ${dv}`, `Contrebande vers ${port}`]), text: pick([`Des marchands ${B(dv)} ont livré à ${B(port)} du bois de construction, du fer et de la poix — tout ce qu’il faut pour armer une flotte contre les chrétiens. Le droit canon frappe d’excommunication ce commerce ; les armateurs répondent que, sans lui, leur ville mourrait de faim.`, `Un pèlerin revenu d’Outremer jure avoir vu, dans le port ${B(de_(port))}, des galères ${B(dv)} décharger des esclaves chrétiens vendus aux ${port === 'Tunis' ? 'Sarrasins' : maitres}. Le scandale est immense ; la cité dément tout et rappelle ses services rendus aux croisés.`, `Les consuls ${B(dv)} demandent une licence pour commercer librement à ${B(port)} : épices, coton et alun contre draps et métaux. Ils offrent une part des bénéfices à la Chambre apostolique.`]),
+  opts: [{ t: 'Excommunier les marchands', d: 'Autorité +3 · relation −10', fx() { modA(3); modRel(r, -10); RL(r).offense++; return 'Les noms des armateurs sont lus en chaire, cierges renversés. Le port gronde.'; } },
+   { t: 'Vendre une licence de commerce', d: 'Trésor +45 · corruption +3 · autorité −1', fx() { modT(45); modC(3); modA(-1); return 'La licence est scellée. On murmure que Rome vend aux infidèles le droit de s’armer.'; } },
+   { t: 'Avertir sans sévir', d: 'Relation +2', fx() { modRel(r, 2); return 'La lettre du pape est lue au conseil, poliment, puis rangée.'; } }] };
+}});
+
+E({ id: 'double_election', w: 2, cool: 10, art: 'mitres', make() {
+ const r = pickR(x => RL(x).ruler && !RL(x).ruler.c); if (!r) return null; const c = cityOf(r); if (c === '—') return null;
+ return { realm: r, title: pick([`Deux évêques pour ${c}`, `Élection disputée à ${c}`, `Le chapitre ${de_(c)} divisé`]), text: pick([`Le chapitre ${B(de_(c))} s’est déchiré : la « plus saine partie » des chanoines a élu son doyen, la plus nombreuse un neveu ${B(duRuler(r))}. Chacun se dit évêque, chacun a sa crosse, et les deux camps en sont venus aux mains dans le chœur. Les deux élus sont en route pour Rome.`, `À ${B(c)}, l’élection a duré trois jours portes closes. Au matin, deux procès-verbaux contradictoires sont sortis du chapitre. ${capFirst(leRuler(r))} soutient l’un, le métropolitain l’autre. Il appartient au pape de trancher.`, `Le siège ${B(de_(c))} reste vacant depuis un an : deux candidats se le disputent, l’un savant mais pauvre, l’autre de haute naissance et appuyé par ${B(leRuler(r))}. Les revenus de l’évêché sont mis sous séquestre.`]),
+  opts: [{ t: 'Confirmer le plus digne', d: 'Autorité +2 · investitures +5 · corruption −1 · relation −6', fx() { modA(2); modInv(r, 5); modC(-1); modRel(r, -6); return 'Le pape consacre lui-même l’élu du chapitre. Le candidat du prince repart furieux.'; } },
+   { t: 'Casser les deux élections et pourvoir le siège', d: 'Investitures +5 · relation −10 · trésor +15', fx() { modInv(r, 5); modRel(r, -10); modT(15); RL(r).offense++; return `Par provision apostolique, le pape nomme un troisième homme — qui verse ${S.year >= 1300 ? 'les annates' : 'une lourde taxe'} à la Chambre.`; } },
+   { t: 'Céder au candidat du prince', d: 'Relation +8 · investitures −6', fx() { modRel(r, 8); modInv(r, -6); return 'Le neveu du prince reçoit le pallium. Le doyen se retire dans une abbaye.'; } }] };
+}});
+
+E({ id: 'ordre_militaire', w: 2, cool: 12, art: 'horse', make() {
+ if (S.year < 1120) return null; const r = pickR(); if (!r) return null;
+ const ord = S.year < 1190 ? pick(['Hospitaliers de Saint-Jean', 'chevaliers du Temple']) : S.year >= 1312 ? pick(['Hospitaliers de Saint-Jean', 'chevaliers Teutoniques', 'chevaliers de Calatrava']) : pick(['Hospitaliers de Saint-Jean', 'chevaliers du Temple', 'chevaliers Teutoniques']);
+ return { realm: r, title: pick([`Les ${ord} et l’évêque`, `Plainte contre les ${ord}`, `Les privilèges des ${ord}`]), text: pick([`Les évêques ${B(deR(r))} se plaignent des ${B(ord)} : exempts de dîme, ils ouvrent leurs chapelles aux excommuniés et font sonner leurs cloches dans les villes frappées d’interdit, pour une obole. Le Maître de l’ordre rappelle qu’ils versent leur sang pour la Croix.`, `Une commanderie des ${B(ord)} ${enR(r)} a reçu tant de terres en aumône que le diocèse n’y lève plus rien. L’évêque réclame sa part ; les frères chevaliers montrent leurs bulles d’exemption et leurs cicatrices.`, `Le Maître des ${B(ord)} demande au pape de confirmer de nouveaux privilèges : quête dans toutes les églises ${deR(r)}, sépulture libre dans leurs cimetières, exemption des taxes du légat. En échange, l’ordre offre des chevaliers pour la prochaine croisade.`]),
+  opts: [{ t: 'Confirmer les privilèges de l’ordre', d: 'Armée +60 · investitures −3 · corruption +1', fx() { S.army = Math.min(2000, S.army + 60); modInv(r, -3); modC(1); return 'Les bulles sont renouvelées. Soixante sergents de l’ordre prennent garnison au service du pape.'; } },
+   { t: 'Soutenir les évêques', d: 'Investitures +3 · ferveur +2', fx() { modInv(r, 3); modF(r, 2); return 'Les frères devront payer la dîme de leurs nouvelles terres. Ils obéissent en maugréant.'; } },
+   { t: 'Envoyer un visiteur apostolique', d: 'Corruption −3 · trésor −15', req: () => S.treasury >= 15 ? null : 'Trésor insuffisant', fx() { modC(-3); modT(-15); return 'Le visiteur inspecte les commanderies, chasse deux précepteurs indignes et rétablit la règle.'; } }] };
+}});
+
+E({ id: 'mendiants', w: 2, cool: 12, art: 'church', make() {
+ if (S.year < 1225) return null; const r = pickR(); if (!r) return null; const c = cityOf(r);
+ return { realm: r, title: pick(['Les curés contre les frères', `Querelle des mendiants à ${c}`, 'Qui confessera les fidèles ?']), text: pick([`Les curés ${B(de_(c))} sont en colère : les frères mendiants confessent leurs paroissiens, enterrent les riches dans leurs couvents et emportent les legs. « Ils moissonnent où ils n’ont pas semé », écrit l’évêque. Les frères répondent qu’ils prêchent là où le clergé se tait.`, `Aux écoles ${B(de_(c))}, les maîtres séculiers ont fermé leurs chaires aux frères prêcheurs et mineurs. Un libelle les traite de « faux prophètes des derniers jours ». Les frères en appellent au pape, leur protecteur.`, `Le jour de Pâques, à ${B(c)}, le curé a refusé la communion à ceux qui s’étaient confessés aux frères. L’affaire a tourné à la rixe sur le parvis. Les deux partis supplient Rome de fixer les règles.`]),
+  opts: [{ t: 'Protéger les frères', d: 'Ferveur +5 · investitures −2', fx() { modF(r, 5); modInv(r, -2); return 'Une bulle confirme le droit des frères de prêcher et de confesser partout.'; } },
+   { t: 'Donner raison au clergé séculier', d: 'Investitures +3 · ferveur −2 · autorité +1', fx() { modInv(r, 3); modF(r, -2); modA(1); return 'Les frères ne confesseront plus sans la licence de l’évêque.'; } },
+   { t: 'Partager : un quart des legs aux paroisses', d: 'Autorité +2 · ferveur −2', fx() { modA(2); modF(r, -2); return 'La « portion canonique » apaise les curés ; les frères gardent leurs chaires.'; } }] };
+}});
+
+E({ id: 'confrerie', w: 2, cool: 10, art: 'procession', make() {
+ if (S.year < 1260 || S.curia !== 'rome') return null;
+ const nom = pick(['du Gonfalon', 'du Saint-Sauveur', 'de Sainte-Lucie'].concat(S.year >= 1460 ? ['de l’Annonciade'] : []));
+ const sujet = pick((S.year >= 1460 ? ['jouer la Passion au Colisée le Vendredi saint'] : []).concat(['porter l’image du Sauveur du Latran à Sainte-Marie-Majeure la nuit de l’Assomption', 'fonder un hospice pour les pèlerins pauvres près de Saint-Pierre', 'racheter les captifs romains détenus par les pirates']));
+ return { title: pick(['Une confrérie romaine', `Les confrères ${nom}`, 'Les pénitents de Rome']), text: pick([`Les confrères ${B(nom)}, artisans et marchands vêtus de sacs blancs, demandent la permission de ${sujet}. Ils promettent des aumônes et des prières pour le pape — et réclament une contribution de la Chambre.`, `Une foule de pénitents encapuchonnés s’est présentée aux portes du Latran : ils veulent ${sujet}. Les barons romains s’inquiètent de voir le petit peuple s’organiser en compagnies armées de cierges.`, `Les recteurs d’une confrérie du Trastevere supplient le pape de les autoriser à ${sujet}, et de leur accorder des indulgences pour attirer les dons. Tout le quartier attend la réponse.`]),
+  opts: [{ t: 'Approuver et financer (25 marcs)', d: 'Peuple +7 · ferveur (États de l’Église) +3', req: () => S.treasury >= 25 ? null : 'Trésor insuffisant', fx() { modT(-25); modPeople(7); modF('etats', 3); return 'Toute la ville se presse ; les cierges brûlent jusqu’à l’aube.'; } },
+   { t: 'Approuver sans un denier', d: 'Peuple +3', fx() { modPeople(3); return 'Les confrères feront la quête eux-mêmes.'; } },
+   { t: 'Interdire : les foules sont dangereuses', d: 'Stabilité de Rome +3 · peuple −4', fx() { modStab(3); modPeople(-4); return 'Les sbires du sénateur dispersent les pénitents. Les barons sont rassurés.'; } }] };
+}});
+
+E({ id: 'faussaires', w: 2, cool: 12, art: 'keys', make() {
+ const r = pickR(); if (!r) return null;
+ return { realm: r, title: pick(['Des bulles contrefaites', 'Les faussaires de la Chancellerie', 'Le sceau de plomb volé']), text: pick([`On a saisi ${enR(r)} des lettres « pontificales » accordant dispenses et bénéfices à prix d’or : le parchemin est bon, l’écriture habile, mais la bulle de plomb a été décollée d’une vraie lettre et recousue. Le réseau remonte jusqu’aux scribes de la Curie.`, `Un clerc ${deR(r)} se présente avec une bulle qui le fait évêque. Le pape ne l’a jamais signée. L’enquête révèle un atelier, ${S.curia === 'rome' ? 'près du Panthéon' : S.curia === 'avignon' ? 'au pied du palais des Papes' : 'dans une auberge où loge la Curie'}, où l’on contrefait la chancellerie romaine et vend des grâces à toute la Chrétienté.`, `Un portier ${S.curia === 'rome' ? 'du Latran' : 'du palais pontifical'} a vendu un moule du sceau pontifical à des marchands ${deR(r)}. Depuis, des absolutions et des privilèges circulent par dizaines. Les évêques ne savent plus quelles lettres croire.`]),
+  opts: [{ t: 'Châtier les coupables et réformer la Chancellerie (20 marcs)', d: 'Corruption −3 · autorité +2', req: () => S.treasury >= 20 ? null : 'Trésor insuffisant', fx() { modT(-20); modC(-3); modA(2); return 'Les faussaires sont livrés au bras séculier ; les scribes doivent désormais signer chaque lettre.'; } },
+   { t: 'Étouffer l’affaire', d: 'Corruption +2 · loyauté des cardinaux +6', fx() { modC(2); modLoy(6); return 'Les cardinaux, dont plus d’un familier était compromis, vous en savent gré. On fait disparaître les preuves. Les fausses bulles continuent de circuler.'; } },
+   { t: 'Confirmer les grâces déjà vendues contre une taxe', d: 'Trésor +30 · corruption +3', fx() { modT(30); modC(3); return 'Les acquéreurs paient une seconde fois. Rome y gagne ; sa réputation, moins.'; } }] };
 }});

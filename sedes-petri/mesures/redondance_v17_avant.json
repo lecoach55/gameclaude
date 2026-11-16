@@ -1,0 +1,248 @@
+{
+ "bot": "sage",
+ "parties": 32,
+ "evtsParPartie": 1240.8,
+ "anneesParPartie": 281,
+ "idsDifferentsParPartie": 75,
+ "illustrationsDifferentes": 29,
+ "partIllustrationPrincipale": 11.3,
+ "memeImageQuePrecedent": 3.7,
+ "titresDejaVus": 64.9,
+ "texteRevuMoins20ans": 15.2,
+ "textesDejaVus": 38.7,
+ "arts": {
+  "coins": 11.3,
+  "castle": 9.3,
+  "bishop": 9.3,
+  "wedding": 9,
+  "harvest": 6.7,
+  "tomb": 6.2,
+  "miracle": 5.3,
+  "book": 5.1,
+  "monastery": 4.3,
+  "forest": 3.4,
+  "crown": 3.4,
+  "cross": 3.3,
+  "fire": 3.2,
+  "tower": 3.1,
+  "people": 2.6,
+  "plague": 1.9,
+  "city": 1.7,
+  "swords": 1.7,
+  "rome": 1.6,
+  "procession": 1.5,
+  "ruins": 1.4,
+  "star": 1.3,
+  "snow": 1.2,
+  "church": 0.8,
+  "keys": 0.8,
+  "scroll": 0.2,
+  "ship": 0.2,
+  "conclave": 0.1,
+  "horse": 0.1
+ },
+ "top15": [
+  {
+   "id": "eveque_roi",
+   "parPartie": 67.2,
+   "max": 117,
+   "ecartSaisons": 17
+  },
+  {
+   "id": "simonie",
+   "parPartie": 65.8,
+   "max": 116,
+   "ecartSaisons": 17
+  },
+  {
+   "id": "abbaye",
+   "parPartie": 49,
+   "max": 85,
+   "ecartSaisons": 23
+  },
+  {
+   "id": "guerre_privee",
+   "parPartie": 46.5,
+   "max": 83,
+   "ecartSaisons": 24
+  },
+  {
+   "id": "famine",
+   "parPartie": 45.7,
+   "max": 84,
+   "ecartSaisons": 24
+  },
+  {
+   "id": "feud",
+   "parPartie": 44.8,
+   "max": 83,
+   "ecartSaisons": 24
+  },
+  {
+   "id": "canonisation",
+   "parPartie": 44.1,
+   "max": 78,
+   "ecartSaisons": 25
+  },
+  {
+   "id": "dispense",
+   "parPartie": 43.1,
+   "max": 80,
+   "ecartSaisons": 26
+  },
+  {
+   "id": "miracle",
+   "parPartie": 43,
+   "max": 74,
+   "ecartSaisons": 26
+  },
+  {
+   "id": "eveque_rebelle",
+   "parPartie": 42.3,
+   "max": 75,
+   "ecartSaisons": 26
+  },
+  {
+   "id": "brigands",
+   "parPartie": 41.5,
+   "max": 76,
+   "ecartSaisons": 27
+  },
+  {
+   "id": "taxe_clerge",
+   "parPartie": 39.6,
+   "max": 70,
+   "ecartSaisons": 28
+  },
+  {
+   "id": "cardinal_scandale",
+   "parPartie": 37.8,
+   "max": 67,
+   "ecartSaisons": 29
+  },
+  {
+   "id": "disette",
+   "parPartie": 37.8,
+   "max": 66,
+   "ecartSaisons": 29
+  },
+  {
+   "id": "relique",
+   "parPartie": 37.1,
+   "max": 65,
+   "ecartSaisons": 30
+  }
+ ],
+ "texteRevuParId": [
+  [
+   "brigands",
+   18.3
+  ],
+  [
+   "disette",
+   14.5
+  ],
+  [
+   "feud",
+   13.2
+  ],
+  [
+   "relique",
+   12.8
+  ],
+  [
+   "tibre",
+   7
+  ],
+  [
+   "mariage_niece",
+   6.4
+  ],
+  [
+   "peste_retour",
+   6.3
+  ],
+  [
+   "theologien",
+   6.3
+  ],
+  [
+   "pogrom",
+   6.3
+  ],
+  [
+   "humanistes",
+   6.1
+  ],
+  [
+   "captifs",
+   6
+  ],
+  [
+   "bulle_espagne",
+   5.8
+  ],
+  [
+   "seisme",
+   5.4
+  ],
+  [
+   "crfail",
+   5.2
+  ],
+  [
+   "testaccio",
+   4.9
+  ]
+ ],
+ "chroniqueTop": [
+  {
+   "ligne": "X du doge X X. X doge X X lui succède.",
+   "parPartie": 20.1
+  },
+  {
+   "ligne": "X X X perd le cardinal X X, mort à # ans.",
+   "parPartie": 16.5
+  },
+  {
+   "ligne": "X du cardinal X X, à # ans.",
+   "parPartie": 15.8
+  },
+  {
+   "ligne": "X cardinal X X a rendu son âme à X (# ans).",
+   "parPartie": 15.7
+  },
+  {
+   "ligne": "X cardinal X X s’éteint à # ans.",
+   "parPartie": 15
+  },
+  {
+   "ligne": "X du roi X X. X roi X X lui succède.",
+   "parPartie": 13.7
+  },
+  {
+   "ligne": "X du X concile du X.",
+   "parPartie": 13.5
+  },
+  {
+   "ligne": "X du X concile du X : aucun canon adopté.",
+   "parPartie": 13.1
+  },
+  {
+   "ligne": "X roi X X atteint sa majorité et gouverne seul.",
+   "parPartie": 9.2
+  },
+  {
+   "ligne": "X X meurt à # ans, après # ans de pontificat. X cloches de X sonnent le glas.",
+   "parPartie": 7.9
+  },
+  {
+   "ligne": "X des croisés devant X.",
+   "parPartie": 7.1
+  },
+  {
+   "ligne": "X roi X X rejoint l’ost des croisés.",
+   "parPartie": 6.6
+  }
+ ]
+}

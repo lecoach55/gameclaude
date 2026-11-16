@@ -269,7 +269,10 @@ const Wd=VD.W,Hd=VD.H,fl=v=>v===1||v===2||v===3||v===4,isF=(x,y)=>fl(VD.at(x,y))
   S.list.forEach(([k,x,y,z,rot,sx,sy,sz],i)=>{q.setFromAxisAngle(up,rot);m4.compose(pv.set(x,y,z),q,sv.set(sx,sy,sz));im.setMatrixAt(i,m4);im.setColorAt(i,new THREE.Color(0,0,0));ks[i]=k;});
   im.computeBoundingSphere();scW.add(im);EX.fog.push({mesh:im,ks,c:new THREE.Color(1,1,1)});}
  // piliers
- EX.pills=[];for(let y=0;y<Hd;y++)for(let x=0;x<Wd;x++)if(VD.map[y*Wd+x]===3){const p=piece('pillar',1);p.scale.set(.25,WH,.25);p.position.set(x+.5,0,y+.5);p.visible=false;p.userData.c=[x,y];scW.add(p);EX.pills.push(p);}
+ EX.pills=[];for(let y=0;y<Hd;y++)for(let x=0;x<Wd;x++)if(VD.map[y*Wd+x]===3){if((tier===0||tier===3)&&K.piece.statue&&hr(x,y,91)<.45){/* crypte et givre : statue sur socle à la place d'un pilier (case déjà infranchissable) */
+   const g=new THREE.Group(),pl=piece('pillar',1);pl.scale.set(.3,.075,.3);g.add(pl);const st=fitH(piece('statue',1),1.25);st.position.y=.3;{const rr=VD.rooms.find(r=>x>=r.x-1&&x<=r.x+r.w&&y>=r.y-1&&y<=r.y+r.h)||VD.rooms[0];st.rotation.y=Math.atan2(rr.cx-x,rr.cy-y)+(hr(x,y,92)-.5)*.4;}g.add(st);
+   g.position.set(x+.5,0,y+.5);g.visible=false;g.userData.c=[x,y];scW.add(g);EX.pills.push(g);}
+  else{const p=piece('pillar',1);p.scale.set(.25,WH,.25);p.position.set(x+.5,0,y+.5);p.visible=false;p.userData.c=[x,y];scW.add(p);EX.pills.push(p);}}
  // bannières et accessoires le long des murs
  EX.kprops=[];const addP=(o,x,y)=>{o.visible=false;o.userData.c=[x|0,y|0];scW.add(o);EX.kprops.push(o);};
  EX.glows=[];const glow=(x,y,h,col,s,op)=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:col,blending:THREE.AdditiveBlending,depthWrite:false,opacity:op}));sp.scale.setScalar(s);sp.position.set(x,h,y);addP(sp,x,y);EX.glows.push(sp);return sp;};

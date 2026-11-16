@@ -29,6 +29,13 @@ def grade(c, tint=(1, 1, 1), sat=1., gain=1., gamma=1.):
     L = (c * [.3, .59, .11]).sum(-1, keepdims=True); c = L + (c - L) * sat
     return np.clip((c * tint * gain) ** gamma, 0, 1)
 def soft(m, lo, hi): return np.clip((m - lo) / (hi - lo), 0, 1)
+def streaks(seed, amt=1.):
+    # coulures d'humidité : champ aléatoire très étiré verticalement (taches longues et irrégulières)
+    r = np.random.default_rng(seed); g = r.random((6, 96)); g = np.pad(g, ((0, 1), (0, 1)), mode='wrap')
+    f = ndimage.zoom(g, ((N + N / 6) / 7, (N + N / 96) / 97), order=3, mode='grid-wrap')[:N, :N]
+    m = soft(f, .62, .9) * (soft(pnoise(N, 6, seed + 1, 3), .25, .75) * .5 + .5)
+    m = ndimage.gaussian_filter(m, (10, 2.5), mode='wrap')
+    return np.clip(m * amt, 0, 1)
 def save(name, d, h, r, s):
     Image.fromarray((np.clip(d, 0, 1) * 255).astype(np.uint8)).save(f'tex/{name}_d.jpg', quality=76, optimize=True)
     n = np.concatenate([normal(h, s), np.clip(r, 0, 1)[..., None]], -1)
@@ -40,14 +47,16 @@ c = grade(d, (.95, .95, 1.0), .6, .82, 1.08); c = c * (1 - damp * .3)
 save('crypt_f', c, h, r * (1 - damp[..., 0] * .35), 9)
 d, h, r = load('castle_wall_slates'); moss = (soft(pnoise(N, 4, 111, 4), .62, .82) * soft(1 - h, .3, .7))[..., None]
 c = grade(d, (.95, .95, .98), .55, .85); c = c * (1 - moss) + c * np.array([.55, .68, .45]) * moss
-save('crypt_w', c, h, r, 8)
+lk = streaks(121, 1.)[..., None]; c = c * (1 - lk * .38)
+save('crypt_w', c, h, r * (1 - lk[..., 0] * .55), 8)
 # cavernes : roche incrustée dans la terre, parois rocheuses en strates ; humidité brillante
 d, h, r = load('embedded_rock_floor'); wet = soft(pnoise(N, 4, 201, 5), .6, .82)[..., None]
 c = grade(d, (1.0, .98, .9), .75, .95); c = c * (1 - wet * .25)
 save('cav_f', c, h, r * (1 - wet[..., 0] * .5), 9)
 d, h, r = load('rock_wall_10'); wet = soft(pnoise(N, 5, 211, 4), .6, .85)[..., None]
 c = grade(d, (1.02, .97, .88), .75, .85); c = c * (1 - wet * .35)
-save('cav_w', c, h, r * (1 - wet[..., 0] * .45), 10)
+lk = streaks(221, 1.)[..., None]; c = c * (1 - lk * .3) + np.array([.05, .09, .07]) * lk * .25
+save('cav_w', c, h, r * (1 - np.maximum(wet[..., 0] * .45, lk[..., 0] * .6)), 10)
 # forge : basalte en mosaïque, braises dans les joints profonds, suie
 d, h, r = load('volcanic_rock_tiles'); deep = soft(1 - h, .8, .96) * soft(pnoise(N, 6, 301, 4), .5, .75)
 soot = soft(pnoise(N, 3, 302, 4), .4, .75)[..., None]

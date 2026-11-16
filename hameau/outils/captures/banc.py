@@ -10,7 +10,7 @@ with sync_playwright() as p:
     pg.on('dialog',lambda d:(msg.append(d.message),d.accept()))
     pg.goto('file://'+os.environ.get('JEU','/home/claude/hameau3d.html'));pg.wait_for_timeout(3000)
     pg.click('#bTest',timeout=150000)
-    for k in range(40):
+    for k in range(160):
         pg.wait_for_timeout(5000)
         if msg:break
     print(msg[:1]);print('save touchée:',pg.evaluate("()=>localStorage.getItem('hameau3d_save_v3')!==null"));print(errs[:4]);b.close()

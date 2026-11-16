@@ -42,9 +42,9 @@ const SPACE={harvestYield:[5,6,7],fieldGrow:[20,25,30],mealInterval:[9,10,12],he
   immigInterval:[4,5,7],winterGrow:[0.2,0.3,0.45],fishYield:[4,5,6],fishRegen:[30,40,55],storeDist:[8,10,12],plantPrio:[1.6,2.2,3],houseCap:[4,5],marketR:[8,9,11]};
 function randParams(R,base){const p={...base};for(const [k,v] of Object.entries(SPACE))if(R()<0.35)p[k]=v[(R()*v.length)|0];return p;}
 function log(o){fs.appendFileSync(out,JSON.stringify(o)+'\n');}
-const VAR={base:{},w:{weed:0.4,weedGain:0.12},w2:{weed:0.6,weedGain:0.2}};
+const VAR={base:{},n10:{birthScale:0.1},n05:{birthScale:0.05},w:{weed:0.4,weedGain:0.12},w2:{weed:0.6,weedGain:0.2}};
 if(args.variant){for(const sd of String(args.seeds).split(',').map(Number)){const r=play(VAR[args.variant],sd,args.days,args.prof);
-  console.log(JSON.stringify({v:args.variant,seed:sd,prof:args.prof,pop:r.final.pop,famine:r.starveDays,froid:r.coldDays,dep:r.departures,happy:r.final.happy}));}process.exit(0);}
+  console.log(JSON.stringify({v:args.variant,seed:sd,prof:args.prof,pop:r.final.pop,pic:r.peak,creux:Math.min(...r.series.filter(x=>x[0]>=60).map(x=>x[1]).concat([r.final.pop])),famine:r.starveDays,froid:r.coldDays,dep:r.departures,happy:r.final.happy}));}process.exit(0);}
 // ---- programme des vagues ----
 if(args.test){console.log(JSON.stringify(play({},1001,3,"expert").final));process.exit(0);}
 const end=Date.now()+minutes*60000;const R=mulberry(batch*1000+Date.now()%1000);let n=+(args.start||0);

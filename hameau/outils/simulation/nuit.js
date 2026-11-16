@@ -53,6 +53,7 @@ while(Date.now()<end){
   else if(batch===3||batch===4)job={params:randParams(R,batch===4?best.params:{}),days:40,prof:'novice',search:true};
   else if(batch===5)job={params:{immigInterval:3},days:80,prof:'expert'};
   else if(batch===6)job={params:{},days:50,prof:n%2?'chaotic':'lazy'};
+  else if(batch===8)job={params:{},days:args.days||160,prof:Object.keys(PROFILES)[n%5]}; // parties longues, 5 profils (--days=N)
   else job={params:n%2?best.params:{},days:45,prof:['novice','expert','lazy'][n%3],tag:n%2?'meilleurs':'actuels'};
   const r=play(job.params,seed,job.days,job.prof);r.batch=batch;r.tag=job.tag||null;r.score=score(r);
   if(job.search){// on évalue aussi un 2e seed pour limiter le hasard

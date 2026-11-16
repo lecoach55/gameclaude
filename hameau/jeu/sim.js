@@ -16,7 +16,7 @@ const DEFAULTS={
   buildTime:6, carry:5, immigInterval:5, immigHappy:30, immigFood:3, immigTrend:true, replantTree:true, trampleRoad:true, reachFilter:true, advTrend:true, forage:0.5, berryYield:2, berryRegen:150, autumnGate:1.2, autumnFarm:1.4, deadwood:0.7, dwYield:2, dwRegen:150, stoneNeed:true, stoneTgt:4, stoneW:3.2, fest:true, festBonus:10, festNeed:1.8, festFood:2, weed:0.6, weedGain:0.2, emigHappy:20, hallCap:6, houseCap:4, house2Cap:7,
   marketR:9, autoStore:true, storeDist:12, storeDemand:25, startFood:60, startWood:24, startStone:6,
   bigFamily:true, terraces:true,
-  gens:true, adultAge:14, elderAge:58, retireAge:66, deathAge:62, kidMeal:0.5, birthInterval:34, birthHappy:55, birthMaxKids:0.3, ageRate:1,
+  gens:true, adultAge:14, elderAge:58, retireAge:66, deathAge:62, kidMeal:0.5, birthInterval:34, birthHappy:55, birthMaxKids:0.3, birthScale:0, ageRate:1,
   pasture:true, woolGrow:55, shearTime:3, woolYield:3, sheepPer:4, sheepBreed:45, sheepMax:30, sheepHay:0.12, clothWool:2, clothTime:6, clothUse:0.015, warmBonus:6, warmHeat:0.75,
   merchant:true, merchantStock:3,
   fert:true, fertUse:0.12, fertRegen:200, fertWinter:90, fertBase:0.62, fertGain:0.42, fallowMin:0.3, fallowOk:0.7
@@ -555,10 +555,12 @@ function genUpdate(dt){
     if(a0<P.retireAge&&v.age>=P.retireAge){v.plan.length=0;v.cur=null;}}
   if((timers.death+=dt)>=10){timers.death=0;for(const v of S.villagers.slice())if(v.age>P.deathAge&&R()<(v.age-P.deathAge)*0.05*10/P.seasonLen)die(v);}
   if((timers.birth+=dt)>=P.birthInterval){timers.birth=0;const pop=S.villagers.length,cap=capacity();
-    if(pop<cap&&S.happy>=P.birthHappy&&!S.starving&&!S.cold&&S.res.food>=pop*3){let kids=0,fem=null,mal=0;
-      for(const v of S.villagers){if(isKid(v))kids++;else if(v.age<46){if(v.fem)fem=v;else mal++;}}
-      if(fem&&mal&&kids<pop*P.birthMaxKids&&R()<0.55){const hs=S.buildings.filter(b=>b.type==='house'&&b.built),b=hs.length?hs[(R()*hs.length)|0]:S.hall,f=frontOf(b);
-        const nv=spawnVillager(f.x+0.5,f.y+0.5,{age:0,skin:fem.skin});S.stats.births++;timers.immig=0;emit('toast',`👶 Naissance : ${nv.name} vient au monde`);emit('birth',{x:nv.x,y:nv.y});}}}
+    if(pop<cap&&S.happy>=P.birthHappy&&!S.starving&&!S.cold&&S.res.food>=pop*3){let kids=0,fem=null,mal=0,nf=0;
+      for(const v of S.villagers){if(isKid(v))kids++;else if(v.age<46){if(v.fem){fem=v;nf++;}else mal++;}}
+      // birthScale (0 = règle actuelle, une tentative) : une tentative de plus par tranche de 1/birthScale femmes en âge d'avoir des enfants
+      const tries=P.birthScale?1+Math.floor(Math.min(nf,mal)*P.birthScale):1;let nb=0;
+      for(let k=0;k<tries&&S.villagers.length<cap;k++)if(fem&&mal&&kids+nb<pop*P.birthMaxKids&&R()<0.55){const hs=S.buildings.filter(b=>b.type==='house'&&b.built),b=hs.length?hs[(R()*hs.length)|0]:S.hall,f=frontOf(b);
+        const nv=spawnVillager(f.x+0.5,f.y+0.5,{age:0,skin:fem.skin});nb++;S.stats.births++;timers.immig=0;emit('toast',`👶 Naissance : ${nv.name} vient au monde`);emit('birth',{x:nv.x,y:nv.y});}}}
 }
 // ---- élevage ----
 let nextSid=1;

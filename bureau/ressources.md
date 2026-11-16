@@ -6,7 +6,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 ## Socle commun (`outils-communs/`) — à intégrer dans tout nouveau jeu
 | Outil | Rôle |
 |---|---|
-| `testkit.js` | 🐞 signalement, compteur img/s, banc, envoi en base (`mesures_*`, `signalement_*`). Copie sans `export` en `<script src>` classique. Ignore désormais les pauses > 1 s (onglet en arrière-plan) — repris de Cage & Gloire. Nouveau (16/11, Président de Club) : `domCapture(el)` = capture des jeux HTML/DOM (canvas inclus) ; option `secours:true` + `TK.rapport(obj,titre)` = rapport à copier / enregistrer quand la base est absente (capacité db non déclarée, hors ligne, app Electron). Intégration en bloc remplaçable : `president-de-club/outils/maj_testkit.py`. |
+| `testkit.js` | 🐞 signalement, compteur img/s, banc, envoi en base (`mesures_*`, `signalement_*`). Copie sans `export` en `<script src>` classique. Ignore désormais les pauses > 1 s (onglet en arrière-plan) — repris de Cage & Gloire. Nouveau (16/11, Président de Club) : `domCapture(el)` = capture des jeux HTML/DOM (canvas inclus) ; option `secours:true` + `TK.rapport(obj,titre)` = rapport à copier / enregistrer quand la base est absente (capacité db non déclarée, hors ligne, app Electron). Intégration en bloc remplaçable : `president-de-club/outils/maj_testkit.py`. 16/11 (Hameau) : le banc joint aussi `etat` (option `etat` du jeu : qualité, densité de pixels…) au document `mesures_*`. |
 | `atelier.py` | serveur local, page neuve (localStorage préparé, temps accéléré), mesure d'images, captures. Base des bancs et robots récents (Trône de Braise, Bannières, Cage & Gloire). |
 | `sauvegarde-en-ligne.js` | grosses sauvegardes gzip découpées + reprise sur un autre appareil (Wall Street). |
 | `compare.py` | comparaison d'images référence / nouvelle version, tolérante aux petits décalages ; colonne informative « détail fin » (taille réelle, ±1 px) qui voit les changements de texte/pictogrammes que la vue réduite ignore (16/11). |
@@ -53,3 +53,5 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 
 ## Ajouter une ressource
 Une ligne ici (besoin, référence, où), et si l'outil sert à plusieurs jeux, le copier dans `outils-communs/` avec une ligne dans son README.
+
+| `hameau/outils/mesure/saccades.py`, `profil_scene.py` | Saccades par scène d'un banc (programmes compilés, pire image) et profil JS (CDP) du passage à une scène ; adaptables à tout jeu Three.js. En rendu logiciel, seuls les comptes sont fiables. |

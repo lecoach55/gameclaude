@@ -1280,7 +1280,8 @@ function tex(kind,rep=[1,1]){
   else if(kind=="lux"){base("#f1ebe1");x.strokeStyle="#d8cdbd";x.lineWidth=3;for(let i=16;i<256;i+=128){x.strokeRect(i,20,96,216)}}
   else if(kind=="logs"){for(let i=0;i<8;i++){x.fillStyle=i%2?"#8a5a34":"#7a4e2c";x.fillRect(0,i*32,256,32);x.fillStyle="#00000033";x.fillRect(0,i*32+28,256,4)}}
   else if(kind=="brick"){base("#a9583f");x.fillStyle="#d8c9b4";for(let r=0;r<16;r++){x.fillRect(0,r*16,256,2);for(let c=0;c<8;c++)x.fillRect(((c*32)+(r%2?16:0))%256,r*16,2,16)}noise(400,"#7a3c2a","#c47a5c",3)}
-  else if(kind=="grass"){base("#ffffff");noise(2200,"#cfcfcf","#ffffff",4);for(let i=0;i<160;i++){x.strokeStyle=rnd()<.5?"#e2e2e2":"#c8c8c8";x.globalAlpha=.5;x.beginPath();const px=rnd()*256,py=rnd()*256;x.moveTo(px,py);x.lineTo(px+(rnd()-.5)*4,py-4-rnd()*5);x.stroke()}x.globalAlpha=1}
+  else if(kind=="grass"){base("#ffffff");noise(2200,"#cfcfcf","#ffffff",4);for(let i=0;i<160;i++){x.strokeStyle=rnd()<.5?"#e2e2e2":"#c8c8c8";x.globalAlpha=.5;x.beginPath();const px=rnd()*256,py=rnd()*256;x.moveTo(px,py);x.lineTo(px+(rnd()-.5)*4,py-4-rnd()*5);x.stroke()}for(let i=0;i<26;i++){const px=rnd()*256,py=rnd()*256,d=rnd()<.35;x.fillStyle=d?"#c4c4c4":"#ffffff";for(let q=0;q<14;q++){x.globalAlpha=.08+rnd()*.10;x.beginPath();x.arc(px+(rnd()-.5)*14,py+(rnd()-.5)*10,1.5+rnd()*3,0,7);x.fill()}}x.globalAlpha=1}
+  else if(kind=="grain"){base("#ffffff");for(let b=0;b<4;b++){x.fillStyle="#000";x.globalAlpha=.04+rnd()*.10;x.fillRect(b*64,0,64,256)}x.strokeStyle="#3e2c1c";for(let i=0;i<38;i++){let px=rnd()*256;const w=1.2+rnd()*2.4;x.globalAlpha=.14+rnd()*.20;x.lineWidth=w;x.beginPath();x.moveTo(px,0);const f=rnd()*.05,ph=rnd()*6,am=1+rnd()*3;for(let y=8;y<=256;y+=8)x.lineTo(px+Math.sin(y*f+ph)*am,y);x.stroke()}for(let i=0;i<2;i++){const cx=rnd()*256,cy=rnd()*256;x.globalAlpha=.16;x.lineWidth=1;for(let q=0;q<4;q++){x.beginPath();x.ellipse(cx,cy,2+q*2.5,6+q*5,0,0,7);x.stroke()}}x.globalAlpha=1}
   else if(kind=="asphalt"){base("#4a4b4f");noise(1800,"#3a3b3e","#5c5d61",2)}
   else if(kind=="field"){base("#ffffff");for(let i=0;i<256;i+=16){x.fillStyle="#d0d0d0";x.fillRect(0,i,256,7)}noise(600,"#bdbdbd","#ffffff",3)}
   else if(kind=="tin"){base("#9aa3a8");for(let i=0;i<256;i+=12){x.fillStyle="#7c858a";x.fillRect(i,0,4,256)}noise(300,"#8a4a2a","#b0b8bc",5)}
@@ -1312,13 +1313,16 @@ function geoOf(m,rel){const g=m.geometry.index?m.geometry.toNonIndexed():m.geome
 function mergeGeos(gs){let n=0;gs.forEach(g=>n+=g.attributes.position.count);let CL=null;if(gs[0]&&gs[0].userData.col){CL=new Float32Array(n*3);let o2=0;gs.forEach(g=>{const c=g.userData.col,k=g.attributes.position.count;for(let i=0;i<k;i++){CL[(o2+i)*3]=c.r;CL[(o2+i)*3+1]=c.g;CL[(o2+i)*3+2]=c.b}o2+=k})}const P=new Float32Array(n*3),N=new Float32Array(n*3),U=new Float32Array(n*2);let o=0;gs.forEach(g=>{P.set(g.attributes.position.array,o*3);N.set(g.attributes.normal.array,o*3);if(g.attributes.uv)U.set(g.attributes.uv.array,o*2);o+=g.attributes.position.count;g.dispose()});const r=new V.BufferGeometry();r.setAttribute("position",new V.BufferAttribute(P,3));if(CL)r.setAttribute("color",new V.BufferAttribute(CL,3));r.setAttribute("normal",new V.BufferAttribute(N,3));r.setAttribute("uv",new V.BufferAttribute(U,2));r.computeBoundingSphere();return r}
 /* couleurs par sommet : les matériaux unis et fixes partagent un seul matériau (bien moins d'appels de dessin) */
 const LIVE=new Set();const VCM=()=>MC.__vc||(MC.__vc=new V.MeshLambertMaterial({color:"#ffffff",vertexColors:true}));
+const VWM=()=>MC.__vw||(MC.__vw=new V.MeshLambertMaterial({color:"#ffffff",vertexColors:true,map:tex("grain")}));
+/* bois : coordonnées de texture projetées (1 motif ≈ 1,1 m, fil vertical sur les côtés, en long sur les dessus) */
+function woodUV(g){const P=g.attributes.position.array,N=g.attributes.normal.array,n=P.length/3,U=new Float32Array(n*2),S=.6;for(let i=0;i<n;i++){const x=P[i*3],y=P[i*3+1],z=P[i*3+2],ax=Math.abs(N[i*3]),ay=Math.abs(N[i*3+1]),az=Math.abs(N[i*3+2]);if(ay>.7){U[i*2]=x*S;U[i*2+1]=z*S}else if(ax>az){U[i*2]=z*S;U[i*2+1]=y*S*.5}else{U[i*2]=x*S;U[i*2+1]=y*S*.5}}g.setAttribute("uv",new V.BufferAttribute(U,2));return g}
 function plainM(m){return m.type=="MeshLambertMaterial"&&!m.transparent&&!m.map&&!m.alphaMap&&!m.vertexColors&&m.side===V.FrontSide&&m.emissive.getHex()===0&&!SEAS.has(m)&&!SEASG.has(m)&&!LIVE.has(m)}
 function bake(root,deep=true){
   root.updateMatrixWorld(true);
   const inv=new V.Matrix4().copy(root.matrixWorld).invert();
   const B=new Map(),keep=[],dead=[];
   (function walk(o){for(const c of o.children){if(c.userData.dyn||c.isLight||c.isSprite){keep.push(c);continue}
-    if(c.isMesh&&!c.material.transparent){const mm=c.material,vc=plainM(mm);const k=(vc?"VC":mm.uuid)+(c.castShadow?"s":"n");if(!B.has(k))B.set(k,{mat:vc?VCM():mm,cast:c.castShadow,gs:[]});const gg=geoOf(c,new V.Matrix4().multiplyMatrices(inv,c.matrixWorld));if(vc)gg.userData.col=mm.color;B.get(k).gs.push(gg);dead.push(c)}
+    if(c.isMesh&&!c.material.transparent){const mm=c.material,vc=plainM(mm),wd=vc&&WOODS.has(mm);const k=(wd?"VW":vc?"VC":mm.uuid)+(c.castShadow?"s":"n");if(!B.has(k))B.set(k,{mat:wd?VWM():vc?VCM():mm,cast:c.castShadow,gs:[]});const gg=geoOf(c,new V.Matrix4().multiplyMatrices(inv,c.matrixWorld));if(vc)gg.userData.col=mm.color;if(wd)woodUV(gg);B.get(k).gs.push(gg);dead.push(c)}
     else if(c.isMesh)keep.push(c);
     if(deep&&!c.isMesh)walk(c);else if(deep&&c.isMesh&&c.children.length)walk(c)}})(root);
   if(!deep){/* seulement les meshes directs */}
@@ -1330,7 +1334,7 @@ function bake(root,deep=true){
 }
 function bakeDirect(g){/* fusionne les meshes enfants directs, garde les sous-groupes (articulations) */
   const B=new Map(),dead=[];
-  g.children.forEach(c=>{if(c.isMesh&&!c.userData.dyn&&!c.children.length){const vc=plainM(c.material);const k=vc?"VC":c.material.uuid;if(!B.has(k))B.set(k,{mat:vc?VCM():c.material,gs:[]});c.updateMatrix();const gg=geoOf(c,c.matrix);if(vc)gg.userData.col=c.material.color;B.get(k).gs.push(gg);dead.push(c)}});
+  g.children.forEach(c=>{if(c.isMesh&&!c.userData.dyn&&!c.children.length){const vc=plainM(c.material),wd=vc&&WOODS.has(c.material);const k=wd?"VW":vc?"VC":c.material.uuid;if(!B.has(k))B.set(k,{mat:wd?VWM():vc?VCM():c.material,gs:[]});c.updateMatrix();const gg=geoOf(c,c.matrix);if(vc)gg.userData.col=c.material.color;if(wd)woodUV(gg);B.get(k).gs.push(gg);dead.push(c)}});
   if(dead.length<2)return;
   dead.forEach(c=>{g.remove(c);c.geometry.dispose()});
   B.forEach(b=>{const m=new V.Mesh(mergeGeos(b.gs),b.mat);m.castShadow=true;m.receiveShadow=true;g.add(m)});
@@ -1349,7 +1353,7 @@ const BIO={
 function biome(){return BIOME[S.ab?S.ab[0]:S.c.n]||"temperate"}
 function homeTier(){if(S.dead&&kHome)return +kHome.split("|")[0];return clamp(Math.round((T()-1)*.75+(S.m-20)/22),0,4)}
 /* ---------- mobilier ---------- */
-const WOOD="#8a5a36",DWOOD="#5c3b22",LWOOD="#b3824f";
+const WOOD="#8a5a36",DWOOD="#5c3b22",LWOOD="#b3824f",WOODS=new Set([WOOD,DWOOD,LWOOD,"#6a4a30","#5a3a22"].map(c=>mat(c)));
 function bed(w,col){const len=2.05,g=grp(BX(w,.32,len,WOOD),BX(w-.06,.16,len-.06,"#f3efe6",0,.32,0),BX(w-.02,.07,len*.62,col,0,.44,len*.17),BX(w-.02,.075,.12,new V.Color(col).offsetHSL(0,0,-.08).getStyle(),0,.44,len*.17-len*.31+.06),BX(w*.42,.12,.32,"#ffffff",-w*.22,.47,-len/2+.3),BX(w>1.2?w*.42:0.01,.12,.32,"#ffffff",w*.22,.47,-len/2+.3),BX(w,.85,.08,DWOOD,0,0,-len/2+.04));return g}
 function floormat(){return grp(BX(1,.05,1.9,"#b8622c"),BX(1.02,.052,.18,"#e2b04a",0,0,-.5),BX(1.02,.052,.18,"#e2b04a",0,0,.5),BX(.5,.1,.3,"#e8dcc6",0,.05,-.75))}
 function table(w,d,c=WOOD,h=.74){const g=grp(BX(w,.06,d,c,0,h-.06,0));[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>g.add(CY(.035,.035,h-.06,c,a*(w/2-.08),0,b*(d/2-.08),6)));return g}
@@ -1436,6 +1440,13 @@ function cloudMesh(r){const g=new V.Group();const m=MC.__cl||(MC.__cl=new V.Mesh
 /* ombre douce sous les personnages en qualité standard (sans ombres portées) */
 const BLOBG=()=>MC.__blg||(MC.__blg=new V.PlaneGeometry(.78,.78).rotateX(-Math.PI/2));const BLOBM=()=>MC.__blm||(MC.__blm=new V.MeshBasicMaterial({color:"#000000",alphaMap:tex("glow"),transparent:true,opacity:.42,depthWrite:false}));
 function disposeG(g){if(!g)return;g.traverse(o=>{if(o.geometry&&o.geometry!==MC.__blg)o.geometry.dispose()});g.parent&&g.parent.remove(g)}
+/* herbe : la même texture, nuancée par sommet (taches drues, vert frais, zones sèches), motif propre à chaque vie */
+function grassGeo(w,seg){const g=new V.PlaneGeometry(w,w,seg,seg),P=g.attributes.position.array,n=P.length/3,C=new Float32Array(n*3),o=(S&&S.seed||7)%997*.37;
+  for(let i=0;i<n;i++){const x=P[i*3]+o,y=P[i*3+1]-o*.7;const a=Math.sin(x*.21+Math.sin(y*.17)*1.3)*.5+Math.sin(y*.26-x*.09+1.7)*.5,b=Math.sin(x*.11-y*.19+o)*.5+.5;
+    const d=clamp(a,-1,1),k=1+d*.10;C[i*3]=clamp(k*(1+Math.max(0,-d)*.03+b*.04),0,1);C[i*3+1]=clamp(k,0,1);C[i*3+2]=clamp(k*(1-b*.12-Math.max(0,-d)*.05),0,1)}
+  g.setAttribute("color",new V.BufferAttribute(C,3));return g}
+/* matériau propre (clé « T|grassV… », toujours recoloré par les saisons) : tmat("grass") reste sans couleur par sommet */
+function grassM(rep,tint){const k="T|grassV"+rep.join("x")+tint;if(!MC[k])MC[k]=new V.MeshLambertMaterial({color:tint,map:tex("grass",rep),vertexColors:true});return MC[k]}
 function buildHome(){
   SEAS.clear();SEASG.clear();kSeason="";
   disposeG(gHome);gHome=new V.Group();SC.add(gHome);walls=[];rects=[];acts=[];anims=[];steam=[];
@@ -1443,8 +1454,8 @@ function buildHome(){
   const tier=homeTier(),bio=biome(),B=BIO[bio],r=mulberry((S.seed||7)+tier*31+bio.length);
   const cold=bio=="cold",urban=S.urban||!!S.ab;
   /* sol */
-  const gr=msh(new V.PlaneGeometry(90,90),tmat("grass",[18,18],B.g),0,-.02,0,{cast:false});gr.rotation.x=-Math.PI/2;gHome.add(gr);
-  const plot=msh(new V.PlaneGeometry(20,20),tmat("grass",[5,5],new V.Color(B.g).offsetHSL(0,.03,.03).getStyle()),0,-.01,0,{cast:false});plot.rotation.x=-Math.PI/2;gHome.add(plot);
+  const gr=msh(grassGeo(90,18),grassM([18,18],B.g),0,-.02,0,{cast:false});gr.rotation.x=-Math.PI/2;gHome.add(dyn(gr));
+  const plot=msh(grassGeo(20,12),grassM([5,5],new V.Color(B.g).offsetHSL(0,.03,.03).getStyle()),0,-.01,0,{cast:false});plot.rotation.x=-Math.PI/2;gHome.add(dyn(plot));
   for(let i=0;i<22;i++){const pr=1.5+r()*3.5,pm=msh(new V.CircleGeometry(pr,16),new V.Color(B.g).offsetHSL(0,r()*.05-.02,(r()-.5)*.07).getStyle(),(r()-.5)*40,-.008+i*.0003,(r()-.5)*40,{cast:false});pm.rotation.x=-Math.PI/2;regS(pm,1);gHome.add(pm)}
   for(let i=0;i<55;i++){const x=(r()-.5)*30,z=(r()-.5)*30;if(Math.abs(x)<4.2&&Math.abs(z)<3.7)continue;const t=tuft(r()<.5?B.g2:B.g);t.position.set(x,0,z);t.castShadow=false;regS(t,1);gHome.add(t)}
   if(cold)for(let i=0;i<14;i++){const p=msh(new V.CircleGeometry(.4+r()*.9,10),"#f2f5f7",(r()-.5)*30,.005,(r()-.5)*30,{cast:false});p.rotation.x=-Math.PI/2;if(Math.abs(p.position.x)<4.5&&Math.abs(p.position.z)<4)continue;gHome.add(p)}

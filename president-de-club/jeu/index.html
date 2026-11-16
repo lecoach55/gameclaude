@@ -481,7 +481,7 @@ tr.eu1 td:first-child{box-shadow:inset 3px 0 0 var(--good)}tr.eu2 td:first-child
 .ultra-band{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-radius:6px;background:linear-gradient(90deg,#000d,#0008 55%,#0002),repeating-linear-gradient(135deg,var(--c1) 0 18px,var(--c2) 18px 36px);color:#fff;text-shadow:0 1px 3px #000c;font-family:var(--display);text-transform:uppercase;letter-spacing:.06em}
 .ultra-band b{font-size:20px}.ultra-band span{font-family:var(--body);font-size:12px;text-transform:none;letter-spacing:0;background:#0009;padding:3px 7px;border-radius:4px}
 .team-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1e2f25}.team-row:last-child{border-bottom:0}
-.legends{display:grid;gap:12px}.legend{display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center}
+.legends{display:grid;gap:12px}.lgd-row{display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:center}
 .lshirt{position:relative;width:54px;height:58px;display:grid;place-items:center;background:linear-gradient(90deg,var(--c1) 0 50%,var(--c2) 50%);clip-path:polygon(22% 0,78% 0,100% 18%,88% 34%,82% 30%,82% 100%,18% 100%,18% 30%,12% 34%,0 18%);border-radius:3px}
 .lshirt span{font:900 22px/1 var(--display);color:#fff;text-shadow:0 1px 3px #000,0 0 8px #000a}
 .lshirt em{position:absolute;bottom:3px;font:700 8px/1 var(--body);text-transform:uppercase;color:#fff;background:#000a;padding:2px 3px;border-radius:2px;font-style:normal}
@@ -527,6 +527,7 @@ body.lite{background:var(--night)!important}body.lite .card{background:#13201a!i
 .sr-pos{display:grid;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#ffffff05;margin-bottom:8px}
 .ylist{display:grid;gap:6px;max-height:52vh;overflow:auto}.yrow{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 10px;border:1px solid #1e2f25;border-radius:8px;font-size:13.5px}.yrow input{margin-top:4px}label.yrow{justify-content:flex-start;cursor:pointer}
 .bxgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:6px 0}.bx{padding:8px 10px;border:1px solid #1e2f25;border-radius:8px;font-size:13px}.bx>b{display:block;margin-bottom:2px;font-size:13.5px}
+.kitrow{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;margin:4px 0 10px}.kitfig{margin:0;text-align:center}.kitfig figcaption{font-size:12px;color:var(--muted,#8fa196)}
 .sp-off{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:14px;padding:10px 0;border-top:1px solid #1e2f25}.sp-off .pill{margin-left:6px}
 .sr-cand{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13.5px;padding:6px 0;border-top:1px solid #1e2f25}
 .start .diff button small{display:block}
@@ -2018,22 +2019,13 @@ const ICO={
 const ico=(k,sz)=>`<svg viewBox="0 0 24 24" width="${sz||16}" height="${sz||16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICO[k]}"/></svg>`;
 function hashS(t){let h=2166136261;for(const ch of t){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}return h;}
 function initials(name){return name.split(' ').filter(w=>w.length>2||/^[A-Z]{2,}$/.test(w)).map(w=>w[0]).join('').slice(0,3).toUpperCase()||'FC';}
-function crestSVG(c1,c2,ini,size,v){
-  size=size||58;const id='cl'+(++CREST_N),sh='M4 4h50v28c0 16-12 26-25 31C16 58 4 48 4 32z';
-  const pat=[`<rect width="58" height="66" fill="${c1}"/><path d="M29 0h29v66H29z" fill="${c2}" opacity=".92"/><rect y="22" width="58" height="14" fill="${c1}"/>`,
-    `<rect width="58" height="66" fill="${c1}"/>${[10,24,38].map(x=>`<rect x="${x}" width="8" height="66" fill="${c2}"/>`).join('')}`,
-    `<rect width="58" height="66" fill="${c1}"/><path d="M-4 18L40 70h18L10 6z" fill="${c2}"/>`,
-    `<rect width="58" height="66" fill="${c1}"/><path d="M4 22l25 16 25-16v12L29 50 4 34z" fill="${c2}"/>`][v||0];
-  const txt=size>=34?`<text x="29" y="${v===3?20:33.5}" text-anchor="middle" font-family="Big Shoulders Display,Impact,sans-serif" font-weight="900" font-size="13" fill="${v===0?c2:'#fff'}" stroke="${c1}" stroke-width=".5" paint-order="stroke">${esc(ini)}</text>`:'';
-  return `<svg viewBox="0 0 58 66" width="${size}" height="${Math.round(size*66/58)}" aria-hidden="true"><defs><clipPath id="${id}"><path d="${sh}"/></clipPath></defs><g clip-path="url(#${id})">${pat}</g><path d="${sh}" fill="none" stroke="#e9efe5" stroke-opacity=".85" stroke-width="${size<30?3:2}"/>${txt}</svg>`;
-}
 function teamLook(name){
   if(S&&name===S.club.name)return [S.club.c1,S.club.c2,0];
   {const r=typeof REAL!=='undefined'&&REAL.find(x=>x[0]===name);if(r){const dk=x=>{const n=parseInt(x.slice(1),16);return ((n>>16)*.3+((n>>8)&255)*.59+(n&255)*.11)<45;};return dk(r[5])?[r[6],r[5],hashS(name)%4]:[r[5],r[6],hashS(name)%4];}}
   const h=hashS(name),c=COLORS[h%COLORS.length];const dark=x=>{const n=parseInt(x.slice(1),16);return ((n>>16)*.3+((n>>8)&255)*.59+(n&255)*.11)<45;};
-  const a=dark(c[0])?c[1]:c[0],b=dark(c[0])?c[0]:c[1];return [a,b,(h>>>7)%4];
+  const a=dark(c[0])?c[1]:c[0],b=dark(c[0])?c[0]:c[1];return [a,b,(h>>>7)%8,((h>>>11)%10)<4?1+((h>>>13)%6):0];
 }
-function teamCrest(name,size){const [a,b,v]=teamLook(name);return crestSVG(a,b,initials(name),size,v);}
+function teamCrest(name,size){if(S&&name===S.club.name){const k=clubKit();return crestSVG(S.club.c1,S.club.c2,initials(name),size,k.cr,k.em);}const [a,b,v,em]=teamLook(name);return crestSVG(a,b,initials(name),size,v,em);}
 function avatar(name,lvl){const h=hashS(name),hue=h%360,ini=name.split(' ').map(w=>w[0]).join('').slice(0,2);
   return `<svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true" style="flex:none"><circle cx="20" cy="20" r="18" fill="hsl(${hue} 28% 26%)"/><circle cx="20" cy="20" r="18.5" fill="none" stroke="${lvl>=4?'#f4c430':lvl>=3?'#9fd3ff':'#4b6355'}" stroke-width="2"/><text x="20" y="25" text-anchor="middle" font-family="Big Shoulders Display,Impact,sans-serif" font-weight="800" font-size="15" fill="#e9efe5">${esc(ini)}</text></svg>`;}
 function pcard(p,at){
@@ -2076,11 +2068,6 @@ const NUMS={G:[1,16,30,40],D:[2,3,4,5,12,13,15,22,23,24,25,32],M:[6,8,10,14,17,1
 function shirtNo(p){
   if(p.num)return p.num;const used=new Set(S.players.map(x=>x.num).filter(Boolean));
   p.num=NUMS[p.pos].find(n=>!used.has(n))||[...Array(99).keys()].map(k=>k+1).find(n=>!used.has(n))||99;return p.num;
-}
-function jersey(p,size){
-  size=size||26;const n=shirtNo(p),c1=S.club.c1,c2=S.club.c2,gk=p.pos==='G';
-  const body=gk?'#2b2f36':c1,ink=gk?'#f4c430':c2;
-  return `<svg class="jersey" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true"><path d="M11 3 4 7l3 6 3-1.3V29h12V11.7l3 1.3 3-6-7-4c-1 2.4-2.7 3.5-5 3.5S12 5.4 11 3z" fill="${body}" stroke="${ink}" stroke-width="1.3" stroke-linejoin="round"/><text x="16" y="22.5" text-anchor="middle" font-family="Big Shoulders Display,Impact,sans-serif" font-weight="900" font-size="11" fill="${ink}">${n}</text></svg>`;
 }
 function oddsFor(me,t,home){
   const o={att:t.att+t.mom,def:t.def+t.mom};
@@ -2193,6 +2180,9 @@ A.trFilter=function(f){UI.trFilter=f;render();};
 function stadiumSVG(){
   const I=S.infra,c1=S.club.c1,st=I.stade,W=460,H=260,px=170,py=74,pw=180,ph=112,u='st'+(++CREST_N);
   const D=[0,8,12,16,20,24,28,32,36,40][st];
+  const hr=(S.myResults||[]).filter(r=>r.home&&r.att),fillR=hr.length?clamp(hr.reduce((a,r)=>a+r.att,0)/hr.length/Math.max(1,cap()),.05,1):.45;
+  let rs=Math.abs(hashS(S.club.name))%997+1;const rnd=()=>{rs=(rs*16807)%2147483647;return (rs-1)/2147483646;};
+  const crowd=(x,y,w,h)=>{const n=Math.min(70,Math.round(w*h/38*fillR));let o='';const cs=[S.club.c1,S.club.c2,'#e9efe5'];for(let k=0;k<n;k++)o+=`<rect x="${(x+1+rnd()*(w-3)).toFixed(1)}" y="${(y+1+rnd()*(h-3)).toFixed(1)}" width="1.8" height="1.8" fill="${cs[k%3]}" opacity=".9"/>`;return o;};
   let g=`<defs><pattern id="${u}s" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="${c1}"/><rect y="3" width="5" height="2" fill="#000" opacity=".3"/></pattern><radialGradient id="${u}g"><stop offset="0" stop-color="#fff3b8" stop-opacity=".6"/><stop offset="1" stop-color="#fff3b8" stop-opacity="0"/></radialGradient></defs>`;
   g+=`<rect width="${W}" height="${H}" fill="#08100b"/>`;
   // terrains annexes
@@ -2204,7 +2194,7 @@ function stadiumSVG(){
   // tribunes
   const seat=`url(#${u}s)`;
   const roofOn=side=>st>=6||(side==='b'&&st>=2);
-  const stand=(x,y,w,h,side)=>{let r=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${seat}"/>`;
+  const stand=(x,y,w,h,side)=>{let r=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${seat}"/>`+crowd(x,y,w,h);
     if(roofOn(side)){const R={b:[x,y+h*.45,w,h*.55],t:[x,y,w,h*.55],l:[x,y,w*.55,h],r:[x+w*.45,y,w*.55,h]}[side];r+=`<rect x="${R[0]}" y="${R[1]}" width="${R[2]}" height="${R[3]}" fill="#0b0f0d" opacity=".55" stroke="#c9d4c9" stroke-opacity=".35"/>`;}
     return r;};
   if(st>=1){const w=st===1?70:pw+(st>=8?2*(D+10):0);g+=stand(px+pw/2-w/2,py+ph+10,w,D,'b');}
@@ -2213,6 +2203,11 @@ function stadiumSVG(){
   if(st>=5)g+=stand(px+pw+10,py,D,ph,'r');
   if(I.loges&&st>=3){const w=pw*(.25+I.loges*.15);g+=`<rect x="${px+pw/2-w/2}" y="${py+ph+10}" width="${w}" height="4" fill="#9fd3ff" opacity=".9"/>`;}
   if(st>=4)g+=`<rect x="${px+pw-34}" y="${py-10-D-9}" width="30" height="7" fill="#000" stroke="#f4c430" stroke-opacity=".8"/>`;
+  // main courante et public debout (petits stades)
+  if(st<=1){g+=`<rect x="${px-14}" y="${py-14}" width="${pw+28}" height="${ph+28}" fill="none" stroke="#c9d4c9" stroke-opacity=".5" stroke-dasharray="3 2"/>`;const n=Math.round(40*fillR);for(let k=0;k<n;k++){const t=rnd();const side=k%3;const x=side===0?px-12+t*(pw+24):side===1?px-19:px+pw+15,y=side===0?py+ph+15:py-8+t*(ph+16);g+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.3" fill="${k%2?S.club.c1:'#e9efe5'}"/>`;}}
+  // abords : arbres, parking
+  for(let k=0;k<9;k++){const x=k<5?130+(k%2)*14:372+(k%2)*14,y=k<5?20+k*44:30+(k-5)*52;g+=`<circle cx="${x}" cy="${y}" r="${6+(k%3)}" fill="#14301f"/><circle cx="${x-1.5}" cy="${y-1.5}" r="${4+(k%3)}" fill="#1d4a2c"/>`;}
+  if(st>=2){g+=`<rect x="300" y="232" width="92" height="22" rx="2" fill="#1a211d" stroke="#2e3a33"/>`;const nc=Math.min(10,2+st);for(let k=0;k<nc;k++)g+=`<rect x="${303+k*9}" y="${235+(k%2)*9}" width="6" height="8" rx="1.5" fill="${['#c9d4c9','#6c7a86','#a33','#e8c214','#335'][k%5]}"/>`;}
   // pelouse
   const pc=[['#6d5f47','#6d5f47'],['#2f9e4f','#2f9e4f'],['#2b7a40','#338a49'],['#2a8442','#38994f']][I.pelouse];
   g+=`<rect x="${px-6}" y="${py-6}" width="${pw+12}" height="${ph+12}" fill="none" stroke="#c9d4c9" stroke-opacity=".45"/>`;
@@ -2222,6 +2217,8 @@ function stadiumSVG(){
   const L='stroke="#fff" stroke-opacity=".8" fill="none" stroke-width="1.1"';
   g+=`<rect x="${px+3}" y="${py+3}" width="${pw-6}" height="${ph-6}" ${L}/><line x1="${px+pw/2}" x2="${px+pw/2}" y1="${py+3}" y2="${py+ph-3}" ${L}/><circle cx="${px+pw/2}" cy="${py+ph/2}" r="15" ${L}/>`;
   g+=`<rect x="${px+3}" y="${py+ph/2-28}" width="26" height="56" ${L}/><rect x="${px+pw-29}" y="${py+ph/2-28}" width="26" height="56" ${L}/><rect x="${px+3}" y="${py+ph/2-12}" width="9" height="24" ${L}/><rect x="${px+pw-12}" y="${py+ph/2-12}" width="9" height="24" ${L}/>`;
+  // panneaux publicitaires le long de la touche
+  {const sp=S.spons||{},names=[sp.panneaux,sp.maillot,sp.manche,sp.dos].filter(Boolean).map(c=>c.b.split(' ').slice(-2).join(' ').toUpperCase().slice(0,14));if(names.length&&st>=1){const n=st>=4?4:2,bw=(pw-8)/n;for(let k=0;k<n;k++){const nm=names[k%names.length];g+=`<rect x="${px+4+k*bw}" y="${py-5}" width="${bw-3}" height="4.5" fill="#0b1220" stroke="${S.club.c2}" stroke-width=".4"/><text x="${px+4+k*bw+(bw-3)/2}" y="${py-1.6}" text-anchor="middle" font-size="3.4" font-family="Barlow, sans-serif" font-weight="800" fill="#e9efe5">${esc(nm)}</text>`;}}}
   // éclairage
   const e=I.eclairage;
   if(e){const off=14+D*.75,pts=e===1?[[px-12,py+ph/2],[px+pw+12,py+ph/2]]:[[px-off,py-off],[px+pw+off,py-off],[px-off,py+ph+off],[px+pw+off,py+ph+off]];const gr=[0,18,30,46][e];
@@ -2309,7 +2306,7 @@ A.sheet=function(id,tab){
   ${body}
   <div class="row">${p.loan?`<button class="btn" onclick="A.recall(${id})">Rappeler de prêt</button>`:reqBtns}${!p.loan&&p.age<=23&&!inXI?`<button class="btn" onclick="A.loanOut(${id})">Prêter</button>`:''}<button class="btn cmpb ${UI.cmp.includes(id)?'on':''}" data-cmp="${id}" onclick="A.cmpToggle(${id})">⇄ Comparer</button><button class="btn" onclick="A.renew(${id})">Prolonger</button><button class="btn" onclick="A.list(${id});A.sheet(${id})">${p.listed?'Retirer de la vente':'Mettre en vente'}</button><button class="btn dan" onclick="A.release(${id})">Libérer</button><button class="btn pri" onclick="A.close()">Fermer</button></div>`,true);
 };
-function crest(c1,c2,name,size){return crestSVG(c1,c2,initials(name),size,0);}
+function crest(c1,c2,name,size){if(S&&name===S.club.name){const k=clubKit();return crestSVG(c1,c2,initials(name),size,k.cr,k.em);}return crestSVG(c1,c2,initials(name),size,0);}
 function renderStart(){
   let saved=null;
   const st=UI.setup;
@@ -2691,6 +2688,7 @@ function vClub(){
    <div class="kpis"><div class="kpi"><div class="l">Réputation</div><div class="v">${Math.round(S.rep)}</div></div><div class="kpi"><div class="l">Humeur des supporters</div><div class="v ${S.mood<35?'bad':''}">${Math.round(S.mood)}</div></div><div class="kpi"><div class="l">Plus haut niveau</div><div class="v" style="font-size:18px">${LV[S.maxDiv].n}</div></div></div>
    ${!S.sasp?(S.div>=3?'<div class="alert">Le club peut désormais créer sa SASP : le statut professionnel est obligatoire dès la Ligue 3.</div><button class="btn pri" onclick="A.goPro()">Passer au statut professionnel</button>':'<p class="muted" style="font-size:13px;margin:0">Le passage en SASP (statut professionnel) devient possible à partir de la National 1. Il est obligatoire pour jouer en Ligue 3.</p>'):''}
   </div>
+   ${kitCard()}
    <div class="card"><h3>Ce que pensent les adhérents</h3><div style="display:grid;gap:10px">${confParts().map(c=>`<div><div class="spread" style="font-size:13.5px"><b>${c.k}</b><span class="num ${c.v<35?'bad':c.v>65?'good':''}">${Math.round(c.v)}/100</span></div><div class="meter"><i style="width:${c.v}%;background:${c.v<35?'var(--bad)':c.v>65?'var(--good)':'var(--flood)'}"></i></div><div class="muted" style="font-size:12.5px;margin-top:3px">${esc(c.t)}</div></div>`).join('')}</div><p class="muted" style="font-size:12.5px;margin:0">Confiance globale : <b>${Math.round(S.confidence)}/100</b>. Elle bouge surtout avec les résultats par rapport au pronostic et avec le bilan de fin de saison.</p></div>
    <div class="card"><h3>Vitrine à trophées</h3><div class="cabinet">${S.palmares.map(p=>`<div class="troph">${trophySVG(/^Coupe/.test(p)?'coupe':'titre')}<span>${esc(p)}</span></div>`).join('')}${S.palmares.some(p=>/Ligue 1/.test(p)&&/^Champion/.test(p))?'':`<div class="troph ghost">${trophySVG('titre')}<span>Champion de Ligue 1</span></div>`}${S.palmares.some(p=>/^Coupe/.test(p))?'':`<div class="troph ghost">${trophySVG('coupe')}<span>Coupe de France</span></div>`}</div>${S.palmares.length?'':'<p class="muted" style="margin:0;font-size:13px">Les silhouettes montrent les trophées qui restent à conquérir.</p>'}</div>
   </div>
@@ -3027,7 +3025,7 @@ function clubLifeCards(){
    <div class="team-row"><div><b>Section féminine</b><div class="muted" style="font-size:13px">${S.flags.fem?FEM_LV[S.div]+(F?' · cette saison '+F.W+' V, '+F.D+' N, '+F.L+' D'+(F.last?' · saison passée : '+F.last.pos+'e':''):''):'Subventions +10 %, image et supporters en hausse.'}</div></div>${S.flags.fem?'<span class="pill g">Active</span>':`<button class="btn sm pri" onclick="A.femCreate()">Créer (${money(FEMCOST[S.div])}/an)</button>`}</div></div>`;
   const lg=S.legends||[];
   const leg=`<div class="card"><header><h3>Légendes du club</h3><span class="muted" style="font-size:13px">${lg.length} joueur${lg.length>1?'s':''}</span></header>
-   ${lg.length?`<div class="legends">${lg.map((l,i)=>`<div class="legend"><div class="lshirt" style="--c1:${S.club.c1};--c2:${S.club.c2}"><span>${l.num}</span>${l.retired?'<em>retiré</em>':''}</div><div><b>${plk(l.id,l.n)}</b><div class="muted" style="font-size:12.5px">${POSN[l.pos]||l.pos} · ${l.seasons} saisons · ${l.apps} matchs · ${l.goals} buts${l.tribune?' · <span class="gold">tribune '+esc(l.n.split(' ').pop())+'</span>':''}</div>
+   ${lg.length?`<div class="legends">${lg.map((l,i)=>`<div class="lgd-row"><div class="lshirt" style="--c1:${S.club.c1};--c2:${S.club.c2}"><span>${l.num}</span>${l.retired?'<em>retiré</em>':''}</div><div><b>${plk(l.id,l.n)}</b><div class="muted" style="font-size:12.5px">${POSN[l.pos]||l.pos} · ${l.seasons} saisons · ${l.apps} matchs · ${l.goals} buts${l.tribune?' · <span class="gold">tribune '+esc(l.n.split(' ').pop())+'</span>':''}</div>
      <div class="row" style="gap:6px;margin-top:6px">${l.retired?'':`<button class="btn sm" onclick="A.legRetire(${i})">Retirer le n° ${l.num}</button>`}${l.tribune?'':`<button class="btn sm" onclick="A.legTribune(${i})">Nommer une tribune</button>`}${l.ret&&!l.jubile?`<button class="btn sm pri" onclick="A.legJubile(${i})">Organiser son jubilé</button>`:''}</div></div></div>`).join('')}</div>`
    :'<p class="muted" style="margin:0;font-size:13.5px">Un joueur entre dans la légende en quittant le club après 6 saisons, 160 matchs ou 60 buts sous vos couleurs.</p>'}</div>`;
   const I=S.investor;
@@ -3990,6 +3988,82 @@ function agendaCard(){
   add('🎓','Jeunes',ys+' de 21 ans et moins','effectif','');
   return `<div class="card"><header><h3>Cette semaine au club</h3></header><div class="agenda">${it.join('')}</div></div>`;
 }
+
+
+/* ====================== Maillots, écussons, emblèmes ====================== */
+const KIT_PAT=['Uni','Rayures','Cerceaux','Moitié-moitié','Écharpe','Col et manches'];
+const CREST_PAT=['Parti','Rayé','Bande','Chevron','Écartelé','Cerclé','Fascé','Plein'];
+const CREST_EMB=['Initiales','Étoile','Ballon','Tour','Couronne','Vague','Éclair'];
+function clubKit(){const k=S.club.kit||(S.club.kit={});const h=Math.abs(hashS(S.club.name||'club'));if(k.cr==null)k.cr=0;if(k.em==null)k.em=0;if(k.sh==null)k.sh=[0,1,2,3][h%4];return k;}
+function emblemSVG(e,c){
+  switch(e){
+    case 1:return `<path d="M29 15l3.8 7.8 8.6 1.2-6.2 6 1.5 8.5L29 34.5l-7.7 4 1.5-8.5-6.2-6 8.6-1.2z" fill="${c}"/>`;
+    case 2:return `<circle cx="29" cy="28" r="10" fill="#fff" stroke="#111" stroke-width="1.2"/><path d="M29 22.5l4.6 3.3-1.8 5.4h-5.6l-1.8-5.4z" fill="#111"/><path d="M29 22.5V18M33.6 25.8l4.2-1.5M31.8 31.2l2.6 3.7M26.2 31.2l-2.6 3.7M24.4 25.8l-4.2-1.5" stroke="#111" stroke-width="1.2"/>`;
+    case 3:return `<path d="M20 38V22h3v3h3v-3h6v3h3v-3h3v16z" fill="${c}"/><rect x="27" y="31" width="4" height="7" rx="2" fill="#0008"/>`;
+    case 4:return `<path d="M18 36l-2-14 7 6 6-9 6 9 7-6-2 14z" fill="${c}"/><rect x="18" y="36" width="22" height="3" fill="${c}"/>`;
+    case 5:return `<path d="M15 26c4-4 7-4 10 0s7 4 10 0 7-4 9 0M15 33c4-4 7-4 10 0s7 4 10 0 7-4 9 0" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`;
+    case 6:return `<path d="M32 14l-10 15h6l-3 14 11-17h-6z" fill="${c}"/>`;
+    default:return '';
+  }
+}
+function crestSVG(c1,c2,ini,size,v,em){
+  size=size||58;const id='cl'+(++CREST_N),sh='M4 4h50v28c0 16-12 26-25 31C16 58 4 48 4 32z';
+  v=v||0;em=em||0;
+  const pat=[`<rect width="58" height="66" fill="${c1}"/><path d="M29 0h29v66H29z" fill="${c2}" opacity=".92"/><rect y="22" width="58" height="14" fill="${c1}"/>`,
+    `<rect width="58" height="66" fill="${c1}"/>${[10,24,38].map(x=>`<rect x="${x}" width="8" height="66" fill="${c2}"/>`).join('')}`,
+    `<rect width="58" height="66" fill="${c1}"/><path d="M-4 18L40 70h18L10 6z" fill="${c2}"/>`,
+    `<rect width="58" height="66" fill="${c1}"/><path d="M4 22l25 16 25-16v12L29 50 4 34z" fill="${c2}"/>`,
+    `<rect width="58" height="66" fill="${c1}"/><path d="M29 0h29v32H29zM0 32h29v34H0z" fill="${c2}"/>`,
+    `<rect width="58" height="66" fill="${c2}"/><circle cx="29" cy="30" r="17" fill="${c1}"/>`,
+    `<rect width="58" height="66" fill="${c1}"/>${[12,28,44].map(y=>`<rect y="${y}" width="58" height="7" fill="${c2}"/>`).join('')}`,
+    `<rect width="58" height="66" fill="${c1}"/><rect y="0" width="58" height="12" fill="${c2}"/>`][v%8];
+  const ink=v===0||v===5?c2:'#fff';
+  const txt=size>=34&&!em?`<text x="29" y="${v===3?20:33.5}" text-anchor="middle" font-family="Big Shoulders Display,Impact,sans-serif" font-weight="900" font-size="13" fill="${ink}" stroke="${c1}" stroke-width=".5" paint-order="stroke">${esc(ini)}</text>`:'';
+  const emb=em?`<g ${size<30?'transform="translate(29 29) scale(1.15) translate(-29 -29)"':''} stroke="${c1}" stroke-width=".4" paint-order="stroke">${emblemSVG(em,v===5?c2:'#fff')}</g>`+(size>=44?`<text x="29" y="51" text-anchor="middle" font-family="Big Shoulders Display,Impact,sans-serif" font-weight="900" font-size="8" fill="#fff" stroke="${c1}" stroke-width="1.6" paint-order="stroke">${esc(ini)}</text>`:''):'';
+  return `<svg viewBox="0 0 58 66" width="${size}" height="${Math.round(size*66/58)}" aria-hidden="true"><defs><clipPath id="${id}"><path d="${sh}"/></clipPath></defs><g clip-path="url(#${id})">${pat}${emb}</g><path d="${sh}" fill="none" stroke="#e9efe5" stroke-opacity=".85" stroke-width="${size<30?3:2}"/>${txt}</svg>`;
+}
+// motif d'un maillot (dans un repère 32×32 pour les petites icônes, ou 120×120 pour la vitrine)
+function kitPattern(p,c1,c2,s){
+  const k=s/32;
+  switch(p){
+    case 1:return [7,13,19,25].map(x=>`<rect x="${(x-1.5)*k}" y="0" width="${3*k}" height="${s}" fill="${c2}"/>`).join('');
+    case 2:return [9,16,23].map(y=>`<rect x="0" y="${(y-1.6)*k}" width="${s}" height="${3.2*k}" fill="${c2}"/>`).join('');
+    case 3:return `<rect x="${16*k}" y="0" width="${16*k}" height="${s}" fill="${c2}"/>`;
+    case 4:return `<path d="M${6*k} 0h${6*k}L${28*k} ${32*k}h-${6*k}z" fill="${c2}"/>`;
+    case 5:return `<path d="M${10*k} ${2*k}h${12*k}l-${2*k} ${4*k}h-${8*k}z" fill="${c2}"/><path d="M0 ${6*k}l${7*k} ${7*k}V${4*k}zM${32*k} ${6*k}l-${7*k} ${7*k}V${4*k}z" fill="${c2}"/>`;
+    default:return '';
+  }
+}
+const SHIRT_D='M11 3 4 7l3 6 3-1.3V29h12V11.7l3 1.3 3-6-7-4c-1 2.4-2.7 3.5-5 3.5S12 5.4 11 3z';
+function jersey(p,size){
+  size=size||26;const n=shirtNo(p),c1=S.club.c1,c2=S.club.c2,gk=p.pos==='G';
+  const body=gk?'#2b2f36':c1,ink=gk?'#f4c430':c2;const kp=gk?0:clubKit().sh;
+  const id='jy'+(++CREST_N);const pat=size>=22&&kp?`<g clip-path="url(#${id})">${kitPattern(kp,body,ink,32)}</g>`:'';
+  const numInk=hexLum(kp===1||kp===3?'#777':body)>.45?'#111':'#fff';
+  return `<svg class="jersey" viewBox="0 0 32 32" width="${size}" height="${size}" aria-hidden="true"><defs><clipPath id="${id}"><path d="${SHIRT_D}"/></clipPath></defs><path d="${SHIRT_D}" fill="${body}"/>${pat}<path d="${SHIRT_D}" fill="none" stroke="${ink}" stroke-width="1.3" stroke-linejoin="round"/><text x="16" y="22.5" text-anchor="middle" font-family="Big Shoulders Display,Impact,sans-serif" font-weight="900" font-size="11" fill="${kp?numInk:ink}" ${kp?`stroke="${body}" stroke-width=".8" paint-order="stroke"`:''}>${n}</text></svg>`;
+}
+// grand maillot de face, avec le sponsor maillot et l'écusson
+function kitSVG(c1,c2,pat,sponsor,label){
+  const id='kt'+(++CREST_N),s=120,sc=s/32;
+  const sp=(sponsor||'').replace(/^(Concession automobile|Entreprise de|Supermarché|Boulangerie industrielle|Société de)\s+/i,'').slice(0,18);
+  const lum=hexLum(c1),ink=lum>.45?'#111':'#fff';
+  return `<figure class="kitfig"><svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="${esc(label)}"><defs><clipPath id="${id}"><path transform="scale(${sc})" d="${SHIRT_D}"/></clipPath></defs>
+   <path transform="scale(${sc})" d="${SHIRT_D}" fill="${c1}"/><g clip-path="url(#${id})">${kitPattern(pat,c1,c2,120)}</g>
+   <path transform="scale(${sc})" d="${SHIRT_D}" fill="none" stroke="${c2}" stroke-width=".9" stroke-linejoin="round"/>
+   <g transform="translate(70 30) scale(.24)">${crestSVG(c1,c2,initials(S.club.name),58,clubKit().cr,clubKit().em).replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')}</g>
+   ${sp?`<rect x="36" y="58" width="48" height="15" rx="2" fill="${ink==='#fff'?'#0006':'#fff8'}"/><text x="60" y="69" text-anchor="middle" font-family="Barlow, sans-serif" font-weight="800" font-size="${sp.length>12?7:9}" fill="${ink}">${esc(sp.toUpperCase())}</text>`:''}
+  </svg><figcaption>${esc(label)}</figcaption></figure>`;
+}
+function kitCard(){
+  const k=clubKit(),c1=S.club.c1,c2=S.club.c2,sp=S.spons&&S.spons.maillot?S.spons.maillot.b:'';
+  const sel=(id,arr,val,fn)=>`<label class="fld" style="margin:0">${id}<select onchange="${fn}(this.value)">${arr.map((n,i)=>`<option value="${i}" ${i===val?'selected':''}>${n}</option>`).join('')}</select></label>`;
+  return `<div class="card"><header><h3>Maillots et écusson</h3>${sp?`<span class="muted" style="font-size:12.5px">Sponsor maillot : ${esc(sp)}</span>`:''}</header>
+   <div class="kitrow">${crestSVG(c1,c2,initials(S.club.name),96,k.cr,k.em)}${kitSVG(c1,c2,k.sh,sp,'Domicile')}${kitSVG(c2,c1,k.sh,sp,'Extérieur')}</div>
+   <div class="grid g3" style="gap:8px">${sel('Motif du maillot',KIT_PAT,k.sh,'A.kitSh')}${sel('Écusson',CREST_PAT,k.cr,'A.kitCr')}${sel('Emblème',CREST_EMB,k.em,'A.kitEm')}</div></div>`;
+}
+A.kitSh=v=>{clubKit().sh=+v;save();render();};
+A.kitCr=v=>{clubKit().cr=+v;save();render();};
+A.kitEm=v=>{clubKit().em=+v;save();render();};
 
 /* ====================== Missions du recruteur ====================== */
 const MIS={

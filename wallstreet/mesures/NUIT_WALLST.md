@@ -45,3 +45,6 @@ Pour Victor, en français. Cycle autonome : personne ne surveille. Ne jamais pub
 - Ne toucher à rien d'autre que ces deux artefacts et le dossier de travail.
 - Pas de dépendance externe nouvelle dans la page (bibliothèques, polices non Google).
 - Si quelque chose casse et qu'on ne sait pas réparer dans le cycle : ne rien publier, le dire dans le journal et dans le message.
+
+## Réglages décidés par Victor
+- 16/11/2026 : retour des cours vers la juste valeur ralenti de 8 % (engine.js, 0,0025 → 0,0023 par séance). bots.js 44 × 8, graines fixées (Math.random remplacé, 23-24 tirages) : « PER le plus bas » 4,29 → 3,95 %/an en moyenne (pire tirage 6,0 → 5,9 ; parties gagnées max 91 → 84 %), Momentum 3,52 → 3,72, hasard −2,78 → −2,77. Ralentir davantage (0,0019-0,0020) fait passer Momentum à 4,7-4,8 de moyenne (tirages à 5,9) : la valeur et le momentum se nourrissent du même écart. Bruit d'un tirage de 44 marchés ≈ ±1 %/an. Feuilletons : rythme inchangé (~3 par an).

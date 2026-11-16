@@ -321,7 +321,8 @@ function step(G){
     var stN=0.75*(o.stv||0)+Math.sqrt(0.15/1.14)*s.i/Math.sqrt(252)*tdist(5); trans+=stN-(o.stv||0); o.stv=stN;
     perm+=cycD; trans+=M.style*clamp(Math.log(o.pe)-mlpe,-1,1); o.fair*=Math.exp(perm);
     lpe+=(rT-clamp(gEff,-0.08,0.35))/252; // le multiple suit la croissance : rendement attendu identique pour toutes les actions
-    lpe+=0.0025*(Math.log(o.fairNow)-lpe)+perm+trans+dr-S.rs*G.rateMove*0.6;
+    // retour vers la juste valeur : 0,0025 → 0,0023 par séance (décision de Victor 16/11 : stratégie « PER bas » moins fiable)
+    lpe+=0.0023*(Math.log(o.fairNow)-lpe)+perm+trans+dr-S.rs*G.rateMove*0.6;
     lpe=Math.min(Math.max(lpe,Math.log(o.fairNow*0.35)),Math.log(o.fairNow*3)); o.pe=Math.exp(lpe);
     if(G.day===o.earn)earnings(G,t);
     else if(o.gNext==null)earningsSetup(G,t);

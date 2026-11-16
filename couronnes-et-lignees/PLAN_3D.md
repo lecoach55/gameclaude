@@ -37,3 +37,14 @@ Choix de Victor : **approche mixte** (carte 3D en temps réel avec repli 2D auto
 - Mesures (CPU ×4, rendu logiciel) : chargement 746 ms (avant 3D : 532), rendu plateau 8,9 ms, glisse 59 img/s ; le zoom mesuré juste après le chargement chevauche la construction 3D en rendu logiciel (`mesures/perf_3d_phase2.json`). Captures 2D : 0 alerte / 16 ; 3D : références mises à jour.
 - Revue Studio : relecteur (ROUGE corrigé : perte du contexte WebGL → retour automatique à la carte dessinée), testeur ORANGE (reflet en cône sur la mer corrigé : eau en Lambert ; terres teintées plus fort). Version publiée 1794828978-a4d2.
 - Reste pour plus tard : pions d'armée en 3D (les pions SVG restent, lisibles et touchables), front de guerre en relief.
+
+### Phase 3 (16/11, fin d'après-midi) — faite
+- Atelier `outils/atelier3d/` : `scenes3d.js` (constructeur de scènes, s'exécute dans la page construite et réutilise Three.js, `TEX3D` et le kit `R3.kit`) + `rendre.py` (Chrome en rendu logiciel, rendu 1440×600 → 720×300 Lanczos, vignette douce, WebP q72). Commande : `python3 outils/atelier3d/rendre.py [scènes] --ages`.
+- 15 scènes + écran titre (600×600) : château, église, village, bataille, cour, mer, nuit, peste, tournoi, chantier, foire, noces, couronnement, siège, port. Ciel à nuages peints, ombres 4096, fumées en voiles, brume ; personnages, chevaux, tentes, étals, navires, trébuchet procéduraux.
+- 3 lumières par âge (barons / cathédrales plus dorée / fléaux grise et brumeuse), sauf cour, couronnement, nuit, peste (une seule).
+- Drapeaux de maison : rendus en blanc, leurs 4 coins projetés sont enregistrés (`scenes3d/flags.json`) ; dans le jeu, un polygone SVG en `mix-blend-mode:multiply` les teint aux couleurs de votre maison (`who: me`) ou de l'adversaire (`foe`).
+- Intégration : `jeu/scenes3d.js` (IMG3D, 647 Ko) embarqué par `build.py` ; `SCENE.svg` → `svg3d()` si la 3D est choisie, sinon les scènes dessinées (inchangées : captures 2D 0/16 alerte).
+- Textures enduit/chaume/tuiles éclaircies (maisons trop sombres sur la carte aussi).
+- Revue Studio (relecteur + graphiste, ORANGE) appliquée : caméras resserrées (focale 27°), drapeaux tous dans le cadre (rendre.py signale « ⚠ drapeau hors cadre »), feuillage plus clair, silhouettes à épaules et bras, âges plus marqués, château du titre posé sur le relief.
+- Réserves ORANGE pour la phase 5 : personnages encore simples (piste : pions pré-rendus de Bannières), « chantier » peu lisible comme cathédrale, cour et couronnement proches.
+- Page 2,6 Mo (limite 16), IMG3D 705 Ko. Chargement 883 ms à CPU ×4 (630 avant). Version 1794841536-5f17. Planche : `references/planche_scenes3d.png`.

@@ -278,5 +278,6 @@ const R3 = (() => {
     });
   }
   function setLive(css) { if (canvas) { canvas.style.transformOrigin = '0 0'; canvas.style.transform = css || ''; } }
-  return { get _groups() { return groups; }, on, supported, setPref, pref, sync, attach, render, setLive, get canvas() { return canvas; }, set quality(q) { quality = q; }, get quality() { return quality; }, K };
+  const kit = { mats, flagMat, castle, edifice, cathedral, house, tower, keep, banner, crenels, add, box, cyl, cone, gable, wuv, fbm, texture };
+  return { kit, get _groups() { return groups; }, on, supported, setPref, pref, sync, attach, render, setLive, get canvas() { return canvas; }, set quality(q) { quality = q; }, get quality() { return quality; }, K };
 })();

@@ -43,6 +43,11 @@ Mode test → ☰ → ▶ Banc : après les 3 scènes 2D, une expédition 3D de 
 Puce Intel intégrée (Mac Intel) ou petit GPU mobile : la 3D démarre en qualité Normale au lieu de Haute (`gpuFaible` dans ui3.js ; la qualité automatique remonte si tout est fluide). En rendu logiciel, Haute coûte ≈ 2,5× Économie (0,8-1,1 contre 1,9-3 img/s).
 Test : `python3 outils/trousse3d.py [mac] [sansbanc]` (base simulée : qui écrit quoi, aucune écriture de `partie`, aucune clé localStorage de la 3D).
 
+## Exploration 3D éclaircie (v5.4, 16/11/2026, décision de Victor)
+Couloirs lisibles hors du halo du groupe, ambiance gardée : en exploration seulement (combat et titre inchangés), ambiance et hémisphère relevées et teintées vers la lumière du donjon (mêlée de gris neutre), lune lapis plus forte, brouillard 0,072 → 0,056, portée du projecteur et de la lanterne du groupe allongée ; aucune lumière ajoutée (mêmes programmes, même passe d'ombre). Réglage par type dans `theme.js` : `ecl` (1 par défaut ; antre 2,6, mine 0,85, Bois maudit 0,75, Faille gelée 0,1), `eclGris`, `eclGroupe`.
+Luminance des pixels éclairés (`outils/lum3d.py avant après`, captures `vues3d.py`) : antre 15,9 → 25, mine 26,6 → 37,7, Bois maudit 28,4 → 39,6, crypte 25 → 40,9 ; combat inchangé.
+Menu ☰ → « 📋 Copier la sauvegarde » : code (JSON de la partie) à copier, remplace l'ancien lien de téléchargement (inopérant dans le visualiseur ; pas de capacité downloads).
+
 ## Équilibre
 Ne pas toucher à la difficulté des combats ni au retour des monstres dans les donjons (« le mal revient ») sans le demander à Victor ; vérifier avec les deux simulateurs.
 

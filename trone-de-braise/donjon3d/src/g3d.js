@@ -202,8 +202,10 @@ function lightPool(scene,n){const L=[];for(let i=0;i<n;i++){const l=new THREE.Po
 /* ===================== EXPLORATION ===================== */
 const EX={};
 function buildFloor(VD){endTitle();mode='explo';needComp=1;EX.lavas=[];EX.bats=null;EX.rats=null;EX.glows=[];keepAll();purge(scW);const tier=VD.tier(),B=BIO[tier];EX.tier=tier;
- scW.fog=new THREE.FogExp2(B.fog,.072);scW.background=new THREE.Color(B.fog);
- scW.add(new THREE.HemisphereLight(B.amb,0x080608,.55));scW.add(new THREE.AmbientLight(B.amb,.35));
+ // éclairage d'exploration (décision de Victor 16/11 : couloirs lisibles hors du halo, ambiance gardée) : brouillard moins dense, ambiance et lune relevées, `ecl` par type de donjon
+ const XT=TT_(),XE=TH&&TH.type?(XT.ecl??1):0;EX.xe=XE;EX.xg=XE?(XT.eclGroupe??1):1;const ambX=XE?new THREE.Color(B.amb).lerp(new THREE.Color(XT.light).lerp(new THREE.Color(0x8a7c6c),XT.eclGris??.55),.6*Math.min(1,XE)):B.amb;
+ scW.fog=new THREE.FogExp2(B.fog,.072-.016*Math.min(1,XE));scW.background=new THREE.Color(B.fog);
+ scW.add(new THREE.HemisphereLight(ambX,0x080608,.55*(1+7*XE)));scW.add(new THREE.AmbientLight(ambX,.35*(1+7*XE)));
  const Wd=VD.W,Hd=VD.H,cells=[],walls=[],pill=[];for(let y=0;y<Hd;y++)for(let x=0;x<Wd;x++){const v=VD.map[y*Wd+x];if(v===1||v===2||v===3||v===4)cells.push([x,y,v]);
   if(v===0){let n=false;for(let j=-1;j<=1&&!n;j++)for(let i=-1;i<=1;i++){const vv=VD.at(x+i,y+j);if(vv===1||vv===2||vv===3){n=true;break;}}if(n)walls.push([x,y]);}if(v===3)pill.push([x,y]);}
  EX.fog=null;EX.mapRef=VD.map;if(K.ok)kitWorld(VD,tier);else{
@@ -236,7 +238,7 @@ function buildFloor(VD){endTitle();mode='explo';needComp=1;EX.lavas=[];EX.bats=n
   else if(sel<.6){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,5),mat(0xcfc7b0));b.rotation.z=Math.PI/2;b.position.y=.03;g.add(b);if(sel<.5){const sk=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),mat(0xd8d0b8));sk.position.set(.18,.07,.05);g.add(sk);}g.rotation.y=sel*9;add(g,x,y);}}});
  // objets (coffres, tonneaux, sanctuaires)
  {const r=VD.rooms[0],m=TH.maison||MAISON0;const e=banniere(m,.78,true);let x=r.cx+.5-1.1,y=r.cy+.5-.9;if(VD.solid(x,y)){x=r.cx+.5;y=r.cy-.4;}e.position.set(x,1.55,y);e.rotation.y=.5;e.visible=false;e.userData.c=[x|0,y|0];scW.add(e);(EX.kprops||(EX.kprops=[])).push(e);
-  const lune=new THREE.DirectionalLight(LAPIS,.55);lune.position.set(-6,10,-4);scW.add(lune);}
+  const lune=new THREE.DirectionalLight(LAPIS,.55*(1+2.2*(EX.xe||0)));lune.position.set(-6,10,-4);scW.add(lune);}
  if(TH&&TH.type&&K.ok)decorExplo({VD,type:TH.type,T:TT_(),grime,bioTex,elTex,hr,addP:(o,x,y)=>{o.visible=false;o.userData.c=[x|0,y|0];scW.add(o);(EX.kprops||(EX.kprops=[])).push(o);}});
  EX.objs=new Map();VD.obj.forEach(o=>EX.objs.set(o,makeObj(o)));
  // marchand
@@ -249,8 +251,8 @@ function addPackModel(e){{const R=monM(e.boss?'boss':e.k,{el:e.el});if(!needComp
   if(e.elite){const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.55,24),new THREE.MeshBasicMaterial({color:{rapide:0x7fe0ff,blinde:0xd0d0d0,vampire:0xff3a5a,ardent:0xff8a2a}[e.elite],transparent:true,opacity:.8,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.02;R.root.add(ring);}R.root.visible=false;return R;}}
 function _bf2(VD,B){
  // lumière du groupe (projecteur avec ombres) + lanterne
- EX.key=new THREE.SpotLight(new THREE.Color(0xffd7a0).lerp(new THREE.Color(TT_().light),.45),46,11,.78,.6,1.4);EX.key.castShadow=true;EX.key.shadow.mapSize.set(qLvl>=3?1024:512,qLvl>=3?1024:512);EX.key.shadow.bias=-.0008;scW.add(EX.key,EX.key.target);
- EX.lan=new THREE.PointLight(0xffc690,3.0,7.5,1.7);
+ EX.key=new THREE.SpotLight(new THREE.Color(0xffd7a0).lerp(new THREE.Color(TT_().light),.45),46,11*(1+.4*Math.min(1.5,EX.xe||0)),.78,.6,1.4);EX.key.intensity*=EX.xg||1;EX.key.castShadow=true;EX.key.shadow.mapSize.set(qLvl>=3?1024:512,qLvl>=3?1024:512);EX.key.shadow.bias=-.0008;scW.add(EX.key,EX.key.target);
+ EX.lan=new THREE.PointLight(0xffc690,3.0,7.5*(1+.5*Math.min(1.5,EX.xe||0)),1.7);
  scW.add(pts);pData.length=0;scW.add(smokeSys());smokeClear();
  if(K.ok){EX.fogP=groundFog(26,new THREE.Color(B.fog).lerp(new THREE.Color(B.acc),.25).offsetHSL(0,0,.12),.28);EX.fogP.visible=hiQ;scW.add(EX.fogP);}else EX.fogP=null;
  EX.yaw=EX.yaw||0;EX.seenN=0;padPL(scW);rp.scene=scW;}
@@ -406,7 +408,7 @@ function updExplo(VD,dt,t,dirty){if(!EX.floor&&!EX.fog)return;const P=VD.P;air(d
  if(EX.fogP){EX.fogP.position.x=camTarget.x;EX.fogP.position.z=camTarget.z;EX.fogP.material.uniforms.t.value=t;EX.fogP.material.uniforms.ctr.value.set(camTarget.x,camTarget.z);}
  EX.lavas.forEach(l=>l.material.uniforms.t.value=t);if(K.ok)updCritters(VD,dt,t);
  if(K.ok&&Math.random()<dt*7){const a=Math.random()*TAU,r=.5+Math.random()*2.5;part({x:P.x+Math.cos(a)*r,y:.3+Math.random()*1.2,z:P.y+Math.sin(a)*r,vx:(Math.random()-.5)*.08,vy:.03+Math.random()*.05,vz:(Math.random()-.5)*.08,life:3,size:.035,drag:1,col:new THREE.Color(BIO[EX.tier].light).multiplyScalar(.45),g:0});}
- EX.key.position.set(P.x-1.5,5.5,P.y+1.5);EX.key.target.position.set(P.x,0,P.y);EX.lan.position.set(P.x,1.3,P.y);EX.lan.intensity=3.2*(.95+.05*Math.sin(t*9));
+ EX.key.position.set(P.x-1.5,5.5,P.y+1.5);EX.key.target.position.set(P.x,0,P.y);EX.lan.position.set(P.x,1.3,P.y);EX.lan.intensity=3.2*(EX.xg||1)*(.95+.05*Math.sin(t*9));
  updSmoke(dt);updParticles(dt);}
 function rotIn(mx,my){const c=Math.cos(camYaw),s=Math.sin(camYaw);return{mx:mx*c+my*s,my:-mx*s+my*c};}
 

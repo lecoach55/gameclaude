@@ -344,6 +344,19 @@ const EVENTS=[
    const L=classement(t.e.org,f.div).filter(x=>!x.mine&&dispo(x,t.e.sem)&&x.id!==t.c.b);if(!L.length)return null;return {f:f.id,c:t.c.id,nv:L[L.length-1].id,old:t.c.b};},
   t:()=>'Changement d\'adversaire',d:x=>nomF(x.old)+' s\'est blessé et doit déclarer forfait. L\'organisation propose '+nomF(x.nv)+' ('+ov(G.F[x.nv])+' de note) en remplacement.',
   ch:[{t:'Accepter le remplaçant',f:x=>{const t=trouverCombat(x.c);if(!t)return;const o=G.F[x.old],n=G.F[x.nv];if(o.prochain===x.c)o.prochain=null;blesser(o);t.c.b=x.nv;n.prochain=x.c;t.c.seed=0;}},{t:'Annuler le combat',f:x=>{const t=trouverCombat(x.c);if(t){blesser(G.F[x.old]);annuler(t.c);}}}]},
+ {id:'jeunes',p:.4,cond:()=>G.salle.niv>=1&&G.argent>3000,make:()=>({m:2500}),t:()=>'Section jeunes',d:()=>'Des parents demandent l\'ouverture d\'un cours de MMA éducatif pour les 12-16 ans le mercredi. Il faut équiper une salle (2 500 €).',
+  ch:[{t:'Ouvrir le cours',f:x=>{G.argent-=x.m;G.salle.membres+=ri(15,30);G.salle.rep+=2;}},{t:'Pas pour l\'instant'}]},
+ {id:'adv_parle',p:.5,cond:()=>mes().some(f=>f.prochain&&trouverCombat(f.prochain)?.c.ok),make:()=>{const f=pk(mes().filter(f=>f.prochain&&trouverCombat(f.prochain)?.c.ok));const c=trouverCombat(f.prochain).c;return {f:f.id,adv:c.a===f.id?c.b:c.a};},
+  t:()=>'Il promet un KO',d:x=>nomF(x.adv)+' annonce sur les réseaux qu\'il mettra '+nomF(x.f)+' KO au premier round.',
+  ch:[{t:'Utiliser ça comme motivation',f:x=>{G.F[x.f].moral=Math.min(100,G.F[x.f].moral+10);}},{t:'Répondre publiquement',f:x=>{G.F[x.f].pop=Math.min(100,G.F[x.f].pop+4);G.F[x.adv].pop=Math.min(100,G.F[x.adv].pop+3);}}]},
+ {id:'sparring_star',p:.35,cond:()=>mes().length>0&&G.argent>2500,make:()=>{const f=pk(mes());return {f:f.id,m:2000};},t:()=>'Sparring avec une star',d:x=>'Un champion de GLADIUS de passage propose quelques sessions de sparring avec '+nomF(x.f)+' (2 000 €). Formateur… mais dangereux.',
+  ch:[{t:'Accepter',f:x=>{const f=G.F[x.f];G.argent-=x.m;for(const k of ['frappe','lutte','sol'])f.at[k]=Math.min(f.pot+8,f.at[k]+.8);if(R()<.25)blesser(f);}},{t:'Refuser'}]},
+ {id:'nutrition',p:.4,cond:()=>mes().some(f=>f.at.cardio<60),make:()=>({f:pk(mes().filter(f=>f.at.cardio<60)).id,m:1200}),t:()=>'Un nutritionniste du sport',d:x=>'Un nutritionniste propose un suivi de trois mois pour '+nomF(x.f)+', qui manque de souffle en fin de combat (1 200 €).',
+  ch:[{t:'Engager',f:x=>{G.argent-=x.m;const f=G.F[x.f];f.at.cardio=Math.min(f.pot+8,f.at.cardio+2.5);}},{t:'Non merci'}]},
+ {id:'fan',p:.4,cond:()=>mes().some(f=>f.pop>20),make:()=>({f:pk(mes().filter(f=>f.pop>20)).id}),t:()=>'Le fan numéro un',d:x=>'Un supporter a fait tatouer le visage de '+nomF(x.f)+' sur son mollet. La photo fait le tour des réseaux.',
+  ch:[{t:'L\'inviter au prochain gala',f:x=>{G.F[x.f].pop=Math.min(100,G.F[x.f].pop+3);G.F[x.f].moral=Math.min(100,G.F[x.f].moral+5);}},{t:'Ignorer'}]},
+ {id:'panne',p:.35,cond:()=>true,make:()=>({m:300+G.salle.niv*400}),t:()=>'Panne de chauffage',d:x=>'Le chauffage de la salle est tombé en panne en plein hiver. Réparation express : '+fmtE(x.m)+'.',
+  ch:[{t:'Réparer',f:x=>{G.argent-=x.m;}},{t:'Attendre le printemps',f:()=>{G.salle.membres=Math.max(10,G.salle.membres-ri(5,12));mes().forEach(f=>f.moral-=3);}}]},
  {id:'doc',p:.25,cond:()=>mes().some(f=>f.pop>50),make:()=>({}),t:()=>'Un documentaire sur l\'écurie',d:()=>'Une plateforme de streaming veut tourner une série documentaire dans votre salle pendant six semaines.',ch:[{t:'Action !',f:()=>{G.argent+=4000;G.salle.rep+=4;mes().forEach(f=>f.pop=Math.min(100,f.pop+4));}},{t:'Trop de caméras',f:()=>{}}]}
 ];
 function evenementAleatoire(){if(G.sem<3||R()>.3)return null;const ok=EVENTS.filter(e=>e.cond());if(!ok.length)return null;let s=0;ok.forEach(e=>s+=e.p);let x=R()*s;let E=ok[0];for(const e of ok){x-=e.p;if(x<=0){E=e;break;}}

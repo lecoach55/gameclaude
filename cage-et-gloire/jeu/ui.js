@@ -114,7 +114,8 @@ function vEcurie(){const ms=M.mes();const S=M.SALLES[G.salle.niv];let h='';
  const aj=G.aJouer[0];if(aj){const t=M.trouverCombat(aj);h+=`<div class="sec">CE SOIR</div>`+affiche(t.c,t.e,{click:1});}
  else{const pe=M.prochainEvent();if(pe){const c=pe.combats.find(c=>c.mine&&c.ok);h+=`<div class="sec">PROCHAIN COMBAT · dans ${pe.sem-G.sem} sem. · touchez pour préparer le camp</div>`+affiche(c,pe,{click:1,act:'pre2'});}
   else h+=`<div class="carte" style="text-align:center"><h3 style="justify-content:center">Aucun combat programmé</h3><p class="doux">Les organisations vous proposent des combats dans l'onglet Offres.</p>${G.offres.length?`<button class="btn or petit" data-act="voirOff">Voir les ${G.offres.length} offre(s)</button>`:''}</div>`;}
- const bilan=(G.semRec||0)-(G.semDep||0);
+ const cette=G.news.filter(n=>n.s===G.sem).slice(0,6);if(cette.length&&!aj)h+=`<div class="sec">CETTE SEMAINE</div><div class="carte news" style="padding:6px 14px">${cette.map(n=>`<div><i>${n.ic}</i><span>${esc(n.t)}</span></div>`).join('')}</div>`;
+ const bilan=(G.semRec||0)+(G.semSpo||0)-(G.semDep||0);
  h+=`<div class="sec">L'ÉCURIE</div><div class="kpi"><div><b class="${G.argent<0?'neg':''}">${fE(G.argent)}</b><span>Trésorerie</span></div><div><b class="${bilan>=0?'pos':'neg'}">${bilan>=0?'+':''}${fE(bilan)}</b><span>Bilan / semaine</span></div><div><b>${G.salle.membres}</b><span>Adhérents</span></div>
  <div><b>${G.stats.v}-${G.stats.d}</b><span>Bilan des combats</span></div><div><b class="or-t">${G.stats.titres}</b><span>Ceintures gagnées</span></div><div><b>${Math.round(G.salle.rep)}</b><span>Réputation</span></div></div>`;
  // calendrier des 8 prochaines semaines
@@ -266,11 +267,11 @@ function vOffres(){let h=`<div class="titreVue"><h1>Offres</h1><small>${G.offres
 /* ---------- menu ---------- */
 function menu(){const N=NUAGE;modal(`<h2>Menu</h2><div class="btns">
  <button class="btn" id="mGuide">📖 Guide du manager</button><button class="btn" id="mAcc">🏠 Écran titre</button><button class="btn" id="mBug">🐞 Signaler un problème à Claude</button><button class="btn" id="mBanc">🧪 Mesurer la fluidité (arène 3D)</button>
- <button class="btn" id="mQual">⚙️ Qualité 3D : ${localStorage.getItem('cg-qual')==='0'?'allégée':'normale'}</button><button class="btn" onclick="fermerModal()">Fermer</button></div>
+ <button class="btn" id="mQual">⚙️ Qualité 3D : ${['basse','moyenne (recommandée)','haute'][Arene.qual??1]}</button><button class="btn" onclick="fermerModal()">Fermer</button></div>
  <p class="doux" style="font-size:12px;margin-top:12px">☁ Sauvegarde en ligne : ${TEST?'coupée (mode test)':N?(N.ok?'active':N.err?'refusée ('+esc(N.err)+')':'en attente'):'indisponible'}</p>`);
  $('mAcc').onclick=()=>{fermerModal();sauver();accueil();};$('mGuide').onclick=guide;
  $('mBug').onclick=async()=>{toast('Envoi…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé.':'Enregistré sur cet appareil ('+(TK?TK.base:'?')+')',3200);};
- $('mQual').onclick=()=>{localStorage.setItem('cg-qual',localStorage.getItem('cg-qual')==='0'?'1':'0');toast('Pris en compte au prochain lancement');fermerModal();};
+ $('mQual').onclick=()=>modal(`<h2>Qualité 3D</h2><p class="doux">La moyenne s'adapte toute seule : si l'arène ralentit, elle affiche moins de pixels.</p><div class="btns">${['Basse : très fluide, moins détaillée','Moyenne : recommandée','Haute : ombres réelles, rayons de lumière (ordinateurs puissants)'].map((t,i)=>`<button class="btn ${i===(Arene.qual??1)?'or':''}" data-q="${i}">${t}</button>`).join('')}</div>`)||$('modal').querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{try{localStorage.setItem('cg-qual',b.dataset.q);localStorage.removeItem('cg-rs');}catch(e){}toast('Rechargement…');setTimeout(()=>location.reload(),400);});
  $('mBanc').onclick=banc;}
 function guide(){modal(`<button class="fermer" onclick="fermerModal()">✕</button><h2>Guide du manager</h2><div class="guide">
 <h3>🏟️ Les organisations</h3><p>CFR (régional) → HEX (France) → ECC (Europe) → GLADIUS (monde) → APEX (le sommet). Une organisation vous propose un contrat quand votre combattant est champion, dans le top 3 avec une série de victoires, ou nettement trop fort pour sa ligue. Après plusieurs défaites, il est libéré et redescend.</p>
@@ -329,9 +330,10 @@ let CB=null;
 function regarder(cid){const t=M.trouverCombat(cid);const {c,e}=t;const A=G.F[c.a],B=G.F[c.b];const O=OE(e);
  if(!ARENE_OK){const sim=M.preparerSim(cid,c.plan,c.changes);resultat(cid,sim);return;}
  c.changes=c.changes||{};const sim=M.preparerSim(cid,c.plan,c.changes);
- CB={cid,sim,i:0,A,B,O,c,e,vit:1,fini:false,tmr:0};
+ let v0=1,f0=false;try{v0=+localStorage.getItem('cg-vit')||1;f0=localStorage.getItem('cg-forts')==='1';}catch(x){}
+ CB={cid,sim,i:0,A,B,O,c,e,vit:v0,forts:f0,fini:false,tmr:0};
  $('app').classList.add('cache');$('cv3d').style.display='block';$('combat').classList.remove('cache');$('coin').classList.add('cache');$('comm').innerHTML='';
- Arene.preparer(O,[A,B]);Arene.vitesse=1;Arene.demarrer();try{Son.reveil();Son.demarrerFoule();}catch(e){}
+ Arene.preparer(O,[A,B]);Arene.vitesse=CB.vit;Arene.demarrer();try{Son.reveil();Son.demarrerFoule();}catch(e){}
  const plaque=(f,cote)=>`<div class="plaque ${cote}"><div class="hp">${Portrait.svg(f,{mini:1,nobg:true})}</div><div class="n">${cote==='g'?flag(f.pays)+' ':''}${esc(f.nom.toUpperCase())}${cote==='d'?' '+flag(f.pays):''}</div><div class="s">${rec(f)} · ${M.rangTxt(f)} ${f.mine?'· VOUS':''}</div><div class="jauge vie"><i id="v${cote}" style="width:100%"></i></div><div class="jauge sta"><i id="s${cote}" style="width:100%"></i></div></div>`;
  $('hud').innerHTML=plaque(A,'g')+`<div class="horloge"><span id="hRd">${e.nom}</span><b id="hT">5:00</b><span id="hR">ROUND 1/${M.rounds(c,O)}</span></div>`+plaque(B,'d');
  ctrlCombat();
@@ -340,13 +342,17 @@ function regarder(cid){const t=M.trouverCombat(cid);const {c,e}=t;const A=G.F[c.
   comm('Dans le coin '+(coin==='r'?'rouge':'bleu')+' : '+nomC(f)+(f.sur?' « '+f.sur+' »':'')+' !');try{Son.clameur(.6);}catch(e){}};
  CB.tmr=setTimeout(()=>{pres(A,0,'r');CB.tmr=setTimeout(()=>{pres(B,1,'b');CB.tmr=setTimeout(()=>{$('presente').classList.add('cache');Arene.intro(null);comm('L\'arbitre donne ses consignes… Combattez !','gros');CB.tmr=setTimeout(etape,1600);},3000);},3000);},1800);}
 function banniere(t,s,ms=1600){const b=$('banniere');b.innerHTML=`<div><b>${t}</b>${s?`<span>${s}</span>`:''}</div>`;b.className='on';clearTimeout(banniere.t);banniere.t=setTimeout(()=>b.className='',ms);}
-function ctrlCombat(){$('ctrl').innerHTML=[1,2,4].map(v=>`<button class="btn petit ${CB.vit===v?'on':''}" data-v="${v}">×${v}</button>`).join('')+`<button class="btn petit" id="cSon">${Son.actif?'🔊':'🔇'}</button><button class="btn petit" id="cFin">⏭ Résultat</button>`;$('cSon').onclick=()=>{const a=Son.basculer();if(a){Son.reveil();Son.demarrerFoule();}ctrlCombat();};
- $('ctrl').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{CB.vit=+b.dataset.v;Arene.vitesse=CB.vit;ctrlCombat();});$('cFin').onclick=()=>finCombat(true);}
+function ctrlCombat(){$('ctrl').innerHTML=[1,2,4].map(v=>`<button class="btn petit ${CB.vit===v?'on':''}" data-v="${v}">×${v}</button>`).join('')+`<button class="btn petit ${CB.forts?'on':''}" id="cForts" title="Ne montrer que les temps forts">⚡ Temps forts</button>`+`<button class="btn petit" id="cSon">${Son.actif?'🔊':'🔇'}</button><button class="btn petit" id="cFin">⏭ Résultat</button>`;$('cSon').onclick=()=>{const a=Son.basculer();if(a){Son.reveil();Son.demarrerFoule();}ctrlCombat();};
+ $('ctrl').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{CB.vit=+b.dataset.v;Arene.vitesse=CB.vit;try{localStorage.setItem('cg-vit',CB.vit);}catch(x){}ctrlCombat();});
+ $('cForts').onclick=()=>{CB.forts=!CB.forts;try{localStorage.setItem('cg-forts',CB.forts?'1':'0');}catch(x){}toast(CB.forts?'⚡ Seuls les temps forts sont montrés':'Tout le combat est montré');ctrlCombat();};$('cFin').onclick=()=>finCombat(true);}
 function comm(t,cl){const d=document.createElement('div');if(cl)d.className=cl;d.textContent=t;const c=$('comm');[...c.children].forEach(x=>x.classList.add('vieux'));c.appendChild(d);while(c.children.length>3)c.firstChild.remove();}
 function majHud(e){if(!e.sta)return;try{[0,1].forEach(i=>Arene.degats(i,e.hd[i]||0,e.sta[i]));}catch(x){}['g','d'].forEach((s,i)=>{const v=$('v'+s),st=$('s'+s);if(v)v.style.width=Math.max(0,100-(e.hd[i]||0)*100)+'%';if(st)st.style.width=e.sta[i]+'%';});
  const R=M.rounds(CB.c,CB.O);if($('hR'))$('hR').textContent='ROUND '+e.r+'/'+R;if($('hT'))$('hT').textContent=e.k==='fin'?'0:00':Combat.fmt(300-(e.ts||e.b*15));}
 function etape(){if(!CB||CB.fini)return;const e=CB.sim.ev[CB.i++];if(!e){finCombat();return;}
- majHud(e);let d=Arene.action(e);if(e.k==='round')banniere('ROUND '+e.r,e.r===M.rounds(CB.c,CB.O)?'dernier round':'',1500);
+ majHud(e);
+ // mode temps forts : les feintes, le contrôle au sol et les coups dans le vide défilent sans animation
+ if(CB.forts&&(e.k==='feint'||e.k==='ctrl'||e.k==='sep'||((e.h===0||e.h===false)&&!['td','tdf','suba'].includes(e.k)&&e.k!=='counter'))){CB.tmr=setTimeout(etape,90);return;}
+ let d=Arene.action(e);if(e.k==='round')banniere('ROUND '+e.r,e.r===M.rounds(CB.c,CB.O)?'dernier round':'',1500);
  if(e.k==='res'){CB.fini=true;const r=e.res;if(r.w>=0&&!['ko','tko','sub'].includes(r.m)){comm('Nous allons aux cartes des juges…');setTimeout(()=>comm('Victoire de '+nomC(r.w===0?CB.A:CB.B)+' par '+ISSUES[r.m].toLowerCase()+' !','gros'),1400/CB.vit);}else if(r.w<0)comm('Match nul !','gros');
   setTimeout(()=>finCombat(),3300/CB.vit);return;}
  if(e.t)comm(e.t,['kd','ko','gnpko','subw'].includes(e.k)?'gros':'');
@@ -395,9 +401,10 @@ async function banc(){if(!TK){toast('Trousse de test indisponible');return;}ferm
  const sauv=G;const copie=JSON.parse(JSON.stringify(G));const testAv=TEST;TEST=true;
  const O=ORGS[4];const fs=Object.values(copie.F).filter(f=>f.org==='apx').slice(0,2);
  $('app').classList.add('cache');$('cv3d').style.display='block';$('combat').classList.remove('cache');$('hud').innerHTML='';$('comm').innerHTML='';$('ctrl').innerHTML='';
- const res=await TK.banc([{nom:'arène large',preparer:async()=>{Arene.preparer(O,fs);Arene.demarrer();Arene.ST.pos='S';Arene.ST.dist=1.5;Arene.placer(true);Arene.cam('large');}},
-  {nom:'échanges serrés',preparer:async()=>{Arene.cam('serre');let i=0;clearInterval(banc.t);banc.t=setInterval(()=>{Arene.action({k:['jab','cross','hook','lowkick'][i++%4],a:i%2,h:1,z:'tete',pos:'S'});},700);}},
-  {nom:'au sol',preparer:async()=>{clearInterval(banc.t);Arene.action({k:'td',a:0,h:1,pos:'G0'});banc.t=setInterval(()=>Arene.action({k:'gnp',a:0,h:1,pos:'G0'}),900);}}],6000);
+ const qn=()=>' (q'+(Arene.qual??1)+', px '+(Arene.infos().px||0).toFixed(2)+')';
+ const res=await TK.banc([{nom:'arène large'+qn(),preparer:async()=>{Arene.preparer(O,fs);Arene.demarrer();Arene.ST.pos='S';Arene.ST.dist=1.5;Arene.placer(true);Arene.cam('large');}},
+  {nom:'échanges serrés'+qn(),preparer:async()=>{Arene.cam('serre');let i=0;clearInterval(banc.t);banc.t=setInterval(()=>{Arene.action({k:['jab','cross','hook','lowkick'][i++%4],a:i%2,h:1,z:'tete',pos:'S'});},700);}},
+  {nom:'au sol'+qn(),preparer:async()=>{clearInterval(banc.t);Arene.action({k:'td',a:0,h:1,pos:'G0'});banc.t=setInterval(()=>Arene.action({k:'gnp',a:0,h:1,pos:'G0'}),900);}}],6000);
  clearInterval(banc.t);G=M.charger(sauv);TEST=testAv;quitterCombat();
  modal(`<h2>Fluidité</h2>${res.res.map(r=>`<p><b>${r.scene}</b> : ${r.fps||'?'} img/s (1 % bas : ${r.bas1||'?'})</p>`).join('')}<p class="doux">GPU : ${esc(res.gpu)}<br>${res.enregistre?'Envoyé à Claude ✓':'Non envoyé ('+esc(res.base)+')'}</p><div class="btns"><button class="btn" onclick="fermerModal()">OK</button></div>`);}
 /* ---------- démarrage ---------- */
@@ -406,6 +413,6 @@ async function demarrer(){
  try{NUAGE=SauvegardeEnLigne({etat:()=>JSON.stringify(G),meta:()=>({nom:G.nom,date:M.date(),sem:G.sem}),coupe:()=>TEST||!G});addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!TEST){sauver();NUAGE.push(true);}});}catch(e){}
  try{const x=$('xbot');let b64=x?x.textContent.trim():'';if(!b64){const r=await fetch('xbot.glb');const buf=new Uint8Array(await r.arrayBuffer());let s='';for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));b64=btoa(s);}
   await document.fonts.load('40px "Bebas Neue"').catch(()=>{});
-  await Arene.init($('cv3d'),b64,localStorage.getItem('cg-qual')==='0'?0:1);ARENE_OK=true;}catch(e){console.error('arène',e);TK&&TK.erreurs.push('arène: '+e);ARENE_OK=false;}
+  let q=1;try{const v=localStorage.getItem('cg-qual');if(v==='0'||v==='2')q=+v;}catch(e){}await Arene.init($('cv3d'),b64,q);ARENE_OK=true;}catch(e){console.error('arène',e);TK&&TK.erreurs.push('arène: '+e);ARENE_OK=false;}
  accueil();}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',demarrer);else demarrer();

@@ -34,3 +34,8 @@ Monde (sim_monde.js 4 8) :
 TOTAL {"titres":55,"apex":4,"fail":0} 22.3s
 ```
 Tests : evtest 32 événements + 8 spéciaux sans erreur ; parcours au doigt, vues, combat3d, sauvegarde (rechargement identique, 147 000 caractères compressés au lieu d'environ 1 Mo) sans erreur. Arène : 55-69 appels de dessin, ≈ 249 000 triangles avec les soigneurs.
+
+## v8 — 16/11/2026 — fluidité (rapport du banc : ~17 img/s sur Mac Intel)
+- Banc swiftshader 771x755@2 : avant 1000 ms/image (83-99 appels, 151 k triangles) ; après, même résolution 1,6 : 381-425 ms (×2,6) ; qualité Moyenne par défaut : 205-243 ms (×4,5), 22-24 appels, 70 k triangles ; Basse ~52 ms.
+- Xbot simplifié à 45 %, décor fusionné, public instancié, éclairage réduit, ombres taches, résolution adaptative, menu Qualité 3D.
+- Ajouts : Temps forts, récap « Cette semaine », 6 nouveaux événements (section jeunes, sparring, nutritionniste…). Équilibre combat inchangé ; sim_monde 3 graines 0 erreur ; evtest 39+8 0 erreur ; sauvegarde rechargée identique.

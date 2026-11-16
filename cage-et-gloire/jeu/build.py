@@ -3,7 +3,7 @@
 import re,sys,os,base64,subprocess
 d=os.path.dirname(os.path.abspath(__file__));R=os.path.dirname(d)
 nm=os.path.join(R,'node_modules')
-if not os.path.isdir(nm):nm=os.path.join(os.path.dirname(R),'node_modules') if os.path.isdir(os.path.join(os.path.dirname(R),'node_modules')) else '/home/claude/mma/node_modules'
+if not os.path.isdir(nm):nm='/home/claude/mma/node_modules'
 # 1) l'arène 3D (Three.js) en un seul script
 subprocess.run([os.path.join(nm,'.bin','esbuild'),os.path.join(d,'arene.js'),'--bundle','--minify','--format=iife','--target=es2019','--outfile='+os.path.join(d,'arene.bundle.js'),'--log-level=warning'],check=True,cwd=os.path.dirname(nm))
 html=open(os.path.join(d,'index.html'),encoding='utf-8').read()

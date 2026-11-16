@@ -11,3 +11,4 @@
 {"quand": "2026-11-16 13:30", "jeu": "outils", "etape": "verifier_outils", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 9.3, "code": 0}
 {"quand": "2026-11-16 13:33", "jeu": "outils", "etape": "verifier_outils (8 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 8.5, "code": 0}
 {"quand": "2026-11-16 14:14", "jeu": "couronnes-et-complots", "etape": "perf avant/après", "commande": "sh -c python3 perf.py /home/claude/cc_avant.html /home/claude/cc/perf_avant.json && python3 perf.py /home/claude/cc_apres.html /home/claude/cc/perf_apres.json", "secondes": 95.4, "code": 0}
+{"quand": "2026-11-16 13:48", "jeu": "trone-de-braise", "etape": "preparer t3d", "commande": "sh valdragon/outils/preparer.sh /home/claude/t3d", "secondes": 4.5, "code": 0}

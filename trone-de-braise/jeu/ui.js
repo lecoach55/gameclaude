@@ -34,6 +34,7 @@ function animBraises(dt) {
  braises.p = braises.p.filter(p => p.a > 0 && p.y > -10);
 }
 function initAccueil() {
+ TEST = false; // une vraie partie reprise après le mode test doit de nouveau se sauvegarder
  const l = lireLocal();
  $('#bContinuer').style.display = l ? '' : 'none';
  NUAGE.charger().then(d => { if (d && (!l || d.t > l.t + 5000)) { $('#bContinuer').style.display = ''; $('#bContinuer').dataset.nuage = '1'; $('#bContinuer').textContent = `▶ Continuer (${d.d && d.d.nom || 'partie'} — sauvegarde en ligne)`; braises.nuage = d.s; } }).catch(() => { });
@@ -447,13 +448,22 @@ function d3Cadre() {
 addEventListener('message', ev => {
  const m = ev.data; if (!m || typeof m !== 'object' || !D3.cadre || ev.source !== D3.cadre.contentWindow) return;
  if (m.t === 'pret3d') { D3.pret = true; D3.err = m.err; if (D3.att) { const a = D3.att; D3.att = null; a(); } }
- if (m.t === 'fin3d') finD3(m.b);
+ if (m.t === 'fin3d') { if (D3.banc) return; finD3(m.b); } // pendant le banc, ⛺ / fin ne touchent pas la partie
+ // 🧪 / 🐞 du donjon 3D : la page 3D n'écrit jamais ; elle confie ses mesures et signalements à la trousse du royaume
+ if (m.t === 'tk3d') {
+  const ok = typeof m.id === 'string' && /^(mesures|signalement)_\d+$/.test(m.id) && m.doc && typeof m.doc === 'object';
+  const rep = r => { try { D3.cadre.contentWindow.postMessage({ t: 'tk3d-ok', n: m.n, ok: r }, '*'); } catch (e) { } };
+  if (!ok || !TK) return rep(false);
+  let etat = null; try { etat = { test: TEST, tour: G && G.tour, an: G && G.an, heros: G && { classe: G.joueur.heros.classe, niveau: G.joueur.heros.niveau } }; } catch (e) { }
+  TK.envoyer(m.id, Object.assign({}, m.doc, { royaume: etat })).then(rep, () => rep(false));
+ }
+ if (m.t === 'banc3d-fin' && D3.banc) { const f = D3.banc; D3.banc = null; f(m.out); }
 });
 function blasonDe(id) { const M = id && G.maisons[id]; return M && !M.neutre ? { c1: M.c1, c2: M.c2, emb: M.embleme, nom: M.nom } : null; }
 function lancerD3(cfg, fin) {
  const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
  const c = PONT3D.configExpedition({ heros: h, compagnon: G.joueur.compagnon, type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, arene: cfg.arene, nom: cfg.nom, maison: blasonDe('joueur'), adverse: blasonDe(cfg.arene ? cfg.arene.maison : cfg.proprio) });
- c.muet = !AUDIO.actif(); D3.cfg = c; D3.fin = fin; D3.h = h;
+ c.muet = !AUDIO.actif(); c.test = TEST; D3.cfg = c; D3.fin = fin; D3.h = h;
  const f = d3Cadre(); fermer(); AUDIO.musiqueDe(null);
  $('#chargement3d').classList.add('on'); MODE = 'donjon3d';
  const go = () => { clearTimeout(D3.minuteur); $('#chargement3d').classList.remove('on'); f.style.display = 'block'; f.focus(); f.contentWindow.postMessage({ t: 'expe3d', cfg: c }, '*'); };
@@ -617,21 +627,41 @@ function boucle(t) {
 requestAnimationFrame(boucle);
 
 /* ---------- trousse de test ---------- */
+// Banc du donjon 3D : lance une vraie expédition (catacombes niveau 5, 2 étages) dans le cadre 3D,
+// lui fait jouer exploration / combat / gardien à chaque qualité, puis referme le cadre sans rien appliquer à la partie.
+function banc3d() {
+ return new Promise(fin => {
+  let d3ok = false; try { const c = document.createElement('canvas'); d3ok = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { }
+  if (!d3ok) return fin([{ erreur: 'WebGL indisponible' }]);
+  const fini = r => { clearTimeout(D3.mbanc); clearTimeout(D3.minuteur); D3.att = null; D3.banc = null; D3.fin = null; try { D3.cadre.contentWindow.postMessage({ t: 'stop3d' }, '*'); } catch (e) { } if (D3.cadre) D3.cadre.style.display = 'none'; MODE = 'royaume'; montrer('royaume'); fin(r); };
+  const LV = window.__banc3dLv || [0, 1, 2]; // qualités Économie, Normale, Haute
+  toast('Banc du donjon 3D (≈ 1 min 30)…', 90000);
+  lancerD3({ type: 'catacombes', niveau: 5, etages: 2, nom: 'Banc 3D' }, () => { });
+  D3.fin = null; // l'expédition de banc ne rend jamais de résultat à la partie
+  const go = () => { D3.banc = out => fini(out ? out.res.map(r => Object.assign({ page: '3d' }, r)).concat(out.env ? [{ env3d: out.env, depart: out.depart }] : []) : [{ erreur: 'banc 3D refusé' }]);
+   const F0 = D3.cfg.F0, F1 = F0 + (D3.cfg.etages || 1) - 1;
+   D3.cadre.contentWindow.postMessage({ t: 'banc3d', sc: [['explo', F0], ['combat', F0], ['boss', F1]], lv: LV }, '*'); };
+  const att = (n = 0) => { if (D3.cadre && D3.cadre.style.display === 'block') return setTimeout(go, 2500); if (n > 900) return fini([{ erreur: 'donjon 3D non chargé' }]); setTimeout(() => att(n + 1), 100); };
+  att(); D3.mbanc = setTimeout(() => fini([{ erreur: 'banc 3D trop long' }]), 120000 + 120000 * LV.length);
+ });
+}
 async function banc() {
  if (!TK) return toast('Trousse indisponible');
- toast('Banc en cours (≈ 30 s)…', 30000); ADAPT.e = 1; ADAPT.ft.length = 0; redim();
+ toast('Banc en cours (≈ 2 min)…', 30000); ADAPT.e = 1; ADAPT.ft.length = 0; redim();
  const res = await TK.banc([
   { nom: 'carte du royaume', preparer: async () => { A = null; montrer('royaume'); } },
   { nom: 'donjon niveau 5 (combat automatique)', preparer: async () => { UI.auto = true; lancerExpedition({ type: 'catacombes', niveau: 5, etages: 2, nom: 'Banc' }, () => { }); } },
   { nom: 'boss (combat automatique)', preparer: async () => { UI.auto = true; XP = creerExpedition({ type: 'crypte', niveau: 3, etages: 1, heros: G.joueur.heros, generation: 1 }); montrer('donjon'); nouvelEtage(); A.p.x = A.boss.x - 4; A.p.y = A.boss.y; A.p.S.pvmax *= 50; A.p.pv = A.p.S.pvmax; } },
  ], 5000);
  UI.auto = false; A = null; XP = null; montrer('royaume');
+ res.res3d = await banc3d();
+ res.enregistre3d = await TK.envoyer('mesures_' + Date.now() + '_3d', { jeu: 'trone-de-braise', page: 'donjon3d', date: new Date().toISOString(), gpu: res.gpu, ua: navigator.userAgent, ecran: innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio, res: res.res3d });
  res.echelle = ADAPT.e; TK.envoyer('mesures_' + Date.now() + '_echelle', { echelle: ADAPT.e, date: new Date().toISOString() });
- fenetre('Banc de mesure', `<p>${res.res.map(r => `${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p>Résolution du donjon ajustée à ${Math.round(res.echelle * 100)} %.</p><p><small>${esc(res.gpu)}</small><br>${res.enregistre ? 'Résultats envoyés à Claude ✓' : 'Résultats enregistrés sur cet appareil.'}</p>`, [{ t: 'Fermer', f: fermer }]);
+ fenetre('Banc de mesure', `<p>${res.res.map(r => `${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p><b>Donjon 3D</b><br>${(res.res3d || []).filter(r => r.scene || r.erreur).map(r => r.erreur ? esc(r.erreur) : `${r.niveau} · ${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p>Résolution du donjon ajustée à ${Math.round(res.echelle * 100)} %.</p><p><small>${esc(res.gpu)}</small><br>${res.enregistre ? 'Résultats envoyés à Claude ✓' : 'Résultats enregistrés sur cet appareil.'}</p>`, [{ t: 'Fermer', f: fermer }]);
 }
 (function attendreTK(n = 0) {
  if (window.Testkit) {
-  TK = window.Testkit({ jeu: 'trone-de-braise', canvas: () => MODE === 'donjon' ? cvJ : cvC, rendu: () => { if (MODE === 'donjon' && A) rendreDonjon(A, cvJ, ctxJ, lum, lctx); else if (G) CARTE.dessiner(G, cvC, ctxC, UI); }, etat: () => ({ mode: MODE, test: TEST, tour: G && G.tour, an: G && G.an, provinces: G && provincesDe(G, 'joueur').length, heros: G && { classe: G.joueur.heros.classe, niveau: G.joueur.heros.niveau }, donjon: A && { type: A.type, etage: XP && XP.etage, mobs: A.mobs.filter(m => !m.mort).length, pv: Math.round(A.p.pv) }, fenetre: $('#voile').classList.contains('on') ? $('#fen .tete h2').textContent : null }) });
+  TK = window.Testkit({ jeu: 'trone-de-braise', secours: true, canvas: () => MODE === 'donjon' ? cvJ : cvC, rendu: () => { if (MODE === 'donjon' && A) rendreDonjon(A, cvJ, ctxJ, lum, lctx); else if (G) CARTE.dessiner(G, cvC, ctxC, UI); }, etat: () => ({ mode: MODE, test: TEST, tour: G && G.tour, an: G && G.an, provinces: G && provincesDe(G, 'joueur').length, heros: G && { classe: G.joueur.heros.classe, niveau: G.joueur.heros.niveau }, donjon: A && { type: A.type, etage: XP && XP.etage, mobs: A.mobs.filter(m => !m.mort).length, pv: Math.round(A.p.pv) }, fenetre: $('#voile').classList.contains('on') ? $('#fen .tete h2').textContent : null }) });
   if (TEST) TK.modeTest();
  } else if (n < 100) setTimeout(() => attendreTK(n + 1), 100);
 })();

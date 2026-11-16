@@ -3195,6 +3195,7 @@ function animBraises(dt) {
  braises.p = braises.p.filter(p => p.a > 0 && p.y > -10);
 }
 function initAccueil() {
+ TEST = false; // une vraie partie reprise après le mode test doit de nouveau se sauvegarder
  const l = lireLocal();
  $('#bContinuer').style.display = l ? '' : 'none';
  NUAGE.charger().then(d => { if (d && (!l || d.t > l.t + 5000)) { $('#bContinuer').style.display = ''; $('#bContinuer').dataset.nuage = '1'; $('#bContinuer').textContent = `▶ Continuer (${d.d && d.d.nom || 'partie'} — sauvegarde en ligne)`; braises.nuage = d.s; } }).catch(() => { });
@@ -3608,13 +3609,22 @@ function d3Cadre() {
 addEventListener('message', ev => {
  const m = ev.data; if (!m || typeof m !== 'object' || !D3.cadre || ev.source !== D3.cadre.contentWindow) return;
  if (m.t === 'pret3d') { D3.pret = true; D3.err = m.err; if (D3.att) { const a = D3.att; D3.att = null; a(); } }
- if (m.t === 'fin3d') finD3(m.b);
+ if (m.t === 'fin3d') { if (D3.banc) return; finD3(m.b); } // pendant le banc, ⛺ / fin ne touchent pas la partie
+ // 🧪 / 🐞 du donjon 3D : la page 3D n'écrit jamais ; elle confie ses mesures et signalements à la trousse du royaume
+ if (m.t === 'tk3d') {
+  const ok = typeof m.id === 'string' && /^(mesures|signalement)_\d+$/.test(m.id) && m.doc && typeof m.doc === 'object';
+  const rep = r => { try { D3.cadre.contentWindow.postMessage({ t: 'tk3d-ok', n: m.n, ok: r }, '*'); } catch (e) { } };
+  if (!ok || !TK) return rep(false);
+  let etat = null; try { etat = { test: TEST, tour: G && G.tour, an: G && G.an, heros: G && { classe: G.joueur.heros.classe, niveau: G.joueur.heros.niveau } }; } catch (e) { }
+  TK.envoyer(m.id, Object.assign({}, m.doc, { royaume: etat })).then(rep, () => rep(false));
+ }
+ if (m.t === 'banc3d-fin' && D3.banc) { const f = D3.banc; D3.banc = null; f(m.out); }
 });
 function blasonDe(id) { const M = id && G.maisons[id]; return M && !M.neutre ? { c1: M.c1, c2: M.c2, emb: M.embleme, nom: M.nom } : null; }
 function lancerD3(cfg, fin) {
  const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
  const c = PONT3D.configExpedition({ heros: h, compagnon: G.joueur.compagnon, type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, arene: cfg.arene, nom: cfg.nom, maison: blasonDe('joueur'), adverse: blasonDe(cfg.arene ? cfg.arene.maison : cfg.proprio) });
- c.muet = !AUDIO.actif(); D3.cfg = c; D3.fin = fin; D3.h = h;
+ c.muet = !AUDIO.actif(); c.test = TEST; D3.cfg = c; D3.fin = fin; D3.h = h;
  const f = d3Cadre(); fermer(); AUDIO.musiqueDe(null);
  $('#chargement3d').classList.add('on'); MODE = 'donjon3d';
  const go = () => { clearTimeout(D3.minuteur); $('#chargement3d').classList.remove('on'); f.style.display = 'block'; f.focus(); f.contentWindow.postMessage({ t: 'expe3d', cfg: c }, '*'); };
@@ -3778,21 +3788,41 @@ function boucle(t) {
 requestAnimationFrame(boucle);
 
 /* ---------- trousse de test ---------- */
+// Banc du donjon 3D : lance une vraie expédition (catacombes niveau 5, 2 étages) dans le cadre 3D,
+// lui fait jouer exploration / combat / gardien à chaque qualité, puis referme le cadre sans rien appliquer à la partie.
+function banc3d() {
+ return new Promise(fin => {
+  let d3ok = false; try { const c = document.createElement('canvas'); d3ok = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { }
+  if (!d3ok) return fin([{ erreur: 'WebGL indisponible' }]);
+  const fini = r => { clearTimeout(D3.mbanc); clearTimeout(D3.minuteur); D3.att = null; D3.banc = null; D3.fin = null; try { D3.cadre.contentWindow.postMessage({ t: 'stop3d' }, '*'); } catch (e) { } if (D3.cadre) D3.cadre.style.display = 'none'; MODE = 'royaume'; montrer('royaume'); fin(r); };
+  const LV = window.__banc3dLv || [0, 1, 2]; // qualités Économie, Normale, Haute
+  toast('Banc du donjon 3D (≈ 1 min 30)…', 90000);
+  lancerD3({ type: 'catacombes', niveau: 5, etages: 2, nom: 'Banc 3D' }, () => { });
+  D3.fin = null; // l'expédition de banc ne rend jamais de résultat à la partie
+  const go = () => { D3.banc = out => fini(out ? out.res.map(r => Object.assign({ page: '3d' }, r)).concat(out.env ? [{ env3d: out.env, depart: out.depart }] : []) : [{ erreur: 'banc 3D refusé' }]);
+   const F0 = D3.cfg.F0, F1 = F0 + (D3.cfg.etages || 1) - 1;
+   D3.cadre.contentWindow.postMessage({ t: 'banc3d', sc: [['explo', F0], ['combat', F0], ['boss', F1]], lv: LV }, '*'); };
+  const att = (n = 0) => { if (D3.cadre && D3.cadre.style.display === 'block') return setTimeout(go, 2500); if (n > 900) return fini([{ erreur: 'donjon 3D non chargé' }]); setTimeout(() => att(n + 1), 100); };
+  att(); D3.mbanc = setTimeout(() => fini([{ erreur: 'banc 3D trop long' }]), 120000 + 120000 * LV.length);
+ });
+}
 async function banc() {
  if (!TK) return toast('Trousse indisponible');
- toast('Banc en cours (≈ 30 s)…', 30000); ADAPT.e = 1; ADAPT.ft.length = 0; redim();
+ toast('Banc en cours (≈ 2 min)…', 30000); ADAPT.e = 1; ADAPT.ft.length = 0; redim();
  const res = await TK.banc([
   { nom: 'carte du royaume', preparer: async () => { A = null; montrer('royaume'); } },
   { nom: 'donjon niveau 5 (combat automatique)', preparer: async () => { UI.auto = true; lancerExpedition({ type: 'catacombes', niveau: 5, etages: 2, nom: 'Banc' }, () => { }); } },
   { nom: 'boss (combat automatique)', preparer: async () => { UI.auto = true; XP = creerExpedition({ type: 'crypte', niveau: 3, etages: 1, heros: G.joueur.heros, generation: 1 }); montrer('donjon'); nouvelEtage(); A.p.x = A.boss.x - 4; A.p.y = A.boss.y; A.p.S.pvmax *= 50; A.p.pv = A.p.S.pvmax; } },
  ], 5000);
  UI.auto = false; A = null; XP = null; montrer('royaume');
+ res.res3d = await banc3d();
+ res.enregistre3d = await TK.envoyer('mesures_' + Date.now() + '_3d', { jeu: 'trone-de-braise', page: 'donjon3d', date: new Date().toISOString(), gpu: res.gpu, ua: navigator.userAgent, ecran: innerWidth + 'x' + innerHeight + ' @' + devicePixelRatio, res: res.res3d });
  res.echelle = ADAPT.e; TK.envoyer('mesures_' + Date.now() + '_echelle', { echelle: ADAPT.e, date: new Date().toISOString() });
- fenetre('Banc de mesure', `<p>${res.res.map(r => `${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p>Résolution du donjon ajustée à ${Math.round(res.echelle * 100)} %.</p><p><small>${esc(res.gpu)}</small><br>${res.enregistre ? 'Résultats envoyés à Claude ✓' : 'Résultats enregistrés sur cet appareil.'}</p>`, [{ t: 'Fermer', f: fermer }]);
+ fenetre('Banc de mesure', `<p>${res.res.map(r => `${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p><b>Donjon 3D</b><br>${(res.res3d || []).filter(r => r.scene || r.erreur).map(r => r.erreur ? esc(r.erreur) : `${r.niveau} · ${r.scene} : <b>${r.fps || '?'}</b> img/s (pire ${r.pire} ms)`).join('<br>')}</p><p>Résolution du donjon ajustée à ${Math.round(res.echelle * 100)} %.</p><p><small>${esc(res.gpu)}</small><br>${res.enregistre ? 'Résultats envoyés à Claude ✓' : 'Résultats enregistrés sur cet appareil.'}</p>`, [{ t: 'Fermer', f: fermer }]);
 }
 (function attendreTK(n = 0) {
  if (window.Testkit) {
-  TK = window.Testkit({ jeu: 'trone-de-braise', canvas: () => MODE === 'donjon' ? cvJ : cvC, rendu: () => { if (MODE === 'donjon' && A) rendreDonjon(A, cvJ, ctxJ, lum, lctx); else if (G) CARTE.dessiner(G, cvC, ctxC, UI); }, etat: () => ({ mode: MODE, test: TEST, tour: G && G.tour, an: G && G.an, provinces: G && provincesDe(G, 'joueur').length, heros: G && { classe: G.joueur.heros.classe, niveau: G.joueur.heros.niveau }, donjon: A && { type: A.type, etage: XP && XP.etage, mobs: A.mobs.filter(m => !m.mort).length, pv: Math.round(A.p.pv) }, fenetre: $('#voile').classList.contains('on') ? $('#fen .tete h2').textContent : null }) });
+  TK = window.Testkit({ jeu: 'trone-de-braise', secours: true, canvas: () => MODE === 'donjon' ? cvJ : cvC, rendu: () => { if (MODE === 'donjon' && A) rendreDonjon(A, cvJ, ctxJ, lum, lctx); else if (G) CARTE.dessiner(G, cvC, ctxC, UI); }, etat: () => ({ mode: MODE, test: TEST, tour: G && G.tour, an: G && G.an, provinces: G && provincesDe(G, 'joueur').length, heros: G && { classe: G.joueur.heros.classe, niveau: G.joueur.heros.niveau }, donjon: A && { type: A.type, etage: XP && XP.etage, mobs: A.mobs.filter(m => !m.mort).length, pv: Math.round(A.p.pv) }, fenetre: $('#voile').classList.contains('on') ? $('#fen .tete h2').textContent : null }) });
   if (TEST) TK.modeTest();
  } else if (n < 100) setTimeout(() => attendreTK(n + 1), 100);
 })();
@@ -3882,6 +3912,8 @@ function majStyle(sel, p, v) { const k = sel + p; if (DERNIER.get(k) === v) retu
 //   TK.modeTest();                       // affiche le compteur (à appeler depuis un bouton « Mode test »)
 //   await TK.banc([{nom:'scène 1', preparer:async()=>{...}}, ...], 5000);  // mesure chaque scène 5 s
 // Jeux sans canvas (SVG/DOM) : fournir capture:async()=>dataURL (voir svgCapture ci-dessous) et canvas:()=>document.createElement('canvas') pour le nom du GPU.
+// Jeux en HTML/DOM : capture:()=>domCapture(document.body). Sans base (capacité db absente, hors ligne, app Electron) :
+// option secours:true → 🐞 ouvre un rapport à copier / enregistrer (TK.rapport(obj,titre) réutilisable pour le banc).
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
 function Testkit(o){
  const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
@@ -3914,12 +3946,22 @@ function Testkit(o){
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
   const st=stats(a);if(suspendu)st.masquee=true;return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
-  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
+  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
   const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
-  return TK.envoyer('signalement_'+Date.now(),st);};
+  TK.dernier=st;return TK.envoyer('signalement_'+Date.now(),st);};
+ // Secours quand la base est indisponible (capacité db non déclarée, hors ligne, app de bureau) : panneau avec le rapport
+ // à copier (sans les gros champs) et bouton pour l'enregistrer en fichier. Option o.secours:true pour l'activer sur 🐞.
+ TK.rapport=(obj,titre)=>{try{const gros=new Set(['capture','sauvegarde']);const court=JSON.stringify(obj,(k,v)=>gros.has(k)?(v?'['+String(v).length+' car. — voir le fichier]':v):v,1);
+  const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:12px';
+  f.innerHTML='<div style="background:#14201a;color:#e8efe9;border:1px solid #3c5a48;border-radius:12px;padding:14px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:8px;font:14px system-ui,sans-serif"><b></b><div style="font-size:12.5px;opacity:.8">La base de l’artefact n’est pas joignable ('+(TK.base||'?').replace(/</g,'&lt;')+'). Copiez ce rapport dans la conversation avec Claude, ou enregistrez le fichier complet.</div><textarea readonly style="flex:1;min-height:200px;font:11px monospace;background:#0b130e;color:#cfe;border:1px solid #2c4436;border-radius:6px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button data-k="c">Copier</button><button data-k="t">Enregistrer le fichier</button><button data-k="f">Fermer</button></div></div>';
+  f.querySelector('b').textContent=titre||'Rapport';const ta=f.querySelector('textarea');ta.value=court;
+  f.onclick=async e=>{const k=e.target.dataset&&e.target.dataset.k;if(e.target===f||k==='f')f.remove();
+   else if(k==='c'){ta.select();let ok=false;try{await navigator.clipboard.writeText(court);ok=true;}catch(_){try{ok=document.execCommand('copy');}catch(__){}}e.target.textContent=ok?'Copié ✓':'Sélectionné : copiez à la main';}
+   else if(k==='t'){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:'application/json'}));a.download=(o.jeu||'jeu')+'_'+(obj.date||Date.now()).toString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);}catch(_){e.target.textContent='Impossible ici';}}};
+  document.body.appendChild(f);return f;}catch(e){return null;}};
  TK.bouton=(parent,style)=>{const b=document.createElement('button');b.textContent='🐞';b.title='Signaler un problème à Claude';b.style.cssText=style||'position:fixed;right:10px;bottom:10px;z-index:9999;width:38px;height:38px;border-radius:50%;opacity:.75';parent.appendChild(b);
-  b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);};return b;};
+  b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);if(!ok&&o.secours&&TK.dernier)TK.rapport(TK.dernier,'Signalement (non envoyé)');};return b;};
  return TK;}
 
 // Capture d'un <svg> (jeux en SVG) : sérialise, dessine dans un canvas réduit, renvoie un JPEG en dataURL.
@@ -3930,10 +3972,25 @@ function svgCapture(svg,largeur=480){return new Promise(res=>{try{
  const xml=new XMLSerializer().serializeToString(cl);const r=svg.getBoundingClientRect();const k=Math.min(1,largeur/r.width);
  const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=r.width*k|0;c.height=r.height*k|0;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6));}catch(e){res('');}};img.onerror=()=>res('');
  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml.replace('<svg','<svg width="'+r.width+'" height="'+r.height+'"'));}catch(e){res('');}});}
+// Capture d'une page HTML/DOM (jeux sans canvas ni SVG principal) : clone l'élément dans un <foreignObject>, recopie les styles,
+// remplace les <canvas> par leur image, renvoie un JPEG en dataURL ('' si le navigateur refuse, ex. Safari qui « salit » le canvas).
+function domCapture(el,largeur=480){return new Promise(res=>{try{el=el||document.body;
+ const css=[...document.styleSheets].flatMap(st=>{try{return [...st.cssRules].map(r=>r.cssText);}catch(e){return [];}}).join('\n');
+ const r=el.getBoundingClientRect(),W=Math.max(1,Math.round(innerWidth)),H=Math.max(1,Math.round(innerHeight)),k=Math.min(1,largeur/W);
+ const cl=el.cloneNode(true);const src=el.querySelectorAll('canvas'),dst=cl.querySelectorAll('canvas');
+ src.forEach((c,i)=>{try{const im=document.createElement('img');im.src=c.toDataURL();im.style.cssText=c.style.cssText;im.className=c.className;im.width=c.clientWidth;im.height=c.clientHeight;dst[i].replaceWith(im);}catch(e){}});
+ cl.querySelectorAll('script').forEach(x=>x.remove());
+ const wrap=document.createElement('div');wrap.setAttribute('xmlns','http://www.w3.org/1999/xhtml');wrap.style.cssText=document.documentElement.style.cssText+';width:'+W+'px;height:'+H+'px;overflow:hidden;background:'+getComputedStyle(document.body).backgroundColor;
+ const inner=document.createElement('div');inner.className=document.body.className;inner.style.cssText='position:relative;top:'+(-scrollY)+'px';inner.appendChild(cl);
+ const st=document.createElement('style');st.textContent=css;wrap.appendChild(st);wrap.appendChild(inner);
+ const xml=new XMLSerializer().serializeToString(wrap);
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject width="100%" height="100%">'+xml+'</foreignObject></svg>';
+ const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=W*k|0;c.height=H*k|0;const g=c.getContext('2d');g.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6));}catch(e){res('');}};img.onerror=()=>res('');
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);setTimeout(()=>res(''),4000);}catch(e){res('');}});}
 // Jeux en scripts classiques (sans import) : exposer aussi la trousse sur window.
 // Plus sûr dans un artefact : charger une copie SANS les mots « export » en <script src> classique
 // (sed 's/^export //' testkit.js > jeu/testkit.js) : un <script type="module"> peut ne pas se charger dans le cadre isolé.
-if(typeof window!=="undefined"){window.Testkit=Testkit;window.svgCapture=svgCapture;}
+if(typeof window!=="undefined"){window.Testkit=Testkit;window.svgCapture=svgCapture;window.domCapture=domCapture;}
 
 </script>
 </body>

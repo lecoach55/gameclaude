@@ -31,6 +31,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | **Ancienne sauvegarde → nouvelle version** | `wallstreet/outils/compat_test.py` | joue avec la version publiée, recharge la partie dans la nouvelle, rejoue 250 séances |
 | **Équilibre par A/B appariés** | `couronnes-et-complots/outils/ab.cjs` (+ `hv.cjs`, `fs.cjs`) | `president-de-club/outils/abmatch.js`, `bannieres/outils/duel_factions.js` |
 | **Invariants sur longues parties** | `cage-et-gloire/outils/audit.js` | `sedes-petri/outils/fuzz.js` |
+| **Trousse de test dans un cadre (iframe 3D qui ne doit pas écrire)** | `trone-de-braise/donjon3d/src/cloud.js` (relais `postMessage` tk3d → la page hôte envoie avec sa trousse) + `jeu/ui.js` (`banc3d` : banc 🧪 qui pilote la page 3D) ; test `trone-de-braise/outils/trousse3d.py` (base simulée : qui écrit quoi) | |
 | **Sauvegarde, reprise, hors ligne** | `valdragon/outils/tests/sauvegarde.py` + `hors_ligne.py` | `une-vie/outils/reprise.py` + `nuage_test.py`, `bannieres/outils/hors_ligne.py` |
 | **Variété des parties simulées** (parties trop semblables, écarts par origine, choix dominants) | `une-vie/outils/rapport_vies.py` (lit l'export par partie `VIES=` de `harness.js`) | |
 | **Ombres de contact bon marché** (meubles posés au sol, 1 appel) | `une-vie/jeu/index_src.html` : `cshad` + texture `soft` dans `buildHome` | |

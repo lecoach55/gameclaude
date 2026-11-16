@@ -37,6 +37,12 @@ Banc à CPU ×4 (rendu logiciel) : donjon 19 → 31 img/s à résolution fixe, 4
 - `fumee.py dossier` : parcours complet avec captures. `parcours.py` : non-régression (événement-combat, charge du champion, mort réelle + succession, reprise de sauvegarde, 10 saisons).
 - `perf.py sortie.json [ralenti_cpu]` : banc reproductible (carte, combat, boss). Référence : `mesures/perf_base.json`.
 
+## Trousse de test dans le donjon 3D (v5.3, 16/11/2026)
+La page 3D n'écrit jamais elle-même : ses mesures et 🐞 passent par `postMessage` (`tk3d` → accusé `tk3d-ok`) à la page du royaume, qui les envoie avec sa trousse (seuls les id `mesures_<n>` / `signalement_<n>` sont acceptés). 🐞 visible en exploration et en combat 3D ; le signalement contient la capture 3D, l'expédition (type, étage) et l'état du royaume.
+Mode test → ☰ → ▶ Banc : après les 3 scènes 2D, une expédition 3D de banc (catacombes niv. 5) joue exploration / combat / gardien en qualités Économie, Normale, Haute (≈ 1 min 30 sur un vrai GPU), puis le cadre est arrêté sans rien rendre à la partie ; résultats dans `mesures_<n>_3d`.
+Puce Intel intégrée (Mac Intel) ou petit GPU mobile : la 3D démarre en qualité Normale au lieu de Haute (`gpuFaible` dans ui3.js ; la qualité automatique remonte si tout est fluide). En rendu logiciel, Haute coûte ≈ 2,5× Économie (0,8-1,1 contre 1,9-3 img/s).
+Test : `python3 outils/trousse3d.py [mac] [sansbanc]` (base simulée : qui écrit quoi, aucune écriture de `partie`, aucune clé localStorage de la 3D).
+
 ## Équilibre
 Ne pas toucher à la difficulté des combats ni au retour des monstres dans les donjons (« le mal revient ») sans le demander à Victor ; vérifier avec les deux simulateurs.
 

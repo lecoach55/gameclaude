@@ -393,15 +393,19 @@ function finExpe(res){if(bilanFait)return;bilanFait=true;const b=VD.bilanExpedit
  paused=true;started=false;mode='idle';G3.mode='idle';try{if(AC&&AC.state==='running')AC.suspend();}catch(e){}
  parent.postMessage({t:'fin3d',b},'*');}
 function couleursMaison(cfg){const m=cfg.maison||{c1:'#c8632a',c2:'#f2d7a0',emb:'tour'};const r=document.documentElement.style;r.setProperty('--maison',m.c1);r.setProperty('--maison2',m.c2);try{r.setProperty('--blason',`url(${blason(m.c1,m.c2,m.emb,76,112).toDataURL()})`);}catch(e){}}
-function debutExpe(cfg){bilanFait=false;couleursMaison(cfg);if(cfg.muet!==undefined){muted=!!cfg.muet;$('mute').innerHTML=uiIco(muted?'muet':'son',22);}$('title').style.display='none';$('explo').classList.remove('hide');ac();try{if(AC&&AC.state==='suspended')AC.resume();}catch(e){}
+// Puce graphique modeste (Intel intégrée des Mac/PC portables, petits GPU mobiles) : on part en qualité Normale au lieu de Haute
+// (2,3× moins de pixels, sans flou lumineux ni anticrénelage ×4) ; la qualité automatique remonte d'elle-même si tout est fluide.
+function gpuFaible(){if(window.__gpuFaible!==undefined)return !!window.__gpuFaible;const g=gpuName();return /Intel/i.test(g)&&!/\bArc\b/i.test(g)||/Mali-[GT]?\d|Adreno \(TM\) [3-5]\d\d|PowerVR/i.test(g);}
+let gpuVu=false;
+function debutExpe(cfg){bilanFait=false;if(!gpuVu){gpuVu=true;try{if(qAuto&&qCur>1&&gpuFaible()){qSet(1);perf.good=0;}}catch(e){}}TEST=!!cfg.test;if(TEST)testUI();if($('tov'))$('tov').style.display=TEST?'flex':'none';couleursMaison(cfg);if(cfg.muet!==undefined){muted=!!cfg.muet;$('mute').innerHTML=uiIco(muted?'muet':'son',22);}$('title').style.display='none';$('explo').classList.remove('hide');ac();try{if(AC&&AC.state==='suspended')AC.resume();}catch(e){}
  started=true;mode='explo';paused=false;G3.setTheme(cfg);VD.lancerExpedition(cfg);VD.P.story=VD.P.story||[];exploEvents();
  if(G3.kitErr)setTimeout(()=>toast('Modèles 3D non chargés ('+G3.kitErr+') : affichage simplifié.','#ff9a7a'),2500);
  if(!VD.B)setTimeout(()=>toast(VD.expe.etages>1?'Le gardien attend au fond du deuxième étage. Touchez ⛺ pour rebrousser chemin.':'Le gardien attend au fond de l’antre.','#e8d8b0'),2600);}
 try{ST.play=(k,d)=>{if(d)setTimeout(d,0);};}catch(e){}
-$('bugb').style.display='none';
+
 {const q=document.createElement('button');q.className='rb';q.id='bQuit';q.title='Rebrousser chemin';q.textContent='⛺';q.style.cssText='right:140px;top:calc(124px + env(safe-area-inset-top));width:36px;height:36px;font-size:16px';$('explo').appendChild(q);
  let conf=0;q.onclick=()=>{if(paused||mode!=='explo')return;if(!conf){conf=1;toast('Touchez ⛺ encore une fois pour remonter : vous gardez l’or et le butin, mais le gardien reste en vie.');setTimeout(()=>conf=0,4000);return;}finExpe('fuite');};}
-addEventListener('message',ev=>{const m=ev.data;if(!m||typeof m!=='object')return;if(m.t==='expe3d'){const go=()=>debutExpe(m.cfg);if(G3.isReady())go();else G3.ready.then(go);}});
+addEventListener('message',ev=>{const m=ev.data;if(!m||typeof m!=='object')return;if(m.t==='stop3d'){bilanFait=true;$('panel').style.display='none';$('bui').style.display='none';$('explo').classList.add('hide');paused=true;started=false;mode='idle';G3.mode='idle';try{if(AC&&AC.state==='running')AC.suspend();}catch(e){}return;}if(m.t==='banc3d'){runBench(m.sc,m.lv).then(out=>parent.postMessage({t:'banc3d-fin',out},'*'));return;}if(m.t==='expe3d'){const go=()=>debutExpe(m.cfg);if(G3.isReady())go();else G3.ready.then(go);}});
 $('tic').innerHTML='<h1 style="font-size:28px">Le Trône de Braise</h1><p style="font-family:Cinzel,serif;color:#c9b48a">Préparation des profondeurs…</p>';
 window.__expe={fin:finExpe,debut:debutExpe};G3.ready.then(()=>parent.postMessage({t:'pret3d',err:G3.kitErr||null},'*'));
 requestAnimationFrame(loop);
@@ -426,24 +430,23 @@ let BENV=null;
 async function benchEnv(){const e={};try{if(navigator.getBattery){const b=await navigator.getBattery();e.batterie={branche:b.charging,niveau:Math.round(b.level*100)};}}catch(_){}
  try{e.cadenceMax=await new Promise(r=>{window.__skipR=1;let n=0,t0=0;const f=t=>{if(!t0)t0=t;n++;if(t-t0<1000)requestAnimationFrame(f);else{window.__skipR=0;r(Math.round(n*1000/(t-t0)));}};requestAnimationFrame(f);});}catch(_){window.__skipR=0;}
  e.cachee=document.hidden;return e;}
-async function runBench(){if(TF.busy)return;TF.busy=true;BENV=await benchEnv();const btn=$('tbench');btn.disabled=true;const res=[],rnd=Math.random;
- const SC=window.__SC||[['explo',2],['explo',6],['explo',10],['explo',14],['combat',6],['boss',8]],LV=window.__LV||[0,1,2,3];
+async function runBench(sc,lv){if(TF.busy)return null;TF.busy=true;const aq=window.__noAutoQ;window.__noAutoQ=1;const q0=qCur;BENV=await benchEnv();const btn=$('tbench')||{};btn.disabled=true;const res=[],rnd=Math.random;
+ const SC=sc||window.__SC||[['explo',VD.F||2],['combat',VD.F||2],['boss',VD.expe?VD.expe.dernier:8]],LV=lv||window.__LV||[0,1,2,3];
  try{for(const lv of LV){qSet(lv);for(const [k,F] of SC){btn.textContent=`${QN[lv]} · ${k} ${F}…`;await toExplo();seedRng(4242+F);paused=true;VD.newGame(VD.P,4242+F);VD.startFloor(F);const keep=k==='explo'?null:VD.E.find(e=>k==='boss'?e.boss:!e.boss);VD.E.length=0;if(keep)VD.E.push(keep);exploEvents();paused=false;await wait(400);
    if(k==='explo'){const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await wait(2500);}
    else{const e=VD.E.find(e=>k==='boss'?e.boss:!e.boss);if(!e)continue;VD.P.x=e.x;VD.P.y=e.y+(e.boss?1:.4);for(let i=0;i<25;i++){await wait(200);skipStory();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await wait(800);}
    skipStory();await wait(200);const m=await measure(5000);res.push(Object.assign({scene:k+' '+F,niveau:QN[lv]},m));}}
  }catch(e){res.push({erreur:String(e)});}
- Math.random=rnd;await toExplo();qSet(1);
- const out={date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res,env:BENV};
- try{localStorage.setItem('valdragon_mesures',JSON.stringify(out));}catch(e){}const ok=await cloudPut('mesures_'+Date.now(),out);
- btn.disabled=false;btn.textContent='▶ Banc';TF.busy=false;showBench(out,ok);}
+ Math.random=rnd;await toExplo();qSet(q0);window.__noAutoQ=aq;
+ const out={jeu:'trone-de-braise',page:'donjon3d',date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,qAuto,depart:QN[q0],res,env:BENV};
+ btn.disabled=false;btn.textContent='▶ Banc';TF.busy=false;if(sc)return out;const ok=await cloudPut('mesures_'+Date.now(),out);showBench(out,ok);return out;}
 function showBench(o,ok){const rows=o.res.map(r=>`<tr><td>${r.niveau||''}</td><td>${r.scene||r.erreur}</td><td><b>${r.fps??''}</b></td><td>${r.low1??''}</td><td>${r.pire??''}</td><td>${r.tris?(r.tris/1000|0)+'k':''}</td></tr>`).join('');
  const p=document.createElement('div');p.style.cssText='position:fixed;inset:40px 8px auto 8px;z-index:100;background:rgba(10,8,6,.95);color:#e8dcc4;font:12px sans-serif;padding:10px;border:1px solid #6a5a40;border-radius:8px;max-height:80vh;overflow:auto';
  p.innerHTML=`<b>Banc de mesure</b> · ${o.gpu}<br><span style="opacity:.7">${o.ecran} · ${ok?'enregistré dans la base ✓':'enregistré sur cet appareil'}</span>${o.env?`<br><span style="opacity:.85">Écran : ${o.env.cadenceMax||'?'} img/s au maximum${o.env.batterie?` · batterie ${o.env.batterie.niveau} % ${o.env.batterie.branche?'(branché)':'(sur batterie)'}`:''}${o.env.cadenceMax&&o.env.cadenceMax<45?' · <b style="color:#ffb060">limité par l\'économie d\'énergie</b>':''}</span>`:''}<table style="width:100%;margin-top:6px;border-collapse:collapse"><tr><th>Qualité</th><th>Scène</th><th>img/s</th><th>1 % bas</th><th>pire ms</th><th>tri</th></tr>${rows}</table><button style="margin-top:8px">Fermer</button>`;
  document.body.appendChild(p);p.querySelector('button').onclick=()=>p.remove();}
 const ERRS=[];addEventListener('error',e=>{ERRS.push(String(e.message||e).slice(0,300));if(ERRS.length>20)ERRS.shift();});addEventListener('unhandledrejection',e=>{ERRS.push('promesse: '+String(e.reason).slice(0,300));});
-$('bugb').onclick=()=>report();
+$('bugb').onclick=()=>report();document.body.appendChild($('bugb'));// 🐞 aussi pendant les combats (hors du bandeau d'exploration)
 async function report(){const b=$('tbug')||$('bugb');b.disabled=true;const bt=b.textContent;b.textContent='…';let img='';try{const d=G3._d();d.composer.render(.016);const c=document.createElement('canvas');const src=d.renderer.domElement;const k=Math.min(1,480/src.width);c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}catch(e){}
  const st={test:TEST,date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,mode,F:VD.F,pos:VD.P&&[+VD.P.x.toFixed(2),+VD.P.y.toFixed(2)],combat:VD.B?{round:VD.B.round,foes:VD.B.foes.map(f=>f.k+':'+Math.round(f.hp)),boss:!!VD.B.boss}:null,heros:VD.P&&VD.P.heroes.map(h=>h.n+' '+Math.round(h.hp)+'/'+h.s.mhp),qualite:QN[qCur],img_s:(stats(TF.ft.slice(-60))||{}).fps,erreurs:ERRS.slice(),capture:img};
- const ok=await cloudPut('signalement_'+Date.now(),st);try{localStorage.setItem('valdragon_signalement',JSON.stringify(st));}catch(e){}b.disabled=false;b.textContent=bt;toast(ok?'Signalement envoyé à Claude ✓':'Signalement gardé sur cet appareil');}
+ st.jeu='trone-de-braise';st.page='donjon3d';st.expe=VD.expe?{type:VD.expe.type,tier:VD.expe.tier,etage:VD.F,dernier:VD.expe.dernier}:null;const ok=await cloudPut('signalement_'+Date.now(),st);b.disabled=false;b.textContent=bt;toast(ok?'Signalement envoyé à Claude ✓':'Signalement gardé sur cet appareil');}
 addEventListener('vd-save',()=>{try{save();}catch(e){}});

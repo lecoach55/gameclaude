@@ -460,6 +460,7 @@ tr.zone-down>td:first-child{box-shadow:inset 4px 0 0 var(--bad)}
   .card{padding:15px}
 }
 @media (prefers-reduced-motion:reduce){main.enter>*,.mbox,.toast{animation:none!important}}
+.capt.ldr{background:#9fb3a6}
 .capt{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--flood);color:#1a1405;font:700 11px/1 var(--body);vertical-align:1px;margin-left:4px}
 
 /* Europe */
@@ -542,6 +543,97 @@ body.lite{background:var(--night)!important}body.lite .card{background:#13201a!i
 <div id="app"></div>
 <div id="modal" class="modal hidden" role="dialog" aria-modal="true"><div class="mbox" id="mbox"></div></div>
 <div id="toasts" aria-live="polite"></div>
+<script>/*TESTKIT-DEBUT*/
+// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) =====
+// Ajoute : compteur d'images par seconde (mode test), bouton 🐞 « signaler un problème » (capture + état + erreurs),
+// banc de mesure scripté, et envoi des résultats dans la base de l'artefact (lisible par Claude avec db_list).
+// Usage dans le jeu :
+//   import {Testkit} from './testkit.js';
+//   const TK=Testkit({jeu:'hameau', canvas:()=>renderer.domElement, etat:()=>({...}), rendu:()=>renderer.render(scene,cam)});
+//   TK.bouton(document.body);            // bouton 🐞 permanent
+//   TK.modeTest();                       // affiche le compteur (à appeler depuis un bouton « Mode test »)
+//   await TK.banc([{nom:'scène 1', preparer:async()=>{...}}, ...], 5000);  // mesure chaque scène 5 s
+// Jeux sans canvas (SVG/DOM) : fournir capture:async()=>dataURL (voir svgCapture ci-dessous) et canvas:()=>document.createElement('canvas') pour le nom du GPU.
+// Jeux en HTML/DOM : capture:()=>domCapture(document.body). Sans base (capacité db absente, hors ligne, app Electron) :
+// option secours:true → 🐞 ouvre un rapport à copier / enregistrer (TK.rapport(obj,titre) réutilisable pour le banc).
+// Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
+function Testkit(o){
+ const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
+ let DB=null,UID=null,init=null;
+ // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
+ // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
+ TK.base='pas encore essayé';
+ const cloud=()=>init||(init=(async()=>{try{
+   for(let i=0;i<50&&!(window.claude&&window.claude.use);i++)await new Promise(r=>setTimeout(r,200));
+   if(!window.claude||!window.claude.use){TK.base='window.claude absent (page hors de claude.ai ?)';return false;}
+   const [db,u]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+   if(!db){TK.base='base refusée (db null : déconnecté ou capacité non accordée)';return false;}
+   if(!u){TK.base='identité refusée (user null)';return false;}
+   UID=await u.id();DB=db;if(!UID){TK.base='identifiant vide';return false;}TK.base='ok';return true;
+  }catch(e){TK.base='erreur : '+String(e&&e.message||e).slice(0,160);return false;}})().then(ok=>{if(!ok)init=null;return ok;}));
+ TK.envoyer=async(nom,obj)=>{try{localStorage.setItem(o.jeu+'_'+nom.split('_')[0],JSON.stringify(obj));}catch(e){}if(!await cloud())return false;try{await DB.collection('data/users/'+UID).doc(nom).set(obj);return true;}catch(e){TK.base='écriture refusée : '+String(e&&(e.code||e.message)||e).slice(0,160);return false;}};
+ addEventListener('error',e=>{TK.erreurs.push(String(e.message||e).slice(0,300));if(TK.erreurs.length>20)TK.erreurs.shift();});
+ addEventListener('unhandledrejection',e=>TK.erreurs.push('promesse: '+String(e.reason).slice(0,300)));
+ const gpu=()=>{try{const c0=o.canvas&&o.canvas();let gl=c0&&(c0.getContext('webgl2')||c0.getContext('webgl'));if(!gl){const c=document.createElement('canvas');gl=c.getContext('webgl');} // jeux 2D : canvas WebGL temporaire
+  const x=gl.getExtension('WEBGL_debug_renderer_info');return x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(e){return '?';}};
+ const stats=a0=>{const a=a0.filter(d=>d<1000),pz=a0.length-a.length;if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{})};};
+ const tick=t=>{if(TK.lt){const d=t-TK.lt;TK.ft.push(d);if(TK.ft.length>240)TK.ft.shift();if(TK.rec)TK.rec.push(d);}TK.lt=t;if(TK.ov&&t-(TK.tt||0)>500){TK.tt=t;const s=stats(TK.ft.slice(-60));TK.ov.firstChild.textContent=`🧪 ${s.fps||'-'} img/s · pire ${s.pire||'-'} ms`;}requestAnimationFrame(tick);};requestAnimationFrame(tick);
+ TK.modeTest=()=>{TK.test=true;if(TK.ov)return;const d=document.createElement('div');d.style.cssText='position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(0,0,0,.72);color:#9fe0a0;font:12px monospace;padding:4px 8px;border-radius:6px';d.innerHTML='<span>🧪</span>';document.body.appendChild(d);TK.ov=d;};
+ // Mesure fiable : on attend que la page soit visible ; si le navigateur a suspendu l'affichage pendant la mesure
+ // (onglet masqué, fenêtre en arrière-plan, volet replié), on recommence une fois puis on le signale (masquee:true).
+ const visible=()=>new Promise(r=>{if(!document.hidden)return r();const f=()=>{if(!document.hidden){document.removeEventListener('visibilitychange',f);r();}};document.addEventListener('visibilitychange',f);});
+ TK.mesurer=async(ms,essai=0)=>{await visible();TK.rec=[];let masq=false;const vf=()=>{if(document.hidden)masq=true;};document.addEventListener('visibilitychange',vf);
+  await new Promise(r=>setTimeout(r,ms));document.removeEventListener('visibilitychange',vf);const a=TK.rec;TK.rec=null;
+  const suspendu=masq||a.length<ms/1000*3; // moins de 3 images/s mesurées : affichage suspendu par le navigateur
+  if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
+  const st=stats(a);if(suspendu)st.masquee=true;return st;};
+ TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
+  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
+ TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
+  const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
+  TK.dernier=st;return TK.envoyer('signalement_'+Date.now(),st);};
+ // Secours quand la base est indisponible (capacité db non déclarée, hors ligne, app de bureau) : panneau avec le rapport
+ // à copier (sans les gros champs) et bouton pour l'enregistrer en fichier. Option o.secours:true pour l'activer sur 🐞.
+ TK.rapport=(obj,titre)=>{try{const gros=new Set(['capture','sauvegarde']);const court=JSON.stringify(obj,(k,v)=>gros.has(k)?(v?'['+String(v).length+' car. — voir le fichier]':v):v,1);
+  const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:12px';
+  f.innerHTML='<div style="background:#14201a;color:#e8efe9;border:1px solid #3c5a48;border-radius:12px;padding:14px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:8px;font:14px system-ui,sans-serif"><b></b><div style="font-size:12.5px;opacity:.8">La base de l’artefact n’est pas joignable ('+(TK.base||'?').replace(/</g,'&lt;')+'). Copiez ce rapport dans la conversation avec Claude, ou enregistrez le fichier complet.</div><textarea readonly style="flex:1;min-height:200px;font:11px monospace;background:#0b130e;color:#cfe;border:1px solid #2c4436;border-radius:6px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button data-k="c">Copier</button><button data-k="t">Enregistrer le fichier</button><button data-k="f">Fermer</button></div></div>';
+  f.querySelector('b').textContent=titre||'Rapport';const ta=f.querySelector('textarea');ta.value=court;
+  f.onclick=async e=>{const k=e.target.dataset&&e.target.dataset.k;if(e.target===f||k==='f')f.remove();
+   else if(k==='c'){ta.select();let ok=false;try{await navigator.clipboard.writeText(court);ok=true;}catch(_){try{ok=document.execCommand('copy');}catch(__){}}e.target.textContent=ok?'Copié ✓':'Sélectionné : copiez à la main';}
+   else if(k==='t'){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:'application/json'}));a.download=(o.jeu||'jeu')+'_'+(obj.date||Date.now()).toString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);}catch(_){e.target.textContent='Impossible ici';}}};
+  document.body.appendChild(f);return f;}catch(e){return null;}};
+ TK.bouton=(parent,style)=>{const b=document.createElement('button');b.textContent='🐞';b.title='Signaler un problème à Claude';b.style.cssText=style||'position:fixed;right:10px;bottom:10px;z-index:9999;width:38px;height:38px;border-radius:50%;opacity:.75';parent.appendChild(b);
+  b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);if(!ok&&o.secours&&TK.dernier)TK.rapport(TK.dernier,'Signalement (non envoyé)');};return b;};
+ return TK;}
+
+// Capture d'un <svg> (jeux en SVG) : sérialise, dessine dans un canvas réduit, renvoie un JPEG en dataURL.
+function svgCapture(svg,largeur=480){return new Promise(res=>{try{
+ // on recopie les feuilles de style de la page dans le clone : sans elles, les classes CSS (display, fill…) sont perdues
+ const css=[...document.styleSheets].flatMap(st=>{try{return [...st.cssRules].map(r=>r.cssText);}catch(e){return [];}}).join('\n');
+ const cl=svg.cloneNode(true);const stl=document.createElementNS('http://www.w3.org/2000/svg','style');stl.textContent=css;cl.insertBefore(stl,cl.firstChild);
+ const xml=new XMLSerializer().serializeToString(cl);const r=svg.getBoundingClientRect();const k=Math.min(1,largeur/r.width);
+ const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=r.width*k|0;c.height=r.height*k|0;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6));}catch(e){res('');}};img.onerror=()=>res('');
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml.replace('<svg','<svg width="'+r.width+'" height="'+r.height+'"'));}catch(e){res('');}});}
+// Capture d'une page HTML/DOM (jeux sans canvas ni SVG principal) : clone l'élément dans un <foreignObject>, recopie les styles,
+// remplace les <canvas> par leur image, renvoie un JPEG en dataURL ('' si le navigateur refuse, ex. Safari qui « salit » le canvas).
+function domCapture(el,largeur=480){return new Promise(res=>{try{el=el||document.body;
+ const css=[...document.styleSheets].flatMap(st=>{try{return [...st.cssRules].map(r=>r.cssText);}catch(e){return [];}}).join('\n');
+ const r=el.getBoundingClientRect(),W=Math.max(1,Math.round(innerWidth)),H=Math.max(1,Math.round(innerHeight)),k=Math.min(1,largeur/W);
+ const cl=el.cloneNode(true);const src=el.querySelectorAll('canvas'),dst=cl.querySelectorAll('canvas');
+ src.forEach((c,i)=>{try{const im=document.createElement('img');im.src=c.toDataURL();im.style.cssText=c.style.cssText;im.className=c.className;im.width=c.clientWidth;im.height=c.clientHeight;dst[i].replaceWith(im);}catch(e){}});
+ cl.querySelectorAll('script').forEach(x=>x.remove());
+ const wrap=document.createElement('div');wrap.setAttribute('xmlns','http://www.w3.org/1999/xhtml');wrap.style.cssText=document.documentElement.style.cssText+';width:'+W+'px;height:'+H+'px;overflow:hidden;background:'+getComputedStyle(document.body).backgroundColor;
+ const inner=document.createElement('div');inner.className=document.body.className;inner.style.cssText='position:relative;top:'+(-scrollY)+'px';inner.appendChild(cl);
+ const st=document.createElement('style');st.textContent=css;wrap.appendChild(st);wrap.appendChild(inner);
+ const xml=new XMLSerializer().serializeToString(wrap);
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject width="100%" height="100%">'+xml+'</foreignObject></svg>';
+ const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=W*k|0;c.height=H*k|0;const g=c.getContext('2d');g.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6));}catch(e){res('');}};img.onerror=()=>res('');
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);setTimeout(()=>res(''),4000);}catch(e){res('');}});}
+// Jeux en scripts classiques (sans import) : exposer aussi la trousse sur window.
+// Plus sûr dans un artefact : charger une copie SANS les mots « export » en <script src> classique
+// (sed 's/^export //' testkit.js > jeu/testkit.js) : un <script type="module"> peut ne pas se charger dans le cadre isolé.
+if(typeof window!=="undefined"){window.Testkit=Testkit;window.svgCapture=svgCapture;window.domCapture=domCapture;}
+/*TESTKIT-FIN*/</script>
 <script>
 "use strict";
 /* =====================================================================
@@ -961,14 +1053,14 @@ A.play=function(){
       const opp=th.user?ta:th;
       const d=userMatch(th.user,opp,th.user?ultraBoost(me):me);
       gh=th.user?d.gf:d.ga;ga=th.user?d.ga:d.gf;
-      rep=Object.assign(d,{home:th.user,opp:{name:opp.name,rating:opp.rating,derby:!!opp.derby},comp:L.n+' · Journée '+(S.week+1)+(opp.derby?' · CHOC CONTRE LE RIVAL':'')});
+      rep=Object.assign(d,{home:th.user,opp:{name:opp.name,rating:opp.rating,derby:!!opp.derby,local:derbyLocal(opp)},comp:L.n+' · Journée '+(S.week+1)+(opp.derby?' · CHOC CONTRE LE RIVAL':derbyLocal(opp)?' · DERBY LOCAL':'')});
     }else{[gh,ga]=simGoals(aiStr(th),aiStr(ta));creditAI(th,gh,true);creditAI(ta,ga,true);}
     record(th,ta,gh,ga);results.push([h,a,gh,ga]);
   }
   S.teams.forEach(t=>{if(!t.user)t.mom=clamp(t.mom+rf(-.6,.6),-3,3);});
   S.lastRound=results;S.roundRes=S.roundRes||[];S.roundRes[S.week]=results;S.week++;
   // finances de la semaine
-  if(rep.home){rep.att=attendance(rep.opp,rep.opp.derby?1.4:1);if(S.abo&&S.abo.n){rep.aboP=Math.min(cap(),Math.round(S.abo.n*rf(.86,.95)));rep.att=Math.min(cap(),Math.max(rep.att,rep.aboP));}}
+  if(rep.home){rep.att=attendance(rep.opp,rep.opp.derby?1.4:rep.opp.local?1.15:1);if(S.abo&&S.abo.n){rep.aboP=Math.min(cap(),Math.round(S.abo.n*rf(.86,.95)));rep.att=Math.min(cap(),Math.max(rep.att,rep.aboP));}}
   weeklyFinance(rep);
   ultrasTick(rep);if(S.reserve)reserveWeek(me);else reserveWeekFem();
   h2hAdd(rep.opp.name,rep.res,rep.gf,rep.ga,rep.home);
@@ -987,6 +1079,8 @@ A.play=function(){
   coachAfter(rep.res);
   if(rep.opp.derby){const v=rep.res==='V'?1:rep.res==='D'?-1:0;S.mood=clamp(S.mood+v*7,0,100);S.confidence=clamp(S.confidence+v*3,0,100);S.players.forEach(p=>{if(!p.loan)p.morale=clamp(p.morale+v*4,0,100);});
     news(v>0?'Victoire contre le rival '+rep.opp.name+' ! Les supporters savourent toute la semaine.':v<0?'Défaite contre le rival '+rep.opp.name+'. Les supporters ont la gueule de bois.':'Match nul contre le rival '+rep.opp.name+' : honneur sauf.',v>0?'g':v<0?'b':'');}
+  else if(rep.opp.local){const v=rep.res==='V'?1:rep.res==='D'?-1:0;S.mood=clamp(S.mood+v*3,0,100);
+    news((v>0?'Derby local remporté face à ':v<0?'Derby local perdu face à ':'Derby local sans vainqueur face à ')+rep.opp.name+(rep.home?' devant '+nf(rep.att)+' spectateurs'+(v>=0?', la buvette a tourné à plein.':'.'):v>0?' : les supporters ont fait le déplacement en nombre.':'.'),v>0?'g':v<0?'b':'');}
   if(UI.multiRun)UI.multiLog.push(rep.res);else UI.queue.push({type:'report',d:rep});
   pressMaybe(rep);
   if(!UI.multiRun&&(S.week===1||S.week===winInfo().h-1)&&!dlgOn('recruit'))UI.queue.push({type:'sreport'});
@@ -1005,7 +1099,7 @@ A.play=function(){
 function weeklyFinance(rep){
   const L=LV[S.div],N=S.N,i=S.infra;
   fin('Sponsors',(S.sponsorAnnual+S.sponsorBonus+S.naming)/N);
-  fin('Subventions',L.sub*S.subsidyMult/N);
+  if(S.div===4){fin('Subventions',L.sub*S.subsidyMult*.2/N);fin('Aide FFF (Ligue 3)',L.sub*S.subsidyMult*.8/N);}else fin('Subventions',L.sub*S.subsidyMult/N);
   if(L.tv)fin('Droits TV',L.tv/N);
   if(S.flags.tvLocal)fin('Droits TV',S.flags.tvLocal/N);
   if(S.div===6&&uefaIndex())fin('Droits TV (indice UEFA)',uefaIndex()*2.4e6/N);
@@ -1047,6 +1141,8 @@ function captain(){let c=S.captainId!=null&&getP(S.captainId);if(c&&!c.loan)retu
   const yrs=p=>(p.hist||[]).filter(h=>h.own).length;const pool=S.players.filter(p=>!p.loan&&!p.youth&&p.age>=20);if(!pool.length)return null;
   c=pool.reduce((b,p)=>{const sc=p.ovr+Math.min(p.age,32)*1.1+yrs(p)*3+p.morale*.05;return !b||sc>b.sc?{p,sc}:b;},null).p;
   if(S.captainId!=null&&S.captainId!==c.id)news(pname(c)+' hérite du brassard de capitaine.','');S.captainId=c.id;return c;}
+function vestLeaders(){const c=captain();const yrs=p=>(p.hist||[]).filter(h=>h.own).length;
+  return S.players.filter(p=>!p.loan&&!p.youth&&p!==c&&p.age>=24).map(p=>({p,sc:Math.min(p.age,33)*1.2+yrs(p)*4+p.ovr*.5})).sort((a,b)=>b.sc-a.sc).slice(0,2).map(x=>x.p);}
 function weeklyUpdates(){
   const L=LV[S.div];
   {const c=captain();if(c){const pull=c.morale>=60?.04:c.morale<35?-.03:0;if(pull)S.players.forEach(p=>{if(p!==c&&!p.loan)p.morale=clamp(Math.round(p.morale+(pull>0?Math.max(0,(c.morale-p.morale))*pull+.3:-1)),0,100);});}}
@@ -1123,11 +1219,11 @@ function playCup(){
   }else fin('Déplacements',-TRAVEL[S.div]);
   if(win){
     fin('Coupe de France',CUP_PRIZE[i]);
-    S.cup.log.push({r:CUP_R[i],opp:opp.name,od,gf:d.gf,ga:d.ga,tab,win:true});
+    S.cup.log.push({r:CUP_R[i],opp:opp.name,od,gf:d.gf,ga:d.ga,tab,win:true,prime:CUP_PRIZE[i]});
     S.cup.round++;S.fans+=Math.round(Math.max(0,fanCap()-S.fans)*(.02+i*.006));S.mood=clamp(S.mood+5,0,100);S.confidence=clamp(S.confidence+2,0,100);
     if(i>=6)S.rep=clamp(S.rep+1.5,0,100);
-    if(i===5&&S.div<=2&&!S.cup.poucet){S.cup.poucet=true;fin('Coupe de France',5000);S.fans=Math.round(S.fans*1.08);S.mood=clamp(S.mood+6,0,100);S.rep=clamp(S.rep+2,0,100);news('Petit Poucet de la Coupe de France ! Le club amateur se hisse en 32es de finale : prime de 5 000 €, la presse nationale débarque.','g');}
-    if(S.div<=3&&od>S.div){const bx=1500*(od-S.div);fin('Coupe de France',bx);news('Bonus exploit de la FFF : '+money(bx)+' pour avoir éliminé un club de '+LV[od].n+'.','g');}
+    if(i===5&&S.div<=2&&!S.cup.poucet){S.cup.poucet=true;fin('Coupe de France',5000);S.cup.log[S.cup.log.length-1].poucet=5000;S.fans=Math.round(S.fans*1.08);S.mood=clamp(S.mood+6,0,100);S.rep=clamp(S.rep+2,0,100);news('Petit Poucet de la Coupe de France ! Le club amateur se hisse en 32es de finale : prime de 5 000 €, la presse nationale débarque.','g');}
+    if(S.div<=3&&od>S.div){const bx=1500*(od-S.div);fin('Coupe de France',bx);S.cup.log[S.cup.log.length-1].exploit=bx;news('Bonus exploit de la FFF : '+money(bx)+' pour avoir éliminé un club de '+LV[od].n+'.','g');}
     if(i===11){S.cup.won=true;S.palmares.push('Coupe de France '+seasonLabel(S.year));S.rep=clamp(S.rep+10,0,100);news('LA COUPE DE FRANCE EST À NOUS !','g');}
     else news('Coupe de France : qualification face à '+opp.name+' ('+LV[od].n+') '+d.gf+'-'+d.ga+(tab?' ('+tab[0]+'-'+tab[1]+' t.a.b.)':''),'g');
   }else{
@@ -1135,6 +1231,7 @@ function playCup(){
     news('Coupe de France : élimination en '+CUP_R[i]+' face à '+opp.name+(tab?' aux tirs au but':''),'b');
   }
   d.cupWin=win;
+  if(win){const g=S.cup.log[S.cup.log.length-1];d.comp+=' · '+cupGainTxt(g,true);}
   return d;
 }
 
@@ -1181,6 +1278,11 @@ const EVENTS={
   text:d=>`Le maire propose une subvention exceptionnelle de ${money(d.amt)} si le club organise un tournoi de jeunes ouvert à toutes les écoles de la ville.`,
   ch:[{t:'Accepter et organiser le tournoi',s:'Subvention et image locale',f:d=>{fin('Subventions',d.amt);S.fans=Math.round(S.fans*1.03);S.mood+=3;S.confidence+=2;return 'Tournoi organisé : la ville apprécie.';}},
       {t:'Décliner : l’équipe doit se concentrer',f:()=>{S.subsidyMult*=.97;return 'La mairie prend note, un peu froissée.';}}]},
+ leaderGrogne:{w:2,cond:()=>S.gw>4&&vestLeaders().some(p=>p.morale<40),make:()=>{const p=vestLeaders().filter(p=>p.morale<40)[0];return p?{pid:p.id}:null;},k:'Vestiaire',title:'Un leader du vestiaire grogne',
+  text:d=>{const p=getP(d.pid);return `${pname(p)} (${p.age} ans), l’une des voix qui comptent dans le vestiaire, n’a plus le moral (${p.morale}/100). Ses coéquipiers l’écoutent : son humeur pourrait déteindre sur le groupe.`;},
+  ch:[{t:'Le recevoir dans votre bureau',s:'Son moral remonte nettement',f:d=>{const p=getP(d.pid);p.morale=clamp(p.morale+15,0,100);return pname(p)+' se sent écouté.';}},
+      {t:'Lui confier le rôle de relais auprès des jeunes',s:'Moral +8 pour lui, +1 pour le groupe',f:d=>{const p=getP(d.pid);p.morale=clamp(p.morale+8,0,100);S.players.forEach(x=>{if(x!==p&&!x.loan)x.morale=clamp(x.morale+1,0,100);});return pname(p)+' prend les jeunes sous son aile.';}},
+      {t:'Laisser couler',s:'Le groupe risque de suivre',f:d=>{const p=getP(d.pid);p.morale=clamp(p.morale-5,0,100);S.players.forEach(x=>{if(x!==p&&!x.loan)x.morale=clamp(x.morale-2,0,100);});return 'La grogne de '+pname(p)+' gagne une partie du vestiaire.';}}]},
  sponsorLocal:{w:3,cond:()=>S.div<=3,make:()=>({amt:Math.round(LV[S.div].spons*rf(.12,.25)/100)*100,name:pick(['Garage','Boulangerie','Pharmacie','Cave','Brasserie','Agence immobilière','Menuiserie','Supermarché'])+' '+pick(LAST)}),k:'Partenaire',title:'Un commerçant veut s’afficher',
   text:d=>`${d.name} propose ${money(d.amt)} par saison pour apparaître sur les maillots d’entraînement et les panneaux autour du terrain.`,
   ch:[{t:'Signer tout de suite',f:d=>{S.sponsorBonus+=d.amt;return 'Contrat signé avec '+d.name+'.';}},
@@ -2267,7 +2369,7 @@ A.sheet=function(id,tab){
      <div class="kpi"><div class="l">Note</div><div class="v gold">${p.ovr}</div></div>
      <div class="kpi"><div class="l">Potentiel</div><div class="v">${p.pot}</div></div>
      <div class="kpi"><div class="l">Forme</div><div class="v ${p.fit<70?'warn':''}">${p.fit}%</div></div>
-     <div class="kpi"><div class="l">Moral</div><div class="v ${p.morale<35?'bad':''}">${p.morale}</div>${p.id===S.captainId?'<div class="muted" style="font-size:12px"><span class="capt">C</span> capitaine : son moral déteint sur le vestiaire</div>':''}</div>
+     <div class="kpi"><div class="l">Moral</div><div class="v ${p.morale<35?'bad':''}">${p.morale}</div>${p.id===S.captainId?'<div class="muted" style="font-size:12px"><span class="capt">C</span> capitaine : son moral déteint sur le vestiaire</div>':vestLeaders().includes(p)?'<div class="muted" style="font-size:12px"><span class="capt ldr">L</span> leader du vestiaire : le groupe l’écoute</div>':''}</div>
      <div class="kpi"><div class="l">Valeur</div><div class="v" style="font-size:20px">${money(valueFor(p))}</div></div>
      <div class="kpi"><div class="l">Salaire</div><div class="v" style="font-size:20px">${money(p.wage)}<span class="muted" style="font-size:13px">/mois</span></div></div>
      <div class="kpi"><div class="l">Contrat</div><div class="v" style="font-size:20px">${p.contract} an${p.contract>1?'s':''}</div></div>
@@ -2332,6 +2434,7 @@ function renderStart(){
    ${realStartHtml()}
    <div class="fld" ${UI.setup.real?'style="display:none"':''}>Situation de départ<div class="diff">${DIFFS.map((d,i)=>`<button class="${i===st.diff?'on':''}" onclick="A.setupDiff(${i})"><b>${d.n}</b><small>${d.d}</small></button>`).join('')}</div></div>
    <div class="row"><button class="play" onclick="A.create()">Prendre la présidence</button><button class="btn" onclick="A.importSaveStart()">Importer une sauvegarde</button></div>
+   <p class="muted" style="font-size:12.5px;margin:10px 0 0">🧪 <a href="#" onclick="A.modeTest();return false" style="color:inherit">Mode test</a> : mesure la fluidité de votre appareil sur une partie d’essai (rien n’est sauvegardé). En cas de souci en partie, touchez 🐞 en bas à droite.</p>
   </div>
   </div></div>`;
   A.pv();
@@ -2472,7 +2575,7 @@ function vEffectif(st){
     </div></div>
   </div>
   <div class="tbl-wrap"><table data-sort="0,1"><thead><tr><th>Poste</th><th>Joueur</th><th class="r">Âge</th><th class="r">Note</th><th class="r">Pot.</th><th class="r">Forme</th><th class="r">Moral</th><th class="r">Salaire</th><th class="r">Contrat</th><th class="r">Valeur</th><th class="r">MJ</th><th class="r">Buts</th><th class="r">Passes</th><th class="r">Moy.</th><th>Statut</th><th></th></tr></thead><tbody>
-  ${ps.map(p=>`<tr class="click" onclick="A.sheet(${p.id})"><td><span class="pos ${p.pos}">${p.pos}</span></td><td><span class="pname">${jersey(p,24)}${inXI.has(p.id)?'<b>':''}${esc(pname(p))}${inXI.has(p.id)?'</b>':''} <span class="role" title="${ROLE[ensureRole(p).role].n}${p.role2?' / '+ROLE[p.role2].n:''}">${p.role}${p.role2?'/'+p.role2:''}</span>${p.youth?' <span class="pill y">Jeune</span>':''}${p.id===S.captainId?' <span class="capt" title="Capitaine">C</span>':''}</span></td><td class="r">${p.age}</td><td class="r"><span class="ovr">${p.ovr}</span></td><td class="r ${p.pot-p.ovr>=8?'good':''}">${p.pot}</td><td class="r ${p.fit<70?'warn':''}">${p.fit}%</td><td class="r ${p.morale<35?'bad':p.morale>75?'good':''}">${p.morale}</td><td class="r">${money(p.wage)}</td><td class="r ${p.contract<=1?'warn':''}">${p.contract} an${p.contract>1?'s':''}</td><td class="r">${money(valueFor(p))}</td><td class="r">${p.s.mj+p.s.cmj}</td><td class="r">${p.s.g+p.s.cg}</td><td class="r">${p.s.a+p.s.ca}</td><td class="r">${fmtN(avgN(p.s))}</td>
+  ${ps.map(p=>`<tr class="click" onclick="A.sheet(${p.id})"><td><span class="pos ${p.pos}">${p.pos}</span></td><td><span class="pname">${jersey(p,24)}${inXI.has(p.id)?'<b>':''}${esc(pname(p))}${inXI.has(p.id)?'</b>':''} <span class="role" title="${ROLE[ensureRole(p).role].n}${p.role2?' / '+ROLE[p.role2].n:''}">${p.role}${p.role2?'/'+p.role2:''}</span>${p.youth?' <span class="pill y">Jeune</span>':''}${p.id===S.captainId?' <span class="capt" title="Capitaine">C</span>':vestLeaders().includes(p)?' <span class="capt ldr" title="Leader du vestiaire">L</span>':''}</span></td><td class="r">${p.age}</td><td class="r"><span class="ovr">${p.ovr}</span></td><td class="r ${p.pot-p.ovr>=8?'good':''}">${p.pot}</td><td class="r ${p.fit<70?'warn':''}">${p.fit}%</td><td class="r ${p.morale<35?'bad':p.morale>75?'good':''}">${p.morale}</td><td class="r">${money(p.wage)}</td><td class="r ${p.contract<=1?'warn':''}">${p.contract} an${p.contract>1?'s':''}</td><td class="r">${money(valueFor(p))}</td><td class="r">${p.s.mj+p.s.cmj}</td><td class="r">${p.s.g+p.s.cg}</td><td class="r">${p.s.a+p.s.ca}</td><td class="r">${fmtN(avgN(p.s))}</td>
   <td>${p.inj?'<span class="pill b">Blessé '+p.inj+' sem.</span> ':''}${p.susp?'<span class="pill w">Suspendu</span> ':''}${p.loan?'<span class="pill">Prêté · '+esc(p.loan.club)+'</span>':''}${p.listed?'<span class="pill y">En vente</span>':''}${inXI.has(p.id)&&!p.inj?(()=>{const e=st.xi.find(x=>x.p.id===p.id);return `<span class="pill g">Titulaire · ${e.role}</span>${e.pen?` <span class="pill ${e.pen>=8?'b':'w'}" title="Joue hors de son rôle naturel">à contre-emploi</span>`:''}`;})():''}</td>
   <td><button class="btn sm" onclick="event.stopPropagation();A.sheet(${p.id})">Gérer</button></td></tr>`).join('')}
   </tbody></table></div>
@@ -2599,7 +2702,7 @@ function vFin(){
    <div class="card"><header><h3>Dépenses ${seasonLabel(S.year)}</h3><b class="bad num">${money(te)}</b></header><div class="tbl-wrap"><table><tbody>${rows(exp,'bad')}</tbody></table></div></div>
   </div>
   ${Object.keys(fi).length?`<div class="card"><header><h3>Financement (hors résultat)</h3></header><div class="tbl-wrap"><table><tbody>${Object.entries(fi).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="r ${v<0?'bad':'good'}">${money(v)}</td></tr>`).join('')}</tbody></table></div></div>`:''}
-  <p class="muted" style="font-size:13px">Revenus de la division ${L.n} : sponsors de base ${money(L.spons)}, subvention ${money(L.sub*S.subsidyMult)}${L.tv?', droits TV '+money(L.tv):''}. ${S.div>=4?'La DNCG contrôle les comptes : une trésorerie négative en fin de saison entraîne une rétrogradation administrative.':''}</p>`;
+  <p class="muted" style="font-size:13px">Revenus de la division ${L.n} : sponsors de base ${money(L.spons)}, subvention ${money(L.sub*S.subsidyMult)}${S.div===4?' (dont aide FFF '+money(L.sub*S.subsidyMult*.8)+')':''}${L.tv?', droits TV '+money(L.tv):''}. ${S.div>=4?'La DNCG contrôle les comptes : une trésorerie négative en fin de saison entraîne une rétrogradation administrative.':''}</p>`;
 }
 
 function vCal(){
@@ -2610,7 +2713,7 @@ function vCal(){
     const [h,a]=S.sched[w].find(([h,a])=>S.teams[h].user||S.teams[a].user);
     const home=S.teams[h].user,o=S.teams[home?a:h],r=S.myResults[w],next=w===S.week;
     const rk=tbl.indexOf(o)+1;
-    rows.push(`<tr class="cal-row ${next?'next':''} ${r?'click':''}" ${r?`onclick="A.cal(${w})"`:''}><td class="num">J${w+1}</td><td class="muted">${matchDate(w)}</td><td>${home?'<span class="pill">Dom.</span>':'<span class="pill">Ext.</span>'}</td><td>${tc(o.name)}${o.derby?' <span class="pill b">Rival</span>':''} <span class="muted" style="font-size:12px">${S.week?rk+'e':''}</span></td>
+    rows.push(`<tr class="cal-row ${next?'next':''} ${r?'click':''}" ${r?`onclick="A.cal(${w})"`:''}><td class="num">J${w+1}</td><td class="muted">${matchDate(w)}</td><td>${home?'<span class="pill">Dom.</span>':'<span class="pill">Ext.</span>'}</td><td>${tc(o.name)}${o.derby?' <span class="pill b">Rival</span>':derbyLocal(o)?' <span class="pill y" title="Club voisin : affluence et ambiance renforcées">Derby</span>':''} <span class="muted" style="font-size:12px">${S.week?rk+'e':''}</span></td>
       <td class="r">${r?`<span class="resb ${r.res}">${home?r.gf+' - '+r.ga:r.ga+' - '+r.gf}</span>`:next?'<span class="pill y">Prochain match</span>':'<span class="muted">à venir</span>'}</td><td class="r muted" style="font-size:12px">${r&&r.att?nf(r.att)+' spect.':r?'':'force '+Math.round(o.rating)}</td></tr>`);
     if(r&&UI.calOpen===w&&S.roundRes[w])rows.push(`<tr class="det"><td colspan="6"><table class="mini"><tbody>${S.roundRes[w].map(([h2,a2,gh,ga])=>`<tr class="${S.teams[h2].user||S.teams[a2].user?'me':''}"><td class="r">${tc(S.teams[h2].name)}</td><td style="text-align:center"><b>${gh} - ${ga}</b></td><td>${tc(S.teams[a2].name)}</td></tr>`).join('')}</tbody></table></td></tr>`);
     if(S.euro){const E=S.euro,C=EURO[E.k];const lpi=E.lpw.indexOf(w+1);
@@ -2620,7 +2723,7 @@ function vCal(){
         if(E.phase==='ko'&&E.ko.weeks[E.ko.leg]===w+1)rows.push(`<tr class="eur" style="--ec:${C.col}"><td>${C.s}</td><td class="muted">${matchDate(w,true)}</td><td><span class="pill eu">${KO_N[E.ko.r]}</span></td><td>${tc(E.ko.opp.name)} <span class="flag">${E.ko.opp.c}</span></td><td class="r"><span class="muted">à venir</span></td><td class="r muted" style="font-size:12px">force ${Math.round(E.ko.opp.rating)}</td></tr>`);}}
     for(let i=entry;i<12;i++){if(cupDay(i)!==w+1)continue;
       const lg=S.cup.log.find(x=>x.r===CUP_R[i]);
-      if(lg)rows.push(`<tr class="cupr"><td>CdF</td><td class="muted">${matchDate(w,true)}</td><td><span class="pill y">${CUP_R[i]}</span></td><td>${tc(lg.opp)} <span class="muted" style="font-size:12px">${LV[lg.od].n}</span></td><td class="r"><span class="resb ${lg.win?'V':'D'}">${lg.gf} - ${lg.ga}</span>${lg.tab?' <span class="muted" style="font-size:12px">t.a.b.</span>':''}</td><td></td></tr>`);
+      if(lg)rows.push(`<tr class="cupr"><td>CdF</td><td class="muted">${matchDate(w,true)}</td><td><span class="pill y">${CUP_R[i]}</span></td><td>${tc(lg.opp)} <span class="muted" style="font-size:12px">${LV[lg.od].n}</span></td><td class="r"><span class="resb ${lg.win?'V':'D'}">${lg.gf} - ${lg.ga}</span>${lg.tab?' <span class="muted" style="font-size:12px">t.a.b.</span>':''}</td><td class="r good" style="font-size:12px">${cupGainTxt(lg)}</td></tr>`);
       else if(!S.cup.out&&!S.cup.won&&i===S.cup.round)rows.push(`<tr class="cupr"><td>CdF</td><td class="muted">${matchDate(w,true)}</td><td><span class="pill y">${CUP_R[i]}</span></td><td class="muted">Adversaire tiré au sort le jour du match</td><td class="r"><span class="muted">à venir</span></td><td></td></tr>`);
     }
   }
@@ -2679,12 +2782,19 @@ function vEuro(){
   <div class="card"><h3>Phase de ligue</h3><div class="tbl-wrap" style="max-height:440px;overflow:auto"><table data-norank class="mini"><thead><tr><th>#</th><th>Club</th><th class="r">J</th><th class="r">Diff.</th><th class="r">Pts</th></tr></thead><tbody>${tb.map((t,i)=>`<tr class="${t.user?'me':''} ${zone(i)}"><td>${i+1}</td><td>${tc(t.name)} <span class="flag">${t.c}</span></td><td class="r">${t.P}</td><td class="r">${t.GF-t.GA>0?'+':''}${t.GF-t.GA}</td><td class="r"><b>${t.Pts}</b></td></tr>`).join('')}</tbody></table></div><p class="muted" style="font-size:12px;margin:6px 0 0"><span style="color:var(--good)">▌</span> 8es directs · <span style="color:var(--flood)">▌</span> barrages · <span style="color:var(--bad)">▌</span> éliminés</p></div></div>`;
 }
 function starSVG(c,sz){sz=sz||20;const pts=[...Array(10)].map((_,k)=>{const a=-Math.PI/2+k*Math.PI/5,r=k%2?4.2:10;return (12+r*Math.cos(a)).toFixed(2)+','+(12+r*Math.sin(a)).toFixed(2);}).join(' ');return `<svg viewBox="0 0 24 24" width="${sz}" height="${sz}" aria-hidden="true"><polygon points="${pts}" fill="${c}"/></svg>`;}
+function cupGainTxt(l,long){if(!l||!l.win)return '';const t=[money(l.prime||0)+(long?' de prime':'')];if(l.poucet)t.push('Petit Poucet '+money(l.poucet));if(l.exploit)t.push('bonus exploit '+money(l.exploit));return '+'+t.join(' + ');}
+function derbyLocal(t){if(!t||t.user||t.derby||!S||!S.terr||!S.terr.dep)return false;if(t.local!=null)return t.local;
+  let loc=false;const r=realFor(t.name);
+  if(r){const c=r[1]&&commFind(r[1]);const reg=c?REGIONS[c[2]]:(REAL_EXTRA[r[0]]||{}).reg;loc=c?c[1]===S.terr.dep||(S.div>=4&&reg===S.terr.reg):S.div>=4&&reg===S.terr.reg;}
+  else{const pf=PREF.find(x=>t.name.startsWith(x+' '));const c=pf&&commFind(t.name.slice(pf.length+1));loc=!!(c&&c[1]===S.terr.dep&&c[0]!==S.terr.n);}
+  return t.local=loc;}
 function vCoupe(){
   const c=S.cup,e=CUP_ENTRY[S.div];
   return vEuro()+`<div class="card hl"><header><h3>Coupe de France ${seasonLabel(S.year)}</h3>${c.won?'<span class="pill g">Vainqueur</span>':c.out?'<span class="pill b">Éliminé</span>':'<span class="pill y">En course</span>'}</header>
   <p style="margin:0">Entrée en lice : <b>${CUP_R[e]}</b>. Le club de division inférieure reçoit. Chaque qualification rapporte une prime de la fédération et la recette du match à domicile.${!c.out&&!c.won?' Prochain tour ('+CUP_R[c.round]+') après la journée '+cupDay(c.round)+'.':''}</p></div>
-  <div class="grid g2"><div class="card"><h3>Parcours</h3>${c.log.length?'<div class="tbl-wrap"><table><tbody>'+c.log.map(l=>`<tr><td>${l.r}</td><td>${tc(l.opp)} <span class="muted">(${LV[l.od].n})</span></td><td class="r"><b class="${l.win?'good':'bad'}">${l.gf} - ${l.ga}</b>${l.tab?' <span class="muted">t.a.b. '+l.tab[0]+'-'+l.tab[1]+'</span>':''}</td></tr>`).join('')+'</tbody></table></div>':'<p class="muted">Pas encore de match.</p>'}</div>
-  <div class="card"><h3>Primes de qualification</h3><div class="tbl-wrap"><table><tbody>${CUP_R.map((r,i)=>i<e?'':`<tr class="${i===c.round&&!c.out&&!c.won?'me':''}"><td>${r}</td><td class="r">${money(CUP_PRIZE[i])}${i===11?' + 600 k€ de recette':''}</td></tr>`).join('')}</tbody></table></div></div></div>`;
+  <div class="grid g2"><div class="card"><h3>Parcours</h3>${c.log.length?'<div class="tbl-wrap"><table><tbody>'+c.log.map(l=>`<tr><td>${l.r}</td><td>${tc(l.opp)} <span class="muted">(${LV[l.od].n})</span>${l.win?'<div style="font-size:12px;margin-top:2px"><span class="good">+'+money((l.prime||0)+(l.poucet||0)+(l.exploit||0))+'</span>'+(l.poucet?' <span class="pill g" title="Club amateur qualifié pour les 32es : 5 000 €">Petit Poucet</span>':'')+(l.exploit?' <span class="pill y" title="Bonus exploit de la FFF : '+money(l.exploit)+'">Exploit</span>':'')+'</div>':''}</td><td class="r"><b class="${l.win?'good':'bad'}">${l.gf} - ${l.ga}</b>${l.tab?' <span class="muted">t.a.b. '+l.tab[0]+'-'+l.tab[1]+'</span>':''}</td></tr>`).join('')+'</tbody></table></div>':'<p class="muted">Pas encore de match.</p>'}${(()=>{const g=(S.sf.inc||{})['Coupe de France']||0;return g?`<p class="muted" style="font-size:13px;margin:8px 0 0">Recettes de Coupe cette saison (primes, bonus et billetterie) : <b class="good">${money(g)}</b></p>`:'';})()}</div>
+  <div class="card"><h3>Primes de qualification</h3><div class="tbl-wrap"><table><tbody>${CUP_R.map((r,i)=>i<e?'':`<tr class="${i===c.round&&!c.out&&!c.won?'me':''}"><td>${r}</td><td class="r">${money(CUP_PRIZE[i])}${i===11?' + 600 k€ de recette':''}</td></tr>`).join('')}</tbody></table></div>
+  ${S.div<=3?`<div style="display:grid;gap:6px;margin-top:10px;font-size:13px">${S.div<=2?`<div><span class="pill g">Petit Poucet</span> ${c.poucet?'<b class="good">obtenu ✓</b>':'si le club amateur atteint les 32es de finale'} : <b>5 000 €</b>, supporters +8 %, presse nationale.</div>`:''}<div><span class="pill y">Bonus exploit FFF</span> <b>1 500 €</b> par division d’écart en éliminant un club de division supérieure${(()=>{const n=c.log.filter(l=>l.exploit).length;return n?' · <b class="good">'+n+' obtenu'+(n>1?'s':'')+'</b>':'';})()}.</div></div>`:''}</div></div>`;
 }
 
 function vClub(){
@@ -2894,7 +3004,7 @@ function budgetBuild(){
   const att=Math.min(cap(),S.fans*(.45+S.mood/200)*clamp(Math.pow(tk()/S.ticket,1.1),.25,1.6));
   const aboP=S.abo?S.abo.n*.9:0,tix=Math.max(0,att-aboP);
   const b={inc:{},exp:{}},I=(k,v)=>{if(v>0)b.inc[k]=Math.round(v);},E=(k,v)=>{if(v>0)b.exp[k]=Math.round(v);};
-  I('Sponsors',S.sponsorAnnual+S.sponsorBonus+S.naming);I('Subventions',L.sub*S.subsidyMult);
+  I('Sponsors',S.sponsorAnnual+S.sponsorBonus+S.naming);if(S.div===4){I('Subventions',L.sub*S.subsidyMult*.2);I('Aide FFF (Ligue 3)',L.sub*S.subsidyMult*.8);}else I('Subventions',L.sub*S.subsidyMult);
   I('Droits TV',L.tv+(S.flags.tvLocal||0));if(S.div===6)I('Droits TV (indice UEFA)',uefaIndex()*2.4e6);
   I('Abonnements',S.abo?S.abo.n*S.abo.price:0);I('Billetterie',tix*S.ticket*hg);I('Buvette',att*BUV[i.commerce]*hg);
   I('Boutique & maillots',S.fans*MERCH[i.commerce]*(1+S.div*.4)*(S.flags.kitShare?1.5:1));if(i.loges)I('Loges & VIP',LOGES[i.loges]*(1+S.div*.25)*hg);
@@ -4363,6 +4473,43 @@ function boot(data){
   if(saved&&saved.v===1){S=saved;migrate();S.track=S.track||{cash:[],pos:[]};S.sf.fi=S.sf.fi||{};UI.tab=(data&&data.tab)||'accueil';render();if(S.over)UI.queue.push({type:'over'});nextQueue();}
   else renderStart();
 }
+/* ---------- Trousse de test (outils-communs/testkit.js) ---------- */
+const TK=Testkit({jeu:'president',secours:true,canvas:()=>document.createElement('canvas'),capture:()=>domCapture(document.body),
+ etat:()=>S?{onglet:UI.tab,test:TEST.on,club:S.club.name,division:LV[S.div].n,saison:S.year,semaine:S.week,tresorerie:Math.round(S.cash),humeur:Math.round(S.mood),confiance:Math.round(S.confidence),
+  fenetre:UI.modalOpen?(document.getElementById('mbox').innerText||'').slice(0,600):'',actus:(S.news||[]).slice(0,10).map(n=>n.w+' '+n.t),allege:document.body.classList.contains('lite'),sauvegarde:JSON.stringify(S).slice(0,180000)}:{ecran:'accueil',allege:document.body.classList.contains('lite')}});
+TK.bouton(document.body,'position:fixed;right:8px;bottom:8px;z-index:70;width:34px;height:34px;border-radius:50%;opacity:.55;border:1px solid #3c5a48;background:#14201a;color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0');
+// Mode test : partie d'essai jamais sauvegardée (toutes les clés « president-club… » sont gelées), banc de fluidité sur les onglets et un match en direct.
+const TEST={on:false};
+const tkWait=ms=>new Promise(r=>setTimeout(r,ms));
+function tkClear(){UI.queue=[];UI.evBack=null;UI.backFn=null;stopRep();document.getElementById('modal').classList.add('hidden');UI.modalOpen=false;}
+function tkScroll(ms){const t0=performance.now(),max=Math.max(0,document.documentElement.scrollHeight-innerHeight);if(!max)return;const f=t=>{const k=(t-t0)/ms;if(k>=1){scrollTo(0,0);return;}scrollTo(0,max*(k<.5?k*2:2-k*2));requestAnimationFrame(f);};requestAnimationFrame(f);}
+A.modeTest=async function(){
+ if(TEST.on)return;TEST.on=true;TK.modeTest();
+ const P=Storage.prototype;TEST.set=P.setItem;TEST.rem=P.removeItem;TEST.key=KEY;
+ P.setItem=function(k,v){if(TEST.on&&/^president-club/.test(String(k)))return;return TEST.set.call(this,k,v);};
+ P.removeItem=function(k){if(TEST.on&&/^president-club/.test(String(k)))return;return TEST.rem.call(this,k);};
+ if(TK.ov&&!TK.ov.querySelector('button')){const b=document.createElement('button');b.textContent='Quitter le test';b.style.cssText='margin-left:8px;font:11px system-ui;padding:2px 6px;border-radius:4px;cursor:pointer';b.onclick=()=>A.quitTest();TK.ov.appendChild(b);}
+ UI.setup.real=null;UI.setup.diff=1;renderStart();document.getElementById('cTown').value='Clichy';document.getElementById('cName').value='Banc d’essai FC';A.create();await tkWait(400);tkClear();
+ const tabs=[['accueil','Accueil'],['calendrier','Calendrier'],['classement','Classement'],['stats','Statistiques'],['effectif','Effectif'],['mercato','Mercato'],['staff','Staff'],['infra','Installations'],['finances','Finances'],['coupe','Coupe'],['club','Club']];
+ const res=[];toast('Mode test : mesure en cours (environ 45 s), ne touchez à rien.');
+ for(const [t,n] of tabs){if(!TEST.on)return;try{tkClear();A.tab(t);await tkWait(500);const r=[];for(let k=0;k<5;k++){const t0=performance.now();render();r.push(performance.now()-t0);}r.sort((a,b)=>a-b);
+   tkScroll(2500);const m=await TK.mesurer(2500);res.push(Object.assign({scene:n,rendu_ms:+r[2].toFixed(1)},m));}catch(e){res.push({scene:n,erreur:String(e).slice(0,200)});}}
+ try{tkClear();A.tab('accueil');const opp=S.teams.find(t=>!t.user);coachDecide(opp);const d=userMatch(true,opp,strength(),false,false);d.opp={name:opp.name,rating:opp.rating};d.comp='Mode test · match en direct';d.home=true;
+   UI.queue=[{type:'report',d}];nextQueue();await tkWait(800);res.push(Object.assign({scene:'Match en direct'},await TK.mesurer(5000)));}catch(e){res.push({scene:'Match en direct',erreur:String(e).slice(0,200)});}
+ if(!TEST.on)return;tkClear();
+ const out={jeu:'president',date:new Date().toISOString(),gpu:(()=>{try{const g=document.createElement('canvas').getContext('webgl'),x=g.getExtension('WEBGL_debug_renderer_info');return x?g.getParameter(x.UNMASKED_RENDERER_WEBGL):g.getParameter(g.RENDERER);}catch(e){return '?';}})(),
+  ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,allege:document.body.classList.contains('lite'),res};
+ out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;TEST.last=out;
+ const cell=v=>v==null?'—':v;
+ openModal(`<div class="kicker">🧪 Mode test</div><h2>Mesures de fluidité</h2><p class="muted" style="font-size:13px">${esc(out.ecran)} · affichage ${out.allege?'allégé':'complet'} · ${esc(String(out.gpu).slice(0,60))}</p>
+  <div class="tbl-wrap"><table><thead><tr><th>Écran</th><th class="r">Rendu</th><th class="r">img/s</th><th class="r">1 % bas</th><th class="r">Pire</th></tr></thead><tbody>${res.map(x=>`<tr><td>${esc(x.scene)}</td><td class="r">${x.rendu_ms!=null?x.rendu_ms+' ms':'—'}</td><td class="r">${cell(x.fps)}</td><td class="r">${cell(x.bas1)}</td><td class="r">${x.pire!=null?x.pire+' ms':(x.erreur?'erreur':'—')}</td></tr>`).join('')}</tbody></table></div>
+  <p style="font-size:13px">${out.enregistre?'✓ Mesures envoyées à Claude.':'Les mesures n’ont pas pu être envoyées automatiquement (base de l’artefact non activée). Utilisez « Rapport à copier » pour les transmettre à Claude.'}</p>
+  <div class="row">${out.enregistre?'':'<button class="btn" onclick="TK.rapport(TEST.last,\'Mesures de fluidité\')">Rapport à copier</button>'}<button class="btn" onclick="A.modeTestAgain()">Recommencer</button><button class="play" onclick="A.quitTest()">Quitter le mode test</button></div>`);
+};
+A.modeTestAgain=function(){tkClear();TEST.on=false;A.quitTest(true);A.modeTest();};
+A.quitTest=function(keepOv){const P=Storage.prototype;if(TEST.set){P.setItem=TEST.set;P.removeItem=TEST.rem;}TEST.on=false;TK.test=false;KEY=TEST.key||KEY;S=null;tkClear();UI.tab='accueil';
+ if(!keepOv&&TK.ov){TK.ov.remove();TK.ov=null;}renderStart();scrollTo(0,0);};
+const _saveTK=save;save=function(){if(TEST.on)return;_saveTK();};
 try{window.claude?.hot?.snapshot?.(()=>({S,tab:UI.tab}));}catch(e){}
 window.claude?.hot?.ready?window.claude.hot.ready(boot):boot(window.claude?.hot?.data??{});
 </script>

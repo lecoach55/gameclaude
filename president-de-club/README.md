@@ -1,7 +1,7 @@
 # Président de Club
 
 Jeu de gestion d'un club de football français, du Régional 2 à la Ligue 1. Une seule page HTML/JS, sans dépendance.
-Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144` (https://claude.ai/artifact/UxkiPA4AZZZUoYeCYtbYbM). Dernière version : v35 (1794800149-10ad), apps 2.9.0.
+Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144` (https://claude.ai/artifact/UxkiPA4AZZZUoYeCYtbYbM). Dernière version : v36 (voir JOURNAL), apps 2.9.0 (v35).
 
 ## Organisation
 - `jeu/index.html` : le jeu complet (c'est le fichier publié en `index.html`, publish_files mode patch).
@@ -18,6 +18,12 @@ Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144` (https://claude.ai/artifa
 - `outils/evtest.js` : tous les événements dans 4 divisions (presse_conf en erreur = artefact connu du test).
 - Tests ciblés : mistest (recruteur), sptest/spdrift (sponsors), lgtest (championnat persistant), reptest (notes), ytest (formation), bilantest, n1test, formtest (systèmes).
 - Captures : `sweep.py` (11 onglets bureau + mobile, débordements), `shots*.py` (Playwright + /usr/bin/google-chrome).
+
+## Trousse de test (v36)
+- `outils-communs/testkit.js` est intégré dans `jeu/index.html` entre `/*TESTKIT-DEBUT*/` et `/*TESTKIT-FIN*/` ; après une mise à jour de la trousse commune : `python3 outils/maj_testkit.py` (met aussi à jour `jeu/testkit.js`).
+- 🐞 en bas à droite (capture `domCapture`, état, actus, sauvegarde tronquée) ; « 🧪 Mode test » sur l'écran d'accueil : partie d'essai jamais sauvegardée (clés `president-club…` gelées), banc sur 11 onglets (temps de rendu + img/s en défilement) et un match en direct.
+- L'artefact ne déclare PAS encore de capacité (`db` + `user`) : sans elle, 🐞 et le banc affichent un « rapport à copier / enregistrer ». Avec l'accord de Victor, publier avec `capabilities: {db:{}, user:{}}` (voir la compétence artifact-capabilities) et les envois arriveront dans `data/users/<id>` (`mesures_*`, `signalement_*`).
+- Test : `outils/tktest.py <html> [m]` (banc, stockage intact, signalement).
 
 ## Règles
 - Toujours laisser l'accès au profil d'un joueur en cliquant sur son nom (`plk(id,nom)`, `plAI(club,nom)`), et un bouton « Voir le profil » dans toute proposition qui concerne un joueur.

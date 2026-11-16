@@ -36,3 +36,9 @@ Artefact publié : slug `b04fac4d-6c5d-4942-aea6-f931c43137b7` (capacités `db` 
 - Ombres douces sous les personnages et animaux en SD ; shaders des bulles précompilés ; plus d'allocations à chaque image (caméra, bulles, couleur d'humeur).
 - Événements nationaux : au moins 12 ans entre deux occurrences du même événement, et « De nouveau. » quand il revient (âge moyen 65,0, score 55,8 sur 3 000 vies : inchangé).
 - Messages (toasts) en haut de l'écran pour ne plus cacher les choix.
+
+## v18 (16/11/2026)
+- Scène : ombres de contact sous le mobilier (une seule maille fusionnée, texture `soft`, rien sous les objets < 0,15 m²), chapeau des murs foncé (lecture façon Sims), rebond de lumière chaud (`hemiL.groundColor`), lampe intérieure faible le jour, dalles chaudes dans la villa, herbe moins saturée (−15 %), torse arrondi (`TORSO`, LatheGeometry). Boutons de la scène 40 px. Un enfant ne reçoit plus le prénom du joueur, du partenaire ou d'un frère/sœur.
+- Coût (A/B entrelacé, rendu logiciel) : −2,5 % d'img/s en SD, +1 à +6 appels, aucun shader nouveau. Si le banc réel du MacBook passe sous ~45 img/s en HD, regarder d'abord la maille d'ombres (`cshad`).
+- Outils : `outils/gros_plan.py dossier scenes zoom` (caméra rapprochée via `W3._cam`) ; `VIES=f.json CH=1 sh outils/sim.sh 4000 random > s.txt` puis `python3 outils/rapport_vies.py f.json s.txt` : rapport « vies trop semblables / déséquilibrées » (ressemblance, profils, événements systématiques, écarts par pays/richesse/traits, jauges saturées, choix à fort écart). Rapport du jour : `mesures/rapport_vies_20261116.md`.
+- Questions à Victor (équilibre, non modifié) : mariage arrangé (accepter +4,9 pts / refuser −4,8) ; priorité « Viser une promotion » parmi les moins payantes (58,6 contre 62,5 pour « Équilibre »).

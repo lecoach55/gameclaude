@@ -30,6 +30,8 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | **Équilibre par A/B appariés** | `couronnes-et-complots/outils/ab.cjs` (+ `hv.cjs`, `fs.cjs`) | `president-de-club/outils/abmatch.js`, `bannieres/outils/duel_factions.js` |
 | **Invariants sur longues parties** | `cage-et-gloire/outils/audit.js` | `sedes-petri/outils/fuzz.js` |
 | **Sauvegarde, reprise, hors ligne** | `valdragon/outils/tests/sauvegarde.py` + `hors_ligne.py` | `une-vie/outils/reprise.py` + `nuage_test.py`, `bannieres/outils/hors_ligne.py` |
+| **Variété des parties simulées** (parties trop semblables, écarts par origine, choix dominants) | `une-vie/outils/rapport_vies.py` (lit l'export par partie `VIES=` de `harness.js`) | |
+| **Ombres de contact bon marché** (meubles posés au sol, 1 appel) | `une-vie/jeu/index_src.html` : `cshad` + texture `soft` dans `buildHome` | |
 | **Apps Mac / Windows** | `president-de-club/outils/app-bureau/` (Electron) | |
 | **Textures réalistes** | `valdragon/outils/ressources/ph_tex2.py` (couleur + relief, rugosité dans le bleu de `_n`) | `bannieres/outils/ressources/tex3d.py` |
 | **Décors 3D légers** | `valdragon/outils/ressources/pack_phprops.mjs`, `simp_kit.mjs` | imposteurs `bannieres/outils/studio3d/imposteur.py` |

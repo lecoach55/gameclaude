@@ -20,7 +20,7 @@ const _st=structural;structural=function(){const r=_st();if(r){curEv="S@"+S.age+
 const _pe=pickEvent;pickEvent=function(){const r=_pe();if(!r){M.empty++;if(S.age>=70)M.oldQuiet++}return r};
 const _turn=turn;turn=function(){M.turnsTot++;life.turns++;if(S.age>=70)M.oldTurns++;return _turn()};
 const _ch=choose;choose=function(list,q){const ev=curEv;list.forEach(c=>{const o1=c.ok,o2=c.ko;const k=ev+" | "+c.l;c.ok=()=>{life.ch.push([k,1]);return o1()};if(o2)c.ko=()=>{life.ch.push([k,0]);return o2()}});return _ch(list,q)};
-const _cause=cause;cause=function(a){const c=_cause(a);const k=c.replace(/entouré.? des tiens|seul.? dans la nuit/,'').replace(/ton |ta /,'');M.cause[k]=(M.cause[k]||0)+1;return c};
+const _cause=cause;cause=function(a){const c=_cause(a);M._lastCause=c;const k=c.replace(/entouré.? des tiens|seul.? dans la nuit/,'').replace(/ton |ta /,'');M.cause[k]=(M.cause[k]||0)+1;return c};
 const policy="${POL||'random'}";
 function chooseBtn(L){
   if(policy=='random')return L[Math.floor(Math.random()*L.length)];
@@ -41,8 +41,8 @@ function chooseBtn(L){
     return s};
   return L.slice().sort((a,b)=>sc(b)-sc(a))[0];
 }
-const X={trait:{},country:{},sex:{m:[],f:[]},wealth:[[],[],[]],ach:{},ageHist:{}};
-for(let n=0;n<${N};n++){SAVE.ach=[];SAVE.born=[];SAVE.lives=[];ALL=[];life={evs:new Set(),ch:[],turns:0,clicks:0};birth();while(ivf)ivf();
+const VL=[];const X={trait:{},country:{},sex:{m:[],f:[]},wealth:[[],[],[]],ach:{},ageHist:{}};
+for(let n=0;n<${N};n++){SAVE.ach=[];SAVE.born=[];SAVE.lives=[];ALL=[];life={evs:new Set(),ch:[],turns:0,clicks:0};M._lastCause='';birth();while(ivf)ivf();
   let guard=0;
   while(guard++<600){const L=ALL.filter(b=>live(b));if(L.find(b=>b._end))break;if(!L.length){console.log('STUCK',S.age);break}
     const b=chooseBtn(L);life.clicks++;b.onclick();
@@ -53,10 +53,11 @@ for(let n=0;n<${N};n++){SAVE.ach=[];SAVE.born=[];SAVE.lives=[];ALL=[];life={evs:
   S.traits.forEach(t=>(X.trait[t]=X.trait[t]||[]).push(sc));(X.country[S.c.n]=X.country[S.c.n]||[]).push(sc);X.sex[S.sex].push(sc);X.wealth[S.wealth].push(sc);SAVE.ach.forEach(a=>X.ach[a]=(X.ach[a]||0)+1);const ab=Math.floor(S.age/10)*10;X.ageHist[ab]=(X.ageHist[ab]||0)+1;
   if(S.debt>0)M.debt++;M.kids.push(S.kids.length);if(S.everPartner)M.partner++;
   const lj=S.job||S.lastJob;if(lj)M.maxLvl[lj.lvl]++;
+  if(process.env.VIES)VL.push({p:S.c.n,t:S.c.t,w:S.wealth,sx:S.sex,a:S.age,s:sc,c:M._lastCause||'',ev:[...life.evs].filter(x=>!x.startsWith('S@')),j:lj?lj.s:null,lv:lj?lj.lvl:-1,ed:S.edu,k:S.kids.length,pa:!!S.everPartner,ab:S.ab?S.ab[0]:null,tr:S.traits.slice(),ac:SAVE.ach.slice(),g:[S.h,S.b,S.m,S.e,S.l].map(Math.round),cl:life.clicks,ch:life.ch.map(x=>x[0])});
 }
 const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length):0, f1=x=>x.toFixed(1);
 const sd=a=>{const m=avg(a);return Math.sqrt(avg(a.map(x=>(x-m)**2)))};
-if(process.env.JSON){require('fs').writeFileSync(process.env.JSON,JSON.stringify({M:{...M,choice:M.choice},X,BAD:global.BAD||{},N:${N}}));}
+if(process.env.VIES)require('fs').writeFileSync(process.env.VIES,JSON.stringify(VL));if(process.env.JSON){require('fs').writeFileSync(process.env.JSON,JSON.stringify({M:{...M,choice:M.choice},X,BAD:global.BAD||{},N:${N}}));}
 console.log("=== POLICY",policy,"N",${N});
 console.log("age moyen",f1(avg(M.age)),"par revenu",[1,2,3,4].map(t=>f1(avg(M.byT[t]))).join(" / "));
 console.log("score moyen",f1(avg(M.score)),"sd",f1(sd(M.score)),"par revenu",[1,2,3,4].map(t=>f1(avg(M.scoreT[t]))).join(" / "));

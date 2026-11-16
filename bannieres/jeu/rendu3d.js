@@ -494,12 +494,14 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
 const PRISME=(()=>{const g=new T.CylinderGeometry(.5,.5,1,3,1);g.rotateZ(Math.PI/2);g.rotateX(Math.PI/6);g.translate(0,.25,0);g.scale(1,1.15,1);return g;})();// toit à deux pans (axe x)
 function fenetres(gr,n,larg,y,z,coul,nuit){for(let k=0;k<n;k++)bloc(gr,BOX,coul,{em:nuit?0xffb040:0xffd890,ei:nuit?2.2:.5},[(k-(n-1)/2)*larg/n,y,z],null,[larg/n*.4,larg/n*.55,.04]);}
 function maison(gr,w,h,mur,toit,P,nuit,porte=true,PR=PT){bloc(gr,BOX,mur,P,[0,h/2,0],null,[w,h,w*.75]);bloc(gr,PRISME,toit,PR,[0,h,0],null,[w*1.12,w*.6,w*.92]);fenetres(gr,2,w*.8,h*.62,w*.38,0xffd87a,nuit);if(porte)bloc(gr,BOX,0x3a2412,PB,[0,h*.22,w*.38],null,[w*.22,h*.44,.04]);}
-function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?0x7c7684:v.fac==='horde'?0xc8b490:0xf0eae0;const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const fac=v.fac;const bois=fac==='horde'?0x8a6238:0x9a7448;
+function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?0x7c7684:v.fac==='horde'?0xc8b490:0xf0eae0;const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex();let toit=toitNat(F.toit);const fac=v.fac;const bois=fac==='horde'?0x8a6238:0x9a7448;
  if(b==='fort'||b==='citadelle'||b==='chateau'){const n=b==='chateau'?3:b==='citadelle'?2:1;const L=u;// u = largeur des remparts
   if(fac==='horde'){for(let x=-L/2;x<=L/2;x+=.45){bloc(gr,CYL,0x7a5228,PB,[x,1.1,0],null,[.4,2.2+(Math.abs(x*7)%3)*.15,.4]);bloc(gr,CONE,0x7a5228,PB,[x,2.4,0],null,[.4,.5,.4]);}
    for(let k=0;k<=n;k++){const x=-L/2+L*k/n;bloc(gr,BOX,0x8a6238,PB,[x,2.2,0],null,[1.3,4.4+n*.4,1.3]);bloc(gr,CONE4,0xc9a050,PC,[x,4.4+n*.4+.7,0],[0,Math.PI/4,0],[2.2,1.5,2.2]);for(const s of [-1,1])bloc(gr,CONE,0xe8dcc4,{},[x+s*.5,5.4+n*.4,0],[0,0,-s*.5],[.15,1.2,.15]);}
    bloc(gr,BOX,0x3a2412,PB,[0,1,.3],null,[2,2,.2]);return gr;}
-  const forme=fac==='necro'?'fleche':'cone';const ht=2.4+n*.3;const D=7+n;
+  const forme=fac==='necro'||fac==='sylve'?'fleche':'cone';const ht=2.4+n*.3;const D=7+n;
+  if(fac==='sylve'){toit=0x5e8c70;// cuivre vert-de-grisé
+   if(RES.atlas)for(const [x,z,h,nm] of [[-L*.28,-D-2.5,13+n*2,'feuillu_a'],[L*.3,-D-3,12+n*2,'feuillu_b'],[0,-D-5,16+n*2.5,'feuillu_a']]){const o=planImp('b',nm,h,x>0,null);if(o){o.position.set(x,0,z);o.userData.face=1;gr.add(o);}}}
   // enceinte en U ouverte vers la ville : courtine avant (avec porte), flancs, courtine arrière
   rempart(gr,[-L/2,0],[-1.6,0],ht,.8,mur,P);rempart(gr,[1.6,0],[L/2,0],ht,.8,mur,P);rempart(gr,[-L/2,0],[-L/2,-D],ht,.8,mur,P);rempart(gr,[L/2,0],[L/2,-D],ht,.8,mur,P);rempart(gr,[-L/2,-D],[L/2,-D],ht,.8,mur,P);
   porteF(gr,0,0,3.2,ht*.95,mur,toit,forme,P);

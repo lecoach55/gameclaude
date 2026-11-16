@@ -87,6 +87,10 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
  // obstacles + piles triés par profondeur
  const objets=[];for(const h of C.obst)objets.push({y:centreHex(h).y,f:()=>{const c=centreHex(h);const o3=CB.obst3&&CB.obst3.get(h);if(o3){g.drawImage(o3.c,o3.x,o3.y,o3.w,o3.h);return;}if(CB.obst3)return;const s=spriteObstacle(C.terrain==='herbe'&&h%2?OBS.VEG:OBS.ROC,C.terrain==='eau'?'herbe':C.terrain,h%9);const w=G2.w*1.25*(c.s||1),hh=w*s.height/s.width;g.drawImage(s,c.x-w/2,c.y-hh+G2.h*.3*SQ*(c.s||1),w,hh);}});
  for(const q of C.piles){const al=CB.alpha.has(q.id)?CB.alpha.get(q.id):1;const pos=CB.aff.get(q.id)||centreHex(q.h);objets.push({y:pos.y-(q.n<=0?1000:0),f:()=>dessinerPile(g,q,pos,al,now)});}
+ // héros à cheval au bord du champ de bataille (comme dans Heroes), en paysage seulement
+ if(!G2.port&&typeof spriteHeros3D==='function')for(let k=0;k<2;k++){const hs=C.cotes[k].heros;if(!hs)continue;const c=centreHex(k?CW-1:0);const S=Math.round(G2.w*1.9*(c.s||1));const sp=spriteHeros3D(hs,S,-1);if(!sp)continue;
+  let x=c.x+(k?1:-1)*G2.w*.9;x=Math.max(S*.42,Math.min(G2.W-S*.42,x));const y=Math.max(S*.95,c.y-G2.h*.75);
+  objets.push({y,f:()=>{g.save();if(k){g.translate(x,0);g.scale(-1,1);g.translate(-x,0);}g.drawImage(sp,x-S*.52,y-S*.9,S,S);g.restore();}});}
  objets.sort((a,b)=>a.y-b.y);for(const o of objets)o.f();
  // effets
  for(let i=CB.fx.length-1;i>=0;i--){const f=CB.fx[i];const t=f.d?(now-f.t0)/f.d:0;if(f.d&&t>=1&&f.t!=='flash'){CB.fx.splice(i,1);continue;}

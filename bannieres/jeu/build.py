@@ -4,7 +4,8 @@ import re,sys,os
 d=os.path.dirname(os.path.abspath(__file__))
 html=open(os.path.join(d,'index.html'),encoding='utf-8').read()
 import base64 as _b
-css=open(os.path.join(d,'style.css'),encoding='utf-8').read().replace('url(tex/bois.jpg)','url(data:image/jpeg;base64,'+_b.b64encode(open(os.path.join(d,'tex','bois.jpg'),'rb').read()).decode()+')')
+css=open(os.path.join(d,'style.css'),encoding='utf-8').read()
+for _n in ('bois','fond_cre'):css=css.replace('url(tex/'+_n+'.jpg)','url(data:image/jpeg;base64,'+_b.b64encode(open(os.path.join(d,'tex',_n+'.jpg'),'rb').read()).decode()+')')
 html=html.replace('<link rel="stylesheet" href="style.css">','<style>\n'+css+'\n</style>')
 def inl(m):
     typ,src=m.group(1) or "",m.group(2)

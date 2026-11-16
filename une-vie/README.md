@@ -55,3 +55,8 @@ Artefact publié : slug `b04fac4d-6c5d-4942-aea6-f931c43137b7` (capacités `db` 
 - Écart apparié accepter − refuser : +8,0 → +0,4 pt (5 × 4 000 vies, ~2 350 paires) ; observationnel `CH=1 sim.sh 4000` : +10,2 → −0,4 / +0,6. Âge moyen 64,6 → 64,4, score 55,7 → 56,2 (≈ +0,4 attendu : les ~6 % de vies qui refusent gagnent ~8 pts).
 - Outil : `python3 outils/choix_apparies.py 4000 arrange "Accepter le mariage" "Refuser" [graine]` : vies appariées (même graine, un seul choix imposé), écart avec intervalle à 95 %, détail par composante du score. `harness.js` accepte `SEED`, `FORCE="événement=libellé"`, `SCORES=f.json`.
 - `reprise.py` fiable : recommence si la vie meurt avant un point de reprise, compare au point de reprise enregistré (pas à l'état en cours de tour), code de sortie 1 en cas d'échec (5/5 réussis).
+
+## v21 (16/11/2026 soir) — Aisance : rendement amorti près du plafond (décision de Victor)
+- Le rendement de l'épargne est amorti comme les revenus : `S.m*.012*dt*(t>=3?1.3:1)*(1-S.m/120)` (`period()`). Seul changement d'équilibre, autorisé par Victor.
+- 3 000 vies appariées (SEED 1-3 × 1 000, `random`) : fins à Aisance 100 (adultes) 13,6 → 8,2 % (pays riches 32,0 → 20,0, pauvres 7,5 → 4,3) ; fins à 0 10,4 → 10,8 % ; âge 65,0 → 65,0 ; score 56,4 → 56,2 (écart apparié −0,18 ± 0,06) ; 2 583 vies sur 3 000 strictement identiques.
+- Tests : qa.py, reprise.py, nuage_test.py OK ; une vie commencée avec la v20 reprend avec la v21 sans erreur (3/3). Studio : relecteur VERT, testeur VERT.

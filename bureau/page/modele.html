@@ -95,8 +95,8 @@ ul{padding-left:20px;margin:0}
 <section class="band">
  <div class="wrap grille2">
   <div>
-   <h2>Demandes de Victor</h2>
-   <p class="sub">Ce que vous écrivez ici, chaque conversation le lit en arrivant au bureau et le marque comme fait.</p>
+   <h2>Demandes</h2>
+   <p class="sub">Les vôtres et celles que Claude se fixe : chaque conversation les lit en arrivant au bureau et les marque comme faites.</p>
    <div class="liege" id="demandes"><div class="vide">Chargement du tableau…</div></div>
    <form id="fdem">
     <label for="dtxt" class="pied">Nouvelle demande</label>
@@ -200,14 +200,14 @@ const pourNom=v=>(opts.find(o=>o[0]===v)||[v,v])[1];
 const date=t=>{try{return new Date(t).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
 function rendreDemandes(){
  const L=dems.slice().sort((a,b)=>(a.etat==='fait')-(b.etat==='fait')||String(b.quand).localeCompare(String(a.quand)));
- $('demandes').innerHTML=L.map(d=>`<div class="note${d.etat==='fait'?' fait':''}"><div class="q"><b>${esc(pourNom(d.pour))}</b><span>${date(d.quand)}</span><span>${d.etat==='fait'?'✓ fait':'à faire'}</span></div>
+ $('demandes').innerHTML=L.map(d=>`<div class="note${d.etat==='fait'?' fait':''}"><div class="q"><b>${esc(pourNom(d.pour))}</b>${d.de?`<span>de ${esc(d.de)}</span>`:''}<span>${date(d.quand)}</span><span>${d.etat==='fait'?'✓ fait':'à faire'}</span></div>
  <p>${esc(d.texte)}</p>${d.reponse?`<div class="rep">${esc(d.reponse)}</div>`:''}
  <div class="ligne" style="margin-top:6px;flex-wrap:nowrap"><button class="p" data-a="bascule" data-id="${esc(d.id)}">${d.etat==='fait'?'Rouvrir':'Marquer fait'}</button><button class="p" data-a="suppr" data-id="${esc(d.id)}">Retirer</button></div></div>`).join('')
  ||'<div class="vide" style="color:#2b2116">Aucune demande épinglée.</div>';
 }
 function rendreMessages(){
- const L=msgs.slice().sort((a,b)=>String(b.quand).localeCompare(String(a.quand))).slice(0,20);
- $('messages').innerHTML=L.map(m=>`<div class="msg"><div class="q">${esc(m.de||'?')} → ${esc(pourNom(m.pour||'toutes'))} · ${date(m.quand)}</div>${esc(m.texte)}</div>`).join('')||'<div class="vide">Aucun message pour l\'instant.</div>';
+ const L=msgs.slice().sort((a,b)=>String(b.quand).localeCompare(String(a.quand))).slice(0,40);
+ $('messages').innerHTML=L.map(m=>`<div class="msg"${m.type==='question'||m.type==='blocage'?' style="border-color:var(--warn)"':''}><div class="q">${m.type==='question'?'<b style="color:var(--warn)">Question pour vous</b> · ':m.type==='blocage'?'<b style="color:var(--warn)">Blocage</b> · ':''}${esc(m.de||'?')} → ${esc(pourNom(m.pour||'toutes'))} · ${date(m.quand)}</div>${esc(m.texte)}</div>`).join('')||'<div class="vide">Aucun message pour l\'instant.</div>';
 }
 $('demandes').addEventListener('click',async e=>{
  const b=e.target.closest('button[data-a]');if(!b||!DB)return;

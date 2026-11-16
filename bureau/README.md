@@ -22,6 +22,10 @@ Il a deux parties :
 3. Régénérer et republier la page : `python3 bureau/outils/bureau.py page` puis publier `bureau/build/index.html` en `index.html` sur le slug de `ARTEFACT.txt` (publish_files, mode patch). Marquer les demandes traitées (`db_write`, champ `etat: "fait"`, `reponse`).
 4. Commit + push sur `main` (message en français).
 
+## Rendre compte à Victor
+Dans la collection `messages` du tableau d'affichage (`db_write`, un document par message, id unique comme `<dossier>-<AAAAMMJJ-HHMM>`) :
+`{de, pour: "victor", type, texte, quand}` avec `type` = `bilan` (fait, chiffres avant/après, reste à faire), `question` (une décision qu'il doit trancher : question fermée, options, recommandation) ou `blocage` (ce qui empêche d'avancer et ce qu'il faut de lui). La conversation de coordination les relaie à Victor.
+
 ## Conversations hors jeux
 Elles n'ont pas besoin du dépôt. Elles passent par le tableau d'affichage : lire `demandes` et `messages` (`db_list`), y laisser un message si une autre conversation doit savoir quelque chose (`messages/<id>` : `{de, pour, texte, quand}`). Rien de privé (finances, textes des romans) ne va dans le dépôt : il est public.
 
@@ -35,5 +39,5 @@ Elles n'ont pas besoin du dépôt. Elles passent par le tableau d'affichage : li
 - `ressources.md` — catalogue : quel outil pour quoi, la meilleure version, où elle est ; ressources artistiques et crédits.
 - `a-mutualiser.md` — mises en commun repérées, par ordre d'intérêt.
 - `chantiers/` — chantiers ouverts (un fichier = une conversation au travail).
-- `journal/` — main courante.
+- `journal/` — main courante (un fichier par jour et par jeu).
 - `page/modele.html` — modèle de la page « Le Bureau ».

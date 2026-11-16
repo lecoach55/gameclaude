@@ -220,11 +220,12 @@ def maintenant():
 
 def journal(jeu, texte):
     jour = maintenant()[:10]
-    p = os.path.join(B, 'journal', f'{jour}.md')
+    # un fichier par jour ET par jeu : plusieurs conversations écrivent en même temps sans conflit git
+    p = os.path.join(B, 'journal', f'{jour}_{jeu}.md')
     neuf = not os.path.exists(p)
     with open(p, 'a', encoding='utf-8') as f:
         if neuf:
-            f.write(f'# Journal du {jour}\n\n')
+            f.write(f'# Journal du {jour} — {jeu}\n\n')
         f.write(f'- {maintenant()} · {jeu} · {texte}\n')
 
 

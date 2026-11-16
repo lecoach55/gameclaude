@@ -74,7 +74,7 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
  terrain=new T.Mesh(g,RES.lay?matSol():(()=>{const tx=new T.CanvasTexture(V.sol);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=Math.min(8,ren.capabilities.getMaxAnisotropy());return brume(new T.MeshStandardMaterial({map:tx,roughness:.93,metalness:0}));})());terrain.receiveShadow=true;terrain.name='terrain';scene.add(terrain);
  // eau : plan brillant et légèrement transparent
  const ge=new T.PlaneGeometry(N+40,N+40,1,1);ge.rotateX(-Math.PI/2);ge.translate(N/2,-.1,N/2);
- const me=brume(new T.MeshStandardMaterial({color:0x1d4a5e,roughness:.05,metalness:.15,transparent:true,opacity:.8,envMapIntensity:1.3,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}));eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
+ const me=brume(new T.MeshStandardMaterial({color:0x1a4558,roughness:.05,metalness:.15,transparent:true,opacity:.9,envMapIntensity:1.3,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}));eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
  const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));scene.add(bas);}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint
@@ -100,7 +100,9 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  w*=vec4(dot(c0,vec3(.33)),dot(c1,vec3(.33)),dot(c2,vec3(.33)),dot(c3,vec3(.33)))+.25;w=pow(w,vec4(3.));w/=w.x+w.y+w.z+w.w;
  vec3 col=c0*w.x+c1*w.y+c2*w.z+c3*w.w;
  float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));
+ float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
+ {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
  diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
@@ -280,7 +282,7 @@ function villeMesh(v){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=n
  const drap=drapeauMesh(gr,0,v.fac==='horde'||v.fac==='sylve'?2.0:2.5,-.25,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
  const out=fusionner(gr,o=>o===drap);out.scale.setScalar(.95);out.userData.drap=drap;return out;}
 function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.25,o.id);const col={or:0x8a7a5a,minerai:0x7a7670,mercure:0x6a7078,soufre:0x8a7a40,cristal:0x6a5a6a,gemmes:0x5a6a6a,bois:0x6a5a3a}[o.res];
- if(o.res==='bois'){bloc(gr,BOX,0x8a6238,PB,[0,.25,-.1],null,[.8,.5,.5]);bloc(gr,CONE4,0x6a4a2a,PB,[0,.65,-.1],[0,Math.PI/4,0],[1.1,.35,.75]);for(let k=0;k<3;k++)bloc(gr,CYL,0xa87a48,PB,[-.25+k*.15,.08+k%2*.06,.35],[0,0,Math.PI/2],[.12,.5,.12]);
+ if(o.res==='bois'){const h0=new T.Group();h0.position.set(-.05,0,-.12);colombage(h0,.8,.5,.36,0x8a7a5a,false,PC);gr.add(h0);bloc(gr,GBOX,0x4a3424,PP,[.5,.2,0],null,[.04,.4,.04]);for(let k=0;k<3;k++)bloc(gr,CYL,0xa87a48,PB,[-.25+k*.15,.08+k%2*.06,.35],[0,0,Math.PI/2],[.12,.5,.12]);
   const roue=new T.Group();roue.position.set(.45,.45,-.1);for(let k=0;k<4;k++)bloc(roue,BOX,0xc8b48a,PB,[0,0,0],[0,0,k*Math.PI/4],[.06,.7,.04]);gr.add(roue);gr.userData.tourne=roue;}
  else{const m=bloc(gr,g,0xd8d0c4,{tri:'roche2',r:.95,ech:.5},[0,0,-.15],null,[1.1,1.1,1]);bloc(gr,BOX,0x0e0a08,{r:1},[0,.17,.32],null,[.3,.34,.1]);for(const s2 of [-1,1])bloc(gr,GBOX,0x4a3424,PP,[s2*.18,.2,.38],null,[.05,.42,.05]);bloc(gr,GBOX,0x4a3424,PP,[0,.42,.38],null,[.46,.05,.06]);for(let k=0;k<4;k++)bloc(gr,GBOX,0x4a3a30,PP,[0,.005,.5+k*.12],null,[.3,.01,.03]);
   const pile={or:0xf2c23a,minerai:0x9a9a9a,mercure:0xd8e8f0,soufre:0xe8d23a,cristal:0xe0384a,gemmes:0x3ac85a}[o.res];for(let k=0;k<5;k++)bloc(gr,o.res==='cristal'||o.res==='gemmes'?new T.OctahedronGeometry(.08):SPH,o.res==='gemmes'?[0x3a7ae8,0x3ac85a,0xe83a8a,0xf0d03a,0x3ac8e8][k]:pile,{r:.3,m:o.res==='or'||o.res==='mercure'?.7:0,em:o.res==='cristal'||o.res==='gemmes'?pile:null,ei:.25},[-.3+k*.14,.07,.48+(k%2)*.08],null,o.res==='cristal'||o.res==='gemmes'?[1,1.6,1]:[.14,.1,.14]);}

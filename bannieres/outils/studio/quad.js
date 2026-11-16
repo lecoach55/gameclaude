@@ -96,7 +96,7 @@ function aile(o,cote,ouv){// ouv : 0 replié, 1 déployé ; renvoie un groupe (r
  rang(e,c,8,L*.32,L*.4,-.6,-.35,pt,L*.08,.05,0);// tertiaires
  const cv=o.couv||[pt[0],pt[0]];rang(e,p,14,L*.22,L*.18,-.5,.2,cv,L*.07,.15,.012);rang(e,c,10,L*.12,L*.1,-.4,0,cv,L*.06,.2,.024);
  // bras (os couvert)
- const mb=new THREE.MeshStandardMaterial({color:cv[0],roughness:.8});for(let i=0;i<3;i++){const a=os[i],b=os[i+1];const d=sub(b,a);const m=new THREE.Mesh(new THREE.CylinderGeometry(L*.025,L*.035,len(d),8),mb);m.position.set(...lerp(a,b,.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...nrm(d)));g.add(m);}
+ const mb=new THREE.MeshStandardMaterial({color:new THREE.Color(cv[0]).multiplyScalar(.6),roughness:.85});for(let i=0;i<3;i++){const a=os[i],b=os[i+1];const d=sub(b,a);const m=new THREE.Mesh(new THREE.CylinderGeometry(L*.012,L*.02,len(d),8),mb);m.position.set(...lerp(a,b,.5));m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(...nrm(d)));g.add(m);}
  return g;}
 
 // ---------- quadrupède sculpté ----------
@@ -278,7 +278,7 @@ export const QDEFS={
  pegase:{c:()=>{const Q=quadrupede(cheval({robe:0xeceef4,fonce:0xb8bcc8,ventre:0xf6f6fa,crin:[0xf0f4ff,0xd0dcf0,0xb8c8e8],nez:0x8a8088,sabot:0x8a8478},{ailes:1,ailesT:1.15,ailesRepos:.2,plumes:[0xf4f4f8,0xd8dce8],couv:[0xf8f8fc,0xe8eaf2]}));return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.3,fw:212,fh:208},
  licorne:{c:()=>{const Q=quadrupede(cheval({robe:0xf6f4f0,fonce:0xc8c4bc,ventre:0xfbfaf6,crin:[0xf8f0f8,0xe8d8f0,0xd8c0e8],nez:0xb09098,sabot:0xd8c8a0},{licorne:1}));return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.0,fw:200,fh:184},
  loup:{c:()=>{const o={g:G_LOUP,res:100,couleurs:{robe:0x5a5550,fonce:0x24221f,ventre:0xa8a094,fraise:0x7a746c,nez:0x141010,oeil:0x8a6a10},peau:{etire:[140,60,140],tache:.32,relief:.55,freq:6}};o.hauteur=hauteurPose(o.g);o.dos=1;o.fourrure=1;o.couleurs.poils=[0x6a645e,0x3a3632,0x8a847c,0x24201e];const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:2.0,fw:168,fh:140},
- griffon:{c:()=>{const o={g:G_GRIFFON,res:104,cabre:1,ailes:1,ailesT:1.1,ailesRepos:.35,plumes:[0x7a5430,0x3a2616],couv:[0x9a6e3e,0x7a5430],couleurs:{robe:0xb08850,fonce:0x7a5a30,ventre:0xd8c8a8,tete:0xf0ece0,bec:0xd8a838,oeil:0xc88a10},peau:{etire:[90,90,90],tache:.25,relief:.4,freq:5}};
+ griffon:{c:()=>{const o={g:G_GRIFFON,res:104,cabre:1,ailes:1,ailesT:1.1,ailesRepos:.35,plumes:[0x7a5430,0x3a2616],couv:[0x9a6e3e,0x7a5430],couleurs:{robe:0x9a6c3a,fonce:0x5a3c1e,ventre:0xc8b088,tete:0xece6d6,bec:0xd8a838,oeil:0xc88a10},peau:{etire:[90,90,90],tache:.25,relief:.4,freq:5}};
    o.hauteur=hauteurPose(o.g);const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.0,fw:200,fh:192},
  behemoth:{c:()=>{const o={g:G_BEHEMOTH,res:108,couleurs:{robe:0x5a3a2e,fonce:0x2e1e18,ventre:0x7a5a48,nez:0x1a1010,oeil:0xd04010},peau:{etire:[30,30,30],tache:.4,relief:1.2,freq:4,r:.7}};o.hauteur=hauteurPose(o.g);const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.2,fw:224,fh:192},
  roc:{c:()=>{const E=oiseau({hauteur:.75,ailesT:1.5,couleurs:{robe:0x5a3e26,poitrail:0x7a5a3a,tete:0xe8e0cc,bec:0xd8a838,patte:0xc8a040,plumes:[0x5a3e26,0x2a1c10],couv:[0x6a4a2e,0x5a3e26]}});return{root:E.root,poser:E.poser};},u:3.2,fw:224,fh:200},

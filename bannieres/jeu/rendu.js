@@ -10,7 +10,7 @@ function vueJoueur(){// joueur dont on montre le brouillard : le joueur humain c
 function initRendu(){V.sol=peindreSol(Object.assign({graine:G.graine},G.carte),G.objs);V.fog=mkC(G.carte.N,G.carte.N);V.mini=document.getElementById('minicarte');V.fogDirty=true;V.miniDirty=true;V.sel=null;V.chemin=null;redim();if(R3.actif)R3.fermer();if(V.m3&&R3.ok){const g0=G;R3.init().then(ok=>{if(G!==g0)return;if(ok){R3.ouvrir();if(V.ctr)R3.centrer(V.ctr[0],V.ctr[1]);}else V.m3=false;}).catch(e=>{console.error(e);V.m3=false;R3.fermer();});}}
 function en3D(){return V.m3&&R3.actif;}
 function posEcran(x,y){if(en3D())return R3.ecran(x,y);const T=tailleT();return[(x+.5)*T-V.cam.x,y*T-V.cam.y];}
-function redim(){const cv=document.getElementById('carte');V.dpr=Math.min(2,devicePixelRatio||1);cv.width=innerWidth*V.dpr;cv.height=innerHeight*V.dpr;V.mini.width=V.mini.height=Math.min(440,G?G.carte.N*4:220);V.miniDirty=true;if(en3D())R3.redim();}
+function redim(){const cv=document.getElementById('carte');V.vide=false;V.dpr=Math.min(2,devicePixelRatio||1);cv.width=innerWidth*V.dpr;cv.height=innerHeight*V.dpr;V.mini.width=V.mini.height=Math.min(440,G?G.carte.N*4:220);V.miniDirty=true;if(en3D())R3.redim();}
 function zoneVue(){// zone utile de la carte (hors panneaux)
  if(estMobile()){const bas=document.getElementById('panneau').offsetHeight||96;return{x:0,y:28,w:innerWidth,h:innerHeight-28-bas};}
  return{x:0,y:0,w:innerWidth-236,h:innerHeight-30};}
@@ -26,7 +26,8 @@ function majMini(){const N=G.carte.N,S=V.mini.width,k=S/N;const g=V.mini.getCont
 function dessinerMini(){if(V.miniDirty)majMini();const g=V.mini.getContext('2d');g.putImageData(V.miniImg,0,0);const T=tailleT(),z=zoneVue(),k=V.mini.width/(G.carte.N*T);g.strokeStyle='#ffe08a';g.lineWidth=1.5;if(en3D()){const q=V.mini.width/G.carte.N;g.beginPath();R3.vue().forEach(([x,y],j)=>j?g.lineTo(x*q,y*q):g.moveTo(x*q,y*q));g.closePath();g.stroke();return;}g.strokeRect(V.cam.x*k,(V.cam.y+z.y)*k,z.w*k,z.h*k);}
 
 function posHeros(h){if(V.anim&&V.anim.h===h){const a=V.anim;const t=Math.min(1,(performance.now()-a.t0)/a.dur);return[a.x0+(a.x1-a.x0)*t,a.y0+(a.y1-a.y0)*t];}return[h.x,h.y];}
-function dessiner(){if(!G)return;if(en3D()){V.t=performance.now()/1000;if(!V.vide){const cv=document.getElementById('carte');cv.getContext('2d').clearRect(0,0,cv.width,cv.height);V.vide=true;}R3.rendre();if(!estMobile())dessinerMini();else if(V.mini.classList.contains('ouvert'))dessinerMini();return;}V.vide=false;V.t=performance.now()/1000;V.images++;const cv=document.getElementById('carte');const g=cv.getContext('2d');const T=tailleT(),N=G.carte.N;
+function dessiner(){if(!G)return;if(en3D()){V.t=performance.now()/1000;if(!V.vide){const cv=document.getElementById('carte');const g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,cv.width,cv.height);// vignette légère (ambiance)
+ const W=cv.width,H=cv.height,gr=g.createRadialGradient(W*.45,H*.45,Math.min(W,H)*.35,W*.45,H*.45,Math.hypot(W,H)*.62);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(10,6,2,.42)');g.fillStyle=gr;g.fillRect(0,0,W,H);V.vide=true;}R3.rendre();if(!estMobile())dessinerMini();else if(V.mini.classList.contains('ouvert'))dessinerMini();return;}V.vide=false;V.t=performance.now()/1000;V.images++;const cv=document.getElementById('carte');const g=cv.getContext('2d');const T=tailleT(),N=G.carte.N;
  g.setTransform(V.dpr,0,0,V.dpr,0,0);g.fillStyle='#0a0806';g.fillRect(0,0,innerWidth,innerHeight);
  const z=zoneVue();const ox=-V.cam.x,oy=-V.cam.y;
  g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';

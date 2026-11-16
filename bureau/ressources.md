@@ -24,6 +24,9 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | **Robot qui joue au doigt (DOM/SVG)** | `couronnes-et-lignees/outils/tests/explore.py` (générique, relève blocages et couverture) | `bannieres/outils/parcours.py`, `cage-et-gloire/outils/parcours.py` |
 | **Clics au hasard** | `bannieres/outils/monkey.py` (ordinateur + téléphone, graine) | `cage-et-gloire`, `sedes-petri` |
 | **Parties automatiques dans Chrome** | `wallstreet/outils/gsim.py` | |
+| **Rythme d'une partie (semaines « plates »)** | `wallstreet/outils/rythme.py` | instrumente la page construite (accroches sur toast/info/flash) et compte les semaines sans rien de marquant ; adaptable à tout jeu « séance par séance » |
+| **Avantage d'un joueur qui suit les annonces** | `wallstreet/outils/feuil_edge.py` | vérifie qu'un événement annoncé à l'avance ne laisse pas de gain gratuit (cours = espérance) |
+| **Ancienne sauvegarde → nouvelle version** | `wallstreet/outils/compat_test.py` | joue avec la version publiée, recharge la partie dans la nouvelle, rejoue 250 séances |
 | **Équilibre par A/B appariés** | `couronnes-et-complots/outils/ab.cjs` (+ `hv.cjs`, `fs.cjs`) | `president-de-club/outils/abmatch.js`, `bannieres/outils/duel_factions.js` |
 | **Invariants sur longues parties** | `cage-et-gloire/outils/audit.js` | `sedes-petri/outils/fuzz.js` |
 | **Sauvegarde, reprise, hors ligne** | `valdragon/outils/tests/sauvegarde.py` + `hors_ligne.py` | `une-vie/outils/reprise.py` + `nuage_test.py`, `bannieres/outils/hors_ligne.py` |

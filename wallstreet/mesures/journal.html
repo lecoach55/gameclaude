@@ -44,7 +44,8 @@ a{color:inherit}
 <p class="lede">Chaque session de travail simule des milliers de séances de Bourse et des parties complètes jouées par des robots, compare les résultats au vrai marché, puis corrige le jeu. Les entrées les plus récentes sont en haut.</p>
 
 <!--NOUVELLES-ENTREES-->
-<article><h2>Passe 8 : feuilletons de marché, graphiques vivants, reprise de partie réparée</h2><p class="muted">16 novembre 2026 · publié</p>
+<article id="e-passe8">
+<header><h2>Passe 8 : feuilletons de marché, graphiques vivants, reprise de partie réparée</h2><span class="when">16 novembre 2026 <span class="tag gold">publié</span></span></header>
 <h3>Bug corrigé (important)</h3><p>À la reprise d'une partie sauvegardée, le moteur du marché n'avait pas ses données : la partie se figeait à la première rumeur résolue. Corrigé ; ancienne partie rechargée puis 250 séances jouées sans erreur.</p>
 <h3>Nouveautés</h3><ul>
 <li><b>Feuilletons de marché</b> (6 : élection présidentielle, procès antitrust, essai clinique, OPA hostile, ultimatum commercial, grève), un tous les 55 à 110 séances. Annoncés à l'avance avec un compte à rebours dans « À la une » et l'agenda, des dépêches intermédiaires (sondages, indiscrétions) qui changent les chances, puis un dénouement en flash spécial.</li>
@@ -52,12 +53,12 @@ a{color:inherit}
 <li>Le cours intègre toujours l'espérance des issues (à l'annonce, à chaque dépêche, puis seule la surprise au dénouement) : aucun gain gratuit en suivant les dépêches.</li>
 <li>Grands événements : plus deux fois le même à la suite.</li>
 <li>Graphiques : marques ◆ des événements (action et portefeuille, titre dans la bulle), point lumineux pulsé au bout des courbes après chaque séance.</li></ul>
-<h3>Mesures</h3><table><tr><th></th><th>Avant</th><th>Après</th></tr>
+<h3>Mesures</h3><div class="tw"><table><tr><th></th><th>Avant</th><th>Après</th></tr>
 <tr><td>Semaines « plates » (rien de marquant, rythme.py, 4 parties × 2 ans)</td><td>12,1 %</td><td>9,7 à 11,7 %</td></tr>
 <tr><td>Flashs spéciaux par partie de 2 ans</td><td>4 à 7</td><td>10 à 13</td></tr>
 <tr><td>Fenêtres bloquantes par clic « +1 semaine » (gsim)</td><td>0,23 à 0,27</td><td>0,26 à 0,29 (cible ≤ 0,33)</td></tr>
 <tr><td>Moteur (bots.js, sim_lev.js)</td><td colspan="2">inchangé (le moteur n'a gagné qu'une fonction de reprise)</td></tr>
-<tr><td>Sauvegarde après 10 ans (memtest)</td><td>—</td><td>1,2 Mo (&lt; 2 Mo), mémoire stable</td></tr></table>
+<tr><td>Sauvegarde après 10 ans (memtest)</td><td>—</td><td>1,2 Mo (&lt; 2 Mo), mémoire stable</td></tr></table></div>
 <p>Contrôles : revue relecteur (ROUGE sur l'équilibre corrigé : cours = espérance) et testeur (ORANGE, corrigés : titre périmé dans la carte, pronostic perdu au rechargement, XP affichée selon la difficulté) ; testeur au doigt ordinateur et téléphone, banc 🧪 (partie remise à l'identique).</p>
 <h3>Reste à faire</h3><ul><li>Téléphone : le graphique de l'action dépasse de sa carte (déjà présent avant).</li><li>Bulle de survol décalée d'une séance (déjà présent).</li><li>« PER le plus bas » toujours autour de +2 à +5 %/an face au marché selon les tirages (backlog n° 2).</li></ul></article>
 

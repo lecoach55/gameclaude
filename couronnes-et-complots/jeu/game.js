@@ -309,16 +309,18 @@ function eliminate(o, by) {
 function chronicleSVG() {
   const H = (S.hist || []).concat([S.players.map((q, i) => ownedBy(i).length)]);
   if (H.length < 2) return "";
-  const W = 560, Hh = 175, pad = 28, maxT = Math.max(...H.flat(), 10);
-  const x = k => pad + k * (W - pad - 8) / (H.length - 1), y = v => Hh - 20 - v * (Hh - 60) / maxT;
-  const grid = [0, Math.round(maxT / 2), maxT].map(v => `<line x1="${pad}" x2="${W - 8}" y1="${y(v)}" y2="${y(v)}" stroke="#b79d70" stroke-width=".6"/><text x="${pad - 6}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="#6e5838">${v}</text>`).join("");
+  // sur téléphone, un repère plus étroit : le dessin est moins réduit et les textes restent lisibles (~10-11 px au lieu de ~6)
+  const narrow = typeof window !== "undefined" && window.innerWidth < 600, fs = narrow ? 12 : 11;
+  const W = narrow ? 330 : 560, Hh = narrow ? 190 : 175, pad = 28, x0 = pad + 12, maxT = Math.max(...H.flat(), 10);
+  const x = k => x0 + k * (W - x0 - 8) / (H.length - 1), y = v => Hh - 20 - v * (Hh - 60) / maxT;
+  const grid = [0, Math.round(maxT / 2), maxT].map(v => `<line x1="${pad}" x2="${W - 8}" y1="${y(v)}" y2="${y(v)}" stroke="#b79d70" stroke-width=".6"/><text x="${pad - 6}" y="${y(v) + 4}" text-anchor="end" font-size="${fs}" fill="#6e5838">${v}</text>`).join("");
   const lines = S.players.map((p, i) => { const c = PCOL[p.color]; const pts = H.map((r, k) => `${x(k).toFixed(1)},${y(r[i]).toFixed(1)}`).join(" "); const last = H[H.length - 1][i]; const dash = ["", "7 3", "2 3", "", "9 3 2 3"][p.color]; return `<polyline points="${pts}" fill="none" stroke="${c.c}" stroke-width="${p.color === 3 ? 3.4 : 2.4}" stroke-dasharray="${dash}" stroke-linejoin="round"/><circle cx="${x(H.length - 1)}" cy="${y(last)}" r="3.5" fill="${c.c}" stroke="#2b1d10" stroke-width=".8"/>`; }).join("");
   // moments clés : on garde d'abord les événements marquants, puis les changements de tête, au plus 7
   let ev = (S.ev || []).slice();
   while (ev.length > 7) { const k = ev.findIndex(e => e.i === "⚑"); ev.splice(k >= 0 ? k : 0, 1); }
   const marks = ev.map(e => { const k = clamp(e.r - 1, 0, H.length - 1), v = H[k][e.o] ?? 0, c = PCOL[P(e.o).color]; const up = 13 + 18 * (ev.slice(0, ev.indexOf(e)).filter(q => q.r === e.r).length % 2); return `<g transform="translate(${x(k).toFixed(1)},${y(v).toFixed(1)})"><line y2="${-up}" stroke="${c.c}" stroke-width="1"/><circle r="2.2" fill="${c.c}"/><g transform="translate(0,${-up})"><circle r="8.5" fill="#f3e8cc" stroke="${c.c}" stroke-width="1.8"/><text y="4.3" text-anchor="middle" font-size="12" font-family="serif" fill="#2b1d10">${e.i}\uFE0E</text></g></g>`; }).join("");
   const list = ev.length ? `<ul class="chron">${ev.map(e => `<li><span class="cr">M. ${e.r}</span> <span class="ci">${e.i}\uFE0E</span> ${e.t}</li>`).join("")}</ul>` : "";
-  return `<h3>Chronique du règne</h3><svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Territoires par Maison au fil des manches">${grid}${lines}${marks}<text x="${W - 8}" y="${Hh - 4}" text-anchor="end" font-size="11" fill="#6e5838">manche ${H.length}</text><text x="${pad}" y="${Hh - 4}" font-size="11" fill="#6e5838">manche 1</text></svg>
+  return `<h3>Chronique du règne</h3><svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="Territoires par Maison au fil des manches">${grid}${lines}${marks}<text x="${W - 8}" y="${Hh - 4}" text-anchor="end" font-size="${fs}" fill="#6e5838">manche ${H.length}</text><text x="${x0}" y="${Hh - 4}" font-size="${fs}" fill="#6e5838">manche 1</text></svg>
     <div class="row small" style="gap:12px;margin-top:2px">${S.players.map((p, i) => `<span>${shieldSVG(i, 12)} ${esc(p.name.replace(/^Maison (d')?/i, ""))}</span>`).join("")}</div>${list}`;
 }
 // moments clés de la partie (affichés dans la chronique de fin) ; n'influence aucune règle
@@ -555,10 +557,10 @@ function strikeFX(f, t, o, hit) {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.setAttribute("class", "strike" + (hit ? " hit" : ""));
   g.innerHTML = `<path class="sk" d="M${sx.toFixed(1)},${sy.toFixed(1)}Q${mx.toFixed(1)},${my.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" pathLength="100" stroke="${c}"/><path class="sh" transform="translate(${ex.toFixed(1)},${ey.toFixed(1)}) rotate(${a.toFixed(0)})" d="M2,0 L-9,-6 L-6,0 L-9,6Z" fill="${c}"/><g class="clash" transform="translate(${x2},${y2})"><path d="M-9,-9 L9,9 M9,-9 L-9,9 M0,-12 V12 M-12,0 H12"/></g>`;
-  $("tokens").appendChild(g);
+  $("tokens").appendChild(g); if (cur().ai) $("map").classList.add("striking");   // la flèche de visée s'efface sous le trait
   if (shakeTok) shakeTok.classList.remove("shake");
   const tk = shakeTok = tokEls[t]; void tk.getBoundingClientRect(); if (hit) tk.classList.add("shake");
-  clearTimeout(strikeT); strikeT = setTimeout(() => { g.remove(); tk.classList.remove("shake"); shakeTok = null; }, 750);
+  clearTimeout(strikeT); strikeT = setTimeout(() => { g.remove(); tk.classList.remove("shake"); shakeTok = null; $("map").classList.remove("striking"); }, 750);
 }
 function floatText(t, txt, cls) {
   if (!tokEls[t] || typeof document === "undefined") return;
@@ -630,7 +632,7 @@ function buildBoard() {
   $("bRegion").setAttribute("d", MAP.region); $("bRegionHalo").setAttribute("d", MAP.region);
   $("bCoast").setAttribute("d", MAP.coast);
   // noms des mers
-  [["Golfe du Nord", 455, 42, 0], ["Baie d'Ostrel", 665, 326, 0], ["Détroit de Kael", 300, 612, -32]]
+  [["Golfe du Nord", 455, 42, 0], ["Baie d'Ostrel", 665, 326, 0], ["Détroit de Kael", 255, 622, -32]]
     .forEach(([n, x, y, r]) => mk("text", { class: "sea", x, y, transform: `rotate(${r} ${x} ${y})` }, $("sealbl")).textContent = n);
   // graduation du cadre
   const tk = [];
@@ -720,7 +722,7 @@ function renderMap() {
     const sx = x1 + ux * 17, sy = y1 + uy * 17, ex = x2 - ux * 26, ey = y2 - uy * 26;
     const cx = (sx + ex) / 2 - uy * L * .18, cy = (sy + ey) / 2 + ux * L * .18;
     const d = `M${sx},${sy}Q${cx},${cy} ${ex},${ey}`;
-    const c = S.phase === "attaque" ? "#ff6b57" : "#ffd76a";
+    const c = S.phase !== "attaque" ? "#ffd76a" : cur().ai ? PCOL[cur().color].l : "#ff6b57";   // IA : teinte claire de sa Maison (le contour sombre la détache du fond)
     $("arrow").setAttribute("d", d); $("arrowIn").setAttribute("d", d); $("arrowIn").setAttribute("stroke", c);
     const tx = ex - cx, ty = ey - cy, tl = Math.hypot(tx, ty), vx = tx / tl, vy = ty / tl;
     $("arrowHead").setAttribute("d", `M${ex + vx * 11},${ey + vy * 11}L${ex - vy * 7},${ey + vx * 7}L${ex + vy * 7},${ey - vx * 7}Z`);
@@ -1350,8 +1352,17 @@ function bakeTextures() {
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(src);
   });
 }
+// Plateau de table : veines de noyer calculées une seule fois en petite image répétée (aucun coût à l'affichage)
+function bakeTable() {
+  const b = $("board"); if (!b || !window.Image) return;
+  const N = 384, src = `<svg xmlns="http://www.w3.org/2000/svg" width="${N}" height="${N}"><filter id="w" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".0045 .085" numOctaves="4" seed="7" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .27  0 0 0 0 .175  0 0 0 0 .1  1.9 0 0 0 -.5"/></filter><rect width="${N}" height="${N}" fill="#160f0a"/><rect width="${N}" height="${N}" filter="url(#w)"/></svg>`;
+  const img = new Image();
+  img.onload = () => { try { const c = document.createElement("canvas"); c.width = c.height = N; c.getContext("2d").drawImage(img, 0, 0);
+    b.style.backgroundImage = `radial-gradient(ellipse at 50% 45%,rgba(43,30,21,.15),rgba(12,8,5,.85) 85%),url(${c.toDataURL("image/png")})`; b.style.backgroundSize = `auto,${N}px ${N}px`; } catch (e) {} };
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(src);
+}
 function initZoom() {
-  try { bakeTextures(); } catch (e) {}
+  try { bakeTextures(); bakeTable(); } catch (e) {}
   const m = $("map");
   m.addEventListener("wheel", e => { e.preventDefault(); const p = svgPt(e.clientX, e.clientY); zoomAt(e.deltaY > 0 ? 1.15 : 1 / 1.15, p.x, p.y); }, { passive: false });
   // pincement à deux doigts (téléphone, pavé tactile)
@@ -1397,7 +1408,7 @@ function initZoom() {
   window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
   m.addEventListener("click", e => { if (justDragged) { e.stopPropagation(); e.preventDefault(); } }, true);
   m.addEventListener("dblclick", e => { const p = svgPt(e.clientX, e.clientY); zoomAt(1 / 1.6, p.x, p.y); });
-  $("zIn").onclick = () => zoomCenter(1 / 1.3); $("zOut").onclick = () => zoomCenter(1.3); $("zReset").onclick = () => { vb = { ...VB0 }; applyVB(true); };
+  $("zIn").onclick = () => zoomCenter(1 / 1.3); $("zOut").onclick = () => zoomCenter(1.3); $("zReset").onclick = () => { vb = { ...VB0 }; applyVB(true); $("zIn").focus(); };   // ⤢ disparaît en vue d'ensemble : le focus passe à +
   window.addEventListener("resize", () => { geo = null; placeShadow(); labelScale(); });
   placeShadow(); setTimeout(placeShadow, 300);
   $("legBtn").onclick = () => { const L = $("legend"); L.classList.toggle("closed"); $("legBtn").setAttribute("aria-expanded", !L.classList.contains("closed")); };

@@ -79,6 +79,7 @@ main{flex:1;display:flex;min-height:0}
 @keyframes spin{to{stroke-dashoffset:-56}}
 #arrow{fill:none;stroke:#2a1608;stroke-width:5;stroke-linecap:round;pointer-events:none;opacity:.8}
 #arrowIn{fill:none;stroke-width:2.8;stroke-linecap:round;pointer-events:none}
+#map.striking #arrow,#map.striking #arrowIn,#map.striking #arrowHead{visibility:hidden}
 .tok.flash .body{animation:pop .7s ease-out}
 .tok.flash .ring{animation:halo .9s ease-out}
 @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.4)}100%{transform:scale(1)}}
@@ -126,6 +127,7 @@ main{flex:1;display:flex;min-height:0}
 #zoom{position:absolute;top:22px;right:24px;display:flex;flex-direction:column;gap:4px;z-index:3}
 #zoom button{width:34px;height:34px;padding:0;font-size:18px;line-height:1;background:rgba(36,24,16,.9);box-shadow:0 3px 8px rgba(0,0,0,.45)}
 #map.zoomed{cursor:grab;touch-action:none}
+#map:not(.zoomed) ~ #zoom #zOut,#map:not(.zoomed) ~ #zoom #zReset{display:none}
 #map.gesture{will-change:transform;filter:none}
 #mapShadow{position:absolute;pointer-events:none;box-shadow:0 14px 28px rgba(0,0,0,.7),0 2px 3px rgba(0,0,0,.6);border-radius:6px}#map.dragging{cursor:grabbing}
 #legBtn{position:absolute;right:24px;bottom:20px;z-index:3;font-family:var(--f-display);font-size:13px;padding:4px 10px;background:rgba(36,24,16,.9);display:none}
@@ -221,6 +223,7 @@ table.rt th{font-family:var(--f-display);font-weight:400}
   aside{width:100%;border-left:0;border-top:1px solid var(--line)}
   #log{max-height:none}
   #legend,#legBtn,#legend.closed ~ #legBtn{display:none}
+  #zoom{top:10px;right:10px;gap:3px}#zoom button{width:30px;height:30px;font-size:16px}
 }
 </style>
 </head>

@@ -311,7 +311,7 @@ function markUsed(k) { S.used[k] = 1; }
 const ACT = {
  legat: { n:'Envoyer un légat', s:1, d:'Un cardinal part représenter le pape : relations, investitures, lutte contre l’hérésie, négociations.',
   can: a => { const R = RL(a.r); if (R.legate) return 'Un légat y réside déjà'; if (S.cardinals.filter(c => c.legate).length >= 3 + (S.build.bibliotheque === true ? 1 : 0)) return 'Trop de légations ouvertes'; if (!S.cardinals.some(c => !c.legate && !c.office)) return 'Aucun cardinal disponible'; return null; },
-  run: a => { const c = card(a.c); c.legate = a.r; RL(a.r).legate = c.id; return `Le cardinal ${cname(c)} part en légation auprès de ${rulerLbl(a.r)}.`; } },
+  run: a => { const c = card(a.c); if (c.legate && c.legate !== a.r && S.realms[c.legate]) S.realms[c.legate].legate = null; c.legate = a.r; RL(a.r).legate = c.id; return `Le cardinal ${cname(c)} part en légation auprès de ${rulerLbl(a.r)}.`; } },
  rappel: { n:'Rappeler le légat', s:0, d:'Le cardinal revient à la Curie.', can: a => RL(a.r).legate ? null : 'Pas de légat',
   run: a => { const c = card(RL(a.r).legate); if (c) c.legate = null; RL(a.r).legate = null; return 'Le légat regagne Rome.'; } },
  investir: { n:'Exiger les investitures', s:1, d:'Le pape seul investit les évêques. Investitures ↑, mais le souverain s’irrite.',
@@ -507,7 +507,7 @@ function crusadeJoinChance(r) {
 function updateCrusade() {
  const c = S.crusade; if (!c) return; c.t++;
  if (c.phase === 'predication') {
-  for (const r of catholics()) { if (c.members.includes(r)) continue; if (chance(crusadeJoinChance(r))) { c.members.push(r); log(`${capFirst(leRuler(r))} prend la croix.`, 'good'); } RL(r).exhort = false; }
+  for (const r of catholics()) { if (c.members.includes(r)) continue; if (chance(crusadeJoinChance(r))) { c.members.push(r); { const qui = capFirst(leRuler(r)), pl = /^les /i.test(leRuler(r)); log(qui + ' ' + pick(pl ? ['prennent la croix.', 'cousent la croix rouge sur leur manteau.', 'font vœu de croisade.', 'rejoignent l’ost des croisés.'] : ['prend la croix.', 'coud la croix rouge sur son manteau.', 'fait vœu de croisade.', 'rejoint l’ost des croisés.']), 'good'); } } RL(r).exhort = false; }
   if (c.t >= 2) {
    if (!c.members.length && c.papal < 300) { endCrusade(false, 'Personne ne prend la croix : la prédication est un échec.'); return; }
    c.phase = 'route'; c.t = 0; log(`L’ost de la ${c.name} se met en marche (${c.members.length} princes).`, 'info');
@@ -582,7 +582,7 @@ function convertRealm(r) {
  log(`${capFirst(leRuler(r))} reçoit le baptême : ${leR(r)} entre dans la communion romaine !`, 'gold'); modA(8);
 }
 
-function forced(id, arg) { const ev = EVENTS.find(e => e.id === id); const inst = ev && ev.make(arg === undefined ? true : arg); if (inst) inst.id = id; return inst; }
+function forced(id, arg) { const ev = EVENTS.find(e => e.id === id); const inst = ev && ev.make(arg === undefined ? true : arg); if (inst) { inst.id = id; if (!inst.art) inst.art = ev.art; } return inst; }
 /* Sécessions : les provinces conquises peuvent retourner à leur maître d’origine */
 function secessions() {
  if (!S.home) S.home = Object.assign({}, S.own);
@@ -805,7 +805,7 @@ function evRegence(r) {
 }
 function evSuccession(r) {
  const R = RL(r); const claim = genRuler(r, { age: ri(18, 40) }); R.nc[claim.n.split(' ')[0]] = (R.nc[claim.n.split(' ')[0]] || 1) - 1;
- return { id: 'succession', art: 'crown', title: `Succession disputée ${enR(r)}`, text: `${claim.n}, cousin du défunt, conteste les droits de ${R.ruler.n} et lève des troupes. Les deux partis envoient des ambassades à Rome : le pape seul peut dire qui est l’héritier légitime.`,
+ return { id: 'succession', art: 'crown', title: `Succession disputée ${enR(r)}`, text: `${claim.n}, cousin du défunt, conteste les droits ${de_(R.ruler.n)} et lève des troupes. Les deux partis envoient des ambassades à Rome : le pape seul peut dire qui est l’héritier légitime.`,
   opts: [{ t: `Reconnaître ${R.ruler.n}`, d: 'Relation +15', fx() { modRel(r, 15); return 'L’héritier légitime est confirmé.'; } },
    { t: `Soutenir ${claim.n}`, d: 'Le prétendant l’emporte : relation +35, mais guerre civile (ferveur −8)', fx() { R.ruler = claim; R.rel = clamp(R.rel + 35, -100, 100); modF(r, -8); log(`${claim.n} s’empare du trône ${deR(r)} avec l’appui du pape.`, 'info'); return 'Le prétendant est couronné. Il vous doit tout.'; } },
    { t: 'Rester neutre', d: 'Autorité −1', fx() { modA(-1); } }] };
@@ -996,7 +996,7 @@ function passive() {
 function yearly() {
  for (const r of realmIds()) { const R = RL(r); if (R.ruler && !R.ruler.c && R.ruler.a > 0) { R.ruler.a++; if (R.ruler.a >= 16 && R.ruler.t.includes('enfant')) { R.ruler.t = R.ruler.t.filter(t => t !== 'enfant'); if (!R.ruler.t.length) R.ruler.t = randTraits(); log(`${capFirst(leRuler(r))} atteint sa majorité et gouverne seul.`, 'info'); } } }
  S.pope.age++; S.created = 0; S.cands = null;
- for (const c of S.cardinals.slice()) { c.age++; const p = c.age < 55 ? 0.01 : Math.pow((c.age - 55) / 25, 2) * 0.25 + 0.01; if (chance(p + (S.plague > 0 ? 0.15 : 0))) { log(`Mort du cardinal ${cname(c)}, à ${c.age} ans.`, 'info'); removeCardinal(c); } }
+ for (const c of S.cardinals.slice()) { c.age++; const p = c.age < 55 ? 0.01 : Math.pow((c.age - 55) / 25, 2) * 0.25 + 0.01; if (chance(p + (S.plague > 0 ? 0.15 : 0))) { log(pick([`Mort du cardinal ${cname(c)}, à ${c.age} ans.`, `Le cardinal ${cname(c)} s’éteint à ${c.age} ans.`, `Le Sacré Collège perd le cardinal ${cname(c)}, mort à ${c.age} ans.`, `Le cardinal ${cname(c)} a rendu son âme à Dieu (${c.age} ans).`]), 'info'); removeCardinal(c); } }
  for (const r of activeRealms()) { const R = RL(r), home = PROVS.filter(p => S.home && S.home[p.id] === r).length; if (home && nProv(r) < home / 2 && R.base < REALMS[r].base * 1.5) R.base += 0.3; }
  if (S.year > 1180 && active('byzance') && !S.flags.unionDone) RL('byzance').base = Math.max(10, RL('byzance').base - 0.12);
  if (S.year > 1300 && active('turcs')) { RL('turcs').base = Math.min(46, RL('turcs').base + 0.5); if (active('byzance')) RL('byzance').base = Math.max(8, RL('byzance').base - 0.25); }
@@ -1033,7 +1033,7 @@ function onBuilt(k) {
  if (Object.values(S.build).filter(v => v === true).length >= 6) ach('rome');
 }
 function genEvents() {
- for (const e of EVENTS) if (e.hist && !S.evDone[e.id] && (S.evc[e.id] || -99) <= S.turn) { const inst = e.make(); if (inst) { inst.id = e.id; S.events.push(inst); S.evc[e.id] = S.turn + (e.cool || 12); if (e.once) S.evDone[e.id] = 1; } }
+ for (const e of EVENTS) if (e.hist && !S.evDone[e.id] && (S.evc[e.id] || -99) <= S.turn) { const inst = e.make(); if (inst) { inst.id = e.id; if (!inst.art) inst.art = e.art; S.events.push(inst); S.evc[e.id] = S.turn + (e.cool || 12); if (e.once) S.evDone[e.id] = 1; } }
  let n = (chance(0.7) ? 1 : 0) + (chance(0.35) ? 1 : 0);
  const pool = EVENTS.filter(e => !e.hist && e.w && (S.evc[e.id] || -99) <= S.turn && !(e.once && S.evDone[e.id]));
  let guard = 0;
@@ -1042,7 +1042,7 @@ function genEvents() {
   for (const e of pool) { x -= e.w; if (x <= 0) { ch = e; break; } }
   pool.splice(pool.indexOf(ch), 1);
   const inst = ch.make(); if (!inst) continue;
-  inst.id = ch.id; S.events.push(inst); S.evc[ch.id] = S.turn + (ch.cool || 8); if (ch.once) S.evDone[ch.id] = 1; n--;
+  inst.id = ch.id; if (!inst.art) inst.art = ch.art; S.events.push(inst); S.evc[ch.id] = S.turn + (ch.cool || 8); if (ch.once) S.evDone[ch.id] = 1; n--;
  }
 }
 

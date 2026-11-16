@@ -43,7 +43,15 @@ async def main():
             if random.random()<0.3:
                 await pg.click(f'[data-mode="{random.choice(["relations","ferveur","heresie","investitures","religions","royaumes"])}"]')
             await pg.evaluate("UI.warned=true")
-            await pg.click('#endTurn'); await pg.wait_for_timeout(500); await clear(pg)
+            try: await pg.click('#endTurn', timeout=5000)
+            except Exception: pass
+            # attendre la fin de saison (carte de saison #scard, UI.busy) avant de rejouer : sinon on touche des éléments recouverts
+            calme=0
+            for k in range(60):
+                await pg.wait_for_timeout(300); await clear(pg)
+                ok = await pg.evaluate("!(window.UI&&UI.busy) && !document.querySelector('#scard:not([hidden])') && document.getElementById('modal').hidden")
+                calme = calme+1 if ok else 0
+                if calme>=2: break
             if errs: print('turn',t, errs[-1]); 
         print('final', await pg.evaluate("dateStr()+' '+popeName()+' A'+Math.round(S.authority)"), 'errors:', len(errs))
         for e in errs[:10]: print(e)

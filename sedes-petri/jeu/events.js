@@ -5,6 +5,7 @@
 function pickR(f) { const c = catholics(f); return c.length ? pick(c) : null; }
 function pickA(f) { const c = activeRealms(f); return c.length ? pick(c) : null; }
 const B = s => `<b>${s}</b>`;
+const que_ = s => /^[aeiouéèêîâôh]/i.test(String(s).replace(/<[^>]+>/g, '')) ? 'qu’' + s : 'que ' + s;
 const EVENTS = [];
 const E = o => EVENTS.push(o);
 
@@ -27,13 +28,13 @@ E({ id: 'relique', w: 2, art: 'cross', cool: 14, make() {
 E({ id: 'simonie', w: 3, art: 'coins', cool: 6, make() {
  const r = pickR(x => RL(x).ruler && !RL(x).ruler.c && RL(x).invest < 70); if (!r) return null;
  const sum = ri(3, 8) * 100;
- return { realm: r, title: `Un évêché vendu ${enR(r)}`, text: `On rapporte que le nouvel évêque ${B(de_(cityOf(r)))} a versé ${sum} marcs d’argent ${auRuler(r)} pour obtenir la crosse et l’anneau. Il ne sait pas lire le latin, entretient une meute de chiens et deux concubines. Les chanoines en appellent au pape.`,
+ return { realm: r, title: `Un évêché vendu ${enR(r)}`, text: pick([`On rapporte que le nouvel évêque ${B(de_(cityOf(r)))} a versé ${sum} marcs d’argent ${auRuler(r)} pour obtenir la crosse et l’anneau. Il ne sait pas lire le latin, entretient une meute de chiens et deux concubines. Les chanoines en appellent au pape.`, `Le neveu ${B(duRuler(r))}, à peine âgé de quinze ans, vient d’être fait évêque ${B(de_(cityOf(r)))} : sa famille a remis ${sum} marcs ${auRuler(r)} le jour même de l’élection. Il n’a reçu ni la prêtrise ni l’ordre de diacre. Le chapitre en appelle au pape.`, `Un archidiacre ${B(de_(cityOf(r)))} dénonce un marché scandaleux : la crosse de son église a été adjugée, comme un fief, au plus offrant — ${sum} marcs versés ${auRuler(r)}. L’heureux élu revend déjà les cures du diocèse pour rentrer dans ses frais.`]),
   opts: [{ t: 'Déposer l’évêque simoniaque', d: 'Investitures +8 · corruption −2 · autorité +3 · relation −10', fx() { modInv(r, 8); modC(-2); modA(3); modRel(r, -10); RL(r).offense++; return 'Le légat arrache le pallium devant tout le chapitre.'; } },
    { t: 'Le confirmer contre une amende', d: 'Trésor +40 · corruption +3', fx() { modT(40); modC(3); return 'L’amende est payée. On ne parle plus de rien.'; } },
    { t: 'Fermer les yeux', d: 'Relation +3 · corruption +2', fx() { modRel(r, 3); modC(2); } }] };
 }});
 
-E({ id: 'annulation', w: 2, art: 'crown', cool: 16, make() {
+E({ id: 'annulation', w: 2, art: 'wedding', cool: 16, make() {
  const r = pickR(x => RL(x).ruler && !RL(x).ruler.c && !RL(x).ruler.f && RL(x).ruler.a > 18 && RL(x).ruler.a < 60); if (!r) return null;
  return { realm: r, title: `${rulerLbl(r)} veut répudier sa reine`, text: `${B(capFirst(leRuler(r)))} demande l’annulation de son mariage, invoquant une parenté au septième degré que nul n’avait remarquée le jour des noces. Chacun sait qu’il convoite une héritière plus richement dotée. La reine, réfugiée dans un couvent, en appelle au Saint-Siège.`,
   opts: [{ t: 'Accorder l’annulation', d: 'Relation +20 · autorité −6 · corruption +3', fx() { modRel(r, 20); modA(-6); modC(3); return 'La sentence est rendue. La reine délaissée maudit Rome.'; } },
@@ -41,9 +42,9 @@ E({ id: 'annulation', w: 2, art: 'crown', cool: 16, make() {
    { t: 'Ordonner une longue enquête', d: 'Relation −4 · autorité +1', fx() { modRel(r, -4); modA(1); } }] };
 }});
 
-E({ id: 'dispense', w: 2, art: 'scroll', cool: 10, make() {
+E({ id: 'dispense', w: 2, art: 'wedding', cool: 10, make() {
  const c = catholics(x => RL(x).ruler && !RL(x).ruler.c); if (c.length < 2) return null; const a = pick(c); const b = pick(c.filter(x => x !== a));
- return { title: 'Une dispense matrimoniale', text: `Les cours ${B(deShort(a))} et ${B(deShort(b))} veulent unir leurs héritiers pour sceller la paix. Hélas, les fiancés sont cousins au quatrième degré : sans dispense pontificale, l’union serait incestueuse.`,
+ return { title: 'Une dispense matrimoniale', text: pick([`Les cours ${B(deShort(a))} et ${B(deShort(b))} veulent unir leurs héritiers pour sceller la paix. Hélas, les fiancés sont cousins au quatrième degré : sans dispense pontificale, l’union serait incestueuse.`, `Pour mettre fin à une guerre de frontière, ${B(deShort(a))} et ${B(deShort(b))} ont arrangé le mariage de leurs enfants. Mais les généalogistes de la Curie ont retrouvé une aïeule commune : les fiancés sont parents au quatrième degré. Les ambassadeurs attendent la dispense.`, `Deux ambassades arrivent ensemble au Latran, les bras chargés de présents : les cours ${B(deShort(a))} et ${B(deShort(b))} veulent unir leurs maisons, malgré une parenté que le droit canon interdit. Sans dispense, l’alliance tombe.`]),
   opts: [{ t: 'Accorder la dispense contre une taxe', d: 'Trésor +30 · relations +6', fx() { modT(30); modRel(a, 6); modRel(b, 6); modC(1); } },
    { t: 'Accorder la dispense gratuitement', d: 'Relations +10 · autorité +1', fx() { modRel(a, 10); modRel(b, 10); modA(1); } },
    { t: 'Refuser : le droit canon est formel', d: 'Autorité +2 · relations −8', fx() { modA(2); modRel(a, -8); modRel(b, -8); } }] };
@@ -51,22 +52,22 @@ E({ id: 'dispense', w: 2, art: 'scroll', cool: 10, make() {
 
 E({ id: 'miracle', w: 2, art: 'miracle', cool: 10, make() {
  const r = pickR(); if (!r) return null; const what = pick(['une statue de la Vierge pleure des larmes de sang', 'un aveugle-né a recouvré la vue sur le tombeau d’un saint ermite', 'une hostie consacrée a saigné sur le corporal', 'des lumières dansent chaque nuit au-dessus d’une source']);
- return { realm: r, title: `Prodige à ${cityOf(r)}`, text: `À ${B(cityOf(r))}, ${what}. Les pèlerins affluent, les marchands de cierges font fortune, et l’évêque demande au pape de reconnaître le miracle.`,
+ return { realm: r, title: pick([`Prodige à ${cityOf(r)}`, `Un miracle à ${cityOf(r)} ?`]), text: pick([`À ${B(cityOf(r))}, ${what}. Les pèlerins affluent, les marchands de cierges font fortune, et l’évêque demande au pape de reconnaître le miracle.`, `On écrit ${B(deR(r))} ${que_(what)}. L’évêque ${B(de_(cityOf(r)))} a fait dresser un autel provisoire ; les offrandes affluent déjà, et les chanoines demandent au pape de reconnaître le prodige.`, `Depuis la Saint-Jean, à ${B(cityOf(r))}, ${what}. Les uns crient au miracle, les autres à la sorcellerie. L’évêque, prudent, s’en remet au jugement du Saint-Siège.`]),
   opts: [{ t: 'Reconnaître le miracle', d: 'Ferveur +10 · trésor +15', fx() { modF(r, 10); modT(15); } },
    { t: 'Ouvrir une enquête canonique', d: 'Autorité +3 · ferveur +3', fx() { modA(3); modF(r, 3); } },
    { t: 'Dénoncer une supercherie', d: 'Autorité +1 · ferveur −4', fx() { modA(1); modF(r, -4); } }] };
 }});
 
-E({ id: 'famine', w: 2, art: 'plague', cool: 8, make() {
+E({ id: 'famine', w: 2, art: 'harvest', cool: 8, make() {
  const r = pickR(); if (!r) return null;
- return { realm: r, title: `Famine ${enR(r)}`, text: `Les pluies d’été ont pourri les blés sur pied. ${capFirst(enR(r))}, on mange l’écorce et l’herbe ; des bandes de mendiants assiègent les monastères. Certains prêcheurs disent que Dieu punit les péchés du clergé.`,
+ return { realm: r, title: pick([`Famine ${enR(r)}`, `La faim ${enR(r)}`, `Les greniers vides ${deR(r)}`]), text: pick([`Les pluies d’été ont pourri les blés sur pied. ${capFirst(enR(r))}, on mange l’écorce et l’herbe ; des bandes de mendiants assiègent les monastères. Certains prêcheurs disent que Dieu punit les péchés du clergé.`, `Un hiver interminable a gelé les semailles. ${capFirst(enR(r))}, les paysans vendent leurs bœufs, puis leurs outils, puis leurs enfants comme serfs. On a vu des loups entrer dans les villages. L’évêque demande des secours au Saint-Siège.`, `Trois récoltes manquées de suite : ${enR(r)}, le setier de froment vaut dix fois son prix. Des files de paysans affamés marchent vers les villes, où les portes se ferment devant eux. Les monastères distribuent leur dernière avoine.`]),
   opts: [{ t: 'Envoyer des aumônes (40 marcs)', d: 'Ferveur +8 · relation +8', req: () => S.treasury >= 40 ? null : 'Trésor insuffisant', fx() { modT(-40); modF(r, 8); modRel(r, 8); } },
    { t: 'Ordonner des processions et des jeûnes', d: 'Ferveur +3', fx() { modF(r, 3); } },
    { t: 'Ne rien faire', d: 'Ferveur −5 · hérésie +4', fx() { modF(r, -5); modH(r, 4); } }] };
 }});
 
 E({ id: 'comete', w: 1, art: 'star', cool: 40, make() {
- return { title: 'Une comète dans le ciel d’Occident', text: 'Une étoile chevelue traverse le ciel pendant quarante nuits, sa queue tournée vers l’Orient. Les astrologues de la Curie se disputent : présage de mort d’un roi, de peste, de guerre — ou appel de Dieu ?',
+ return { title: pick(['Une comète dans le ciel d’Occident', 'L’étoile chevelue']), text: pick(['Une étoile chevelue traverse le ciel pendant quarante nuits, sa queue tournée vers l’Orient. Les astrologues de la Curie se disputent : présage de mort d’un roi, de peste, de guerre — ou appel de Dieu ?', 'Un astre flamboyant se lève chaque soir à l’ouest, plus brillant que Vénus. À Paris, on y voit l’annonce de la fin des temps ; à Rome, les astrologues de la Curie proposent d’en tirer l’horoscope de l’Église.', 'Depuis l’Épiphanie, une comète traîne sa queue rougeâtre au-dessus des Alpes. Les moines notent le prodige dans leurs annales ; des prophètes errants annoncent la chute d’un grand prince.']),
   opts: [{ t: 'Y voir un appel à la croisade', d: 'Ardeur de croisade (recrutement accru) · autorité +2', fx() { S.flags.zeal = 1; modA(2); } },
    { t: 'Y voir un appel à la pénitence', d: 'Ferveur +4 partout', fx() { modF('all', 4); } },
    { t: 'Laisser les savants en disputer', d: 'Cardinaux : compétence +1 pour deux d’entre eux', fx() { shuffle(S.cardinals.slice()).slice(0, 2).forEach(c => c.comp = clamp(c.comp + 1, 1, 10)); } }] };
@@ -81,9 +82,9 @@ E({ id: 'theologien', w: 2, art: 'book', cool: 24, make() {
    { t: 'Organiser une dispute publique (20 marcs)', d: 'Ferveur +2 · autorité +2', req: () => S.treasury >= 20 ? null : 'Trésor insuffisant', fx() { modT(-20); modF(r, 2); modA(2); } }] };
 }});
 
-E({ id: 'eveque_roi', w: 3, art: 'crown', cool: 6, make() {
- const r = pickR(x => RL(x).ruler && !RL(x).ruler.c && RL(x).invest > 20); if (!r) return null;
- return { realm: r, title: `Le chancelier ${duRuler(r)}`, text: `${B(capFirst(leRuler(r)))} entend faire élire son chancelier, un clerc de cour habile aux comptes mais ignorant des choses de Dieu, à l’archevêché ${B(de_(cityOf(r)))}. Le chapitre cathédral, menacé, a cédé. Le roi attend la confirmation du pape.`,
+E({ id: 'eveque_roi', w: 3, art: 'bishop', cool: 6, make() {
+ const r = pickR(x => RL(x).ruler && !RL(x).ruler.c && RL(x).invest > 20); if (!r) return null; const v = ri(0, 2);
+ return { realm: r, title: [`Le chancelier ${duRuler(r)}`, `Un courtisan crossé ${enR(r)}`, `Le confesseur ${duRuler(r)}`][v], text: ([`${B(capFirst(leRuler(r)))} entend faire élire son chancelier, un clerc de cour habile aux comptes mais ignorant des choses de Dieu, à l’archevêché ${B(de_(cityOf(r)))}. Le chapitre cathédral, menacé, a cédé. Le roi attend la confirmation du pape.`, `À la mort de l’archevêque ${B(de_(cityOf(r)))}, ${B(leRuler(r))} a fait porter la crosse à un jeune cousin de sa propre maison, à peine sous-diacre, qui chasse le faucon mieux qu’il ne lit le bréviaire. Les chanoines ont signé sous la menace des sergents. Le roi attend la confirmation du pape.`, `Le siège ${B(de_(cityOf(r)))} est vacant. Plutôt que d’attendre l’élection canonique, ${B(leRuler(r))} y a nommé son confesseur, un homme pieux mais qui doit tout au roi et ne contredira jamais la couronne. Les moines de la cathédrale protestent par lettre ; le roi attend la confirmation du pape.`])[v],
   opts: [{ t: 'Confirmer le candidat royal', d: 'Investitures −12 · relation +10', fx() { modInv(r, -12); modRel(r, 10); } },
    { t: 'Casser l’élection', d: 'Investitures +4 · relation −12 · autorité +2', fx() { modInv(r, 4); modRel(r, -12); modA(2); RL(r).offense++; } },
    { t: 'Proposer un candidat de compromis', d: 'Investitures −4 · relation +3 · autorité +1', fx() { modInv(r, -4); modRel(r, 3); modA(1); } }] };
@@ -115,7 +116,7 @@ E({ id: 'petition', w: 4, art: 'church', cool: 4, make() {
    { t: 'Rejeter la supplique', d: 'Ferveur −2 · hérésie +3 partout', fx() { S.flags['ord_' + k] = 1; modF('all', -2); modH('all', 3); return 'Les disciples déçus prêchent désormais sans l’aveu de Rome…'; } }] };
 }});
 
-E({ id: 'seigneur', hist: false, art: 'tower', make(p) {
+E({ id: 'seigneur', hist: false, art: 'castle', make(p) {
  p = p || pick(PATRI.filter(x => S.own[x] === 'etats')); if (!p) return null;
  const lord = pick(['Rainone di Tuscolo', 'Odone di Poli', 'Gualtiero di Ceccano', 'Giordano di Montefiascone', 'Benedetto di Narni', 'Corrado di Urslingen']);
  return { title: `Le seigneur ${de_(pick(['Tusculum', 'Poli', 'Ceccano', 'Narni', 'Spolète', 'Orvieto']))} se rebelle`, text: `${B(lord)}, vassal de l’Église en ${PROV[p].n}, refuse l’hommage, rançonne les pèlerins de la via Francigena et a pendu le collecteur pontifical aux créneaux de son château.`,
@@ -126,28 +127,28 @@ E({ id: 'seigneur', hist: false, art: 'tower', make(p) {
 
 E({ id: 'tibre', w: 1, art: 'rome', cool: 20, make() {
  if (S.curia !== 'rome') return null;
- return { title: 'Le Tibre en crue', text: 'Après trois semaines de pluies, le Tibre a envahi le Champ de Mars jusqu’au Panthéon. Des barques circulent devant Sainte-Marie-in-Aracoeli ; les greniers sont noyés, et la fièvre guette.',
+ return { title: pick(['Le Tibre en crue', 'Rome sous les eaux']), text: pick(['Après trois semaines de pluies, le Tibre a envahi le Champ de Mars jusqu’au Panthéon. Des barques circulent devant Sainte-Marie-in-Aracoeli ; les greniers sont noyés, et la fièvre guette.', 'Le fleuve a rompu ses rives en pleine nuit. Au matin, l’eau couvre le Trastevere jusqu’aux genoux des statues ; les moulins flottants ont été emportés vers Ostie, et l’on manque déjà de farine.', 'Des pluies diluviennes sont tombées sur l’Apennin : le Tibre monte d’une coudée par jour. Les pèlerins logés près du pont Saint-Ange ont fui vers le Vatican, et les égouts antiques refoulent dans les ruelles.']),
   opts: [{ t: 'Financer les secours (40 marcs)', d: 'Peuple +12 · stabilité +4', req: () => S.treasury >= 40 ? null : 'Trésor insuffisant', fx() { modT(-40); modPeople(12); modStab(4); } },
    { t: 'Laisser les barons s’en charger', d: 'Stabilité −6 · peuple −8', fx() { modStab(-6); modPeople(-8); } }] };
 }});
 
 E({ id: 'fievres', w: 2, art: 'plague', cool: 8, make() {
  if (S.season !== 1 || S.curia !== 'rome') return null;
- return { title: 'Les fièvres de l’été romain', text: 'La malaria monte des marais pontins. Deux camériers sont morts cette semaine ; les cardinaux âgés tremblent dans leurs palais. Les papes ont coutume de fuir l’été romain vers les hauteurs d’Anagni ou de Viterbe.',
+ return { title: pick(['Les fièvres de l’été romain', 'La malaria']), text: pick(['La malaria monte des marais pontins. Deux camériers sont morts cette semaine ; les cardinaux âgés tremblent dans leurs palais. Les papes ont coutume de fuir l’été romain vers les hauteurs d’Anagni ou de Viterbe.', 'La chaleur d’août est écrasante ; les marais d’Ostie exhalent la fièvre. Trois cardinaux sont alités, et les médecins pressent le pape de quitter le Latran pour les collines.', 'Le « mauvais air » de l’été décime la Curie : les scribes de la Chancellerie meurent à leur pupitre, et les audiences sont suspendues. Les cardinaux supplient le pape de partir pour Rieti ou Viterbe.']),
   opts: [{ t: 'Fuir à Anagni pour l’été (20 marcs)', d: 'Santé −2 · stabilité −3', req: () => S.treasury >= 20 ? null : 'Trésor insuffisant', fx() { modT(-20); modHealth(-2); modStab(-3); } },
    { t: 'Rester à Rome avec le peuple', d: 'Santé −10 · autorité +2 · peuple +6 · un cardinal âgé peut mourir', fx() { modHealth(-10); modA(2); modPeople(6); const old = S.cardinals.filter(c => c.age > 65); if (old.length && chance(0.6)) { const c = pick(old); log(`Le cardinal ${cname(c)} succombe aux fièvres.`, 'info'); removeCardinal(c); } } }] };
 }});
 
-E({ id: 'banquiers', w: 2, art: 'coins', cool: 10, make() {
+E({ id: 'banquiers', w: 2, art: 'city', cool: 10, make() {
  if (S.treasury > 120 || !lender()) return null;
  return { title: 'Les banquiers sont à la porte', text: `Les ${B(lender())} apprennent que les coffres de la Chambre apostolique sonnent creux. Ils proposent une avance de 250 marcs, remboursable sur les dîmes futures, à un intérêt que les théologiens qualifieraient d’usuraire s’il ne s’agissait du pape.`,
   opts: [{ t: 'Accepter l’avance', d: 'Trésor +250 · dette +300', fx() { modT(250); S.debt += 300; } },
    { t: 'Refuser', d: 'Aucun effet', fx() { } }] };
 }});
 
-E({ id: 'commerce', w: 1, art: 'ship', cool: 20, make() {
+E({ id: 'commerce', w: 1, art: 'city', cool: 20, make() {
  if (S.year < 1150) return null; const r = pick(['venise', 'genes'].filter(active)); if (!r) return null;
- return { realm: r, title: `Les galères ${deShort(r)} à Alexandrie`, text: `Malgré les interdits, les marchands ${B(deShort(r))} vendent du bois, du fer et des esclaves aux Sarrasins d’Alexandrie, en échange de poivre et de soie. Les ordres militaires d’Outremer protestent : ce fer reviendra en flèches.`,
+ return { realm: r, title: `Les galères ${deShort(r)} à Alexandrie`, text: pick([`Malgré les interdits, les marchands ${B(deShort(r))} vendent du bois, du fer et des esclaves aux Sarrasins d’Alexandrie, en échange de poivre et de soie. Les ordres militaires d’Outremer protestent : ce fer reviendra en flèches.`, `Une galère ${B(deShort(r))} a été arraisonnée par les Hospitaliers au large de Chypre : ses cales étaient pleines de lames de Lombardie et de bois de construction destinés au sultan d’Égypte. Les armateurs protestent de leur bonne foi.`, `Les comptoirs ${B(deShort(r))} d’Alexandrie et de Beyrouth prospèrent : épices, soieries et sucre contre fer, armes et bois. Le légat d’Outremer supplie le pape de frapper ce commerce d’excommunication.`]),
   opts: [{ t: 'Excommunier les marchands', d: 'Relation −20 · autorité +3', fx() { modRel(r, -20); modA(3); } },
    { t: 'Vendre des licences de commerce', d: 'Trésor +45 · corruption +3 · autorité −2', fx() { modT(45); modC(3); modA(-2); } },
    { t: 'Ignorer', d: 'Aucun effet', fx() { } }] };
@@ -177,9 +178,9 @@ E({ id: 'universite', w: 1, art: 'book', cool: 30, make() {
    { t: 'Laisser le souverain juger', d: 'Relation +5', fx() { modRel(r, 5); } }] };
 }});
 
-E({ id: 'abbaye', w: 2, art: 'church', cool: 8, make() {
+E({ id: 'abbaye', w: 2, art: 'monastery', cool: 8, make() {
  const r = pickR(); if (!r) return null; const ab = pick(['Saint-Gall', 'Fulda', 'Saint-Denis', 'Montecassino', 'Cluny', 'Westminster', 'Sahagún', 'Corvey', 'Farfa', 'Saint-Bertin']);
- return { realm: r, title: `Le scandale ${de_(ab)}`, text: `Les moines ${B(de_(ab))} vivent en princes : chasses, festins, servantes. L’abbé a hypothéqué les reliquaires pour payer ses dettes de jeu. Les paysans des domaines abbatiaux murmurent.`,
+ return { realm: r, title: `Le scandale ${de_(ab)}`, text: pick([`Les moines ${B(de_(ab))} vivent en princes : chasses, festins, servantes. L’abbé a hypothéqué les reliquaires pour payer ses dettes de jeu. Les paysans des domaines abbatiaux murmurent.`, `L’abbaye ${B(de_(ab))} n’a plus d’abbé depuis deux ans : les moines, divisés en deux factions, ont élu chacun le leur et se disputent les clefs du trésor à coups de bâton. Le comte du lieu, ravi, a saisi trois villages de l’abbaye.`, `Un visiteur rapporte que l’abbé ${B(de_(ab))} a installé sa famille dans le cloître, marié sa nièce avec la dot du monastère et vend les charges de prieur au plus offrant. La règle de saint Benoît n’est plus lue au chapitre.`]),
   opts: [{ t: 'Envoyer des réformateurs (15 marcs)', d: 'Corruption −3 · ferveur +2', req: () => S.treasury >= 15 ? null : 'Trésor insuffisant', fx() { modT(-15); modC(-3); modF(r, 2); } },
    { t: 'Placer l’abbaye en commende et en percevoir les revenus', d: 'Trésor +50 · corruption +3', fx() { modT(50); modC(3); } },
    { t: 'Ignorer', d: 'Corruption +2', fx() { modC(2); } }] };
@@ -187,13 +188,13 @@ E({ id: 'abbaye', w: 2, art: 'church', cool: 8, make() {
 
 E({ id: 'taxe_clerge', w: 2, art: 'coins', cool: 12, make() {
  const r = pickR(x => (hasT(x, 'ambitieux') || hasT(x, 'avide') || hasT(x, 'guerrier')) && RL(x).ruler && !RL(x).ruler.c); if (!r) return null;
- return { realm: r, title: `${rulerLbl(r)} veut taxer son clergé`, text: `Pour financer sa guerre, ${B(leRuler(r))} exige des églises de son royaume un décime sur tous leurs revenus. Les évêques demandent au pape s’ils doivent obéir à César ou à Dieu.`,
+ return { realm: r, title: `${rulerLbl(r)} veut taxer son clergé`, text: pick([`Pour financer sa guerre, ${B(leRuler(r))} exige des églises de son royaume un décime sur tous leurs revenus. Les évêques demandent au pape s’ils doivent obéir à César ou à Dieu.`, `${capFirst(leRuler(r))} a fait saisir les revenus des abbayes vacantes et réclame aux évêques un « don gracieux » pour ses campagnes. Ceux qui refusent voient leurs terres occupées par les sergents royaux. Le clergé ${B(deR(r))} en appelle au pape.`, `Les collecteurs ${B(duRuler(r))} sont entrés dans les sacristies pour inventorier les calices et les reliquaires : le roi entend « emprunter » l’argenterie des églises pour payer ses troupes. Les évêques attendent la parole de Rome.`]),
   opts: [{ t: 'Interdire toute taxe sans l’aveu du pape', d: 'Relation −18 · autorité +4', fx() { modRel(r, -18); modA(4); RL(r).offense++; } },
    { t: 'Autoriser contre une part du produit', d: 'Trésor +40 · relation +5 · investitures −5', fx() { modT(40); modRel(r, 5); modInv(r, -5); } },
    { t: 'Autoriser sans condition', d: 'Relation +12 · investitures −8 · autorité −2', fx() { modRel(r, 12); modInv(r, -8); modA(-2); } }] };
 }});
 
-E({ id: 'captifs', w: 1, art: 'tower', cool: 16, make() {
+E({ id: 'captifs', w: 1, art: 'castle', cool: 16, make() {
  const m = pickA(x => RL(x).relig === 'musulman'); if (!m) return null;
  return { realm: m, title: 'Chrétiens dans les geôles', text: `Des chevaliers et des marins chrétiens croupissent depuis des années dans les prisons ${B(deR(m))}. Leurs familles ont vendu leurs terres pour réunir des rançons qui n’arrivent jamais.`,
   opts: [{ t: 'Payer la rançon (60 marcs)', d: 'Autorité +3 · ferveur +3', req: () => S.treasury >= 60 ? null : 'Trésor insuffisant', fx() { modT(-60); modA(3); modF('all', 3); } },
@@ -201,9 +202,9 @@ E({ id: 'captifs', w: 1, art: 'tower', cool: 16, make() {
    { t: 'Ne rien faire', d: 'Ferveur −2', fx() { modF('all', -2); } }] };
 }});
 
-E({ id: 'guerre_privee', w: 2, art: 'swords', cool: 8, make() {
+E({ id: 'guerre_privee', w: 2, art: 'castle', cool: 8, make() {
  const r = pickR(); if (!r) return null;
- return { realm: r, title: `Guerres privées ${enR(r)}`, text: `Les barons ${B(deR(r))} se livrent des guerres privées sans fin : moissons brûlées, églises pillées, marchands rançonnés. Les paysans se réfugient dans les cimetières, seuls lieux d’asile.`,
+ return { realm: r, title: pick([`Guerres privées ${enR(r)}`, `Les barons ${deR(r)} en armes`]), text: pick([`Les barons ${B(deR(r))} se livrent des guerres privées sans fin : moissons brûlées, églises pillées, marchands rançonnés. Les paysans se réfugient dans les cimetières, seuls lieux d’asile.`, `${capFirst(enR(r))}, deux seigneurs se disputent un moulin depuis une génération : la querelle a gagné tout le pays. Châteaux assiégés, villages incendiés, prêtres rançonnés. Le roi est trop faible pour imposer la paix.`, `Un vicomte ${B(deR(r))} a enlevé l’héritière de son voisin ; vingt barons ont pris parti. Les routes sont coupées, les foires désertées, et les paysans n’osent plus semer. Les évêques supplient le pape d’imposer la trêve de Dieu.`]),
   opts: [{ t: 'Proclamer la Trêve de Dieu', d: 'Ferveur +3 · autorité +2', fx() { modF(r, S.decrees.includes('treve') ? 6 : 3); modA(2); } },
    { t: 'Laisser le roi rétablir l’ordre', d: 'Relation +4 · investitures −3', fx() { modRel(r, 4); modInv(r, -3); } },
    { t: 'Excommunier les fauteurs de guerre', d: 'Autorité +1 · relation −3', fx() { modA(1); modRel(r, -3); modF(r, 1); } }] };
@@ -217,7 +218,7 @@ E({ id: 'byzance_aide', w: 2, art: 'ship', cool: 16, make() {
    { t: 'Refuser : les schismatiques récoltent ce qu’ils ont semé', d: 'Relation −15', fx() { modRel('byzance', -15); } }] };
 }});
 
-E({ id: 'martyr', w: 1, art: 'church', cool: 30, make() {
+E({ id: 'martyr', w: 1, art: 'tomb', cool: 30, make() {
  const r = pickR(x => RL(x).rel < 10 && RL(x).ruler && !RL(x).ruler.c && (hasT(x, 'colerique') || hasT(x, 'ambitieux') || hasT(x, 'anticlerical'))); if (!r) return null;
  return { realm: r, title: `Meurtre dans la cathédrale ${de_(cityOf(r))}`, text: `Quatre chevaliers de la maison ${B(duRuler(r))}, ayant entendu leur maître s’écrier « Qui me délivrera de ce prêtre turbulent ? », ont massacré l’archevêque ${de_(cityOf(r))} au pied de l’autel, pendant les vêpres. Son sang est recueilli par les fidèles comme une relique.`,
   opts: [{ t: 'Canoniser le martyr et exiger une pénitence publique', d: 'Ferveur +12 · autorité +6 · relation −15 · le roi peut se soumettre', fx() { modF(r, 12); modA(6); modRel(r, -15); if (chance(0.45)) { modInv(r, 12); modRel(r, 12); return 'Le roi vient pieds nus au tombeau et se fait flageller par les moines. Il restitue les libertés de l’Église.'; } RL(r).offense++; return 'Le roi refuse toute pénitence. Le tombeau du martyr devient un lieu de pèlerinage.'; } },
@@ -225,9 +226,9 @@ E({ id: 'martyr', w: 1, art: 'church', cool: 30, make() {
    { t: 'Accepter les excuses royales', d: 'Relation +5 · autorité −5', fx() { modRel(r, 5); modA(-5); } }] };
 }});
 
-E({ id: 'canonisation', w: 2, art: 'miracle', cool: 10, make() {
+E({ id: 'canonisation', w: 2, art: 'tomb', cool: 10, make() {
  const r = pickR(); if (!r) return null; const s = pick(SAINTS);
- return { realm: r, title: `La cause ${de_(s)}`, text: `Le clergé et le peuple ${B(deR(r))} réclament la canonisation de ${B(s)}, dont le tombeau accomplit, dit-on, des guérisons chaque semaine. Le dossier compte trois cents témoignages.`,
+ return { realm: r, title: `La cause ${de_(s)}`, text: pick([`Le clergé et le peuple ${B(deR(r))} réclament la canonisation ${B(de_(s))}, dont le tombeau accomplit, dit-on, des guérisons chaque semaine. Le dossier compte trois cents témoignages.`, `Une procession de mille personnes est venue ${deR(r)} jusqu’à Rome : elle réclame ${que_(B(s))} soit inscrit au catalogue des saints. Des aveugles, des paralytiques et une femme possédée témoignent avoir été guéris sur son tombeau.`, `Les évêques ${B(deR(r))} envoient au pape une lettre commune et un coffre de témoignages : la vie ${B(de_(s))} fut exemplaire, son corps est resté intact après vingt ans dans la terre. La cour royale soutient la cause.`]),
   opts: [{ t: 'Canoniser solennellement', d: 'Ferveur +6 · relation +6 · trésor +20 (frais)', fx() { modF(r, 6); modRel(r, 6); modT(20); } },
    { t: 'Exiger un procès en bonne forme', d: 'Autorité +2', fx() { modA(2); } },
    { t: 'Rejeter la cause', d: 'Ferveur −3 · relation −4', fx() { modF(r, -3); modRel(r, -4); } }] };
@@ -314,8 +315,8 @@ E({ id: 'imprimerie', art: 'book', make(force) {
    { t: 'Faire imprimer les Écritures et les décrétales', d: 'Autorité +3 · ferveur +2', fx() { modA(3); modF('all', 2); } }] };
 }});
 
-E({ id: 'seisme', w: 1, art: 'fire', cool: 30, make() {
- return { title: 'La terre a tremblé', text: 'Un tremblement de terre a frappé l’Italie centrale. Le campanile de Saint-Paul-hors-les-Murs s’est effondré, des églises de l’Ombrie sont en ruine. Les prédicateurs y voient la colère de Dieu.',
+E({ id: 'seisme', w: 1, art: 'ruins', cool: 30, make() {
+ return { title: pick(['La terre a tremblé', 'Le séisme']), text: pick(['Un tremblement de terre a frappé l’Italie centrale. Le campanile de Saint-Paul-hors-les-Murs s’est effondré, des églises de l’Ombrie sont en ruine. Les prédicateurs y voient la colère de Dieu.', 'En pleine messe, le sol s’est soulevé : à Rome, des colonnes antiques sont tombées, et des villages des Abruzzes ont disparu dans la montagne. Des flagellants parcourent déjà les routes.', 'Une secousse terrible a lézardé les murs du Latran et abattu une tour du Capitole. Dans les Marches, une ville entière n’est plus qu’un champ de pierres. Les fidèles demandent des processions de pénitence.']),
   opts: [{ t: 'Financer la reconstruction (50 marcs)', d: 'Ferveur +3 · peuple +6', req: () => S.treasury >= 50 ? null : 'Trésor insuffisant', fx() { modT(-50); modF('etats', 5); modPeople(6); } },
    { t: 'Appeler à la pénitence', d: 'Ferveur +2 · stabilité −4', fx() { modF('all', 2); modStab(-4); } }] };
 }});
@@ -335,10 +336,10 @@ E({ id: 'templiers', hist: 1, once: 1, art: 'fire', make() {
    { t: 'Ouvrir une enquête pontificale', d: 'France −5 · autorité +1', fx() { modRel('france', -5); modA(1); } }] };
 }});
 
-E({ id: 'feud', w: 2, art: 'tower', cool: 8, make() {
+E({ id: 'feud', w: 2, art: 'castle', cool: 8, make() {
  if (S.curia !== 'rome') return null; const f = S.rome.fam.slice().sort((a, b) => b.power - a.power); if (f.length < 2) return null;
  const [a, b] = f;
- return { title: `Les ${a.n} contre les ${b.n}`, text: `Une querelle de préséance lors des funérailles d’un cardinal a dégénéré : les ${B(a.n)} et les ${B(b.n)} se battent depuis trois jours dans les ruelles du Campo de’ Fiori. Leurs tours, plantées sur les ruines antiques, se mitraillent de carreaux d’arbalète.`,
+ return { title: `Les ${a.n} contre les ${b.n}`, text: pick([`Une querelle de préséance lors des funérailles d’un cardinal a dégénéré : les ${B(a.n)} et les ${B(b.n)} se battent depuis trois jours dans les ruelles du Campo de’ Fiori. Leurs tours, plantées sur les ruines antiques, se mitraillent de carreaux d’arbalète.`, `Un mariage manqué entre les deux maisons a viré au sang : les ${B(a.n)} ont enlevé la fiancée promise aux ${B(b.n)}. Depuis, chaque nuit, les deux clans s’affrontent sur le pont Saint-Ange, et les pèlerins n’osent plus traverser le Tibre.`, `Les ${B(a.n)} ont fortifié le mausolée d’Auguste, les ${B(b.n)} le théâtre de Marcellus : entre les deux, le quartier brûle. Un chanoine de Saint-Pierre a été tué d’un carreau perdu, et le peuple accuse le pape de laisser faire.`]),
   opts: [{ t: `Soutenir les ${a.n}`, d: `${a.n} +15 · ${b.n} −15`, fx() { a.loyal = clamp(a.loyal + 15, 0, 100); b.loyal = clamp(b.loyal - 15, 0, 100); } },
    { t: `Soutenir les ${b.n}`, d: `${b.n} +15 · ${a.n} −15`, fx() { b.loyal = clamp(b.loyal + 15, 0, 100); a.loyal = clamp(a.loyal - 15, 0, 100); } },
    { t: 'Imposer la paix avec la milice', d: 'Exige 200 hommes · stabilité +8', req: () => S.army >= 200 ? null : '200 hommes requis', fx() { modStab(8); a.power -= 3; b.power -= 3; } }] };
@@ -352,7 +353,7 @@ E({ id: 'jubile', art: 'procession', make(force) {
    { t: 'Ne rien proclamer', d: 'Ferveur −3', fx() { modF('all', -3); } }] };
 }});
 
-E({ id: 'ingeburge', hist: 1, once: 1, art: 'crown', make() {
+E({ id: 'ingeburge', hist: 1, once: 1, art: 'wedding', make() {
  if (!S.flags.ingeburge || S.turn < 1 || !active('france')) return null; S.flags.ingeburge = 0;
  return { realm: 'france', title: 'Philippe Auguste et Ingeburge', text: `Au lendemain de ses noces avec ${B('Ingeburge de Danemark')}, ${B(leRuler('france'))} l’a répudiée sans explication, a fait casser le mariage par des évêques complaisants et a épousé Agnès de Méranie. Ingeburge, enfermée dans des couvents, en appelle au pape depuis des années.`,
   opts: [{ t: 'Jeter l’interdit sur le royaume de France', d: 'Interdit · autorité +6 · France −30 · Danemark +15', fx() { RL('france').excom = true; RL('france').interdict = true; RL('france').excomT = 0; modA(6); modRel('france', -30); modRel('danemark', 15); return 'Pendant neuf mois, les églises de France se taisent. Le roi finit par promettre de reprendre la reine.'; } },
@@ -368,7 +369,7 @@ E({ id: 'double', hist: 1, once: 1, art: 'crown', make() {
    { t: 'Laisser les armes décider', d: 'Guerre civile en Allemagne : Empire affaibli', fx() { RL('empire').base -= 4; modF('empire', -6); RL('empire').claimant = null; } }] };
 }});
 
-E({ id: 'colonna', hist: 1, once: 1, art: 'tower', make() {
+E({ id: 'colonna', hist: 1, once: 1, art: 'castle', make() {
  if (!S.flags.colonna || S.turn < 1) return null; S.flags.colonna = 0; const f = fam('Colonna'); if (!f) return null;
  return { title: 'La révolte des Colonna', text: `Les cardinaux ${B('Giacomo et Pietro Colonna')} affichent sur les portes des églises un manifeste niant la validité de l’abdication de Célestin V — et donc votre élection. Leur famille a détourné le trésor pontifical en route vers Rome et tient Palestrina, Zagarolo et Colonna.`,
   opts: [{ t: 'Déposer les deux cardinaux et prêcher la croisade contre Palestrina', d: 'Exige 300 hommes · Colonna anéantis si succès · autorité +4', req: () => S.army >= 300 ? null : '300 hommes requis', fx() { const ok = chance(0.6); S.cardinals.filter(c => c.ln === 'Colonna').forEach(removeCardinal); if (ok) { f.power = 12; f.loyal = 10; modA(4); modStab(6); return 'Palestrina est rasée ; on y sème du sel. Les Colonna fuient en France, où le roi les accueille.'; } S.army -= 200; modA(-3); return 'Les murailles de Palestrina résistent. Les Colonna narguent le pape depuis leurs tours.'; } },
@@ -392,7 +393,7 @@ E({ id: 'aristote', w: 1, art: 'book', once: 1, make() {
    { t: 'Encourager la synthèse thomiste', d: 'Autorité +4 · cardinaux plus savants', fx() { modA(4); S.cardinals.forEach(c => { if (chance(0.3)) c.comp = clamp(c.comp + 1, 1, 10); }); } }] };
 }});
 
-E({ id: 'nicolaites', w: 2, art: 'church', cool: 10, make() {
+E({ id: 'nicolaites', w: 2, art: 'monastery', cool: 10, make() {
  if (S.year > 1180 || S.decrees.includes('celibat')) return null; const r = pickR(); if (!r) return null;
  return { realm: r, title: 'Les prêtres mariés', text: `${capFirst(enR(r))}, la plupart des curés vivent avec une épouse et des enfants à qui ils lèguent leur église comme un bien de famille. Des laïcs réformateurs boycottent leurs messes et les chassent parfois à coups de pierres.`,
   opts: [{ t: 'Soutenir les réformateurs laïcs', d: 'Ferveur +5 · hérésie +3 · autorité +2', fx() { modF(r, 5); modH(r, 3); modA(2); } },
@@ -408,7 +409,7 @@ E({ id: 'treve_sultan', w: 1, art: 'scroll', cool: 30, make() {
 }});
 
 /* ===================== Événements supplémentaires ===================== */
-E({ id: 'bernard', w: 3, once: 1, art: 'church', make() {
+E({ id: 'bernard', w: 3, once: 1, art: 'monastery', make() {
  if (S.year < 1115 || S.year > 1153) return null;
  return { title: 'L’abbé de Clairvaux', text: `Un moine émacié, ${B('Bernard de Clairvaux')}, remplit l’Europe de sa voix. Il fait trembler les rois, confond les théologiens, fonde des abbayes par dizaines. Il demande à être entendu du pape : « Je ne suis rien, mais le Christ parle par ma bouche. »`,
   opts: [{ t: 'Le charger de prêcher pour l’Église', d: 'Ferveur +6 · ardeur de croisade · autorité +3', fx() { modF('all', 6); S.flags.zeal = 1; modA(3); return 'À Vézelay, la foule est si nombreuse qu’on dresse une estrade dans les champs.'; } },
@@ -427,13 +428,13 @@ E({ id: 'arnaud', w: 3, once: 1, art: 'people', make() {
    { t: 'Le livrer au bras séculier de l’empereur', d: 'Empire +10 · peuple −10 · autorité +2', fx() { modRel('empire', 10); modPeople(-10); modA(2); return 'Arnaud est pendu, son corps brûlé, ses cendres jetées dans le Tibre.'; } },
    { t: 'Négocier avec la Commune', d: 'Stabilité +8 · autorité −4', fx() { modStab(8); modA(-4); } }] };
 }});
-E({ id: 'joachim', w: 1, cool: 40, art: 'book', make() {
+E({ id: 'joachim', w: 1, cool: 40, art: 'monastery', make() {
  if (S.year < 1250 || S.year > 1350) return null;
  return { title: 'L’Évangile éternel', text: 'Des frères « spirituels » répandent les prophéties de l’abbé Joachim de Flore : l’âge du Père et celui du Fils s’achèvent, l’âge de l’Esprit commence en l’an 1260, et l’Église charnelle de Rome sera balayée.',
   opts: [{ t: 'Condamner ces prophéties', d: 'Autorité +2 · hérésie +3 en Toscane', fx() { modA(2); if (active('toscane')) modH('toscane', 3); } },
    { t: 'Laisser les théologiens réfuter', d: 'Ferveur +2 · hérésie +4 partout', fx() { modF('all', 2); modH('all', 4); } }] };
 }});
-E({ id: 'dolcino', w: 4, once: 1, art: 'tower', make() {
+E({ id: 'dolcino', w: 4, once: 1, art: 'forest', make() {
  if (S.year < 1300 || S.year > 1310 || !active('lombardie')) return null;
  return { realm: 'lombardie', title: 'Fra Dolcino dans les montagnes', text: `Les Apostoliques de ${B('Fra Dolcino')}, quelques milliers d’hommes et de femmes, se sont retranchés dans les Alpes piémontaises. Ils annoncent la fin de l’Église romaine et pillent les vallées pour survivre.`,
   opts: [{ t: 'Prêcher une croisade locale', d: 'Hérésie −15 en Lombardie · ferveur −3', fx() { modH('lombardie', -15); modF('lombardie', -3); return 'Affamés, les derniers Apostoliques sont pris sur le mont Rubello ; Dolcino est supplicié à Verceil.'; } },
@@ -460,9 +461,9 @@ E({ id: 'grand_schisme', hist: 1, once: 1, art: 'conclave', make() {
    { t: 'Promettre de rétablir la Curie en Avignon', d: 'Curie en Avignon · France +20 · autorité −5', fx() { S.curia = 'avignon'; modRel('france', 20); modA(-5); } },
    { t: 'Les défier : le pape légitime, c’est moi', d: 'Grand Schisme : un antipape soutenu par la France', fx() { const fc = S.cardinals.filter(c => c.nat === 'francais'); fc.forEach(removeCardinal); createSchism(active('france') ? 'france' : null, 'conclave'); return `${fc.length} cardinaux passent à l’antipape. La Chrétienté se déchire entre deux obédiences.`; } }] };
 }});
-E({ id: 'disette', w: 2, cool: 12, art: 'coins', make() {
+E({ id: 'disette', w: 2, cool: 12, art: 'harvest', make() {
  if (S.curia !== 'rome') return null;
- return { title: 'Disette à Rome', text: 'Les nefs de grain siciliennes n’arrivent plus : la guerre ferme la mer. Le pain a triplé de prix ; les femmes du Trastevere assiègent les greniers du Latran.',
+ return { title: pick(['Disette à Rome', 'Le pain manque à Rome']), text: pick(['Les nefs de grain siciliennes n’arrivent plus : la guerre ferme la mer. Le pain a triplé de prix ; les femmes du Trastevere assiègent les greniers du Latran.', 'Un orage de grêle a couché les blés de la Campagne romaine. Les boulangers du Campo de’ Fiori réduisent le poids des pains ; on a pendu l’un d’eux, accusé d’y mêler de la sciure.', 'Les barons de la Campagne retiennent leur blé pour faire monter les prix. Au Capitole, les orateurs accusent la Curie de s’engraisser pendant que le peuple a faim.', 'La récolte a été maigre et le blé des Pouilles a été vendu aux Vénitiens. Aux portes du Latran, la foule des affamés réclame les distributions de pain que faisaient les anciens papes.', 'Les moulins du Tibre sont arrêtés par la sécheresse : plus d’eau, plus de farine. Le prix du pain s’envole, et des boulangeries sont pillées dans le quartier de la Regola.']),
   opts: [{ t: 'Acheter du grain à prix d’or (50 marcs)', d: 'Peuple +12', req: () => S.treasury >= 50 ? null : 'Trésor insuffisant', fx() { modT(-50); modPeople(12); } },
    { t: 'Ouvrir les greniers ecclésiastiques', d: 'Peuple +6 · corruption −1', fx() { modPeople(6); modC(-1); } },
    { t: 'Laisser faire les marchands', d: 'Peuple −12 · stabilité −5', fx() { modPeople(-12); modStab(-5); } }] };
@@ -474,8 +475,8 @@ E({ id: 'incendie', w: 1, cool: 40, art: 'fire', make() {
   opts: [{ t: 'Reconstruire aussitôt (70 marcs)', d: 'Le bâtiment est sauvé · peuple +4', req: () => S.treasury >= 70 ? null : 'Trésor insuffisant', fx() { modT(-70); modPeople(4); } },
    { t: 'Reconstruire plus tard', d: k ? 'Le chantier repart pour 2 saisons' : 'Stabilité −5', fx() { if (k) S.build[k] = 2; else modStab(-5); } }] };
 }});
-E({ id: 'brigands', w: 2, cool: 10, art: 'swords', make() {
- return { title: 'Brigands sur la via Francigena', text: 'Des routiers licenciés rançonnent les pèlerins entre Viterbe et Rome. Les offrandes s’effondrent, et l’on raconte en Flandre que le chemin de Rome mène au martyre.',
+E({ id: 'brigands', w: 2, cool: 10, art: 'forest', make() {
+ return { title: pick(['Brigands sur la via Francigena', 'Les routiers de la Campagne', 'Le chemin des pèlerins coupé']), text: pick(['Des routiers licenciés rançonnent les pèlerins entre Viterbe et Rome. Les offrandes s’effondrent, et l’on raconte en Flandre que le chemin de Rome mène au martyre.', 'Une compagnie de soudards sans solde tient le passage du mont Cimino. Ils dépouillent les pèlerins jusqu’à la chemise et pendent ceux qui résistent aux chênes du bord de la route. Les pèlerinages se raréfient.', 'Le seigneur d’un castrum de la Sabine a fait de sa tour un repaire : ses hommes rançonnent les marchands de Rome et les convois de la Chambre apostolique. On dit qu’il n’a pas entendu la messe depuis dix ans.', 'Des bandes de mercenaires bretons, licenciés après la dernière guerre, campent aux portes de Viterbe. Ils exigent une « rançon de paix » des villes et des abbayes, et dépouillent les pèlerins attardés.', 'Un pèlerin anglais est arrivé à Rome nu et ensanglanté : sa compagnie a été massacrée sur les bords du lac de Bolsena. Dans toutes les auberges de la via Francigena, on ne parle que de ce crime.']),
   opts: [{ t: 'Envoyer la milice nettoyer les routes', d: 'Exige 200 hommes · autorité +2', req: () => S.army >= 200 ? null : '200 hommes requis', fx() { if (chance(0.7)) { modA(2); S.ctrl.latium = clamp(S.ctrl.latium + 5, 0, 100); return 'Une vingtaine de pendus sur les chemins rassurent les pèlerins.'; } S.army -= 100; return 'Les brigands se dispersent dans la Maremme.'; } },
    { t: 'Les prendre à votre solde', d: 'Milice +100 · 30 marcs · corruption +2', req: () => S.treasury >= 30 ? null : 'Trésor insuffisant', fx() { modT(-30); S.army += 100; modC(2); } },
    { t: 'Ne rien faire', d: 'Trésor −20 · ferveur −1', fx() { modT(-20); modF('all', -1); } }] };
@@ -486,7 +487,7 @@ E({ id: 'tournoi', w: 2, cool: 16, art: 'swords', make() {
   opts: [{ t: 'Refuser la sépulture chrétienne aux morts', d: 'Autorité +2 · relation −6', fx() { modA(2); modRel(r, -6); } },
    { t: 'Rester silencieux', d: 'Aucun effet', fx() { } }] };
 }});
-E({ id: 'bardi', hist: 1, once: 1, art: 'coins', make() {
+E({ id: 'bardi', hist: 1, once: 1, art: 'city', make() {
  if (S.year < 1340 || S.debt < 100) return null;
  return { title: 'La faillite des Bardi', text: 'Les grandes compagnies florentines des Bardi et des Peruzzi s’effondrent : le roi d’Angleterre refuse de rembourser ses emprunts de guerre. Leurs créances sur la Chambre apostolique sont dispersées entre mille créanciers.',
   opts: [{ t: 'Profiter du chaos pour ne rembourser qu’une partie', d: 'Dette −60 % · autorité −2 · Florence −15', fx() { S.debt = Math.round(S.debt * 0.4); modA(-2); if (active('toscane')) modRel('toscane', -15); } },
@@ -500,13 +501,13 @@ E({ id: 'ethiopiens', w: 4, once: 1, art: 'procession', make() {
 }});
 E({ id: 'mondes', hist: 1, once: 1, art: 'ship', make() {
  if (S.year < 1492 || !active('castille') || !active('portugal')) return null;
- return { title: 'Des terres au-delà de l’Océan', text: `Un Génois au service de ${leR('castille')} affirme avoir atteint les Indes par l’ouest. Le roi de Portugal réclame ces terres en vertu de bulles anciennes. Les deux couronnes demandent au pape de partager le monde.`,
+ return { title: 'Des terres au-delà de l’Océan', text: `Un Génois au service ${deR('castille')} affirme avoir atteint les Indes par l’ouest. Le roi de Portugal réclame ces terres en vertu de bulles anciennes. Les deux couronnes demandent au pape de partager le monde.`,
   opts: [{ t: 'Tracer une ligne d’un pôle à l’autre', d: 'Castille +12 · Portugal +8 · autorité +4', fx() { modRel('castille', 12); modRel('portugal', 8); modA(4); return 'La bulle Inter caetera partage l’Océan à cent lieues des Açores.'; } },
    { t: 'Favoriser la Castille', d: 'Castille +20 · Portugal −15', fx() { modRel('castille', 20); modRel('portugal', -15); } }] };
 }});
 E({ id: 'humanistes', w: 2, cool: 20, art: 'book', make() {
  if (S.year < 1400) return null;
- return { title: 'Les humanistes à la Curie', text: 'Des lettrés florentins, qui écrivent un latin cicéronien et collectionnent les manuscrits grecs, proposent leurs services comme secrétaires apostoliques. Des peintres offrent de couvrir de fresques les palais du pape.',
+ return { title: 'Les humanistes à la Curie', text: pick(['Des lettrés florentins, qui écrivent un latin cicéronien et collectionnent les manuscrits grecs, proposent leurs services comme secrétaires apostoliques. Des peintres offrent de couvrir de fresques les palais du pape.', 'Un érudit venu de Constantinople propose d’enseigner le grec à la Curie et de traduire Platon pour la bibliothèque pontificale. Des orfèvres et des sculpteurs florentins font antichambre au Vatican.', 'Des secrétaires lettrés, nourris de Cicéron et de Tite-Live, offrent de réformer le style des bulles pontificales. Ils réclament aussi des pensions, des bénéfices… et le droit de fouiller les ruines pour y chercher des statues.']),
   opts: [{ t: 'Engager peintres et lettrés (60 marcs)', d: 'Autorité +4 · chantier de la chapelle accéléré', req: () => S.treasury >= 60 ? null : 'Trésor insuffisant', fx() { modT(-60); modA(4); if (typeof S.build.chapelle === 'number') S.build.chapelle = Math.max(1, S.build.chapelle - 2); } },
    { t: 'Se méfier de ces païens', d: 'Aucun effet', fx() { } }] };
 }});
@@ -517,21 +518,21 @@ E({ id: 'cardinal_scandale', w: 2, cool: 10, art: 'tower', make() {
    { t: 'L’envoyer en pénitence dans un monastère', d: 'Loyauté −20 · corruption −1', fx() { c.loyal = clamp(c.loyal - 20, 0, 100); modC(-1); } },
    { t: 'Étouffer l’affaire', d: 'Corruption +3 · sa loyauté +10', fx() { modC(3); c.loyal = clamp(c.loyal + 10, 0, 100); } }] };
 }});
-E({ id: 'cardinal_saint', w: 1, cool: 20, art: 'miracle', make() {
+E({ id: 'cardinal_saint', w: 1, cool: 20, art: 'tomb', make() {
  const c = S.cardinals.find(c => c.piety >= 8 && c.age > 60); if (!c) return null;
  return { title: 'Mort en odeur de sainteté', portrait: c.id, text: `Le cardinal ${B(cname(c))} s’est éteint en priant, après avoir distribué tous ses biens aux pauvres. On dit que son corps exhale un parfum de roses et que des malades guérissent en touchant son linceul.`,
   opts: [{ t: 'Ouvrir son procès de canonisation', d: 'Ferveur +4 · autorité +2', fx() { removeCardinal(c); modF('all', 4); modA(2); } },
    { t: 'Lui offrir des funérailles solennelles', d: 'Peuple +6 · ferveur +1', fx() { removeCardinal(c); modPeople(6); modF('all', 1); } }] };
 }});
-E({ id: 'mariage_niece', w: 2, cool: 16, art: 'crown', make() {
+E({ id: 'mariage_niece', w: 2, cool: 16, art: 'wedding', make() {
  if (S.curia !== 'rome') return null; const f = pick(S.rome.fam.filter(x => x.n !== S.pope.fam)); if (!f) return null;
- return { title: `Les ${f.n} demandent une alliance`, text: `Le chef de la maison ${B(f.n)} demande la main d’une nièce du pape pour son fils aîné. La dot serait payée en châteaux du Latium ; l’alliance apaiserait la Ville… et enrichirait la famille du pontife.`,
+ return { title: `Les ${f.n} demandent une alliance`, text: pick([`Le chef de la maison ${B(f.n)} demande la main d’une nièce du pape pour son fils aîné. La dot serait payée en châteaux du Latium ; l’alliance apaiserait la Ville… et enrichirait la famille du pontife.`, `Les ${B(f.n)} envoient au Latran un cortège de cinquante cavaliers : ils demandent pour leur héritier la main d’une nièce du pape. En dot, ils offrent la paix dans leurs quartiers… et trois forteresses de la Campagne.`, `Une marieuse de la maison ${B(f.n)} s’est présentée chez la sœur du pape : un fils de la famille épouserait volontiers une nièce du pontife. Les cardinaux rivaux grincent déjà des dents à l’idée de ce népotisme.`]),
   opts: [{ t: 'Accepter le mariage', d: `${f.n} +25 · corruption +2 · contrôle du Latium +5`, fx() { f.loyal = clamp(f.loyal + 25, 0, 100); modC(2); S.ctrl.latium = clamp(S.ctrl.latium + 5, 0, 100); } },
    { t: 'Refuser poliment', d: `${f.n} −10`, fx() { f.loyal = clamp(f.loyal - 10, 0, 100); } }] };
 }});
 E({ id: 'testaccio', w: 2, cool: 8, art: 'people', make() {
  if (S.curia !== 'rome' || S.season !== 0) return null;
- return { title: 'Les jeux du Testaccio', text: 'Pour le carnaval, les Romains réclament les jeux traditionnels du mont Testaccio : courses, combats de taureaux, chariots chargés de porcs lâchés sur la pente. Le Sénat demande au pape de les financer.',
+ return { title: pick(['Les jeux du Testaccio', 'Le carnaval romain']), text: pick(['Pour le carnaval, les Romains réclament les jeux traditionnels du mont Testaccio : courses, combats de taureaux, chariots chargés de porcs lâchés sur la pente. Le Sénat demande au pape de les financer.', 'Le carnaval approche : les rioni de Rome préparent les joutes de la place Navone et les courses de chevaux barbes sur le Corso. Les conservateurs du Capitole demandent au pape de payer les prix et les décors.', 'Les jeunes gens des treize quartiers de Rome réclament leurs fêtes de carnaval : tauromachies sur le mont Testaccio, chars allégoriques, banquets publics. Sans subside pontifical, la fête n’aura pas lieu.']),
   opts: [{ t: 'Financer les jeux (30 marcs)', d: 'Peuple +10 · stabilité +3', req: () => S.treasury >= 30 ? null : 'Trésor insuffisant', fx() { modT(-30); modPeople(10); modStab(3); } },
    { t: 'Les interdire comme païens', d: 'Peuple −8 · autorité +1', fx() { modPeople(-8); modA(1); } }] };
 }});
@@ -563,24 +564,24 @@ E({ id: 'couronnement', w: 3, cool: 12, art: 'crown', make() {
 }});
 E({ id: 'cens_impaye', w: 2, cool: 12, art: 'coins', make() {
  const r = pickR(x => RL(x).vassal && RL(x).rel < 20); if (!r) return null;
- return { realm: r, title: `${rulerLbl(r)} refuse le cens`, text: `${capFirst(leRuler(r))} déclare que son royaume ne doit rien à Rome et cesse de payer le cens annuel. Ses conseillers parlent de « l’humiliation » de ses prédécesseurs.`,
+ return { realm: r, title: `${rulerLbl(r)} refuse le cens`, text: pick([`${capFirst(leRuler(r))} déclare que son royaume ne doit rien à Rome et cesse de payer le cens annuel. Ses conseillers parlent de « l’humiliation » de ses prédécesseurs.`, `Le légat chargé de percevoir le cens est revenu les mains vides : ${B(leRuler(r))} l’a fait attendre trois mois dans une auberge, puis lui a fait dire que « son trésor ne paie pas de tribut ».`, `${capFirst(leRuler(r))} a réuni ses barons et leur a lu une charte affirmant que son royaume ne relève que de Dieu. Le cens dû au Saint-Siège depuis son aïeul ne sera plus payé.`]),
   opts: [{ t: 'Rappeler le serment de vassalité', d: 'Relation −8 · autorité +2', fx() { modRel(r, -8); modA(2); RL(r).offense++; } },
    { t: 'Délier le royaume de sa vassalité', d: 'Plus de cens · relation +10 · autorité −3', fx() { RL(r).vassal = false; modRel(r, 10); modA(-3); } }] };
 }});
-E({ id: 'eveque_rebelle', w: 2, cool: 10, art: 'church', make() {
+E({ id: 'eveque_rebelle', w: 2, cool: 10, art: 'bishop', make() {
  const r = pickR(x => RL(x).invest < 50); if (!r) return null; const who = pick(['l’archevêque de Cologne', 'l’archevêque de Cantorbéry', 'l’archevêque de Tolède', 'l’archevêque de Reims', 'l’archevêque de Mayence', 'l’archevêque de Gniezno', 'l’archevêque d’Esztergom', 'l’archevêque d’Uppsala']);
- return { realm: r, title: 'Un primat insoumis', text: `${capFirst(who)} refuse de recevoir le légat pontifical et interdit à ses suffragants d’en appeler à Rome. « Mon église a ses coutumes, que le pape respecte », écrit-il.`,
+ return { realm: r, title: 'Un primat insoumis', text: pick([`${capFirst(who)} refuse de recevoir le légat pontifical et interdit à ses suffragants d’en appeler à Rome. « Mon église a ses coutumes, que le pape respecte », écrit-il.`, `${capFirst(who)} a fait jeter à la porte de sa cathédrale les lettres pontificales sans les ouvrir. Il nomme lui-même aux abbayes de sa province et a fait arrêter un chanoine qui voulait en appeler à Rome.`, `On rapporte que ${who} a déclaré devant son synode que « l’évêque de Rome est un évêque comme les autres ». Il a cessé de verser le denier de saint Pierre et protège un clerc excommunié par le pape.`]),
   opts: [{ t: 'Le suspendre de ses fonctions', d: 'Investitures +6 · relation −6 · autorité +2', fx() { modInv(r, 6); modRel(r, -6); modA(2); } },
    { t: 'Lui confirmer ses privilèges', d: 'Investitures −4 · autorité −2 · relation +4', fx() { modInv(r, -4); modA(-2); modRel(r, 4); } }] };
 }});
 E({ id: 'hiver', w: 2, cool: 12, art: 'snow', make() {
  if (S.season !== 3) return null;
- return { title: 'Le grand hiver', text: 'Le Tibre a gelé, comme le Rhin et la lagune de Venise. Les loups entrent dans les villages, le vin gèle dans les tonneaux. Les pauvres meurent de froid aux portes des églises.',
+ return { title: pick(['Le grand hiver', 'L’hiver terrible']), text: pick(['Le Tibre a gelé, comme le Rhin et la lagune de Venise. Les loups entrent dans les villages, le vin gèle dans les tonneaux. Les pauvres meurent de froid aux portes des églises.', 'La neige couvre Rome jusqu’aux genoux, chose que nul vivant n’avait vue. Les oliviers de la Sabine éclatent sous le gel, les moulins sont pris dans la glace et le pain vient à manquer.', 'Un froid cruel s’est abattu sur la Chrétienté : la mer a gelé entre le Danemark et la Suède, les vignes de Bourgogne sont mortes. Dans les villes, les confréries ramassent chaque matin les corps des mendiants.']),
   opts: [{ t: 'Faire distribuer bois et couvertures (35 marcs)', d: 'Peuple +8 · ferveur +2', req: () => S.treasury >= 35 ? null : 'Trésor insuffisant', fx() { modT(-35); modPeople(8); modF('all', 2); } },
    { t: 'Ordonner aux monastères d’ouvrir leurs portes', d: 'Ferveur +2 · corruption −1', fx() { modF('all', 2); modC(-1); } },
    { t: 'Prier pour le dégel', d: 'Peuple −6', fx() { modPeople(-6); } }] };
 }});
-E({ id: 'legat_insulte', w: 2, cool: 10, art: 'scroll', make() {
+E({ id: 'legat_insulte', w: 2, cool: 10, art: 'bishop', make() {
  const r = pickR(x => RL(x).legate && RL(x).rel < 0); if (!r) return null; const c = card(RL(r).legate); if (!c) return null;
  return { realm: r, title: 'Le légat outragé', portrait: c.id, text: `À la cour ${deR(r)}, le cardinal-légat ${B(cname(c))} a été chassé du palais sous les quolibets ; des pages ont coupé la queue de sa mule. Il demande réparation.`,
   opts: [{ t: 'Exiger des excuses publiques', d: 'Relation −8 · autorité +3', fx() { modRel(r, -8); modA(3); RL(r).offense++; } },

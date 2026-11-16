@@ -23,6 +23,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | **Robot qui joue au doigt (3D)** | `valdragon/outils/tests/explore.py` + `agent2.js` (vrai joystick, toutes les cases) | `trone-de-braise/outils/parcours.py` |
 | **Robot qui joue au doigt (DOM/SVG)** | `couronnes-et-lignees/outils/tests/explore.py` (générique, relève blocages et couverture) | `bannieres/outils/parcours.py`, `cage-et-gloire/outils/parcours.py` |
 | **Clics au hasard** | `bannieres/outils/monkey.py` (ordinateur + téléphone, graine) | `cage-et-gloire`, `sedes-petri` |
+| **Redondance du contenu** (événements, illustrations, textes et chronique qui reviennent trop souvent) | `sedes-petri/outils/redondance.js` (parties complètes par robots ; fréquence par événement, écart moyen, part de l'illustration la plus vue, textes revus mot pour mot en moins de 20 ans, lignes de chronique répétées) | à adapter à tout jeu à événements textuels (Couronnes & Lignées, Une vie, Président de Club) |
 | **Parties automatiques dans Chrome** | `wallstreet/outils/gsim.py` | |
 | **Rythme d'une partie (semaines « plates »)** | `wallstreet/outils/rythme.py` | instrumente la page construite (accroches sur toast/info/flash) et compte les semaines sans rien de marquant ; adaptable à tout jeu « séance par séance » |
 | **Avantage d'un joueur qui suit les annonces** | `wallstreet/outils/feuil_edge.py` | vérifie qu'un événement annoncé à l'avance ne laisse pas de gain gratuit (cours = espérance) |

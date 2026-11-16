@@ -1,0 +1,165 @@
+{
+ "bot": "sage",
+ "parties": 12,
+ "evtsParPartie": 1234,
+ "anneesParPartie": 281,
+ "idsDifferentsParPartie": 75,
+ "illustrationsDifferentes": 8,
+ "partIllustrationPrincipale": 96.4,
+ "memeImageQuePrecedent": 92.9,
+ "titresDejaVus": 68.4,
+ "texteRevuMoins20ans": 28.5,
+ "textesDejaVus": 49,
+ "arts": {
+  "church": 96.4,
+  "crown": 2.4,
+  "swords": 0.7,
+  "book": 0.3,
+  "ship": 0.1,
+  "fire": 0.1,
+  "snow": 0,
+  "rome": 0
+ },
+ "top15": [
+  {
+   "id": "eveque_roi",
+   "parPartie": 65.8,
+   "max": 114,
+   "ecartSaisons": 17
+  },
+  {
+   "id": "simonie",
+   "parPartie": 63.8,
+   "max": 101,
+   "ecartSaisons": 18
+  },
+  {
+   "id": "famine",
+   "parPartie": 47.9,
+   "max": 78,
+   "ecartSaisons": 23
+  },
+  {
+   "id": "guerre_privee",
+   "parPartie": 47.3,
+   "max": 78,
+   "ecartSaisons": 24
+  },
+  {
+   "id": "feud",
+   "parPartie": 46.5,
+   "max": 77,
+   "ecartSaisons": 24
+  },
+  {
+   "id": "canonisation",
+   "parPartie": 44.1,
+   "max": 71,
+   "ecartSaisons": 25
+  },
+  {
+   "id": "abbaye",
+   "parPartie": 43.5,
+   "max": 81,
+   "ecartSaisons": 25
+  },
+  {
+   "id": "miracle",
+   "parPartie": 42.6,
+   "max": 82,
+   "ecartSaisons": 26
+  },
+  {
+   "id": "brigands",
+   "parPartie": 41.2,
+   "max": 69,
+   "ecartSaisons": 27
+  },
+  {
+   "id": "eveque_rebelle",
+   "parPartie": 40.5,
+   "max": 73,
+   "ecartSaisons": 27
+  },
+  {
+   "id": "dispense",
+   "parPartie": 40.4,
+   "max": 68,
+   "ecartSaisons": 28
+  },
+  {
+   "id": "disette",
+   "parPartie": 39.3,
+   "max": 66,
+   "ecartSaisons": 29
+  },
+  {
+   "id": "taxe_clerge",
+   "parPartie": 38,
+   "max": 62,
+   "ecartSaisons": 29
+  },
+  {
+   "id": "cardinal_scandale",
+   "parPartie": 36.2,
+   "max": 62,
+   "ecartSaisons": 30
+  },
+  {
+   "id": "cens_impaye",
+   "parPartie": 35.6,
+   "max": 62,
+   "ecartSaisons": 29
+  }
+ ],
+ "chroniqueTop": [
+  {
+   "ligne": "X du cardinal X X, à # ans.",
+   "parPartie": 67.4
+  },
+  {
+   "ligne": "X roi X X prend la croix.",
+   "parPartie": 24.2
+  },
+  {
+   "ligne": "X du cardinal X de X, à # ans.",
+   "parPartie": 20.3
+  },
+  {
+   "ligne": "X du doge X X. X doge X X lui succède.",
+   "parPartie": 17.6
+  },
+  {
+   "ligne": "X du X concile du X.",
+   "parPartie": 14.7
+  },
+  {
+   "ligne": "X du X concile du X : aucun canon adopté.",
+   "parPartie": 14.3
+  },
+  {
+   "ligne": "X du roi X X. X roi X X lui succède.",
+   "parPartie": 13.5
+  },
+  {
+   "ligne": "X roi X X atteint sa majorité et gouverne seul.",
+   "parPartie": 11.8
+  },
+  {
+   "ligne": "X du roi X X. X roi X X lui succède à # ans.",
+   "parPartie": 9.3
+  },
+  {
+   "ligne": "X X meurt à # ans, après # ans de pontificat. X cloches de X sonnent le glas.",
+   "parPartie": 7.8
+  },
+  {
+   "ligne": "X roi X prend la croix.",
+   "parPartie": 7.6
+  },
+  {
+   "ligne": "X du cardinal X da X, à # ans.",
+   "parPartie": 6.4
+  }
+ ]
+}

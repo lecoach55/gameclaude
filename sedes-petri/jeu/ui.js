@@ -374,7 +374,7 @@ async function showEvent(e) {
  sfx('chord');
  const port = e.portrait ? cardinalPortrait(card(e.portrait) || { seed: 1, age: 50, nat: 'italien' }, 90) : e.realm && active(e.realm) ? rulerPortrait(e.realm, 90) : '';
  const opts = e.opts.map((o, i) => { const why = o.req ? o.req() : null; return `<button class="opt ${why ? 'dis' : ''}" data-opt="${i}" ${why ? 'disabled' : ''}><b>${o.t}</b><small>${why ? '⛔ ' + why : o.d}</small></button>`; }).join('');
- modal(`<div class="ev"><div class="ev-art">${sceneSVG(e.art || 'church')}${e.realm && S.realms[e.realm] ? `<div class="ev-sh">${shieldSVG(e.realm, 46)}</div>` : ''}</div><div class="ev-b"><div class="eyebrow">${dateStr()}</div><h2>${e.title}</h2><div class="ev-row">${port ? `<div class="ev-port">${port}</div>` : ''}<p class="ev-t">${dropcap(e.text)}</p></div><div class="ev-opts">${opts}</div></div></div>`, 'evm');
+ modal(`<div class="ev"><div class="ev-art">${sceneSVG(e.art || 'church', hashStr((e.title || '') + S.turn))}${e.realm && S.realms[e.realm] ? `<div class="ev-sh">${shieldSVG(e.realm, 46)}</div>` : ''}</div><div class="ev-b"><div class="eyebrow">${dateStr()}</div><h2>${e.title}</h2><div class="ev-row">${port ? `<div class="ev-port">${port}</div>` : ''}<p class="ev-t">${dropcap(e.text)}</p></div><div class="ev-opts">${opts}</div></div></div>`, 'evm');
  const b = await waitClick('[data-opt]:not([disabled])'); const o = e.opts[+b.dataset.opt];
  sfx('seal'); const before = { a: S.authority, t: S.treasury };
  const out = o.fx ? o.fx() : null; renderAll();

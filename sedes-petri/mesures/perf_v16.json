@@ -1,0 +1,22 @@
+{
+ "telephone": {
+  "chargement_ms": 748,
+  "construction_carte_ms": 979,
+  "carte_prete_ms": 1379,
+  "rendu_carte_ms": 62.7,
+  "rendu_sans_carte_ms": 42.1,
+  "tour_moteur_ms": 1.8,
+  "taille_sauvegarde_ko": 31,
+  "erreurs": []
+ },
+ "mac": {
+  "chargement_ms": 353,
+  "construction_carte_ms": 424,
+  "carte_prete_ms": 567,
+  "rendu_carte_ms": 32.9,
+  "rendu_sans_carte_ms": 13.2,
+  "tour_moteur_ms": 2.1,
+  "taille_sauvegarde_ko": 31,
+  "erreurs": []
+ }
+}

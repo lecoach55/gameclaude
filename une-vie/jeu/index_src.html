@@ -620,6 +620,8 @@ function births(notes,forced,k=1){
 /* ================= ÉVÉNEMENTS ================= */
 // choix : {l, d?, p?, ok:()=>out, ko?:()=>out}   out : {t, fx}
 const O=(t,fx)=>({t,fx});
+// Mariage arrangé refusé (décision de Victor, 16/11) : liberté choisie → bonheur et liens durables + rencontres choisies (événement "libre")
+const libre=()=>{S.f.libre=1;S.bb=clamp(S.bb+14,-22,22);S.lb=clamp(S.lb+14,-22,22)};
 const SICK=()=>pick(S.c.r=="ssa"?["le paludisme","la typhoïde","une forte fièvre"]:["la typhoïde","une forte fièvre","une infection pulmonaire"]);
 const condTon=n=>n.replace(/^(du |de l'|de la |des |un |une )/,m=>({"du ":"ton ","de l'":"ton ","de la ":"ta ","des ":"tes ","un ":"ton ","une ":"ta "}[m]));
 const condName=n=>cap(n.replace(/^(du |de l'|de la |des |un |une )/,""));
@@ -739,7 +741,10 @@ const EV=[
   {l:"Pas maintenant",ok:()=>O("Tu préfères rester libre.",{})}]}}},
 {id:"arrange",ico:"🪔",a:[19,30],w:6,if:()=>!S.partner&&["sa","mena"].includes(S.c.r)&&!S.ab,run:()=>{const sx=S.sex=="m"?"f":"m",n=nm(sx);return{t:`Tes parents te présentent ${n}, qu'ils ont choisi${sx=="f"?"e":""} pour toi.`,ch:[
   {l:"Accepter le mariage",d:"Ta famille sera ravie",ok:()=>{S.partner={name:n,sex:sx,rel:55,off:sx=="m"?rint(2,8):-rint(1,6),since:S.age,married:true,arr:true,work:ch(.4)};S.everPartner=true;moment("💍",n);return O(`Tu épouses ${n}. Vous apprendrez à vous connaître.`,{l:10,m:-6})}},
-  {l:"Refuser",p:P(.5+(has("tetu")?.25:0)),ok:()=>O("Tu refuses. Ta famille est furieuse, mais tu restes libre.",{l:-6,b:3}),ko:()=>O("La pression familiale devient pesante.",{l:-10,b:-5})}]}}},
+  {l:"Refuser",d:"Choisir toi-même qui tu aimeras",p:P(.5+(has("tetu")?.25:0)),ok:()=>{libre();return O("Tu refuses. Ta famille finit par respecter ton choix : ta vie t'appartient.",{b:10,l:4})},ko:()=>{libre();return O("Ta famille t'en veut longtemps et la pression est rude. Mais tu tiens bon : tu restes libre.",{b:2,l:-2})}}]}}},
+{id:"libre",ico:"💞",a:[20,45],w:70,rep:3,if:()=>S.f.libre&&!S.partner&&!S.school,run:()=>{const sx=S.sex=="m"?"f":"m",n=nm(sx);return{t:`Libre de choisir, tu rencontres ${n}${pick([" chez des amis"," au travail"," au marché"," à un mariage"])}. Cette fois, c'est toi qui décides.`,ch:[
+  {l:"Tenter ta chance",p:P(.9+(has("charisme")?.1:0)),ok:()=>{S.partner={name:n,sex:sx,rel:80,off:sx=="m"?rint(0,6):-rint(0,4),since:S.age,married:false,work:ch(.5)};S.everPartner=true;moment("💞",n);return O(`Tu t'installes avec ${n}, que tu as choisi${sx=="f"?"e":""}.`,{b:10,l:4})},ko:()=>O(`${n} ne partage pas tes sentiments.`,{b:-3})},
+  {l:"Pas maintenant",ok:()=>O("Tu préfères rester libre.",{})}]}}},
 {id:"demande",ico:"💍",a:[20,70],w:6,if:()=>S.partner&&!S.partner.married&&S.age-S.partner.since>=2,run:()=>({t:`${S.partner.name} te demande en mariage.`,ch:[
   {l:"Dire oui",d:"Un beau mariage coûte cher",ok:()=>{S.partner.married=true;S.partner.rel+=15;moment("💍",S.partner.name);return O("Vous vous mariez entourés de vos proches.",{b:10,l:8,m:-8})}},
   {l:"Pas encore",ok:()=>{S.partner.rel-=18;return O(`${S.partner.name} est blessé${S.partner.sex=="f"?"e":""}.`,{b:-3})}}]})},

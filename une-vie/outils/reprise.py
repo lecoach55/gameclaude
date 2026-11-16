@@ -1,8 +1,9 @@
 # Reprise d'une vie en cours : jouer, recharger la page, reprendre, finir la vie. python3 reprise.py
-import asyncio, random
+import asyncio, random, sys
 from playwright.async_api import async_playwright
 from scenes import serveur,navigateur,page,BUILD
-CLIC="(k)=>[...document.querySelectorAll('button')].filter(b=>b.offsetParent&&!b.closest('.tools'))[k].click()"
+# Le bouton peut avoir disparu entre la lecture et le clic (écran qui change) : on ne clique que s'il existe encore.
+CLIC="(k)=>{const b=[...document.querySelectorAll('button')].filter(b=>b.offsetParent&&!b.closest('.tools'))[k];if(b)b.click()}"
 LIRE="()=>[...document.querySelectorAll('button')].filter(b=>b.offsetParent&&!b.closest('.tools')).map(b=>b.innerText)"
 async def jouer(pg,n):
     for i in range(n):
@@ -18,9 +19,20 @@ async def main():
         base=serveur(BUILD,8790);nav=await navigateur(p)
         pg=await page(nav,base+'index.html',390,844);await pg.evaluate("()=>{localStorage.clear();localStorage.setItem('vie8m_q','sd')}")
         await pg.goto(base+'index.html');await pg.wait_for_timeout(500)
-        await pg.evaluate("()=>[...document.querySelectorAll('button')].find(b=>/Naître/.test(b.innerText)).click()");await pg.wait_for_timeout(3400)
-        await pg.click("text=Commencer ma vie");await jouer(pg,40);await pg.wait_for_timeout(400)
-        avant=await pg.evaluate("()=>[S.name,S.age,S.hist.length,S.m,document.querySelectorAll('#log .turn').length]")
+        # Une vie peut mourir jeune ou ne pas encore avoir atteint un point de reprise au bout de 40 clics :
+        # ce n'est pas un échec du jeu, on recommence une vie (jusqu'à 6 fois) au lieu de conclure à tort.
+        for essai in range(6):
+            await pg.evaluate("()=>[...document.querySelectorAll('button')].find(b=>/Naître|Vivre une autre vie|Une toute nouvelle vie/.test(b.innerText)).click()");await pg.wait_for_timeout(3400)
+            await pg.click("text=Commencer ma vie");await jouer(pg,40);await pg.wait_for_timeout(400)
+            pret=await pg.evaluate("()=>!S.dead&&!!localStorage.getItem('vie8m_cur')")
+            if pret: break
+            print('vie',essai+1,'sans point de reprise (morte jeune ou trop tôt) : nouvelle vie')
+            await jouer(pg,600);await pg.wait_for_timeout(600)
+        else:
+            print('REPRISE ÉCHEC : aucune vie avec point de reprise en 6 essais');await nav.close();return False
+        # Référence = le dernier point de reprise enregistré (pris au choix de priorité), pas l'état courant :
+        # si le robot s'arrête au milieu d'un tour, la reprise revient légitimement au début de ce tour.
+        avant=await pg.evaluate("()=>{const c=JSON.parse(localStorage.getItem('vie8m_cur'));const d=document.createElement('div');d.innerHTML=c.log;return [c.S.name,c.S.age,c.S.hist.length,c.S.m,d.querySelectorAll('.turn').length]}")
         # mode test ne doit pas écraser la reprise
         await pg.reload();await pg.wait_for_timeout(800)
         btn=await pg.evaluate("()=>[...document.querySelectorAll('#go button')].map(b=>b.innerText)")
@@ -36,4 +48,5 @@ async def main():
         print('erreurs',pg.erreurs[:5]);ok=ok and not pg.erreurs
         await nav.close()
     print('REPRISE OK' if ok else 'REPRISE ÉCHEC')
-if __name__=='__main__':asyncio.run(main())
+    return ok
+if __name__=='__main__':sys.exit(0 if asyncio.run(main()) else 1)

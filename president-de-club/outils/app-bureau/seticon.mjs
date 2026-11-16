@@ -7,5 +7,5 @@ const ico=ResEdit.Data.IconFile.from(fs.readFileSync('icon.ico'));
 ResEdit.Resource.IconGroupEntry.replaceIconsForResource(res.entries,1,1033,ico.icons.map(i=>i.data));
 const vi=ResEdit.Resource.VersionInfo.fromEntries(res.entries)[0];
 vi.setStringValues({lang:1033,codepage:1200},{ProductName:'Président de Club',FileDescription:'Président de Club',CompanyName:'Président de Club',OriginalFilename:'President de Club.exe',InternalName:'President de Club'});
-vi.setFileVersion(2,8,0,0);vi.setProductVersion(2,8,0,0);vi.outputToResourceEntries(res.entries);
+vi.setFileVersion(2,9,0,0);vi.setProductVersion(2,9,0,0);vi.outputToResourceEntries(res.entries);
 res.outputResource(exe);fs.writeFileSync(f,Buffer.from(exe.generate()));console.log('ok');

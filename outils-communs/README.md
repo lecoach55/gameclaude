@@ -12,6 +12,8 @@
 - **`catalogue.py`** — recherche de ressources CC0 dans Poly Haven **et** ambientCG par mots-clés, planche d'aperçus triée par popularité : `python3 catalogue.py "lava,magma" textures 24 /tmp/lave.jpg` (`textures`, `models`, `hdris`, `tous`). Vignettes rapides si `cdn.polyhaven.com` et `acg-media.struffelproductions.com` sont autorisés, sinon aperçus plus lents.
 - **`planche_modeles.py`** (+ `planche_modeles.html`) — planche-contact de modèles 3D : une vignette par modèle (ou par objet d'un même .glb) sous le même éclairage, avec taille en mètres et nombre de triangles. Sert à choisir des décors avant de les intégrer, puis à vérifier le paquet final. Copier les deux fichiers dans `/home/claude/outils/` ; Three.js est lu dans `/home/claude/t3d/node_modules` (adapter l'importmap sinon). `python3 planche_modeles.py planche.png a.gltf b.glb …`
 
+- **`tests/verifier_outils.py`** — contrôle de tous les outils communs (≈ 5 s ; `--reseau` pour Poly Haven). À faire passer avant de pousser une modification d'outil.
+
 ## Règle d'or
 1. Rendre le jeu **reproductible** : une graine fixe (`Math.random` remplacé) et une fonction pour se placer dans une scène donnée.
 2. Mesurer avant/après (banc), capturer et comparer aux références, tester avec un parcours automatique, puis publier.

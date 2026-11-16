@@ -10,6 +10,7 @@ Victor est le client et décide. La conversation « Le Bureau » joue le rôle d
 | **Graphiste / directeur artistique** (`roles/graphiste.md`) | critique visuelle, cohérence, ressources CC0 à réutiliser | non : il produit des demandes et des ressources communes |
 | **Technicien fluidité** (`roles/technicien-fluidite.md`) | mesure tous les jeux sur la même échelle, repère les scènes lentes | non : il rapporte (et améliore les outils communs de mesure) |
 | **Game designer** (`roles/game-designer.md`) | joue comme un joueur, juge l'intérêt, la clarté, la prise en main | non : il propose, et pose à Victor les questions d'équilibre |
+| **Ingénieur outils** (`roles/outilleur.md`) | améliore en continu les outils de fabrication (passage toutes les 4 h) | non : uniquement `outils-communs/` et des réglages d'outils |
 | **Relecteur de code** (`roles/relecteur.md`) | relit le diff avant publication : régressions, sauvegardes, anciennes parties | non : il donne un feu vert ou rouge |
 
 ## Le circuit d'une amélioration

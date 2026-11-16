@@ -13,6 +13,7 @@ Espace commun à toutes les conversations : chantiers en cours, journal, catalog
 ## Le Studio (`studio/`) — revue indépendante avant publication
 Organisation complète : `studio/README.md`. Rôles (sous-agents, outil Agent, `subagent_type` du même nom s'il est listé, sinon `general-purpose` avec le contenu de `studio/roles/<rôle>.md`) : `testeur`, `graphiste`, `technicien-fluidite`, `game-designer`, `relecteur`.
 - **Avant de publier un changement visible** : lancer au minimum `relecteur` (sur le diff) et `testeur` (sur la version construite, téléphone + ordinateur), plus `graphiste` si l'image change et `technicien-fluidite` si la 3D ou le rendu change. Corriger les ROUGE ; écrire les réserves ORANGE dans le bilan.
+- **Outils** : quand un outil est lent, casse, sonne une fausse alerte ou manque, le dire en une ligne : `python3 bureau/outils/bureau.py outil <dossier> "outil : problème"`. Pour les étapes longues, lancer avec `bureau.py chrono <dossier> "étape" -- commande`. L'équipe Outils (rôle `outilleur`, passage toutes les 4 h) s'en sert ; sa feuille de route est `studio/outils/FEUILLE_DE_ROUTE.md`. Avant de pousser un changement dans `outils-communs/`, `python3 outils-communs/tests/verifier_outils.py` doit être au vert.
 - Les demandes au bureau portent un `type` (`bug`, `art`, `perf`, `design`, `tache`) et une `priorite` (1 haute → 3 basse) : traiter d'abord les bugs bloquants et les priorités 1.
 
 ## Outils communs (`outils-communs/`)

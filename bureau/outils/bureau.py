@@ -6,11 +6,17 @@ Usage (depuis la racine du dépôt) :
   python3 bureau/outils/bureau.py arrivee JEU "ce que je viens faire"
   python3 bureau/outils/bureau.py depart  JEU "ce qui a été fait (chiffres)" [--outil "outil amélioré"]
   python3 bureau/outils/bureau.py page            fabrique bureau/build/index.html (page « Bureau » à publier)
+  python3 bureau/outils/bureau.py outil JEU "outil : ce qui a gêné ou manqué"   retour pour l'équipe Outils
+  python3 bureau/outils/bureau.py chrono JEU "nom de l'étape" -- commande …     lance une commande et note sa durée
 
 JEU = nom du dossier (bannieres, valdragon, …) ou « commun » pour outils-communs / bureau.
 Rien n'est poussé automatiquement : faire le commit et le push ensuite (voir bureau/README.md).
 """
-import hashlib, json, os, re, subprocess, sys, datetime, glob
+import hashlib, json, os, re, subprocess, sys, datetime, glob, signal
+
+# sortie coupée par head/less : se taire au lieu de planter (retour outil du 16/11)
+if hasattr(signal, 'SIGPIPE'):
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 RAC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 B = os.path.join(RAC, 'bureau')
@@ -177,7 +183,7 @@ def etat():
     return {
         'genere': datetime.datetime.now(PARIS).strftime('%Y-%m-%d %H:%M'),
         'commit': git('log', '-1', '--format=%h %cs'),
-        'jeux': jeux, 'chantiers': lire_chantiers(), 'journal': lire_journal(),
+        'jeux': jeux, 'chantiers': lire_chantiers(), 'journal': lire_journal(), 'retours_outils': lire_retours(),
         'familles': [{'id': k, 'nom': n} for k, n, _ in FAMILLES],
         'communs': sorted(os.path.basename(x) for x in glob.glob(os.path.join(RAC, 'outils-communs', '*')) if not x.endswith('.md')),
         'alertes': {
@@ -209,6 +215,10 @@ def afficher(e):
         print(f"  • testkit modifié localement (à reporter dans outils-communs ?) : {', '.join(a['testkit_locaux'])}")
     if a['sans_readme']:
         print(f"  • sans README : {', '.join(a['sans_readme'])}")
+    if e.get('retours_outils'):
+        print('\nRetours outils récents :')
+        for r in e['retours_outils'][:5]:
+            print(f"  {r['quand']} · {r['jeu']} · {r['quoi']}")
     print('\nDerniers passages :')
     for l in e['journal'][:8]:
         print(f"  {l['quand']} · {l['jeu']} · {l['quoi']}")
@@ -250,6 +260,46 @@ def depart(jeu, bilan, outil=None):
     print('Chantier fermé, journal mis à jour.')
 
 
+def retour_outil(jeu, texte):
+    """Une friction d'outil (lent, cassé, manquant, sortie illisible) : l'équipe Outils les traite."""
+    jour = maintenant()[:10]
+    p = os.path.join(B, 'retours-outils', f'{jour}_{jeu}.md')
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    neuf = not os.path.exists(p)
+    with open(p, 'a', encoding='utf-8') as f:
+        if neuf:
+            f.write(f'# Retours outils du {jour} — {jeu}\n\n')
+        f.write(f'- {maintenant()} · {texte}\n')
+    print('Retour noté :', os.path.relpath(p, RAC))
+
+
+def chrono(jeu, etape, cmd):
+    """Mesure la durée et le résultat d'une étape d'outillage (pour savoir quels outils ralentissent le travail)."""
+    import time
+    t0 = time.time()
+    r = subprocess.run(cmd, shell=False)
+    d = round(time.time() - t0, 1)
+    p = os.path.join(B, 'retours-outils', 'chronos.jsonl')
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, 'a', encoding='utf-8') as f:
+        f.write(json.dumps({'quand': maintenant(), 'jeu': jeu, 'etape': etape, 'commande': ' '.join(cmd)[:200],
+                            'secondes': d, 'code': r.returncode}, ensure_ascii=False) + '\n')
+    print(f'⏱ {etape} : {d} s (code {r.returncode})')
+    sys.exit(r.returncode)
+
+
+def lire_retours(n=30):
+    out = []
+    for p in sorted(glob.glob(os.path.join(B, 'retours-outils', '*.md'))):
+        jeu = os.path.basename(p)[11:-3]
+        for l in open(p, encoding='utf-8'):
+            m = re.match(r'- (\d{4}-\d\d-\d\d \d\d:\d\d) · (.+)', l.strip())
+            if m:
+                out.append({'quand': m.group(1), 'jeu': jeu, 'quoi': m.group(2)})
+    out.sort(key=lambda x: x['quand'], reverse=True)
+    return out[:n]
+
+
 def page(e):
     modele = open(os.path.join(B, 'page', 'modele.html'), encoding='utf-8').read()
     data = json.dumps(e, ensure_ascii=False).replace('</', '<\\/')
@@ -269,6 +319,10 @@ if __name__ == '__main__':
         if '--outil' in a:
             i = a.index('--outil'); o = ' '.join(a[i + 1:]); a = a[:i]
         depart(a[1], ' '.join(a[2:]), o)
+    elif cmd == 'outil' and len(a) >= 3:
+        retour_outil(a[1], ' '.join(a[2:]))
+    elif cmd == 'chrono' and '--' in a and len(a) >= 5:
+        i = a.index('--'); chrono(a[1], ' '.join(a[2:i]), a[i + 1:])
     elif cmd == 'page':
         page(etat())
     elif cmd == 'json':

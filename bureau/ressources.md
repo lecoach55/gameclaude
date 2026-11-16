@@ -11,6 +11,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | `sauvegarde-en-ligne.js` | grosses sauvegardes gzip découpées + reprise sur un autre appareil (Wall Street). |
 | `compare.py` | comparaison d'images référence / nouvelle version, tolérante aux petits décalages. |
 | `phget.py` | textures et modèles Poly Haven (CC0), avec l'en-tête nécessaire. |
+| `tests/verifier_outils.py` | contrôle de non-régression des outils communs |
 | `planche_modeles.py` + `.html` | planche-contact de modèles 3D (taille, triangles). |
 
 ## Par besoin

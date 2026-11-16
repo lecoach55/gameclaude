@@ -153,7 +153,7 @@ function gen(){const map=G.map=new Uint8Array(W*H);G.seen=new Uint8Array(W*H);G.
  rooms.forEach(r=>{if(r===r0||r===far||r.w<9||r.h<8||R()<.4)return;for(let y=r.y+2;y<r.y+r.h-2;y+=3)for(let x=r.x+2;x<r.x+r.w-2;x+=3){if(Math.abs(x-r.cx)<2&&Math.abs(y-r.cy)<2)continue;map[y*W+x]=3;}});
  // mobilier (cases bloquantes) : tables, bibliothèques, réserves
  G.furn=[];const free=(x,y)=>map[y*W+x]===1,wallAt=(x,y)=>map[y*W+x]===0;
- rooms.forEach((r,i)=>{if(i===0||r===far)return;r.theme=null;const th=R();
+ rooms.forEach((r,i)=>{if(i===0||r===far)return;r.theme=null;const th=G.expe?1:R();
   if(r.w>=7&&r.h>=6&&th<.34){const y=r.cy;if([-1,0,1].every(d=>free(r.cx+d,y)&&free(r.cx+d,y-1)&&free(r.cx+d,y+1))){[-1,0,1].forEach(d=>map[y*W+r.cx+d]=4);G.furn.push({k:'table',x:r.cx,y,w:3});r.theme='salle';}}
   else if(th<.62){let n=0;for(let x=r.x+1;x<r.x+r.w-1;x+=2){const y=r.y;if(free(x,y)&&wallAt(x,y-1)&&wallAt(x-1,y-1)&&wallAt(x+1,y-1)&&free(x,y+1)&&free(x-1,y)&&free(x+1,y)){map[y*W+x]=4;G.furn.push({k:'shelf',x,y,d:0});n++;}}if(n)r.theme='biblio';}
   else if(th<.85){[[r.x,r.y+r.h-1,-1,1],[r.x+r.w-1,r.y+r.h-1,1,1]].forEach(([x,y,dx,dy])=>{if(free(x,y)&&wallAt(x+dx,y)&&wallAt(x,y+dy)&&free(x-dx,y)&&free(x,y-dy)){map[y*W+x]=4;G.furn.push({k:'store',x,y});}});r.theme='reserve';}});

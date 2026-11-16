@@ -6,6 +6,7 @@ import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {mat,makeHero,makeMonster,makeMerchant,animate} from './models.js';
 import {THEMES,LAPIS,BRAISE,blason} from './theme.js';
+import {construireSalle,decorExplo} from './salles.js';
 import {elTex,GRADE,gradePass,groundFog,lightRay,blob,smokeSys,smoke,smokeClear,updSmoke,lavaDecal} from './vfx.js';
 import {grime,aoTexture,CUT} from './grime.js';
 import {K,ready as kitReady,makeChar,animateG,pieceGeo,piece,playG,tintObj} from './kit.js';
@@ -236,6 +237,7 @@ function buildFloor(VD){endTitle();mode='explo';needComp=1;EX.lavas=[];EX.bats=n
  // objets (coffres, tonneaux, sanctuaires)
  {const r=VD.rooms[0],m=TH.maison||MAISON0;const e=banniere(m,.78,true);let x=r.cx+.5-1.1,y=r.cy+.5-.9;if(VD.solid(x,y)){x=r.cx+.5;y=r.cy-.4;}e.position.set(x,1.55,y);e.rotation.y=.5;e.visible=false;e.userData.c=[x|0,y|0];scW.add(e);(EX.kprops||(EX.kprops=[])).push(e);
   const lune=new THREE.DirectionalLight(LAPIS,.55);lune.position.set(-6,10,-4);scW.add(lune);}
+ if(TH&&TH.type&&K.ok)decorExplo({VD,type:TH.type,T:TT_(),grime,bioTex,elTex,hr,addP:(o,x,y)=>{o.visible=false;o.userData.c=[x|0,y|0];scW.add(o);(EX.kprops||(EX.kprops=[])).push(o);}});
  EX.objs=new Map();VD.obj.forEach(o=>EX.objs.set(o,makeObj(o)));
  // marchand
  EX.merch=merchM();EX.merch.root.scale.multiplyScalar(EXS());EX.merch.root.position.set(VD.merch.x,0,VD.merch.y);scW.add(EX.merch.root);EX.merchLight=new THREE.PointLight(0xffc070,2.2,4,1.5);EX.merchLight.position.set(VD.merch.x+.2,.9,VD.merch.y+.2);scW.add(EX.merchLight);if(VD.expe){EX.merch.root.visible=false;EX.merchLight.intensity=0;}
@@ -319,7 +321,7 @@ const Wd=VD.W,Hd=VD.H,fl=v=>v===1||v===2||v===3||v===4,isF=(x,y)=>fl(VD.at(x,y))
  // bannières et accessoires le long des murs
  EX.kprops=[];const addP=(o,x,y)=>{o.visible=false;o.userData.c=[x|0,y|0];scW.add(o);EX.kprops.push(o);};
  EX.glows=[];const glow=(x,y,h,col,s,op)=>{const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex(),color:col,blending:THREE.AdditiveBlending,depthWrite:false,opacity:op}));sp.scale.setScalar(s);sp.position.set(x,h,y);addP(sp,x,y);EX.glows.push(sp);return sp;};
- (VD.furn||[]).forEach((f,i)=>{if(f.k==='table'){const t=piece(hr(i,1)<.5?'table_long_tablecloth_decorated_A':'table_long_decorated_A',1);fitH(t,.62);t.scale.z=1.35;t.scale.x=.9;t.rotation.y=Math.PI/2;/* table de banquet sur ses 3 cases */t.position.set(f.x+.5,0,f.y+.5);addP(t,f.x,f.y);
+ (TH&&TH.type?[]:(VD.furn||[])).forEach((f,i)=>{if(f.k==='table'){const t=piece(hr(i,1)<.5?'table_long_tablecloth_decorated_A':'table_long_decorated_A',1);fitH(t,.62);t.scale.z=1.35;t.scale.x=.9;t.rotation.y=Math.PI/2;/* table de banquet sur ses 3 cases */t.position.set(f.x+.5,0,f.y+.5);addP(t,f.x,f.y);
    [-1,0,1].forEach(d=>[-1,1].forEach(s=>{if(hr(i,d+5,s+7)<.75){const c=fitH(piece('chair',1),.62);c.position.set(f.x+.5+d*.85,0,f.y+.5+s*.72);c.rotation.y=s>0?Math.PI:0;addP(c,f.x+d,f.y+s);}}));
    const cd=fitH(piece('candle_lit',1),.16);cd.position.set(f.x+.5,.46,f.y+.5);addP(cd,f.x,f.y);glow(f.x+.5,f.y+.5,.7,0xffb060,1.6,.55);}
   else if(f.k==='shelf'){const s=hr(i,2)<.5?fitH(piece('shelves',1),1.25):fitObj(piece('shelf_large',1),1.05);s.position.set(f.x+.5,0,f.y+.22);addP(s,f.x,f.y);if(hr(i,3)<.5){const cd=fitH(piece('candle_triple',1),.42);cd.position.set(f.x+.5,0,f.y+.75);addP(cd,f.x,f.y);glow(f.x+.5,f.y+.75,.3,0xffb060,.9,.45);}}
@@ -446,6 +448,8 @@ const BT={units:new Map(),fx:[]};
 function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);keepAll();purge(scB);BT.units=new Map();BT.fx=[];const tier=VD.tier(),Bi=BIO[tier];BT.tier=tier;BT.uiS=BT.uiS||0;
  scB.fog=new THREE.FogExp2(Bi.fog,.048);scB.background=new THREE.Color(Bi.fog);
  scB.add(new THREE.HemisphereLight(Bi.amb,0x050405,.6));scB.add(new THREE.AmbientLight(Bi.amb,.3));
+ BT.lights=[];
+ if(TH&&TH.type&&!window.__salleVD){construireSalle({sc:scB,T:TT_(),TH,type:TH.type,grime,bioTex,elTex,glowTex,banniere,MAISON0,VIEILLE,hr,lair:VD.lair(),BT,LAPIS});}else{
  const ft=stoneTex(tier).clone();ft.needsUpdate=true;ft.repeat.set(7,7);const fl=new THREE.Mesh(new THREE.CircleGeometry(9,48),new THREE.MeshStandardMaterial({map:ft,bumpMap:ft,bumpScale:.05,roughness:.85}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;scB.add(fl);
  if(K.ok){fl.material.color.setRGB(.25,.25,.28);fl.visible=false;/* recouvert par les dalles : inutile de le dessiner */const T=KTINT[tier],tc=new THREE.Color(T[0],T[1],T[2]);const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0),cells=[];
   for(let j=-6;j<6;j++)for(let i=-6;i<6;i++){const x=i*1.6+.8,z=j*1.6+.8-.5;if(Math.hypot(x,z+.5)<9.4)cells.push([x,z,i,j]);}
@@ -480,6 +484,7 @@ function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);ke
   else if(tier===2){const c=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.18),new THREE.MeshBasicMaterial({color:0xff6a1a}));c.rotation.x=-Math.PI/2;c.rotation.z=hr(i,9)*3;c.position.set(x,.02,z);scB.add(c);}
   else{const sk=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),mat(0xd8d0b8));sk.position.set(x,.1,z);const b=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.5,5),mat(0xcfc7b0));b.rotation.z=Math.PI/2;b.position.set(x+.2,.04,z+.1);scB.add(sk,b);}}
  if(VD.lair())for(let i=0;i<60;i++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.02,8),mat(0xf2c14a,{std:{metalness:.9,roughness:.3}}));c.position.set((hr(i,1)-.5)*10,.01,(hr(i,2)-.5)*6-2.5);scB.add(c);}
+ }
  // lumière principale avec ombres + contre-jour
  BT.key=new THREE.SpotLight(0xffe0c0,62,26,.75,.5,1.3);BT.key.position.set(2.5,9,7);BT.key.target.position.set(0,0,-.8);BT.key.castShadow=true;BT.key.shadow.mapSize.set(qLvl>=2?1024:512,qLvl>=2?1024:512);BT.key.shadow.bias=-.0006;scB.add(BT.key,BT.key.target);
  BT.lavas=[];BT.rays=[];scB.add(smokeSys());smokeClear();

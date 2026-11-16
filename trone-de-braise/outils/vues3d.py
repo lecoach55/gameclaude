@@ -21,6 +21,9 @@ async def main():
             await pg.evaluate("c=>window.__expe.debut(c)",cfg);await pg.wait_for_timeout(7000)
             if ty!='arene':
                 await pg.screenshot(path=f'{OUT}/{ty}_explo.png')
+                await pg.evaluate("()=>{const r=VD.rooms.filter((r,i)=>i>0&&r!==VD.stairs.room).sort((a,b)=>b.w*b.h-a.w*a.h)[0];VD.E.length=0;VD.seen.fill(1);VD.P.x=r.cx+.5;VD.P.y=r.cy+1.5;}");await pg.wait_for_timeout(3500)
+                await pg.screenshot(path=f'{OUT}/{ty}_salle.png')
+                await pg.evaluate("c=>{window.__expe.fin('fuite');window.__expe.debut(c)}",cfg);await pg.wait_for_timeout(4000)
                 await pg.evaluate("()=>{const e=VD.E.find(e=>!e.boss);VD.P.x=e.x;VD.P.y=e.y;}")
             await pg.wait_for_function("()=>VD.B&&document.querySelectorAll('#bact button').length>0",timeout=60000);await pg.wait_for_timeout(800)
             await pg.screenshot(path=f'{OUT}/{ty}_combat.png')

@@ -1,0 +1,71 @@
+{
+ "note": "combat 3D, 560x350, rendu logiciel (valeurs relatives), 16/11/2026",
+ "arene_valdragon": {
+  "crypte": {
+   "appels": 406,
+   "triangles": 322248,
+   "progs": 59,
+   "fps": 1.9,
+   "pire": 666.6,
+   "n": 8
+  },
+  "mine": {
+   "appels": 357,
+   "triangles": 255119,
+   "progs": 59,
+   "fps": 2,
+   "pire": 983.3,
+   "n": 8
+  },
+  "foret": {
+   "appels": 360,
+   "triangles": 255223,
+   "progs": 61,
+   "fps": 2.2,
+   "pire": 499.9,
+   "n": 8
+  },
+  "arene": {
+   "appels": 398,
+   "triangles": 321952,
+   "progs": 61,
+   "fps": 2,
+   "pire": 533.3,
+   "n": 9
+  }
+ },
+ "salles_du_trone": {
+  "crypte": {
+   "appels": 166,
+   "triangles": 186895,
+   "progs": 44,
+   "fps": 2.6,
+   "pire": 866.7,
+   "n": 11
+  },
+  "mine": {
+   "appels": 158,
+   "triangles": 176511,
+   "progs": 46,
+   "fps": 3,
+   "pire": 350,
+   "n": 13
+  },
+  "foret": {
+   "appels": 168,
+   "triangles": 199295,
+   "progs": 46,
+   "fps": 3.4,
+   "pire": 316.6,
+   "n": 14
+  },
+  "arene": {
+   "appels": 178,
+   "triangles": 180459,
+   "progs": 50,
+   "fps": 3.3,
+   "pire": 333.2,
+   "n": 14
+  }
+ }
+}

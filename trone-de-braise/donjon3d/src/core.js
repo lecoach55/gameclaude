@@ -169,7 +169,7 @@ function populate(){const E=G.E=[];const tier=G.tier();const w={};for(const k in
  G.rooms.forEach((r,i)=>{if(i===0||r===G.stairs.room&&G.lair())return;if(R()>BAL.packChance&&r!==G.stairs.room)return;E.push(mkPack(r,w));});
  if(G.expe)while(E.length>(G.expe.packs||5))E.splice(ri(E.length),1);
  G.nPacks=E.length;G.respT=0;
- G.bossAlive=false;if(G.lair()&&G.P.bossDone!==G.F){const r=G.stairs.room,b=BOSSES[tier];G.E.push({pack:1,boss:1,k:'boss',el:b.el,n:b.n,mem:['boss'],x:r.cx+.5,y:r.cy-1.5,r:1.05,aggro:0,ph:0,fl:0,hp:1,mhp:1,wind:0,mods:[],cnt:1,stun:0});G.bossAlive=true;}}
+ G.bossAlive=false;if(G.lair()&&G.P.bossDone!==G.F){const r=G.stairs.room,b=bossDef();G.E.push({pack:1,boss:1,k:'boss',el:b.el,n:b.n,mem:['boss'],x:r.cx+.5,y:r.cy-1.5,r:1.05,aggro:0,ph:0,fl:0,hp:1,mhp:1,wind:0,mods:[],cnt:1,stun:0});G.bossAlive=true;}}
 function mkPack(r,w){{
   const n=BAL.packMin+ri(BAL.packRand+1)+(G.F>6?1:0)-(G.F===1?1:0);const lead=wpick(w),mem=[lead];for(let j=1;j<n;j++)mem.push(R()<.5?lead:wpick(w));
   const elite=R()<BAL.eliteChance*(G.F>1?1:.3)?pk(Object.keys(ELITE)):null;
@@ -221,7 +221,8 @@ function descend(){if(G.bossAlive)return false;startFloor(G.F+1);return true;}
 function mkFoe(k,elite){const f=G.F-1,m=MON[k],hm=(1+BAL.hpScale*f+BAL.hpScale2*f*f)*BAL.monHp,dm=(1+BAL.dmgScale*f+BAL.dmgScale2*f*f)*BAL.monDmg;
  const e={side:'e',k,n:m.n,mhp:Math.round(m.hp*hm*(elite?2.2:1)),atk:m.atk*dm*(elite?1.3:1),def:Math.round(m.def*(1+.12*f)),spd:m.spd*(elite==='rapide'?1.5:1),xp:Math.round(m.xp*(1+.22*f)*(elite?2.5:1)),gold:m.gold,st:{},mods:elite?[elite]:[],elite:!!elite};
  if(elite){e.n=ELITE[elite]+' · '+m.n;if(elite==='blinde'){e.mhp=Math.round(e.mhp*1.4);e.def+=6;}}e.hp=e.mhp;return e;}
-function mkDragon(){const tier=G.tier(),b=BOSSES[tier],f=G.F-1;
+function bossDef(){return G.expe&&G.expe.gardien||BOSSES[G.tier()];}
+function mkDragon(){const tier=G.tier(),b=bossDef(),f=G.F-1;
  const e={side:'e',k:'boss',boss:1,el:b.el,n:b.n,mhp:Math.round(BAL.bossHp*(1+BAL.bossHpScale*f+BAL.bossHpScale2*f*f)),atk:BAL.bossDmg*(1+BAL.bossDmgScale*f+.01*f*f),def:Math.round(8*(1+.12*f)),spd:10,xp:Math.round(220*(1+.3*f)),gold:60,st:{},mods:[],acts:2,summ:0};
  if(G.expe){e.mhp=Math.round(e.mhp*(G.expe.bossK||1));e.atk*=G.expe.bossA||1;}e.hp=e.mhp;return e;}
 function startBattle(pack){const P=G.P;const B=G.B={pack,round:0,q:[],cur:null,foes:[],log:[],over:null,boss:!!pack.boss,turnN:0,sc:{},det:{},lastBy:new Map()};
@@ -318,10 +319,11 @@ function intent(e){if(e.dead)return;const B=G.B;let I;
   case'wy':I=R()<.35?{a:'breath',n:'Petit souffle',m:.6,aoe:1,el:'fire'}:{a:'atk',n:'Griffes',m:1,tg:pickTarget(e)};break;
   case'boss':{const p2=e.hp<e.mhp*.5;if(p2&&!e.p2){e.p2=1;emit({t:'enrage',u:e});log(`${e.n.split(',')[0]} entre en furie !`);}
    const r=R(),sm=alive(B.foes).length<2&&e.summ<(p2?2:1);
-   if(sm&&r<.35)I={a:'summon',n:'Appel des dragonnets'};
-   else if(r<.32)I={a:'chargeA',n:'Inspire profondément…',next:{a:'dbreath',n:'Souffle '+{fire:'de feu',ice:'de givre',poison:'pestilentiel',arcane:'arcanique'}[e.el],m:1.45,aoe:1,el:e.el}};
-   else if(r<.62)I={a:'tail',n:'Balayage de queue',m:.75,aoe:1,stun:.25};
-   else I={a:'atk',n:'Griffes',m:1.35,tg:pickTarget(e),el:'phys'};break;}}
+   const bd=bossDef();
+   if(sm&&r<.35)I={a:'summon',n:bd.summN||'Appel des dragonnets'};
+   else if(r<.32)I={a:'chargeA',n:bd.charge||'Inspire profondément…',next:{a:'dbreath',n:bd.souffle||('Souffle '+{fire:'de feu',ice:'de givre',poison:'pestilentiel',arcane:'arcanique'}[e.el]),m:1.45,aoe:1,el:e.el}};
+   else if(r<.62)I={a:'tail',n:bd.bal||'Balayage de queue',m:.75,aoe:1,stun:.25};
+   else I={a:'atk',n:bd.atk||'Griffes',m:1.35,tg:pickTarget(e),el:'phys'};break;}}
  if(I.next&&I.a==='chargeA'){e.charge=null;}
  e.intent=I;}
 function foeTurn(){const B=G.B,e=B.cur;if(!B||B.wait!=='foe'||B.over)return false;const I=e.intent||{a:'atk',m:1,tg:pickTarget(e)};B.wait=null;
@@ -339,7 +341,7 @@ function foeTurn(){const B=G.B,e=B.cur;if(!B||B.wait!=='foe'||B.over)return fals
    if(I.el==='poison'){h.st.poison=3;h.poisV=Math.min((h.poisV||0)+e.atk*.2,e.atk*.4);}if(I.el==='arcane')h.en=Math.max(0,h.en-20);}});e.charge=null;log(`${e.n} : ${I.n} !`);break;
   case'smash':hit(e,tg,I.m);if(!tg.dead&&R()<.35){tg.st.stun=1;emit({t:'status',u:tg,s:'stun'});}e.charge=null;log(`${e.n} écrase ${tg.n} !`);break;
   case'tail':alive(G.P.heroes).forEach(h=>{hit(e,h,I.m);if(!h.dead&&R()<I.stun){h.st.stun=1;emit({t:'status',u:h,s:'stun'});}});log(`${e.n} balaie le groupe de sa queue.`);break;
-  case'summon':{e.summ++;const n=e.p2?2:1;for(let i=0;i<n+1;i++){const w=mkFoe('wy');w.xp=Math.round(w.xp*.4);w.i=B.foes.length;B.foes.push(w);intent(w);emit({t:'summon',u:w});}log(`${e.n} appelle ses dragonnets !`);break;}}
+  case'summon':{e.summ++;const n=e.p2?2:1;const sk=bossDef().summ||'wy';for(let i=0;i<n+1;i++){const w=mkFoe(sk);w.xp=Math.round(w.xp*.4);w.i=B.foes.length;B.foes.push(w);intent(w);emit({t:'summon',u:w});}log(`${e.n.split(',')[0]} : ${(bossDef().summN||'appel des dragonnets').toLowerCase()} !`);break;}}
  intent(e);endTurn();return true;}
 function win(){const B=G.B,P=G.P;B.over='win';if(G.expe)G.expe.tues+=B.foes.length;const RE=B.pack&&B.pack.re;const xp=Math.round(B.foes.reduce((s,f)=>s+f.xp,0)*BAL.xpMul*(RE?.7:1));
  const gold=Math.round(B.foes.reduce((s,f)=>s+f.gold*rr(1.5,3)*(1+G.F*.6),0)*(1+G.gf/100)*BAL.goldMul*(RE?.5:1));P.gold+=gold;
@@ -402,9 +404,13 @@ function partieExpedition(cfg){
   for(let i=0,k=0;h.spts>0&&k<200;k++){const t=ord[(i++%3)<2?0:1+Math.floor(i/3)%(ord.length-1)];if(SK[t]&&SK[t].c===g.cls&&SK[t].l<=h.lvl){h.rk[t]=(h.rk[t]||0)+1;h.spts--;}}
   return h;});
  return P;}
-function lancerExpedition(cfg){G.expe=Object.assign({dernier:cfg.F0+(cfg.etages||1)-1},cfg);G.expe.debut={gold:0,lv:{}};const P=partieExpedition(cfg);newGame(P);
+const MON0={},W0=BIOMES.map(b=>Object.assign({},b.w));for(const k in MON)MON0[k]=MON[k].n;
+function themeExpedition(cfg){for(const k in MON0)MON[k].n=MON0[k];BIOMES.forEach((b,i)=>b.w=Object.assign({},W0[i]));
+ if(cfg.noms)for(const k in cfg.noms)if(MON[k])MON[k].n=cfg.noms[k];
+ if(cfg.pool){const w=Object.assign({},cfg.pool);if(!Object.keys(w).some(k=>MON[k]&&MON[k].f<=cfg.F0))Object.assign(w,{sq:1,gob:1});else{w.sq=w.sq||.3;w.gob=w.gob||.3;}BIOMES[cfg.tier||0].w=w;}}
+function lancerExpedition(cfg){themeExpedition(cfg);G.expe=Object.assign({dernier:cfg.F0+(cfg.etages||1)-1},cfg);G.expe.debut={gold:0,lv:{}};const P=partieExpedition(cfg);newGame(P);
  P.heroes.forEach(h=>{G.expe.debut.lv[h.n]=h.lvl;});G.merch={x:-99,y:-99};G.expe.tues=0;
- if(cfg.combat){const pack={pack:1,mem:cfg.combat.mem,elite:cfg.combat.elite||null,x:P.x+1,y:P.y,arena:1};startBattle(pack);}}
+ if(cfg.combat){const pack={pack:1,mem:cfg.combat.mem,boss:cfg.combat.boss?1:0,elite:cfg.combat.elite||null,x:P.x+1,y:P.y,arena:1};startBattle(pack);}}
 function bilanExpedition(resultat){const P=G.P,E=G.expe,h=P.heroes.find(x=>x.heros)||P.heroes[0];
  const its=P.bag.filter(it=>!it.tdb&&!it.sold).concat(P.heroes.flatMap(x=>Object.values(x.eq).filter(it=>it&&!it.tdb)));
  return{resultat,or:Math.max(0,P.gold),pot:P.pot.soin,lvl:h.lvl,xpf:h.xp/xpNextH(h),tues:E.tues||0,objets:its.map(it=>({s:it.s,rar:it.rar,il:it.il,n:it.n})),etage:G.F};}

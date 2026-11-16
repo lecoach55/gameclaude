@@ -155,7 +155,7 @@ function actionProv(p, a) {
  else if (a === 'attaquer') { const src = voisinsDe(p.id).map(id => prov(G, id)).filter(q => q.o === 'joueur' && q.t > 1).sort((x, y) => y.t - x.t); fenetreAttaque(src, p); }
  else if (a === 'batir') fenetreBatir(p);
  else if (a === 'revolte') { confirmer(`Fomenter une révolte à ${p.nom} ? (3 influence, un ordre). Si le complot est découvert, la maison ${G.maisons[p.o].nom} vous en voudra.`, () => { const r = act(G, 'complot', { type: 'revolte', prov: p.id, maison: p.o }); fenetre('Complot', `<p>${r.msg}</p>`, [{ t: 'Continuer', f: fermer }]); apres(); }); }
- else if (a === 'expedition') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition({ type: p.donjon, niveau: p.dniv, etages: 3, nom: `${DONJONS[p.donjon].nom} de ${p.nom}` }, X => { const res = finExpedition(G, p.id, X); resumeExpedition(X, res.lignes); }); }
+ else if (a === 'expedition') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition({ type: p.donjon, niveau: p.dniv, etages: 3, nom: `${DONJONS[p.donjon].nom} de ${p.nom}`, proprio: p.o }, X => { const res = finExpedition(G, p.id, X); resumeExpedition(X, res.lignes); }); }
  else if (a === 'diplo') fenetreMaisons(p.o);
  else if (a === 'faille') { const r = act(G, 'expedition', {}); if (!r.ok) return toast(r.msg); apres(); lancerExpedition(configFaille(G), X => { const res = finExpedition(G, null, X, true); resumeExpedition(X, res.lignes, finFaille(G, X)); }); }
 }
@@ -449,9 +449,10 @@ addEventListener('message', ev => {
  if (m.t === 'pret3d') { D3.pret = true; D3.err = m.err; if (D3.att) { const a = D3.att; D3.att = null; a(); } }
  if (m.t === 'fin3d') finD3(m.b);
 });
+function blasonDe(id) { const M = id && G.maisons[id]; return M && !M.neutre ? { c1: M.c1, c2: M.c2, emb: M.embleme, nom: M.nom } : null; }
 function lancerD3(cfg, fin) {
  const h = G.joueur.heros; h.potions = Math.max(h.potions || 0, 3);
- const c = PONT3D.configExpedition({ heros: h, compagnon: G.joueur.compagnon, type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, arene: cfg.arene, nom: cfg.nom });
+ const c = PONT3D.configExpedition({ heros: h, compagnon: G.joueur.compagnon, type: cfg.arene ? 'arene' : cfg.type, niveau: cfg.niveau, etages: cfg.etages || 3, arene: cfg.arene, nom: cfg.nom, maison: blasonDe('joueur'), adverse: blasonDe(cfg.arene ? cfg.arene.maison : cfg.proprio) });
  c.muet = !AUDIO.actif(); D3.cfg = c; D3.fin = fin; D3.h = h;
  const f = d3Cadre(); fermer(); AUDIO.musiqueDe(null);
  $('#chargement3d').classList.add('on'); MODE = 'donjon3d';

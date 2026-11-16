@@ -9,7 +9,12 @@ ICI = os.path.dirname(os.path.abspath(__file__)); SRC = os.path.join(ICI, 'src')
 OUT = os.path.join(ICI, '../build/donjon3d.html')
 os.chdir(SRC)
 subprocess.run(['npx', 'esbuild', 'ui3.js', '--bundle', '--format=esm', '--minify', '--alias:three/addons=./node_modules/three/examples/jsm', '--outfile=/tmp/d3bundle.js', '--log-level=warning'], check=True)
-s = open('shell.html').read().replace('<script type="importmap">/*IMPORTMAP*/</script>', '')
+s = open('shell.html').read()
+# polices du royaume (Grenze Gotisch, Alegreya Sans), intégrées
+POL = os.path.join(ICI, '../jeu/polices')
+ff = ''.join(f"@font-face{{font-family:'{fam}';font-weight:{w};font-style:{st};font-display:swap;src:url(data:font/woff2;base64,{base64.b64encode(open(os.path.join(POL, f), 'rb').read()).decode()}) format('woff2')}}\n" for fam, w, st, f in [('Grenze Gotisch', 500, 'normal', 'grenze-gotisch-latin-500-normal.woff2'), ('Grenze Gotisch', 700, 'normal', 'grenze-gotisch-latin-700-normal.woff2'), ('Alegreya Sans', 400, 'normal', 'alegreya-sans-latin-400-normal.woff2'), ('Alegreya Sans', 700, 'normal', 'alegreya-sans-latin-700-normal.woff2'), ('Alegreya Sans', 800, 'normal', 'alegreya-sans-latin-800-normal.woff2')])
+s = s.replace('/*POLICES*/', ff)
+s = s.replace('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Cinzel+Decorative:wght@700&family=Alegreya+Sans:wght@400;700;800&display=swap">', '').replace('<script type="importmap">/*IMPORTMAP*/</script>', '')
 s = s.replace('<title>Valdragon — Les Héritiers du Puits</title>', '<title>Le Trône de Braise — profondeurs</title>')
 for k, f in [('CORE', 'core.js'), ('RENDER', 'render.js'), ('STORY', 'story.js'), ('UI', '/tmp/d3bundle.js')]:
     s = s.replace('/*' + k + '*/', open(f).read().replace('</script>', '<\\/script>'))

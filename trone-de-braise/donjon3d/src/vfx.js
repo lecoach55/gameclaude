@@ -14,10 +14,10 @@ export function gradePass(){return new ShaderPass({uniforms:{toneMappingExposure
  void main(){vec4 c=texture2D(tDiffuse,vUv);c.rgb=sRGBTransferOETF(vec4(ACESFilmicToneMapping(c.rgb),1.)).rgb;vec3 col=c.rgb*tint;float l=dot(col,vec3(.299,.587,.114));col=mix(vec3(l),col,sat);
   // courbe en S douce + virage partiel : ombres froides, hautes lumières chaudes
   vec3 sc=col*col*(3.-2.*col);col=mix(col,clamp(sc,0.,1.),clamp((con-1.)*4.,0.,1.));
-  float L2=dot(col,vec3(.299,.587,.114));col+=vec3(-.012,.0,.022)*(1.-smoothstep(.0,.35,L2))+vec3(.03,.012,-.02)*smoothstep(.45,.95,L2);
+  float L2=dot(col,vec3(.299,.587,.114));col+=vec3(-.03,-.004,.06)*(1.-smoothstep(.0,.4,L2))+vec3(.06,.022,-.04)*smoothstep(.4,.95,L2);/* braise & lapis : ombres bleu nuit, lumières de braise */
   col=max(col-.006,0.)*1.01;
   vec2 d=(vUv-.5)*vec2(asp,1.);float v=smoothstep(.95,.25,length(d)*1.05);col*=mix(1.-vig,1.,v);
-  col+=(h(vUv*vec2(913.,577.)+t)-.5)*.025;col=mix(col,vec3(1.,.95,.85),flash);gl_FragColor=vec4(max(col,0.),c.a);}`});}
+  col+=(h(vUv*vec2(913.,577.)+t)-.5)*.034;col=mix(col,vec3(1.,.95,.85),flash);gl_FragColor=vec4(max(col,0.),c.a);}`});}
 
 /* ---------- brouillard au sol ---------- */
 export function groundFog(size,color,op=.32){const m=new THREE.ShaderMaterial({uniforms:{t:{value:0},col:{value:new THREE.Color(color)},op:{value:op},ctr:{value:new THREE.Vector2()}},transparent:true,depthWrite:false,

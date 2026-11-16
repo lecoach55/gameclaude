@@ -1,5 +1,6 @@
 /* ===== Valdragon 3D — interface ===== */
 import {G3} from './g3d.js';
+import {blason,THEMES} from './theme.js';
 import {itemIcon} from './icons.js';
 import {cloudLoad,cloudSave,cloudPut} from './cloud.js';
 let TEST=false;const EXPE=true;// donjon 3D du Trône de Braise : piloté par la page du royaume (postMessage), jamais de sauvegarde ici
@@ -82,7 +83,7 @@ function input(){const kx=((keys.d||keys.arrowright)?1:0)-((keys.a||keys.q||keys
 const FT=[];function wtext(x,y,t,c){FT.push({x,y,t,c,life:1.3});}
 let fogDirty=true;
 function exploEvents(){for(const e of VD.ev){switch(e.t){
- case'floor':{G3.buildFloor(VD);musicFor(VD.tier());G3.mode='explo';fogDirty=true;banner('Étage '+e.f,e.biome+(e.boss?' · Antre du dragon':''));if(e.boss)setTimeout(()=>sfx('roar',.6),1200);
+ case'floor':{G3.buildFloor(VD);musicFor(VD.tier());G3.mode='explo';fogDirty=true;if(VD.expe){if(!VD.expe.combat)banner(VD.expe.nom||(THEMES[VD.expe.type]||THEMES.crypte).nom,e.boss?'Dernier étage · '+(VD.expe.gardien?VD.expe.gardien.n:'le gardien')+' vous attend':'Premier étage');}else banner('Étage '+e.f,e.biome+(e.boss?' · Antre du dragon':''));if(e.boss)setTimeout(()=>sfx('roar',.6),1200);
   const sk={1:'biome0',5:'biome1',9:'biome2',13:'biome3'}[e.f];VD.P.story=VD.P.story||[];if(sk&&!VD.P.story.includes(sk)){paused=true;setTimeout(()=>ST.play(sk,()=>{paused=false;},VD.P.story),1300);}break;}
  case'respawn':if(!ui.respTold||performance.now()-ui.respTold>60000){ui.respTold=performance.now();toast('Des pas résonnent au loin… de nouvelles créatures rôdent dans l\'étage.','#c9b48a');}break;
  case'aggro':if(e.e.boss){sfx('roar',.7);toast(e.e.n+' vous a vus !','#ff6a4a');}else toast(e.e.n+(e.e.cnt>1?' et ses alliés':'')+' vous chargent !','#ff9a7a');break;
@@ -125,7 +126,7 @@ function drawExploOverlay(dt){cx.clearRect(0,0,VW,VH);cx.textAlign='center';
 /* ---------- HUD exploration ---------- */
 let hudT=0;
 const PDU={};function pdu(c){if(PDU[c]!==undefined)return PDU[c];const cv2=G3.portrait&&G3.portrait(c);PDU[c]=cv2?cv2.toDataURL():null;return PDU[c];}
-function hud(){const P=VD.P;$('flr').textContent=VD.expe?(VD.expe.nom||'Expédition')+' · étage '+(VD.F-VD.expe.F0+1)+' / '+VD.expe.etages:'Étage '+VD.F;$('bio').textContent=VD.BIOMES[VD.tier()].n+(VD.lair()?' · antre du gardien':'');
+function hud(){const P=VD.P;if(VD.expe){const T=THEMES[VD.expe.type]||THEMES.crypte;$('flr').textContent=VD.expe.nom||T.nom;$('bio').textContent='Étage '+(VD.F-VD.expe.F0+1)+' sur '+VD.expe.etages+(VD.lair()?' · '+(VD.bossAlive?(VD.expe.gardien?VD.expe.gardien.n:'le gardien')+' veille':'le gardien est tombé'):'');}else{$('flr').textContent='Étage '+VD.F;$('bio').textContent=VD.BIOMES[VD.tier()].n+(VD.lair()?' · antre':'');}
  $('lv').innerHTML=`${P.gold} or · ${uiIco('potion',14)}${P.pot.soin} ${uiIco('elixir',14)}${P.pot.elixir} ${uiIco('phenix',14)}${P.pot.phenix}`;$('xpw').style.display='none';
  $('bless').textContent=P.bless?'✦ '+VD.SHRINES[P.bless][1]:'';
  $('party').innerHTML=P.heroes.map(h=>`<div class="pc">${pdu(h.cls)?`<img class="pp" src="${pdu(h.cls)}">`:''}<b>${h.n}</b> <span class="small">niv. ${h.lvl}${h.spts?' <span style="color:#ffd84a">✦'+h.spts+'</span>':''}</span><div class="bar hpb"><i style="width:${100*h.hp/h.s.mhp}%"></i></div><div class="bar enb"><i style="width:${100*h.en/h.s.men}%"></i></div><div class="bar xpb"><i style="width:${100*h.xp/VD.xpNextH(h)}%"></i></div></div>`).join('');
@@ -146,7 +147,7 @@ function enterBattle(boss){mode='battle';musSetBattle(true);$('toast').innerHTML
  G3.buildArena(VD,VD.B);G3.mode='battle';
  $('explo').classList.add('hide');$('bui').style.display='block';$('blog').innerHTML='';$('bact').innerHTML='<div id="bwait">Le combat commence…</div>';
  if(boss){ui.story=true;const tier=VD.tier();setTimeout(()=>ST.play(VD.F<=16?'pre'+tier:'echo',()=>{ui.story=false;},VD.P.story=VD.P.story||[]),900);}
- sfx(boss?'roar':'battle');banner(boss?VD.B.foes[0].n.split(',')[0]:'Combat !',boss?'Le dragon déploie ses ailes':VD.B.foes.length+' ennemi'+(VD.B.foes.length>1?'s':''));VD.ev.length=0;}
+ sfx(boss?'roar':'battle');banner(boss?VD.B.foes[0].n.split(',')[0]:'Combat !',boss?(VD.expe&&VD.expe.gardien?({liche:'Le froid du tombeau envahit la salle',ogre:'Le sol tremble sous ses pas',reine:'Les toiles frémissent de toutes parts',wyverne:'La cendre se soulève en tourbillons'}[VD.expe.gardien.cle]||'Le gardien des lieux se dresse'):'Le dragon déploie ses ailes'):VD.expe&&VD.expe.combat?'Les hommes de '+((VD.expe.adverse&&VD.expe.adverse.nom)||'l’ennemi')+' vous barrent la route':VD.B.foes.length+' ennemi'+(VD.B.foes.length>1?'s':''));VD.ev.length=0;}
 function layout(){const pos=new Map(),bh=$('bui').offsetHeight||VH*.32;G3.setUiBottom(bh);for(const u of [...VD.B.foes,...VD.P.heroes]){const s=G3.screenOf(u);if(s)pos.set(u,{x:s.x,y:s.y,top:Math.max(s.top,u.boss?104:0),s:Math.max(30,s.s)});}ui.pos=pos;ui.S=Math.min(VW/5.4,90);ui.H=VH-bh;return pos;}
 
 /* tweens & pas d'animation */
@@ -391,11 +392,12 @@ let bilanFait=false;
 function finExpe(res){if(bilanFait)return;bilanFait=true;const b=VD.bilanExpedition(res);$('panel').style.display='none';$('bui').style.display='none';$('explo').classList.add('hide');
  paused=true;started=false;mode='idle';G3.mode='idle';try{if(AC&&AC.state==='running')AC.suspend();}catch(e){}
  parent.postMessage({t:'fin3d',b},'*');}
-function debutExpe(cfg){bilanFait=false;if(cfg.muet!==undefined){muted=!!cfg.muet;$('mute').innerHTML=uiIco(muted?'muet':'son',22);}$('title').style.display='none';$('explo').classList.remove('hide');ac();try{if(AC&&AC.state==='suspended')AC.resume();}catch(e){}
- started=true;mode='explo';paused=false;VD.lancerExpedition(cfg);VD.P.story=VD.P.story||[];exploEvents();
+function couleursMaison(cfg){const m=cfg.maison||{c1:'#c8632a',c2:'#f2d7a0',emb:'tour'};const r=document.documentElement.style;r.setProperty('--maison',m.c1);r.setProperty('--maison2',m.c2);try{r.setProperty('--blason',`url(${blason(m.c1,m.c2,m.emb,76,112).toDataURL()})`);}catch(e){}}
+function debutExpe(cfg){bilanFait=false;couleursMaison(cfg);if(cfg.muet!==undefined){muted=!!cfg.muet;$('mute').innerHTML=uiIco(muted?'muet':'son',22);}$('title').style.display='none';$('explo').classList.remove('hide');ac();try{if(AC&&AC.state==='suspended')AC.resume();}catch(e){}
+ started=true;mode='explo';paused=false;G3.setTheme(cfg);VD.lancerExpedition(cfg);VD.P.story=VD.P.story||[];exploEvents();
  if(G3.kitErr)setTimeout(()=>toast('Modèles 3D non chargés ('+G3.kitErr+') : affichage simplifié.','#ff9a7a'),2500);
  if(!VD.B)setTimeout(()=>toast(VD.expe.etages>1?'Le gardien attend au fond du deuxième étage. Touchez ⛺ pour rebrousser chemin.':'Le gardien attend au fond de l’antre.','#e8d8b0'),2600);}
-if(window.ST){ST.play=(k,d)=>{if(d)setTimeout(d,0);};}
+try{ST.play=(k,d)=>{if(d)setTimeout(d,0);};}catch(e){}
 $('bugb').style.display='none';
 {const q=document.createElement('button');q.className='rb';q.id='bQuit';q.title='Rebrousser chemin';q.textContent='⛺';q.style.cssText='right:140px;top:calc(124px + env(safe-area-inset-top));width:36px;height:36px;font-size:16px';$('explo').appendChild(q);
  let conf=0;q.onclick=()=>{if(paused||mode!=='explo')return;if(!conf){conf=1;toast('Touchez ⛺ encore une fois pour remonter : vous gardez l’or et le butin, mais le gardien reste en vie.');setTimeout(()=>conf=0,4000);return;}finExpe('fuite');};}

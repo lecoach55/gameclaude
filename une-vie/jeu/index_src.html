@@ -436,7 +436,7 @@ function newLife(H){
      sibs:Math.max(0,Math.round(c.fert-1+(R()-.5)*2.4)),everPartner:false,turnNo:0,moments:[],lastBirthTurn:-9,stage:null};
   S.look=newLook(c.r,sex);S.seed=rint(1,1e9);S.m0=S.m;S.maxM=S.m;S.bb=0;S.lb=0;S.name=nm(sex);S.y0=2026;S.gen=1;S.lineage=[];
   S.h=clamp(68+c.t*3+wealth*3+(has("robuste")?8:0)-(has("fragile")?10:0),0,100);
-  S.par=[{role:"père",name:nm("m"),off:rint(24,38),alive:true},{role:"mère",name:nm("f"),off:rint(18,32),alive:true}];
+  S.par=[{role:"père",name:nm("m"),off:rint(24,38),alive:true},{role:"mère",name:nm("f"),off:rint(18,32),alive:true}];S.par.forEach(q=>{for(let i=0;i<6&&q.name==S.name;i++)q.name=nm(q.role=="père"?"m":"f")});
   if(H){const P=H.P,k=H.kid;
     S.name=k.name;if(k.look)S.look=k.look;S.y0=P.y0+k.at;S.gen=(P.gen||1)+1;S.lineage=P.lineage.slice();S.urban=P.urban;S.f.heir=1;
     if(ch(.5)){const it=pick(P.traits);if(!S.traits.includes(it)&&!(it=="robuste"&&S.traits.includes("fragile"))&&!(it=="fragile"&&S.traits.includes("robuste"))&&!(it=="optimiste"&&S.traits.includes("anxieux"))&&!(it=="anxieux"&&S.traits.includes("optimiste")))S.traits[0]=it}

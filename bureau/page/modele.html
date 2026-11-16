@@ -200,7 +200,7 @@ const pourNom=v=>(opts.find(o=>o[0]===v)||[v,v])[1];
 const date=t=>{try{return new Date(t).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
 function rendreDemandes(){
  const L=dems.slice().sort((a,b)=>(a.etat==='fait')-(b.etat==='fait')||String(b.quand).localeCompare(String(a.quand)));
- $('demandes').innerHTML=L.map(d=>`<div class="note${d.etat==='fait'?' fait':''}"><div class="q"><b>${esc(pourNom(d.pour))}</b>${d.de?`<span>de ${esc(d.de)}</span>`:''}<span>${date(d.quand)}</span><span>${d.etat==='fait'?'✓ fait':'à faire'}</span></div>
+ $('demandes').innerHTML=L.map(d=>`<div class="note${d.etat==='fait'?' fait':''}"><div class="q"><b>${esc(pourNom(d.pour))}</b>${d.type?`<span>${esc({bug:'🐞 bug',art:'🎨 art',perf:'⚡ fluidité',design:'🎲 design',tache:'tâche'}[d.type]||d.type)}${d.priorite?' · P'+esc(d.priorite):''}</span>`:''}${d.de?`<span>de ${esc(d.de)}</span>`:''}<span>${date(d.quand)}</span><span>${d.etat==='fait'?'✓ fait':'à faire'}</span></div>
  <p>${esc(d.texte)}</p>${d.reponse?`<div class="rep">${esc(d.reponse)}</div>`:''}
  <div class="ligne" style="margin-top:6px;flex-wrap:nowrap"><button class="p" data-a="bascule" data-id="${esc(d.id)}">${d.etat==='fait'?'Rouvrir':'Marquer fait'}</button><button class="p" data-a="suppr" data-id="${esc(d.id)}">Retirer</button></div></div>`).join('')
  ||'<div class="vide" style="color:#2b2116">Aucune demande épinglée.</div>';

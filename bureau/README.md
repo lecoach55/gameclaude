@@ -34,6 +34,9 @@ Elles n'ont pas besoin du dépôt. Elles passent par le tableau d'affichage : li
 - Un fichier par chantier (`chantiers/<dossier>.md`) et un journal par jour (`journal/AAAA-MM-JJ.md`) : plusieurs conversations peuvent écrire en même temps sans conflit.
 - `bureau/build/` n'est pas versionné : la page se refabrique à partir du dépôt.
 
+## Le studio
+Les rôles de revue (testeur, graphiste, technicien fluidité, game designer, relecteur) et le circuit d'une amélioration sont dans `studio/README.md`.
+
 ## Fichiers
 - `outils/bureau.py` — état, arrivée, départ, fabrication de la page.
 - `ressources.md` — catalogue : quel outil pour quoi, la meilleure version, où elle est ; ressources artistiques et crédits.

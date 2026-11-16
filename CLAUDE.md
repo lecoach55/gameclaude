@@ -10,6 +10,11 @@ Espace commun à toutes les conversations : chantiers en cours, journal, catalog
 - **En repartant** : reporter dans `outils-communs/` tout outil amélioré utile ailleurs, `bureau.py depart <dossier> "bilan chiffré"`, `bureau.py page` puis republier `bureau/build/index.html` (publish_files, mode patch, slug de `bureau/ARTEFACT.txt`), marquer les demandes traitées (`db_write` : `etat: "fait"`, `reponse`), commit/push.
 - Toujours `git pull --rebase` avant de pousser : plusieurs conversations travaillent en parallèle.
 
+## Le Studio (`studio/`) — revue indépendante avant publication
+Organisation complète : `studio/README.md`. Rôles (sous-agents, outil Agent, `subagent_type` du même nom s'il est listé, sinon `general-purpose` avec le contenu de `studio/roles/<rôle>.md`) : `testeur`, `graphiste`, `technicien-fluidite`, `game-designer`, `relecteur`.
+- **Avant de publier un changement visible** : lancer au minimum `relecteur` (sur le diff) et `testeur` (sur la version construite, téléphone + ordinateur), plus `graphiste` si l'image change et `technicien-fluidite` si la 3D ou le rendu change. Corriger les ROUGE ; écrire les réserves ORANGE dans le bilan.
+- Les demandes au bureau portent un `type` (`bug`, `art`, `perf`, `design`, `tache`) et une `priorite` (1 haute → 3 basse) : traiter d'abord les bugs bloquants et les priorités 1.
+
 ## Outils communs (`outils-communs/`)
 `testkit.js` (🐞 signalement, compteur d'img/s, banc, envoi en base ; jeux SVG : option `capture` + `svgCapture`), `sauvegarde-en-ligne.js` (grosses sauvegardes compressées et découpées, reprise sur un autre appareil), `atelier.py` (serveur, pages, mesures, captures), `compare.py`. À intégrer dans chaque nouveau jeu.
 

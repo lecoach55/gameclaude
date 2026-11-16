@@ -57,3 +57,19 @@ Choix de Victor : **approche mixte** (carte 3D en temps réel avec repli 2D auto
 - Crédits : nouvelle entrée ☰ « Crédits » (CC BY 3.0 exigé).
 - Mesures : page 3,9 Mo ; chargement 826 ms (CPU ×4) ; rendu de la cour 42 ms (SVG : 53-61). Images converties une seule fois en adresses blob (cache `P3URL`) au lieu de recopier les données dans le HTML (revue relecteur). Seigneur rival aussi en 3D. Diadème pour l’épouse du souverain (choix assumé). Version 1794853941-d4e2. Captures 2D 0/16 alerte. Planche : `references/planche_portraits3d.png`.
 - Réserves : visages féminins encore un peu masculins (une seule tête scannée) ; pas de cicatrice/croix selon les traits ; piste : une tête féminine libre (MakeHuman CC0) pour la phase 5 ou plus tard.
+
+### Phase 5 (16/11, nuit) — faite : finitions et prise en main
+- Qualité automatique (`rendu3d.js`) : départ selon l'appareil (0 si ≤ 2 cœurs ou ≤ 2 Go : résolution ×1, 28 arbres par forêt ; 1 sur mobile : ×1,5, 45 arbres ; 2 sur grand écran : ×1,75, 70 arbres, ombres). Sonde réelle sur les 4 premières images (`gl.finish`) : si la médiane dépasse 55 ms, on coupe les ombres puis on baisse la résolution, mémorisé dans `cl_3dq`.
+- Prise en main : conseils au bon moment (`TIPS`/`tipCheck`, une fois chacun, jamais en mode test, `cl_tips`) : carte en relief, stabilité < 30, menace ≥ 50, régence, guerre entre voisins, chantier de la cathédrale, héritier de 10-15 ans. Infobulles (title) sur l'or, les soldats, le prestige, les terres et les deux jauges. Guide : « pincez pour zoomer ». Cibles tactiles ≥ 44 px (boutons de carte, fermeture des fiches, onglets, choix des politiques, liens) ; audit : `/tmp/cibles.py` (`outils/tests/cibles.py`).
+- Équilibre : bot attentif 76,0 % sur 2000 parties (hasard 0,7 %), inchangé. Banc même minute (CPU ×4) : chargement 1660 → 949 ms, zoom 29 → 38 img/s, glisse 60 img/s. pass1test, mock, geste 2D/3D, explore 4 graines : 0 erreur. Captures 2D 0/16. Version 1794869447-d764.
+- Essai abandonné : caméra rapprochée du couronnement (drapeaux hors cadre, personnages trop visibles).
+
+## Bilan du plan 3D (16/11/2026)
+| | Avant | Après |
+|---|---|---|
+| Carte | SVG dessinée | relief 3D (terrain photo, forêts, rivières, mer), châteaux, villages, 7 édifices et cathédrale modelés ; repli 2D automatique |
+| Scènes d'événements | 15 dessins SVG | 15 scènes 3D + titre, 3 lumières selon l'âge, drapeaux aux couleurs des maisons |
+| Portraits | SVG procéduraux | 190 bustes 3D (tête scannée), même visage toute la vie |
+| Page | 1,8 Mo | 3,9 Mo (limite 16) |
+| Équilibre | 72-80 % | inchangé (aucune règle touchée) |
+Reste ouvert : visages féminins (une seule tête scannée, masculine), personnages des scènes simples, chantier de cathédrale peu lisible, pions d'armée et front de guerre en 3D.

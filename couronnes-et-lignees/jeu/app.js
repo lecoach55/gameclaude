@@ -139,7 +139,7 @@ function resources() {
    <div>${A.icon('prestige', 24)}<b>${S.prestige}</b><span>prestige</span></div>
    <div>${A.icon('domaine', 24)}<b>${S.domains}</b><span>domaines</span></div></div>
    <div class="gauges">
-    <div class="gauge"><div class="lb"><span>Stabilité</span><em style="color:${stabC()}">${Math.max(0, S.stab)}</em></div><div class="bar"><i style="width:${Math.max(0, S.stab)}%;background:${stabC()}"></i></div><small>${S.stab < 25 ? 'Les barons complotent' : S.stab < 50 ? 'Le royaume murmure' : 'Le royaume est calme'}</small></div>
+    <div class="gauge" title="Stabilité : à zéro, les barons vous déposent"><div class="lb"><span>Stabilité</span><em style="color:${stabC()}">${Math.max(0, S.stab)}</em></div><div class="bar"><i style="width:${Math.max(0, S.stab)}%;background:${stabC()}"></i></div><small>${S.stab < 25 ? 'Les barons complotent' : S.stab < 50 ? 'Le royaume murmure' : 'Le royaume est calme'}</small></div>
     <div class="gauge"><div class="lb"><span>Menace</span><em style="color:${menC()}">${S.menace}</em></div><div class="bar"><i style="width:${Math.min(100, S.menace)}%;background:${menC()}"></i></div><small>${S.menace > 70 ? 'Invasion imminente' : S.menace > 40 ? `La maison ${esc(S.rival)} s'arme` : 'Frontières sûres'}${S.alliances ? `, ${S.alliances} allié${S.alliances > 1 ? 's' : ''}` : ''}</small></div>
    </div>`;
 }
@@ -1056,15 +1056,15 @@ function viewPlateau() {
    <div class="ovl top">
     <button class="me" onclick="setTab('cour')" aria-label="La cour">${mini(r, 44)}<span><b class="frak">Maison ${esc(S.house)}</b><i>${esc(r.title)}${r.epithet ? ' ' + esc(r.epithet) : ''}, an ${ROMAN(S.year)}</i></span></button>
     <div class="res">
-     <div class="chip">${A.icon('or', 18)}<b data-k="gold" class="${S.gold < 0 ? 'neg' : ''}">${S.gold}</b></div>
-     <div class="chip">${A.icon('armee', 18)}<b data-k="army">${S.army}</b></div>
-     <div class="chip">${A.icon('prestige', 18)}<b data-k="prestige">${S.prestige}</b></div>
-     <div class="chip">${A.icon('domaine', 18)}<b data-k="domains">${S.domains}</b></div>
+     <div class="chip" title="Or : revenu des terres, du commerce et des édifices, moins l'entretien de l'armée">${A.icon('or', 18)}<b data-k="gold" class="${S.gold < 0 ? 'neg' : ''}">${S.gold}</b></div>
+     <div class="chip" title="Soldats : défendent contre les invasions et mènent vos guerres">${A.icon('armee', 18)}<b data-k="army">${S.army}</b></div>
+     <div class="chip" title="Prestige : renommée de la maison, il compte pour vos ambitions et le score final">${A.icon('prestige', 18)}<b data-k="prestige">${S.prestige}</b></div>
+     <div class="chip" title="Terres : nombre de régions que vous tenez">${A.icon('domaine', 18)}<b data-k="domains">${S.domains}</b></div>
     </div>
    </div>
    <div class="ovl gauges2">
-    <div><span>Stabilité <b data-k="stab">${Math.max(0, S.stab)}</b></span><div class="bar"><i data-g="stab" style="width:${Math.max(0, S.stab)}%;background:${S.stab < 25 ? '#e0563c' : S.stab < 50 ? '#e8b64e' : '#4fbf8f'}"></i></div></div>
-    <div><span>Menace <b data-k="menace">${S.menace}</b></span><div class="bar"><i data-g="menace" style="width:${Math.min(100, S.menace)}%;background:${S.menace > 70 ? '#e0563c' : S.menace > 40 ? '#e8b64e' : '#8fa6d6'}"></i></div></div>
+    <div title="Stabilité : à zéro, les barons vous déposent"><span>Stabilité <b data-k="stab">${Math.max(0, S.stab)}</b></span><div class="bar"><i data-g="stab" style="width:${Math.max(0, S.stab)}%;background:${S.stab < 25 ? '#e0563c' : S.stab < 50 ? '#e8b64e' : '#4fbf8f'}"></i></div></div>
+    <div title="Menace : plus elle monte, plus votre rivale risque d'envahir"><span>Menace <b data-k="menace">${S.menace}</b></span><div class="bar"><i data-g="menace" style="width:${Math.min(100, S.menace)}%;background:${S.menace > 70 ? '#e0563c' : S.menace > 40 ? '#e8b64e' : '#8fa6d6'}"></i></div></div>
    </div>
    ${S.mission ? missionCard() : ''}
    ${targetMode ? `<div class="ovl tbanner2 ${targetMode === 'vassal' ? 'vas' : ''}">${targetMode === 'vassal' ? 'Touchez un seigneur à vassaliser' : 'Touchez une terre à attaquer'}<button onclick="targetMode=false;render()">Annuler</button></div>` : n ? `<button class="ovl achip2" onclick="sheet(alerts() + '<p class=&quot;center&quot; style=&quot;margin:12px 0 0&quot;><button class=&quot;btn alt&quot; onclick=&quot;closeM()&quot;>Fermer</button></p>', true)"><span>!</span>${esc(firstA)}${n > 1 ? ` <i>+${n - 1}</i>` : ''}</button>` : ''}
@@ -1135,7 +1135,7 @@ const GUIDE = [
   ['.ovl .me', 'Voici votre souverain. Touchez-le pour ouvrir la cour : famille, conseil, maisons voisines, politiques, trésor.'],
   ['.ovl .res', 'Vos ressources : or, soldats, prestige et nombre de terres.'],
   ['.gauges2', 'Surveillez la stabilité (à zéro, les barons vous déposent) et la menace de votre rivale.'],
-  ['#board', 'Votre royaume est à vos couleurs. Touchez une terre voisine : vos éclaireurs y repèrent la posture de l\'ennemi, à vous de choisir l\'assaut, le siège ou la ruse — ou d\'obtenir l\'hommage par des présents. Glissez pour vous déplacer, pincez pour zoomer.'],
+  ['#board', 'Votre royaume est à vos couleurs. Touchez une terre voisine : vos éclaireurs y repèrent la posture de l\'ennemi, à vous de choisir l\'assaut, le siège ou la ruse — ou d\'obtenir l\'hommage par des présents. Pincez pour zoomer, glissez pour vous déplacer, pincez pour zoomer.'],
   ['.bar5', 'Une entreprise par période de trois ans : bâtir (sept édifices), guerroyer, marier, éduquer l\'héritier… ou laisser passer le temps avec le bouton bleu.'],
 ];
 function guide(step) {
@@ -1413,6 +1413,7 @@ const JOURNAL = [
   ['Portraits et blasons', '0 %', '75 %', 'Les portraits vieillissent davantage (plis, poches sous les yeux, taches de l\'âge) et s\'habillent selon l\'époque de leur jeunesse : maille pour les braves de l\'âge des barons, surcot à bordure à l\'âge des cathédrales, col montant à l\'âge des fléaux. Les traits se voient : croix pectorale et tonsure du pieux, regard cerné du cruel, sourcils inquiets du couard, sourire du charismatique, bouche bée du simplet. Après un mariage d\'alliance, les armes du couple sont parties : moitié de votre blason, moitié de celui de l\'épouse ou de l\'époux, dans la Cour et l\'arbre.'],
   ['Le monde bouge sans vous', '0 %', '77 %', 'Les maisons voisines se font de vraies guerres, qui durent plusieurs années et font changer les terres de main (épées croisées sur la carte, le long du front). On vous demande d\'y prendre parti : soutenir un camp lui donne l\'avantage, arbitrer la paix demande du prestige, profiter de leurs querelles affaiblit leurs garnisons. Avec une maison bienveillante, on peut sceller un traité de commerce (+2 or par tour) ; avec une maison neutre, un pacte de non-agression (moins de menace, plus de pillage) : au plus trois traités, signalés par un sceau sur la carte, et les rompre en l\'attaquant fait de vous un parjure. Épouser quelqu\'un d\'une maison voisine la rapproche de vous, et une maison amie se montre moins exigeante sur votre prestige.'],
   ['Scènes et lumière', '0 %', '77 %', 'Sept nouvelles scènes dessinées à la main illustrent les événements : le tournoi (lices, tribune, chevaliers lance couchée), le chantier de cathédrale (échafaudages, grue à roue), la foire (étals à auvents, foule), les noces (portail d\'église, pluie de pétales), le couronnement (salle du trône, couronne dans la lumière), le siège (remparts, trébuchet, fumées) et le port (quai, entrepôts, phare, cogues). Toute une trentaine d\'événements y gagnent une image qui leur ressemble. La lumière change avec l\'âge : dorée à l\'âge des cathédrales, plombée à l\'âge des fléaux.'],
+  ['Plan 3D, phase 5 : finitions et prise en main', '0 %', '76 %', 'La carte 3D règle seule sa qualité : sur un appareil modeste, moins d\'arbres et une résolution plus basse ; si les premières images sont lentes, elle coupe les ombres puis baisse la résolution, et s\'en souvient. Des conseils apparaissent au bon moment, une seule fois chacun (carte en relief, stabilité basse, menace, régence, guerre entre voisins, chantier de la cathédrale, éducation de l\'héritier). Les ressources et jauges ont des infobulles, et tous les boutons font au moins 44 pixels pour le doigt.'],
   ['Plan 3D, phase 4 : les portraits en 3D', '0 %', '76 %', 'Les portraits de la lignée, de la cour et des voisins sont désormais des bustes en 3D : une tête scannée (Lee Perry-Smith, Infinite-Realities, CC BY 3.0) dont les traits sont modelés autrement pour chaque visage, avec yeux, chevelure, barbe, voile et guimpe pour les dames, couronne ou diadème pour le souverain. Une banque de 190 bustes : 5 visages par sexe, de l\'enfance à la vieillesse, en tenue de l\'époque de naissance. Chaque personne garde le même visage toute sa vie, et ses habits prennent les couleurs de sa maison. Les portraits dessinés restent avec la carte dessinée (menu ☰).'],
   ['Plan 3D, phase 3 : les scènes en 3D', '0 %', '76 %', 'Les quinze illustrations d\'événements (château, église, village, bataille, cour, mer, nuit, peste, tournoi, chantier, foire, noces, couronnement, siège, port) et l\'écran titre sont désormais des scènes 3D modelées et éclairées dans un atelier, avec ciel nuageux, ombres, fumées et brume. Chacune existe en trois lumières selon l\'âge du royaume : douce au temps des barons, dorée au temps des cathédrales, grise et brumeuse au temps des fléaux. Les drapeaux prennent les couleurs de votre maison et de l\'adversaire. Les dessins d\'origine restent avec la carte dessinée (menu ☰).'],
   ['Plan 3D, phase 2 : châteaux, villages et édifices', '0 %', '76 %', 'La carte en 3D devient la carte par défaut. Chaque région a son château modelé pierre par pierre (textures photographiques de murailles, tuiles, ardoises et chaume) : forteresse à quatre tours et donjon pour votre capitale, château fort pour vos autres terres, maison-forte pour les seigneurs voisins, pierre sombre pour le rival. Villages selon la richesse, les sept édifices (moulin à ailes, halle, abbaye, donjon, lices, université, hôpital) et la cathédrale, avec ses échafaudages tant que le chantier dure. La lumière change avec l\'âge du royaume ; ombres portées sur grand écran. Le dessin reste disponible dans le menu ☰.'],
@@ -1710,7 +1711,7 @@ const TITLES = [
 async function reportBug(b) { const sm = b && b.querySelector('small'); if (sm) sm.textContent = 'Envoi…'; const ok = await TK.signaler(); if (sm) sm.textContent = ok ? 'Merci : signalement envoyé à Claude.' : 'Enregistré sur cet appareil (envoi en ligne indisponible).'; }
 // ---------- Mode test : partie à part (graine fixe, aucune sauvegarde), compteur d'images, banc de mesure ----------
 function startTest() {
-  TEST = true; view = null; S = D.createGame(1234); S.ai = { story: [], pendingFacts: [], suggestions: [] }; news = []; deltas = []; queue = []; tab = 'plateau'; S.flashes = [];
+  TEST = true; document.querySelectorAll('.tipx').forEach(e => e.remove()); view = null; S = D.createGame(1234); S.ai = { story: [], pendingFacts: [], suggestions: [] }; news = []; deltas = []; queue = []; tab = 'plateau'; S.flashes = [];
   try { localStorage.setItem('cl_guide', '1'); } catch (e) {}
   closeM(); render(); TK.modeTest();
   if (TK.ov && !TK.ov.querySelector('button')) { TK.ov.style.pointerEvents = 'auto'; TK.ov.insertAdjacentHTML('beforeend', ' <button id="tkb" style="font:12px sans-serif">▶ Banc</button> <button id="tkr" style="font:12px sans-serif">🐞</button>'); $('tkb').onclick = runBench; $('tkr').onclick = () => TK.signaler(); }
@@ -1785,7 +1786,29 @@ function render() {
   $('tabs').querySelector('.tabbar').style.transform = `translateX(${ti * 100}%)`;
   $('minibar').innerHTML = miniBar(); onScroll();
   if (tab === 'plateau' && R3.on()) { R3.sync(S); const im = document.querySelector('.imm'); if (im) R3.attach(im); }
-  if (tab === 'plateau') wireMap();
+  if (tab === 'plateau') { wireMap(); tipCheck(); }
+}
+// ---------- conseils au bon moment (une seule fois chacun, jamais en mode test) ----------
+const TIPS = [
+  ['carte3d', () => R3.on(), 'La carte est <b>en relief</b> : pincez ou utilisez + et − pour zoomer, glissez pour vous déplacer. Les édifices que vous bâtissez y apparaissent. Le menu ☰ permet de revenir à la carte dessinée.'],
+  ['stab', () => S.stab < 30, '<b>Stabilité basse.</b> Si elle tombe à zéro, les barons vous déposent. Les traits du souverain, les politiques de la cour et les conseillers la font remonter ; les guerres et les dettes la font baisser.'],
+  ['menace', () => S.menace >= 50, 'La <b>menace</b> de votre rivale grandit à chaque période. Plus elle est haute, plus une invasion devient probable : des soldats et des alliances la tiennent en respect.'],
+  ['regence', () => !!S.regency, 'Votre souverain est mineur : un <b>régent</b> gouverne jusqu\'à ses seize ans. La stabilité en souffre ; de bons conseillers aident à tenir.'],
+  ['voisins', () => !!S.war, 'Deux <b>maisons voisines</b> sont en guerre. Ouvrez leur fiche (touchez leur blason sur la carte) : vous pouvez soutenir l\'une, ou attendre qu\'elles s\'épuisent.'],
+  ['chantier', () => !!S.chantier, 'Le <b>chantier de la cathédrale</b> coûte 4 or par tour. À son achèvement : +35 prestige, puis +1 prestige par tour pour toujours.'],
+  ['heritier', () => { const h = D.heir(S); return h && D.age(S, h) >= 10 && D.age(S, h) < 16; }, 'Votre héritier a l\'âge d\'être <b>éduqué</b> : choisissez « Éduquer » dans Gouverner. Un précepteur bien choisi au conseil améliore ses chances.'],
+];
+let tipT = 0;
+function tipCheck() {
+  if (TEST || S.over || S.event || document.querySelector('.coach,.tipx,.sheet,.modal')) return;
+  let seen = {}; try { seen = JSON.parse(localStorage.getItem('cl_tips') || '{}'); if (!localStorage.getItem('cl_guide')) return; } catch (e) { return; }
+  const t = TIPS.find(([k, c]) => !seen[k] && (() => { try { return c(); } catch (e) { return false; } })()); if (!t) return;
+  clearTimeout(tipT); tipT = setTimeout(() => {
+    if (tab !== 'plateau' || document.querySelector('.coach,.tipx,.sheet,.modal')) return;
+    seen[t[0]] = 1; try { localStorage.setItem('cl_tips', JSON.stringify(seen)); } catch (e) {}
+    const d = document.createElement('div'); d.className = 'tipx'; d.setAttribute('role', 'status');
+    d.innerHTML = `<p>${t[2]}</p><button onclick="this.parentNode.remove()">Compris</button>`; document.body.appendChild(d);
+  }, 900);
 }
 function onScroll() { $('minibar').classList.toggle('on', tab === 'cour' && scrollY > 240); }
 let tabInit = false;

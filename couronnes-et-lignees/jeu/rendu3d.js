@@ -3,7 +3,7 @@
 // se dessine vers le haut de l'écran (y_écran = y − K·z). La couche SVG au-dessus reste donc alignée.
 const R3 = (() => {
   const K = 0.62;                 // inclinaison de la vue cavalière
-  let renderer = null, scene = null, cam = null, canvas = null, built = null, ok = null, quality = (() => { try { return Math.min(innerWidth, innerHeight) >= 700 && !/Mobi|Android|iPhone|iPad/.test(navigator.userAgent) ? 2 : 1; } catch (e) { return 1; } })(), raf = 0, lastView = null, pend = null;
+  let renderer = null, scene = null, cam = null, canvas = null, built = null, ok = null, quality = (() => { try { const m = localStorage.getItem('cl_3dq'); if (m != null) return +m; const mob = /Mobi|Android|iPhone|iPad/.test(navigator.userAgent), weak = (navigator.deviceMemory && navigator.deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2); return weak ? 0 : Math.min(innerWidth, innerHeight) >= 700 && !mob ? 2 : 1; } catch (e) { return 1; } })(), raf = 0, lastView = null, pend = null;
   const groups = {};
   const pref = () => { try { const q = new URLSearchParams(location.search).get('v3d'); if (q != null) return q !== '0'; const v = localStorage.getItem('cl_3d'); return v == null ? true : v === '1'; } catch (e) { return true; } };
   function supported() {
@@ -101,7 +101,7 @@ const R3 = (() => {
     const pts = [];
     const r = (s => () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; })(S.seed * 31 + 7);
     g.cells.forEach((c, i) => {
-      const t = S.regions[i].terrain, n = t === 'forêt' ? (quality >= 2 ? 70 : 45) : t === 'collines' ? 8 : t === 'marais' ? 10 : 12;
+      const t = S.regions[i].terrain, n = t === 'forêt' ? (quality >= 2 ? 70 : quality === 1 ? 45 : 28) : t === 'collines' ? 8 : t === 'marais' ? 10 : 12;
       const xs = c.poly.map(p => p[0]), ys = c.poly.map(p => p[1]), mnx = Math.min(...xs), mxx = Math.max(...xs), mny = Math.min(...ys), mxy = Math.max(...ys);
       let made = 0, tries = 0;
       while (made < n && tries++ < n * 6) { const x = mnx + r() * (mxx - mnx), y = mny + r() * (mxy - mny); if (!inPoly(c.poly, x, y) || coastDist(g, x, y) < 5) continue; if (Math.hypot(x - c.c[0], y - c.c[1]) < 22) continue; pts.push([x, y, hgt(x, y), 0.7 + r() * 0.6, t === 'forêt' && r() < 0.55 ? 1 : 0]); made++; }
@@ -272,10 +272,19 @@ const R3 = (() => {
     if (!lastView) return;
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() => {
-      const dpr = Math.min(devicePixelRatio || 1, quality >= 2 ? 1.75 : 1.5), w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
+      const dpr = Math.min(devicePixelRatio || 1, quality >= 2 ? 1.75 : quality === 1 ? 1.5 : 1), w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
       renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
-      project(lastView); const t0 = performance.now(); renderer.render(scene, cam); R3.lastMs = performance.now() - t0;
+      project(lastView); const t0 = performance.now(); renderer.render(scene, cam);
+      if (probe < 4) { try { renderer.getContext().finish(); } catch (e) {} } // mesure réelle (puce graphique comprise) sur les premières images
+      R3.lastMs = performance.now() - t0;
+      if (probe < 4) { probe++; if (probe > 1) slow.push(R3.lastMs); if (probe === 4) { slow.sort((a, b) => a - b); if (slow[1] > 55 && quality > 0) downgrade(); } }
     });
+  }
+  let probe = 0; const slow = [];
+  function downgrade() { // trop lent : on baisse d'un cran (ombres, puis résolution) et on s'en souvient
+    quality--; try { localStorage.setItem('cl_3dq', String(quality)); } catch (e) {}
+    if (quality < 2 && renderer) { renderer.shadowMap.enabled = false; if (groups.sun) groups.sun.castShadow = false; scene.traverse(o => { if (o.material) o.material.needsUpdate = true; }); }
+    probe = 0; slow.length = 0; render(lastView);
   }
   function setLive(css) { if (canvas) { canvas.style.transformOrigin = '0 0'; canvas.style.transform = css || ''; } }
   const kit = { mats, flagMat, castle, edifice, cathedral, house, tower, keep, banner, crenels, add, box, cyl, cone, gable, wuv, fbm, texture };

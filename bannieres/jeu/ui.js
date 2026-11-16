@@ -42,7 +42,7 @@ HOOK.maj=()=>{V.miniDirty=true;V.fogDirty=true;majUI();};
 HOOK.anim=async(type,h,a,b)=>{if(type==='ramasse'){if(humain(h.j))SON.piece();return;}
  if(type==='pas'){const vis=visible(a)||visible(b);V.fogDirty=true;V.miniDirty=true;if(!vis||V.rapide)return;const [x0,y0]=xy(a),[x1,y1]=xy(b);const dur=(humain(h.j)?150:90)/ACCEL;V.anim={h,x0,y0,x1,y1,t0:performance.now(),dur};if(humain(h.j))SON.pas();
   suivre(x1,y1);await new Promise(r=>setTimeout(r,dur));V.anim=null;}};
-function suivre(x,y){const T=tailleT(),z=zoneVue();const sx=(x+.5)*T-V.cam.x,sy=(y+.5)*T-V.cam.y;if(sx<z.w*.25||sx>z.w*.75||sy<z.y+z.h*.25||sy>z.y+z.h*.75){V.cam.x+=(sx-z.w/2)*.25;V.cam.y+=(sy-z.y-z.h/2)*.25;borner();}}
+function suivre(x,y){if(en3D()){R3.suivre(x,y);return;}const T=tailleT(),z=zoneVue();const sx=(x+.5)*T-V.cam.x,sy=(y+.5)*T-V.cam.y;if(sx<z.w*.25||sx>z.w*.75||sy<z.y+z.h*.25||sy>z.y+z.h*.75){V.cam.x+=(sx-z.w/2)*.25;V.cam.y+=(sy-z.y-z.h/2)*.25;borner();}}
 HOOK.combat=async(A,D,opts)=>{const ha=humain(A.joueur),hd=humain(D.joueur);if(!ha&&!hd)return combatAuto(A,D,opts);
  if(ha&&!hd&&D.monstre&&A.heros){const r=iaRisque(A.heros,D.armee);if(r<.1){let auto=false;try{auto=localStorage.getItem('bs-rapide')==='1';}catch(e){}
    const k=auto?0:await fenetre(`<h2>${qteTxt(D.monstre.n)} ${CRE[D.monstre.cre].pl.toLowerCase()}</h2><p>Une proie facile pour votre armée. Résoudre le combat automatiquement ?</p>`,[{t:'⚡ Combat rapide',or:true},{t:'⚔ Mener la bataille'},{t:'Toujours rapide pour les proies faciles',petit:1}]);
@@ -135,12 +135,12 @@ async function toucher(i){if(i<0||!G||V.occupe)return;const p=G.joueurs[G.couran
  let ville=null;for(const v of G.objs)if(v.t==='ville'&&Math.abs(v.x-x)<=1&&(y===v.y||y===v.y-1))ville=v;
  if(hid){const h=heroPar(hid);if(h.j===p.id&&(!hs||hs.id===h.id||!V.chemin||V.chemin.dest!==i)){if(hs&&hs.id===h.id){if(ville&&ville.prop===p.id)return ouvrirVille(ville);return ouvrirFiche(h);}V.sel={t:'heros',id:h.id};V.chemin=null;majUI();SON.clic();return;}}
  if(ville&&ville.prop===p.id&&(!hs||(hs.x===ville.x&&hs.y===ville.y)||(V.sel&&V.sel.t==='ville'))){if(V.sel&&V.sel.t==='ville'&&V.sel.id===ville.id||hs)return ouvrirVille(ville);V.sel={t:'ville',id:ville.id};V.chemin=null;majUI();SON.clic();return;}
- if(!hs){const d=descCase(i);const T=tailleT();bulle(d,(x+.5)*T-V.cam.x,(y)*T-V.cam.y,2200);return;}
+ if(!hs){const d=descCase(i);const [ex,ey]=posEcran(x,y);bulle(d,ex,ey,2200);return;}
  const dest=ville&&!(x===ville.x&&y===ville.y)?idx(ville.x,ville.y):i;
  if(V.chemin&&V.chemin.dest===dest&&V.chemin.h===hs.id)return avancer();
- const ch=chemin(hs,dest);if(!ch){const T=tailleT();bulle(G.joueurs[p.id].vu[i]?'Inaccessible':'Terres inexplorées',(x+.5)*T-V.cam.x,y*T-V.cam.y,1200);V.chemin=null;majUI();return;}
+ const ch=chemin(hs,dest);if(!ch){const [ex,ey]=posEcran(x,y);bulle(G.joueurs[p.id].vu[i]?'Inaccessible':'Terres inexplorées',ex,ey,1200);V.chemin=null;majUI();return;}
  V.chemin=Object.assign(ch,{h:hs.id,dest});SON.clic();majUI();
- if(o||hid){const T=tailleT();bulle(descCase(dest)+'<br><small>Touchez encore pour y aller</small>',(x+.5)*T-V.cam.x,y*T-V.cam.y,2000);}}
+ if(o||hid){const [ex,ey]=posEcran(x,y);bulle(descCase(dest)+'<br><small>Touchez encore pour y aller</small>',ex,ey,2000);}}
 async function avancer(){const c=V.chemin;if(!c||V.occupe)return;const h=heroPar(c.h);if(!h)return;if(h.mp<=0){toast('Ce héros n’a plus de mouvement aujourd’hui.');return;}
  V.occupe=true;majUI();bulle(null);try{await deplacer(h,c.ch);}catch(e){console.error(e);TK&&TK.erreurs.push(String(e));}
  V.occupe=false;const h2=heroPar(c.h);V.chemin=null;if(h2&&idx(h2.x,h2.y)!==c.dest){const ch=chemin(h2,c.dest);if(ch)V.chemin=Object.assign(ch,{h:h2.id,dest:c.dest});}
@@ -194,17 +194,21 @@ async function fenetreEchange(a,b){V.porTmp=a;await fenetre(`<h2>Rencontre : ${e
 // ---------- menu ----------
 async function menu(){if(!G)return;const e=SON.etat();const nb=window.NUAGE?(NUAGE.ok?'active':NUAGE.err?'refusée ('+esc(NUAGE.err)+')':'en attente'):'—';
  const k=await fenetre(`<h2>Menu</h2><p style="font-size:13px;text-align:center">${dateTxt()} · Graine ${G.graine}${TEST?' · 🧪 Mode test':''}<br>☁ Sauvegarde en ligne : ${nb}</p>`,
-  [{t:'💾 Sauvegarder'},{t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{t:'📜 Journal'},{t:'🗺 Carte du Graal'},{t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{t:'📖 Aide'},{t:'🐞 Signaler un problème'},...(TEST?[{t:'▶ Banc de mesure'}]:[]),{t:'🏠 Quitter vers l’accueil'},{t:'Reprendre',or:true}]);
+  [{t:'💾 Sauvegarder'},{t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{t:'📜 Journal'},{t:'🗺 Carte du Graal'},{t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{t:R3.ok?(V.m3?'🧊 Carte en 3D : oui':'🧊 Carte en 3D : non (2D)'):'🧊 3D indisponible sur cet appareil',off:!R3.ok},{t:'📖 Aide'},{t:'🐞 Signaler un problème'},...(TEST?[{t:'▶ Banc de mesure'}]:[]),{t:'🏠 Quitter vers l’accueil'},{t:'Reprendre',or:true}]);
  const base=TEST?1:0;
  if(k===0){sauver();toast(TEST?'Mode test : rien n’est sauvegardé.':'Partie sauvegardée.');}
  else if(k===1){SON.basculerSon();menu();}else if(k===2){SON.basculerMusique();menu();}
  else if(k===5){try{localStorage.setItem('bs-rapide',localStorage.getItem('bs-rapide')==='1'?'0':'1');}catch(e){}menu();}
  else if(k===4)carteGraal();
  else if(k===3){await fenetre('<h2>Journal</h2>'+(G.log.slice(-40).reverse().map(l=>`<p style="font-size:13px">J${l.j} — ${esc(l.t)}</p>`).join('')||'<p>Rien pour l’instant.</p>'),[{t:'Fermer',or:true}]);}
- else if(k===6)aide();
- else if(k===7){toast('Envoi du signalement…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé à Claude.':'Signalement enregistré sur cet appareil ('+(TK?TK.base:'?')+').',3000);}
- else if(TEST&&k===8)banc();
- else if(k===8+base){sauver();G=null;ecran('accueil');majAccueil();}}
+ else if(k===6){basculer3D();}
+ else if(k===7)aide();
+ else if(k===8){toast('Envoi du signalement…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé à Claude.':'Signalement enregistré sur cet appareil ('+(TK?TK.base:'?')+').',3000);}
+ else if(TEST&&k===9)banc();
+ else if(k===9+base){sauver();G=null;ecran('accueil');majAccueil();}}
+function basculer3D(){V.m3=!V.m3;try{localStorage.setItem('bs-3d',V.m3?'1':'0');}catch(e){}const c=V.ctr;
+ if(V.m3){toast('Préparation de la carte en 3D…');R3.init().then(ok=>{if(ok){R3.ouvrir();if(c)R3.centrer(c[0],c[1]);}else{V.m3=false;toast('La 3D n’a pas pu démarrer sur cet appareil.');}});}
+ else{R3.fermer();if(c)centrer(c[0],c[1]);}}
 function carteGraal(){const j=vueJoueur();const p=G.joueurs[j];const n=(p.obel||[]).length,t=G.carte.nObel||4;
  return fenetre(`<h2>Carte du Graal</h2><p style="text-align:center">${G.graalPris?'Le Graal a déjà été déterré.':`Fragments déchiffrés : <b>${n}/${t}</b>. Visitez les obélisques pour compléter la carte.`}</p><div style="text-align:center"><canvas id="cvGraal" width="280" height="280" style="width:280px;max-width:80vw;border:3px solid #8a6420;border-radius:4px"></canvas></div>`,[{t:'Fermer',or:true}],{init:f=>{
   const c=f.querySelector('#cvGraal'),g=c.getContext('2d');const N=G.carte.N,R0=7;const [gx,gy]=G.carte.graal>=0?xy(G.carte.graal):[N/2,N/2];const x0=Math.max(0,Math.min(N-2*R0-1,gx-R0)),y0=Math.max(0,Math.min(N-2*R0-1,gy-R0));
@@ -241,6 +245,7 @@ window.addEventListener('keydown',e=>{V.activite=performance.now();if(e.target.t
  if(e.key==='Escape'){if(m){const bs=fh.querySelectorAll('.fen > .btns .btn');const b=[...bs].find(x=>/Fermer|Annuler|Reprendre|Terminer|D’accord/.test(x.textContent))||bs[bs.length-1];if(b)b.click();}else if(ECRAN==='aventure')menu();else if(ECRAN==='ville'&&VI)VI.fermer();return;}
  if(m||ECRAN!=='aventure'||!G||V.occupe)return;const k=e.key.toLowerCase();
  if(k==='e')finTour();else if(k==='h')heroSuivant();else if(k===' '){e.preventDefault();avancer();}else if(k==='v'){const v=V.sel&&V.sel.t==='ville'?G.oi[V.sel.id]:villesDe(G.courant)[0];if(v)ouvrirVille(v);}
+ else if(k.startsWith('arrow')&&en3D()){const d=innerHeight*.2;R3.deplacer(k==='arrowleft'?d:k==='arrowright'?-d:0,k==='arrowup'?d:k==='arrowdown'?-d:0);}
  else if(k.startsWith('arrow')){const d=tailleT()*3;if(k==='arrowleft')V.cam.x-=d;if(k==='arrowright')V.cam.x+=d;if(k==='arrowup')V.cam.y-=d;if(k==='arrowdown')V.cam.y+=d;borner();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!TEST&&window.NUAGE)NUAGE.push(true);});
 function brancher(){V.mini=$('minicarte');for(const ev of ['pointerdown','pointermove','wheel'])addEventListener(ev,()=>{V.activite=performance.now();},{passive:true});
@@ -253,10 +258,10 @@ function brancher(){V.mini=$('minicarte');for(const ev of ['pointerdown','pointe
  $('bBouger').onclick=()=>avancer();$('bFinTour').onclick=()=>{SON.clic();const reste=herosDe(G.courant).filter(h=>h.mp>200);if(reste.length&&!V.avertiFin){V.avertiFin=true;toast(`Encore du mouvement pour ${reste.map(h=>h.nom).join(', ')} — touchez ⌛ à nouveau pour finir le tour.`,2600);setTimeout(()=>V.avertiFin=false,2600);return;}V.avertiFin=false;finTour();};
  $('bMenu').onclick=()=>menu();$('bCarte').onclick=()=>{V.mini.classList.toggle('ouvert');V.miniDirty=true;};
  brancherCarte();brancherCombat();brancherVille();
- try{TK=Testkit({jeu:'bannieres',canvas:()=>ECRAN==='combat'?$('cvCombat'):ECRAN==='ville'?$('cvVille'):ECRAN==='accueil'?$('fondAccueil'):$('carte'),etat:()=>({ecran:ECRAN,test:TEST,graine:G&&G.graine,jour:G&&G.jour,courant:G&&G.courant,heros:G&&G.heros.map(h=>({nom:h.nom,j:h.j,x:h.x,y:h.y,mp:h.mp})),tGen:V.tGen,ecranTaille:innerWidth+'x'+innerHeight}),rendu:()=>{}});}catch(e){}
+ try{TK=Testkit({jeu:'bannieres',canvas:()=>ECRAN==='combat'?$('cvCombat'):ECRAN==='ville'?$('cvVille'):ECRAN==='accueil'?$('fondAccueil'):en3D()?$('carte3d'):$('carte'),etat:()=>({ecran:ECRAN,test:TEST,graine:G&&G.graine,jour:G&&G.jour,courant:G&&G.courant,heros:G&&G.heros.map(h=>({nom:h.nom,j:h.j,x:h.x,y:h.y,mp:h.mp})),tGen:V.tGen,mode3d:en3D(),gpu:R3.info&&R3.info(),ecranTaille:innerWidth+'x'+innerHeight}),rendu:()=>{if(ECRAN==='aventure'&&en3D())R3.rendre();}});}catch(e){}
  try{window.NUAGE=SauvegardeEnLigne({etat:()=>serialiser(),meta:()=>({jour:G?G.jour:0}),coupe:()=>TEST||!G});}catch(e){}
  V.mini=$('minicarte');
- const q=new URLSearchParams(location.search);if(q.get('graine')){TEST=q.get('test')!=='0';demarrer({graine:+q.get('graine'),taille:+(q.get('taille')||54),eau:+(q.get('eau')||1),monstres:1,difficulte:1,joueurs:[{fac:q.get('fac')||'bastion',humain:true},{fac:'necro',humain:false},{fac:'sylve',humain:false}].slice(0,+(q.get('joueurs')||3))});}
+ const q=new URLSearchParams(location.search);{let p=null;try{p=localStorage.getItem('bs-3d');}catch(e){}V.m3=R3.ok&&(q.get('v3d')?q.get('v3d')!=='0':p!=='0');}if(q.get('graine')){TEST=q.get('test')!=='0';demarrer({graine:+q.get('graine'),taille:+(q.get('taille')||54),eau:+(q.get('eau')||1),monstres:1,difficulte:1,joueurs:[{fac:q.get('fac')||'bastion',humain:true},{fac:'necro',humain:false},{fac:'sylve',humain:false}].slice(0,+(q.get('joueurs')||3))});}
  else{ecran('accueil');majAccueil();}
  requestAnimationFrame(boucle);}
 brancher();

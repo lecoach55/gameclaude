@@ -10,10 +10,11 @@ function redimCombat(){const cv=$('cvCombat');const d=Math.min(2,devicePixelRati
  if(H>W*1.15){const top=Math.max(70,H*.09);let h=(W-12)/8.5;let w=h/1.1547;if(15.5*w*SQP>H-top-10){w=(H-top-10)/(15.5*SQP);h=w*1.1547;}
   CB.geo={w,h,ox:(W-8.5*h)/2,oy:top+Math.max(0,(H-top-15.5*w*SQP)/2),W,H,port:true};}
  else{const top=H*.25;const w=Math.min((W-16)/15.5,(H-top-8)/(8.5*1.1547*SQ));const h=w*1.1547;CB.geo={w,h,ox:(W-15.5*w)/2,oy:top+Math.max(0,(H-top-8.5*h*SQ)/2)-4,W,H,port:false};}
+ CB.c3=null;if(V.m3&&R3.ok){try{CB.c3=R3.camCombat(CB.geo,CB.geo.H+60);}catch(e){console.error(e);}}
  CB.fond=null;for(const p of CB.C.piles)CB.aff.set(p.id,centreHex(p.h));}
 const PS0=.84; // perspective : la rangée du fond est plus petite que celle du premier plan
 function echRang(r){return PS0+(1-PS0)*r/(CH-1);}
-function centreHex(hx){const g=CB.geo,q=hx%CW,r=(hx/CW)|0;if(g.port){const s=1;return{x:g.ox+r*g.h*.75+g.h/2,y:g.oy+((CW-1-q)+.5-(r&1)*.5)*g.w*SQP+g.w*SQP*.5,s};}
+function centreHex(hx){if(CB.c3&&CB.c3.p3){const c=CB.c3.p3[hx];return{x:c.x,y:c.y,s:c.s};}const g=CB.geo,q=hx%CW,r=(hx/CW)|0;if(g.port){const s=1;return{x:g.ox+r*g.h*.75+g.h/2,y:g.oy+((CW-1-q)+.5-(r&1)*.5)*g.w*SQP+g.w*SQP*.5,s};}
  const s=echRang(r);let y=g.oy+g.h*SQ*PS0/2;for(let k=0;k<r;k++)y+=g.h*.75*SQ*(echRang(k)+echRang(k+1))/2;return{x:g.W/2+(q-7+(r&1)*.5-.25)*g.w*s,y,s};}
 function hexSous(px,py){const P=CB.geo.port;let best=-1,bd=1e9;for(let h=0;h<CW*CH;h++){const c=centreHex(h);const d=Math.hypot((c.x-px),(c.y-py)/(P?SQP:SQ));if(d<bd){bd=d;best=h;}}return bd<CB.geo.w*.62?best:-1;}
 function cheminHex(g,c){const G2=CB.geo;const P=G2.port;const k=c.s||1;const rx=(P?G2.h/2:G2.w/2)*k,ry=(P?G2.w/2*SQP*1.1547:G2.h/2*SQ)*k;g.beginPath();for(let k=0;k<6;k++){const a=Math.PI/3*k+(P?0:Math.PI/6);const x=c.x+rx*Math.cos(a),y=c.y+ry*Math.sin(a);k?g.lineTo(x,y):g.moveTo(x,y);}g.closePath();}
@@ -73,8 +74,8 @@ async function explosion(c){const fx={t:'explo',x:c.x,y:c.y-CB.geo.h*.3,t0:perfo
 async function etincelles(c,coul,zone){const fx={t:'spark',x:c.x,y:c.y-CB.geo.h*.4,coul,t0:performance.now(),d:600,r:zone?CB.geo.w*1.6:CB.geo.w*.7};CB.fx.push(fx);await pause(560);}
 
 function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');const g=cv.getContext('2d');const G2=CB.geo;g.setTransform(CB.dpr,0,0,CB.dpr,0,0);const now=performance.now();
- if(!CB.fond)CB.fond=fondCombat(C.terrain,Math.round(G2.W),Math.round(G2.H+60),7,G2.port?.05:.24);g.drawImage(CB.fond,0,0,G2.W,G2.H+60);
- if(C.ville){const s=spriteVille(C.ville.fac);const w=G2.W*.32,h=w*s.height/s.width;g.globalAlpha=.9;g.drawImage(s,G2.W-w*.95,G2.oy-h*.92,w,h);g.globalAlpha=1;}
+ if(!CB.fond){let f3=null;if(CB.c3){try{f3=R3.fondCombat(C,G2,CB.c3.cam,G2.H+60,CB.dpr);}catch(e){console.error(e);}}if(f3){CB.fond=f3.fond;CB.obst3=f3.obst;}else{CB.fond=fondCombat(C.terrain,Math.round(G2.W),Math.round(G2.H+60),7,G2.port?.05:.24);CB.obst3=null;}}g.drawImage(CB.fond,0,0,G2.W,G2.H+60);
+ if(C.ville&&!CB.obst3){const s=spriteVille(C.ville.fac);const w=G2.W*.32,h=w*s.height/s.width;g.globalAlpha=.9;g.drawImage(s,G2.W-w*.95,G2.oy-h*.92,w,h);g.globalAlpha=1;}
  // grille
  const p=C.actif;const monTour=p&&CB.humain[p.cote]&&!CB.auto&&CB.attente;const por=monTour&&!CB.mode?C.portee(p):null;
  g.lineWidth=1;for(let h=0;h<CW*CH;h++){const c=centreHex(h);cheminHex(g,c);if(por&&por.has(h)){g.fillStyle='rgba(255,255,230,.16)';g.fill();}g.strokeStyle='rgba(20,30,10,.28)';g.stroke();}
@@ -83,7 +84,7 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
   if(CB.depuis!=null){cheminHex(g,centreHex(CB.depuis));g.fillStyle='rgba(255,220,120,.35)';g.fill();}}
  if(p){cheminHex(g,CB.aff.get(p.id)||centreHex(p.h));g.strokeStyle=`rgba(255,215,90,${.6+.35*Math.sin(now/180)})`;g.lineWidth=3;g.stroke();g.lineWidth=1;}
  // obstacles + piles triés par profondeur
- const objets=[];for(const h of C.obst)objets.push({y:centreHex(h).y,f:()=>{const c=centreHex(h);const s=spriteObstacle(C.terrain==='herbe'&&h%2?OBS.VEG:OBS.ROC,C.terrain==='eau'?'herbe':C.terrain,h%9);const w=G2.w*1.25*(c.s||1),hh=w*s.height/s.width;g.drawImage(s,c.x-w/2,c.y-hh+G2.h*.3*SQ*(c.s||1),w,hh);}});
+ const objets=[];for(const h of C.obst)objets.push({y:centreHex(h).y,f:()=>{const c=centreHex(h);const o3=CB.obst3&&CB.obst3.get(h);if(o3){g.drawImage(o3.c,o3.x,o3.y,o3.w,o3.h);return;}if(CB.obst3)return;const s=spriteObstacle(C.terrain==='herbe'&&h%2?OBS.VEG:OBS.ROC,C.terrain==='eau'?'herbe':C.terrain,h%9);const w=G2.w*1.25*(c.s||1),hh=w*s.height/s.width;g.drawImage(s,c.x-w/2,c.y-hh+G2.h*.3*SQ*(c.s||1),w,hh);}});
  for(const q of C.piles){const al=CB.alpha.has(q.id)?CB.alpha.get(q.id):1;const pos=CB.aff.get(q.id)||centreHex(q.h);objets.push({y:pos.y-(q.n<=0?1000:0),f:()=>dessinerPile(g,q,pos,al,now)});}
  objets.sort((a,b)=>a.y-b.y);for(const o of objets)o.f();
  // effets

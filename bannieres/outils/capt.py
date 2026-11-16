@@ -8,7 +8,7 @@ async def main():
     out=sys.argv[1];W=int(sys.argv[2]) if len(sys.argv)>2 else 1280;H=int(sys.argv[3]) if len(sys.argv)>3 else 800
     base=serveur(JEU,8784)
     async with async_playwright() as p:
-        nav=await navigateur(p);pg=await page(nav,base+'index.html?graine=7&taille=54',W,H)
+        nav=await navigateur(p);pg=await page(nav,base+'index.html?graine=7&taille=54&q3d=2',W,H)
         await pg.wait_for_function("()=>ECRAN==='aventure'",timeout=120000);await pg.wait_for_timeout(1500)
         await pg.evaluate("()=>{const t=document.querySelector('div[style*=monospace]');if(t)t.remove();}")
         await capturer(pg,f'{out}/carte.png')

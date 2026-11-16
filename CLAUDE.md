@@ -83,11 +83,10 @@ Gestion d'un club de foot français du Régional 2 à la Ligue 1 (une page HTML/
 - Apps Mac/Windows : `outils/app-bureau/` (Electron). Journal : `mesures/JOURNAL.md`. Voir `president-de-club/README.md`.
 
 ## Bannières & Sortilèges (`bannieres/`)
-Stratégie au tour par tour façon Heroes of Might and Magic avec cartes générées au hasard (Canvas 2D, une page hors ligne). Artefact : slug `c14c3c85-7570-4c24-845c-42239cee0f6a` (capacités db + user).
+Stratégie au tour par tour façon Heroes of Might and Magic avec cartes générées au hasard (une page hors ligne ; carte, combats et villes en 3D Three.js r160 via `jeu/rendu3d.js`, ancien rendu Canvas 2D gardé en repli : `?v3d=0`). Artefact : slug `c14c3c85-7570-4c24-845c-42239cee0f6a` (capacités db + user).
 - Construire : `python3 bannieres/jeu/build.py`, publier `bannieres/build/bannieres.html` en `index.html` (publish_files).
 - Logique testable sous Node (`outils/charger.js`, `sim_partie.js`, `sim_factions.js` pour l'équilibre des 4 factions) ; avant publication : `parcours.py` (robot à travers l'interface + sauvegarde), `scen.py` (siège, Graal, victoire), `monkey.py` (clics au hasard), `perf.py`, `capt.py` + compare (références dans `references/`), `hors_ligne.py`. Voir `bannieres/README.md`.
 - Ressources reprises de Valdragon : portraits 3D (`outils/studio/portraits.py` + `pack_portraits.py`, dossier préparé `/home/claude/t3d`), bruitages Kenney (`jeu/snd`), bois et pierre (`jeu/tex`), musique générative (sons.js). Les créatures restent dessinées (essai de sprites 3D écarté, voir README).
-- Logique testable sous Node (`outils/charger.js`, `sim_partie.js`) ; avant publication : `parcours.py`, `scen.py`, `perf.py`, `capt.py` + compare, `hors_ligne.py`. Voir `bannieres/README.md`.
 
 ## Cage & Gloire (`cage-et-gloire/`)
 Management de combattants de MMA : 5 organisations (CFR → HEX → ECC → GLADIUS → APEX), montées/descentes selon les résultats, combats regardés dans une arène Three.js. Artefact : slug `a54aba6d-7add-42e6-8212-9468f69ceee4` (capacités db + user).

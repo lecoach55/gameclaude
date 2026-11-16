@@ -88,8 +88,31 @@ function robeOf(p) {
   if (p.from && p.from !== 'vassal' && p.from !== 'marchand') return A.arms(p.from).robe;
   return null;
 }
+// portraits 3D pré-rendus (outils/portraits3d) : même visage toute la vie, tenue selon l'époque de naissance, vêtement teint aux couleurs de la maison
+let p3uid = 0; const P3URL = {};
+function p3url(k, d) { if (P3URL[k]) return P3URL[k]; try { const b = atob(d.slice(d.indexOf(',') + 1)), u8 = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i); return P3URL[k] = URL.createObjectURL(new Blob([u8], { type: 'image/webp' })); } catch (e) { return P3URL[k] = d; } }
+function credits() {
+  sheet(`<h2 class="frak">Crédits</h2><p class="sc">Ressources libres utilisées pour les images en 3D :</p>
+   <ul style="text-align:left;line-height:1.5"><li>Tête scannée « Lee Perry-Smith » : Infinite-Realities, licence CC BY 3.0 (portraits, modifiée : traits, yeux, coiffures, vêtements).</li>
+   <li>Textures de terrain, pierre, tuiles, ardoise, chaume, enduit et bois : Poly Haven, CC0.</li><li>Moteur 3D : three.js (licence MIT).</li></ul>
+   <div class="center"><button class="btn" onclick="closeM()">Fermer</button></div>`);
+}
+function portrait3d(o, size) {
+  if (typeof PORT3D === 'undefined' || (typeof R3 !== 'undefined' && !R3.pref())) return null;
+  const ab = o.age < 14 ? 0 : o.age < 30 ? 1 : o.age < 50 ? 2 : 3, ep = ab ? Math.max(0, Math.min(2, o.era || 0)) : 0, cr = ab && o.ruler ? 1 : 0;
+  const v = A.hash(String(o.id) + '|' + (S ? S.house : '')) % PORT3D.nv, k = `${o.sex}${ab}${ep}`, img0 = PORT3D.p[`${k}${cr}_${v}`], mk0 = PORT3D.m[k];
+  if (!img0) return null;
+  const img = p3url(`${k}${cr}_${v}`, img0), mk = mk0 && p3url('m' + k, mk0);
+  const robe = o.robe || ['#6b2d2a', '#2d4a6b', '#3d5a3a', '#5b3d6b', '#7a5a22', '#4a4038'][A.hash(String(o.id)) % 6], id = 'p3' + (++p3uid);
+  return `<svg viewBox="0 0 100 120" width="${size}" height="${size * 1.2}" class="portrait p3d${o.dead ? ' dead' : ''}" aria-hidden="true"><defs><linearGradient id="${id}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3a66"/><stop offset="1" stop-color="#121a33"/></linearGradient>${mk ? `<mask id="${id}m"><image href="${mk}" width="100" height="120"/></mask>` : ''}</defs>
+    <rect width="100" height="120" fill="#20160e"/><path d="M0 120 V44 Q0 6 50 4 Q100 6 100 44 V120 Z" fill="${o.dead ? '#3a3a40' : `url(#${id}b)`}"/>
+    <image href="${img}" width="100" height="120"/>${mk ? `<rect width="100" height="120" fill="${robe}" mask="url(#${id}m)" style="mix-blend-mode:multiply"/>` : ''}
+    ${o.heir && !o.ruler ? `<path d="M40 112 l10 -6 l10 6" fill="none" stroke="${o.accent || '#d6a62e'}" stroke-width="2.4"/>` : ''}</svg>`;
+}
 function portrait(p, size) {
   const a = A.arms(S.house), h = D.heir(S), alive = p.alive !== false;
+  const o3 = { id: p.face != null ? p.face : p.id, sex: p.sex, age: S.year - p.born - (alive || !p.died ? 0 : S.year - p.died), era: D.eraOf({ year: p.born + 25 }), ruler: p.id === S.rulerId || (!alive && S.rulers.includes(p.id)) || (alive && p.spouse != null && p.spouse === S.rulerId), heir: h && h.id === p.id, dead: !alive, robe: robeOf(p), accent: a.accent };
+  const p3 = portrait3d(o3, size); if (p3) return p3;
   return A.portraitSVG({ id: p.face != null ? p.face : p.id, sex: p.sex, age: S.year - p.born - (alive || !p.died ? 0 : S.year - p.died), traits: p.traits, era: D.eraOf({ year: p.born + 25 }), ruler: p.id === S.rulerId || (!alive && S.rulers.includes(p.id)), heir: h && h.id === p.id, dead: !alive, robe: robeOf(p), accent: a.accent }, size, S.house);
 }
 const LOY = l => l >= 75 ? ['Dévoué', 'pos'] : l >= 50 ? ['Fidèle', 'pos'] : l >= 30 ? ['Incertain', 'neu'] : ['Rancunier', 'neg'];
@@ -1078,7 +1101,7 @@ function showMission(q) {
    <p class="story center">${esc(q.won ? I.win : I.lose)}</p>
    <p class="center" style="margin:14px 0 0"><button class="btn" onclick="nextQ()">Continuer</button></p>`);
 }
-function rivalLordPortrait(size) { const L = S.rivalLord; return L ? A.portraitSVG({ id: L.face, sex: 'M', age: S.year - L.born, traits: L.traits, ruler: true, robe: A.arms(S.rival).robe, accent: '#c9a14a' }, size, S.rival) : ''; }
+function rivalLordPortrait(size) { const L = S.rivalLord; if (!L) return ''; const o = { id: 'riv' + L.face, sex: 'M', age: S.year - L.born, era: D.eraOf({ year: L.born + 25 }), ruler: true, robe: A.arms(S.rival).robe, accent: '#c9a14a' }; return portrait3d(o, size) || A.portraitSVG({ id: L.face, sex: 'M', age: S.year - L.born, traits: L.traits, ruler: true, robe: A.arms(S.rival).robe, accent: '#c9a14a' }, size, S.rival); }
 function rivalSheet() {
   if (dragMoved) return;
   SND.play('tap');
@@ -1136,6 +1159,7 @@ function menuSheet() {
    <button onclick="closeM();setTab('lignee')">${A.icon('marier', 24)}<span>La lignée<small>Arbre et succession</small></span></button>
    <button onclick="closeM();setTab('chronique')">${A.icon('plume', 24)}<span>La chronique<small>Tout ce qui s'est passé</small></span></button>
    ${R3.supported() ? `<button onclick="R3.setPref(!R3.pref());location.reload()"><span class="em">🧊</span><span>Carte en 3D<small>${R3.pref() ? 'activée — toucher pour revenir à la carte dessinée' : 'désactivée — toucher pour la rallumer'}</small></span></button>` : ''}
+   <button onclick="credits()"><span class="em">📜</span><span>Crédits<small>ressources libres utilisées</small></span></button>
    <button onclick="reportBug(this)"><span class="em">🐞</span><span>Signaler un problème<small>Envoie à Claude l'écran et l'état de la partie</small></span></button>
    <button onclick="titlesSheet()">${A.icon('prestige', 24)}<span>Titres de gloire<small>${Object.keys(titlesGot()).length} sur ${TITLES.length} débloqués</small></span></button>
    <button onclick="closeM();setTab('labo')">${A.icon('fiole', 24)}<span>Le laboratoire<small>Simulations et équilibrage</small></span></button>
@@ -1389,6 +1413,7 @@ const JOURNAL = [
   ['Portraits et blasons', '0 %', '75 %', 'Les portraits vieillissent davantage (plis, poches sous les yeux, taches de l\'âge) et s\'habillent selon l\'époque de leur jeunesse : maille pour les braves de l\'âge des barons, surcot à bordure à l\'âge des cathédrales, col montant à l\'âge des fléaux. Les traits se voient : croix pectorale et tonsure du pieux, regard cerné du cruel, sourcils inquiets du couard, sourire du charismatique, bouche bée du simplet. Après un mariage d\'alliance, les armes du couple sont parties : moitié de votre blason, moitié de celui de l\'épouse ou de l\'époux, dans la Cour et l\'arbre.'],
   ['Le monde bouge sans vous', '0 %', '77 %', 'Les maisons voisines se font de vraies guerres, qui durent plusieurs années et font changer les terres de main (épées croisées sur la carte, le long du front). On vous demande d\'y prendre parti : soutenir un camp lui donne l\'avantage, arbitrer la paix demande du prestige, profiter de leurs querelles affaiblit leurs garnisons. Avec une maison bienveillante, on peut sceller un traité de commerce (+2 or par tour) ; avec une maison neutre, un pacte de non-agression (moins de menace, plus de pillage) : au plus trois traités, signalés par un sceau sur la carte, et les rompre en l\'attaquant fait de vous un parjure. Épouser quelqu\'un d\'une maison voisine la rapproche de vous, et une maison amie se montre moins exigeante sur votre prestige.'],
   ['Scènes et lumière', '0 %', '77 %', 'Sept nouvelles scènes dessinées à la main illustrent les événements : le tournoi (lices, tribune, chevaliers lance couchée), le chantier de cathédrale (échafaudages, grue à roue), la foire (étals à auvents, foule), les noces (portail d\'église, pluie de pétales), le couronnement (salle du trône, couronne dans la lumière), le siège (remparts, trébuchet, fumées) et le port (quai, entrepôts, phare, cogues). Toute une trentaine d\'événements y gagnent une image qui leur ressemble. La lumière change avec l\'âge : dorée à l\'âge des cathédrales, plombée à l\'âge des fléaux.'],
+  ['Plan 3D, phase 4 : les portraits en 3D', '0 %', '76 %', 'Les portraits de la lignée, de la cour et des voisins sont désormais des bustes en 3D : une tête scannée (Lee Perry-Smith, Infinite-Realities, CC BY 3.0) dont les traits sont modelés autrement pour chaque visage, avec yeux, chevelure, barbe, voile et guimpe pour les dames, couronne ou diadème pour le souverain. Une banque de 190 bustes : 5 visages par sexe, de l\'enfance à la vieillesse, en tenue de l\'époque de naissance. Chaque personne garde le même visage toute sa vie, et ses habits prennent les couleurs de sa maison. Les portraits dessinés restent avec la carte dessinée (menu ☰).'],
   ['Plan 3D, phase 3 : les scènes en 3D', '0 %', '76 %', 'Les quinze illustrations d\'événements (château, église, village, bataille, cour, mer, nuit, peste, tournoi, chantier, foire, noces, couronnement, siège, port) et l\'écran titre sont désormais des scènes 3D modelées et éclairées dans un atelier, avec ciel nuageux, ombres, fumées et brume. Chacune existe en trois lumières selon l\'âge du royaume : douce au temps des barons, dorée au temps des cathédrales, grise et brumeuse au temps des fléaux. Les drapeaux prennent les couleurs de votre maison et de l\'adversaire. Les dessins d\'origine restent avec la carte dessinée (menu ☰).'],
   ['Plan 3D, phase 2 : châteaux, villages et édifices', '0 %', '76 %', 'La carte en 3D devient la carte par défaut. Chaque région a son château modelé pierre par pierre (textures photographiques de murailles, tuiles, ardoises et chaume) : forteresse à quatre tours et donjon pour votre capitale, château fort pour vos autres terres, maison-forte pour les seigneurs voisins, pierre sombre pour le rival. Villages selon la richesse, les sept édifices (moulin à ailes, halle, abbaye, donjon, lices, université, hôpital) et la cathédrale, avec ses échafaudages tant que le chantier dure. La lumière change avec l\'âge du royaume ; ombres portées sur grand écran. Le dessin reste disponible dans le menu ☰.'],
   ['Plan 3D, phase 1 : la carte en relief', '0 %', '76 %', 'Premier pas vers la 3D réaliste : la carte peut être dessinée par la puce graphique, en vue cavalière comme les plans anciens. Terrain photographique (herbe, forêt, roche, sable, marais), relief des collines, lits des rivières, mer, forêts d\'arbres en volume et premiers châteaux. Les frontières, les noms et les pions restent dessinés par-dessus, si bien que tout se touche comme avant. À essayer dans le menu ☰ (« Carte en 3D ») : elle deviendra la carte par défaut quand châteaux et édifices seront en 3D.'],

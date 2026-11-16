@@ -1,0 +1,3 @@
+Tête « Lee Perry-Smith » : Infinite-Realities (https://www.ir-ltd.net), licence CC BY 3.0,
+obtenue depuis le dépôt three.js (examples/models/gltf/LeePerrySmith). Modifiée par déformation, yeux, coiffures et vêtements procéduraux.
+Crédit affiché dans le jeu (menu ☰ > Crédits).

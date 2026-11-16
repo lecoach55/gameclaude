@@ -1,0 +1,24 @@
+{
+ "rendu_plateau": 15.2,
+ "rendu_cour": 42,
+ "rendu_lignee": 5.3,
+ "rendu_chronique": 2.6,
+ "rendu_labo": 2.2,
+ "tour_moteur": 1.2,
+ "fiche_region": 12.9,
+ "fiche_batir": 7.1,
+ "zoom": {
+  "img_s": 27.9,
+  "pire_ms": 933.3,
+  "p95_ms": 33.4
+ },
+ "glisse": {
+  "img_s": 59.7,
+  "pire_ms": 33.4,
+  "p95_ms": 16.8
+ },
+ "dom_noeuds": 529,
+ "svg_carte_ko": 52,
+ "chargement_ms": 826,
+ "erreurs": []
+}

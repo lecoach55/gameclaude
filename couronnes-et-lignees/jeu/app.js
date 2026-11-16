@@ -90,7 +90,7 @@ function robeOf(p) {
 }
 function portrait(p, size) {
   const a = A.arms(S.house), h = D.heir(S), alive = p.alive !== false;
-  return A.portraitSVG({ id: p.face != null ? p.face : p.id, sex: p.sex, age: S.year - p.born - (alive || !p.died ? 0 : S.year - p.died), traits: p.traits, ruler: p.id === S.rulerId || (!alive && S.rulers.includes(p.id)), heir: h && h.id === p.id, dead: !alive, robe: robeOf(p), accent: a.accent }, size, S.house);
+  return A.portraitSVG({ id: p.face != null ? p.face : p.id, sex: p.sex, age: S.year - p.born - (alive || !p.died ? 0 : S.year - p.died), traits: p.traits, era: D.eraOf({ year: p.born + 25 }), ruler: p.id === S.rulerId || (!alive && S.rulers.includes(p.id)), heir: h && h.id === p.id, dead: !alive, robe: robeOf(p), accent: a.accent }, size, S.house);
 }
 const LOY = l => l >= 75 ? ['Dévoué', 'pos'] : l >= 50 ? ['Fidèle', 'pos'] : l >= 30 ? ['Incertain', 'neu'] : ['Rancunier', 'neg'];
 const mini = (p, n) => `<span class="mini">${portrait(p, n)}</span>`;
@@ -158,7 +158,7 @@ function rulerCard() {
   seenIds = new Set(D.livingDyn(S).map(p => p.id).concat(sp ? [sp.id] : []));
   const fam = court.slice(0, 14).map(p => { const role = sp && p.id === sp.id ? (p.sex === 'F' ? 'Épouse' : 'Époux') : h && p.id === h.id ? (p.sex === 'F' ? 'Héritière' : 'Héritier') : `${ANS(D.age(S, p))}`; const L = p.loyal != null && D.age(S, p) >= 14 ? LOY(p.loyal) : null; return `<button class="${fresh.includes(p.id) ? 'born' : ''}" onclick="who(${p.id})">${mini(p, 44)}<b>${esc(p.name)}</b><span>${role}</span>${L ? `<i class="ld ${L[1]}" title="${L[0]}"></i>` : ''}</button>`; }).join('');
   return `<section class="folio rc"><button class="rc-p" onclick="who(${r.id})" aria-label="Fiche de ${esc(FN(r))}"><span class="niche">${portrait(r, 74)}</span></button>
-   <div class="rc-b"><h2 class="frak">${esc(r.title)}${r.epithet ? ` <span class="epi">${esc(r.epithet)}</span>` : ''}</h2><div class="meta">${ANS(D.age(S, r))}, règne depuis ${S.year - r.ruledFrom} ans</div>${traitList(r)}${amb}</div>
+   <div class="rc-b"><h2 class="frak">${esc(r.title)}${r.epithet ? ` <span class="epi">${esc(r.epithet)}</span>` : ''}</h2><div class="meta">${ANS(D.age(S, r))}, règne depuis ${S.year - r.ruledFrom} ans${sp && sp.from && sp.from !== S.house ? ` <span class="impm" title="Armes de l'alliance">${A.impaledSVG(S.house, sp.from, 20)}</span>` : ''}</div>${traitList(r)}${amb}</div>
    ${fam ? `<div class="rc-fam"><div class="cl">La cour</div><div class="court">${fam}</div></div>` : ''}</section>`;
 }
 function alerts() {
@@ -1220,8 +1220,9 @@ function viewRoyaume() {
 // ---------- Lignée ----------
 function persRow(p) {
   const st = !p.alive ? `${p.cause}, en ${p.died}` : !p.inDyn ? 'mariée dans une autre maison' : `${ANS(D.age(S, p))}${p.spouse ? `, uni${p.sex === 'F' ? 'e' : ''} à ${esc(D.person(S, p.spouse).name)}` : ''}`;
+  const spx = p.spouse ? D.person(S, p.spouse) : (p.widow ? D.person(S, p.widow) : null), imp = spx && spx.from && spx.from !== S.house && p.inDyn ? `<span class="impm" title="Armes de l'alliance avec la maison ${esc(spx.from)}">${A.impaledSVG(S.house, spx.from, 18)}</span>` : '';
   const tag = p.id === S.rulerId ? 'Règne' : p.adopted ? 'Adopté' : p.bastard ? 'Bâtard' : p.disinherited ? 'Déshérité' : '';
-  return `<button class="pers ${!p.alive || !p.inDyn ? 'gone' : ''}" onclick="who(${p.id})">${mini(p, 38)}<span><span class="nm">${esc(FN(p))}</span>${tag ? ` <span class="pill neu" style="font-size:12px">${tag}</span>` : ''}<br><span class="sub">${st}</span></span></button>`;
+  return `<button class="pers ${!p.alive || !p.inDyn ? 'gone' : ''}" onclick="who(${p.id})">${mini(p, 38)}<span><span class="nm">${esc(FN(p))}</span>${imp}${tag ? ` <span class="pill neu" style="font-size:12px">${tag}</span>` : ''}<br><span class="sub">${st}</span></span></button>`;
 }
 function tree(id, depth) {
   const p = S.people[id];
@@ -1276,6 +1277,7 @@ const JOURNAL = [
   ['L\'âge des fléaux raconté', '0 %', '78 %', 'Un fil historique traverse le XIVe siècle : la croisade des pastoureaux (1320), la bataille de Cassel (1328), puis la guerre de Cent Ans dont le camp choisi décide de la suite quelques années plus tard (la chevalerie fauchée par les archers, une chevauchée anglaise, ou les pillards des deux camps), et le manque de bras après les épidémies. La Peste noire, qui ne pouvait jamais survenir (elle tombait entre deux tours), arrive enfin en 1347. Chaque fin de partie raconte désormais ce que l\'histoire retiendra de votre maison (conquérants, bâtisseurs, diplomates, saints, dynastes ou marchands) et ce qu\'elle devint après 1350.'],
   ['Vos édifices sur la carte', '0 %', '76 %', 'Chaque chantier apparaît désormais sur la carte, dessiné à la main à côté du château de la terre où il a été bâti : moulin aux ailes qui tournent, halle marchande à l\'auvent rayé, abbaye et son clocher, donjon de pierre, lices aux fanions, collège de maîtres, hôtel-Dieu à la croix rouge. La cathédrale se dresse près de la capitale, d\'abord dans ses échafaudages, puis avec ses deux flèches.'],
   ['Chevaliers, archers et piétaille', '0 %', '75 %', 'L\'ost a désormais une composition. Recruter propose trois troupes : la piétaille (bon marché, nombreuse), les archers (forts au siège et sur les murs contre les invasions) et les chevaliers (puissants à l\'assaut et en rase campagne, chers à entretenir). Les tactiques en tiennent compte : un siège avec beaucoup d\'archers ou un assaut mené par des chevaliers gagne plusieurs points de chances. Les lices forment des chevaliers, les mercenaires amènent archers et piétons. Sur 1 000 parties, une ost bien composée gagne 75 % des parties contre 74 % pour une ost de piétons seuls.'],
+  ['Portraits et blasons', '0 %', '75 %', 'Les portraits vieillissent davantage (plis, poches sous les yeux, taches de l\'âge) et s\'habillent selon l\'époque de leur jeunesse : maille pour les braves de l\'âge des barons, surcot à bordure à l\'âge des cathédrales, col montant à l\'âge des fléaux. Les traits se voient : croix pectorale et tonsure du pieux, regard cerné du cruel, sourcils inquiets du couard, sourire du charismatique, bouche bée du simplet. Après un mariage d\'alliance, les armes du couple sont parties : moitié de votre blason, moitié de celui de l\'épouse ou de l\'époux, dans la Cour et l\'arbre.'],
 ];
 function viewLabo() {
   const C = { victoire: '#2f6b55', extinction: '#6b3a78', revolte: '#a8321f', conquete: '#b98a2e', timeout: '#888' };

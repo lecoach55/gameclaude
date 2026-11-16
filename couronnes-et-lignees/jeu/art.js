@@ -31,6 +31,11 @@
     const count = ['cross', 'saltire', 'quarterly'].includes(div) ? 0 : pk(r, [1, 3, 3]);
     return { field, other, div, charge, count, robe: metalFirst ? COLOURS[colour] : field, accent: metalFirst ? METALS[metal] : METALS.or };
   }
+  function impaledSVG(h1, h2, size) {
+    const id = nid('im'), a = shieldSVG(h1, size), b = shieldSVG(h2, size);
+    const inner = s => s.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+    return `<svg viewBox="0 0 100 120" width="${size}" height="${size * 1.2}" class="impale" aria-hidden="true"><defs><clipPath id="${id}l"><rect width="50" height="120"/></clipPath><clipPath id="${id}r"><rect x="50" width="50" height="120"/></clipPath></defs><g clip-path="url(#${id}l)">${inner(a)}</g><g clip-path="url(#${id}r)">${inner(b)}</g><path d="M50 4 V112" stroke="#3b2a18" stroke-width="1.6" opacity=".55"/></svg>`;
+  }
   function shieldSVG(houseName, size) {
     const a = arms(houseName), id = nid('sh');
     let g = `<rect width="100" height="120" fill="${a.field}"/>`;
@@ -93,7 +98,7 @@
     const M = p.sex === 'M';
     const style = Math.floor(r() * 3), beardStyle = Math.floor(r() * 4);
     const fw = 0.92 + r() * 0.16;
-    const cruel = p.traits.includes('cruel'), brave = p.traits.includes('brave'), pieux = p.traits.includes('pieux'), sage = p.traits.includes('sage');
+    const cruel = p.traits.includes('cruel'), brave = p.traits.includes('brave'), pieux = p.traits.includes('pieux'), sage = p.traits.includes('sage'), couard = p.traits.includes('couard'), charis = p.traits.includes('charismatique'), simplet = p.traits.includes('simplet'), era = p.era || 0;
     const hx = 17 * fw, hy = 21;
     const L = 50 - hx, R = 50 + hx;
     let s = '';
@@ -116,6 +121,10 @@
     // col
     s += M ? `<path d="M36 86 Q50 96 64 86 L62 92 Q50 100 38 92 Z" fill="${acc}"/>`
       : `<path d="M34 87 Q50 100 66 87" fill="none" stroke="${acc}" stroke-width="2.4"/>${r() < 0.6 ? `<circle cx="50" cy="96" r="2.6" fill="${acc}"/><circle cx="50" cy="96" r="1.2" fill="#9e1d1d"/>` : ''}`;
+    if (!child && era === 0 && M && brave && !p.ruler) s += `<path d="M30 88 Q50 80 70 88 L72 98 Q50 92 28 98 Z" fill="#9aa3aa"/><path d="M30 91 Q50 84 70 91 M29 95 Q50 88 71 95" stroke="#6b737a" stroke-width=".7" fill="none" stroke-dasharray="1.2 1"/>`;
+    if (!child && era === 1) s += `<path d="M24 120 L30 92 Q50 100 70 92 L76 120" fill="none" stroke="${shade(acc, 0.85)}" stroke-width="1.6" opacity=".7"/><path d="M50 96 V120" stroke="${shade(robe, 0.7)}" stroke-width="1.2"/>`;
+    if (!child && era === 2) s += `<path d="M34 92 Q36 78 43 76 L43 86 Q50 90 57 86 L57 76 Q64 78 66 92 Q50 98 34 92 Z" fill="${shade(robe, 0.82)}"/><path d="M36 84 Q50 92 64 84" fill="none" stroke="${acc}" stroke-width="1" opacity=".8"/>`;
+    if (pieux && !child) s += `<path d="M50 96 v9 M46.5 99.5 h7" stroke="#f0d68a" stroke-width="1.8" stroke-linecap="round"/><path d="M45 88 Q50 95 55 88" fill="none" stroke="#cdb46a" stroke-width=".6"/>`;
     if (p.ruler && !child) s += `<path d="M14 120 Q20 98 34 92 L38 120 Z M86 120 Q80 98 66 92 L62 120 Z" fill="#f2ede2"/><g fill="#231e1a">${[[22, 108], [28, 114], [76, 108], [72, 114], [30, 101], [70, 101]].map(([x, y]) => `<path d="M${x} ${y - 2.4} L${x + 1.2} ${y + 1.6} L${x - 1.2} ${y + 1.6} Z"/>`).join('')}</g>`;
     // tête
     s += `<ellipse cx="50" cy="50" rx="${hx}" ry="${hy}" fill="${sk}"/>`;
@@ -137,11 +146,17 @@
     s += `<path d="M50 ${ey + 1} Q48.3 ${ey + 9} 47.6 ${ey + 11} Q50 ${ey + 12.6} 52.6 ${ey + 11.2}" fill="none" stroke="${shade(sk, 0.72)}" stroke-width=".9" stroke-linecap="round"/>`;
     // bouche
     const my = 66;
-    s += cruel ? `<path d="M45 ${my + 1} Q50 ${my - 1} 55 ${my + 1}" fill="none" stroke="#7a3a30" stroke-width="1.3" stroke-linecap="round"/>`
+    s += cruel ? `<path d="M45 ${my + 1} Q50 ${my - 1} 55 ${my + 1}" fill="none" stroke="#7a3a30" stroke-width="1.3" stroke-linecap="round"/><path d="M55 ${my + 1} l1.6 -1.2" stroke="#7a3a30" stroke-width="1"/>`
+      : simplet ? `<ellipse cx="50" cy="${my + 0.8}" rx="3" ry="1.8" fill="#6a2a24"/><path d="M47 ${my} h6" stroke="#f3ead8" stroke-width=".7"/>`
+      : charis ? `<path d="M44.5 ${my - 0.6} Q50 ${my + 4} 55.5 ${my - 0.6}" fill="#8a3a30" stroke="#8a3a30" stroke-width="1" stroke-linejoin="round"/><path d="M46 ${my + 0.2} Q50 ${my + 1.8} 54 ${my + 0.2}" fill="none" stroke="#f6efe2" stroke-width="1"/>`
       : `<path d="M45.5 ${my} Q50 ${my + 2.4} 54.5 ${my}" fill="none" stroke="#9a4a3e" stroke-width="1.3" stroke-linecap="round"/><path d="M47 ${my + 2.3} Q50 ${my + 3.4} 53 ${my + 2.3}" fill="none" stroke="${shade(sk, 0.82)}" stroke-width=".7"/>`;
     // joues
     if (!p.traits.includes('maladif')) s += `<ellipse cx="${50 - 10 * fw}" cy="58" rx="4" ry="2.4" fill="#d9776a" opacity=".22"/><ellipse cx="${50 + 10 * fw}" cy="58" rx="4" ry="2.4" fill="#d9776a" opacity=".22"/>`;
     else s += `<path d="M${50 - ex - 4} ${ey + 3.5} q4 2 8 0 M${50 + ex - 4} ${ey + 3.5} q4 2 8 0" stroke="#9b8f7c" stroke-width=".8" fill="none"/>`;
+    if (p.age >= 40) s += `<path d="M${50 - 6 * fw} 58 Q${50 - 8.5 * fw} 63 ${50 - 7 * fw} 67 M${50 + 6 * fw} 58 Q${50 + 8.5 * fw} 63 ${50 + 7 * fw} 67" stroke="${shade(sk, 0.78)}" stroke-width=".6" fill="none"/>`;
+    if (p.age >= 58) s += `<path d="M${50 - ex - 3} ${ey + 3} q3 1.6 6 0 M${50 + ex - 3} ${ey + 3} q3 1.6 6 0" stroke="${shade(sk, 0.72)}" stroke-width=".55" fill="none"/><circle cx="${50 - 11 * fw}" cy="44" r=".9" fill="${shade(sk, 0.82)}"/><circle cx="${50 + 12 * fw}" cy="61" r=".7" fill="${shade(sk, 0.82)}"/>`;
+    if (cruel && p.age >= 16) s += `<path d="M${50 - ex - 4} ${ey + 1.6} q4 1.8 8 0 M${50 + ex - 4} ${ey + 1.6} q4 1.8 8 0" stroke="#4a2a3a" stroke-width=".9" opacity=".45" fill="none"/>`;
+    if (couard && p.age >= 10) s += `<path d="M${50 - 3} ${ey - 9} q-2 1 -4 0 M${50 + 3} ${ey - 9} q2 1 4 0" stroke="${shade(sk, 0.7)}" stroke-width=".6" fill="none"/>`;
     if (p.age >= 52) s += `<path d="M42 37 q8 -1.6 16 0 M43.5 40 q6.5 -1.2 13 0" stroke="${shade(sk, 0.8)}" stroke-width=".6" fill="none"/>`;
     if (brave && p.age >= 16) s += `<path d="M${R - 7} 42 l-3 13" stroke="#a5574a" stroke-width="1" stroke-linecap="round"/>`;
     // barbe
@@ -151,7 +166,7 @@
       else s += `<path d="M${L + 1} 50 Q${L} 74 44 84 L50 80 L56 84 Q${R} 74 ${R - 1} 50 Q${R - 4} 66 56 ${my + 3} Q50 ${my + 5} 44 ${my + 3} Q${L + 4} 66 ${L + 1} 50 Z" fill="${hair}"/><path d="M43.5 ${my - 1} Q50 ${my - 4.8} 56.5 ${my - 1} Q50 ${my - 2.4} 43.5 ${my - 1} Z" fill="${hair}"/>`;
     }
     // cheveux avant
-    const bald = M && p.age >= 55 && r() < 0.6;
+    const bald = M && p.age >= 55 && r() < 0.6, tonsure = M && pieux && !p.ruler && !p.heir && p.age >= 16;
     if (M) {
       if (bald) s += `<path d="M${L - 1} 50 Q${L - 2} 36 ${L + 5} 33 Q${L + 2} 42 ${L + 2} 50 Z M${R + 1} 50 Q${R + 2} 36 ${R - 5} 33 Q${R - 2} 42 ${R - 2} 50 Z" fill="${hair}"/>`;
       else if (style === 0) s += `<path d="M${L - 2} 52 Q${L - 4} 26 50 26 Q${R + 4} 26 ${R + 2} 52 L${R - 1} 52 Q${R - 2} 40 ${R - 6} 39 L${L + 6} 39 Q${L + 2} 40 ${L + 1} 52 Z" fill="${hair}"/>`;
@@ -163,6 +178,7 @@
       s += `<path d="M${L - 2} 54 Q${L - 4} 26 50 26 Q${R + 4} 26 ${R + 2} 54 Q${R - 1} 40 52 34 Q50 36 48 34 Q${L + 1} 40 ${L - 2} 54 Z" fill="${hair}"/>`;
       if (style === 1 && !child) s += `<path d="M${L - 2} 56 q-2 10 1 22 q2 -10 -1 -22 M${R + 2} 56 q2 10 -1 22 q-2 -10 1 -22" fill="${shade(hair, 0.85)}" stroke="${shade(hair, 0.85)}" stroke-width="3"/>`;
     }
+    if (tonsure && !bald) s += `<ellipse cx="50" cy="29.5" rx="7" ry="2.6" fill="${shade(sk, 0.96)}"/><ellipse cx="50" cy="29.5" rx="7" ry="2.6" fill="url(#${id}face)"/>`;
     // couronne / diadème
     if (p.ruler) {
       const cy = M && style === 0 && !bald ? 29 : 30;
@@ -293,5 +309,5 @@
     return `<svg viewBox="0 0 ${m.W} ${m.H}" class="map" role="img" aria-label="Carte du royaume : ${domains} domaines">${s}</svg>`;
   }
 
-  root.Art = { shieldSVG, portraitSVG, icon, EVENT_ICON, mapSVG, arms, hash };
+  root.Art = { impaledSVG, shieldSVG, portraitSVG, icon, EVENT_ICON, mapSVG, arms, hash };
 })(typeof window !== 'undefined' ? window : globalThis);

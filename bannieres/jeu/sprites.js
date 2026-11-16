@@ -8,16 +8,16 @@ function teinte(hex,k){// k>0 éclaircit, k<0 assombrit
  let c=hex.replace('#','');if(c.length===3)c=c.split('').map(x=>x+x).join('');let r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);
  if(k>0){r+=(255-r)*k;g+=(255-g)*k;b+=(255-b)*k;}else{r*=1+k;g*=1+k;b*=1+k;}return'#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');}
 function rgba(hex,a){let c=hex.replace('#','');if(c.length===3)c=c.split('').map(x=>x+x).join('');return`rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${a})`;}
-var TRAIT='rgba(24,14,6,.78)';
+var TRAIT='rgba(24,14,6,.4)';var LWK=.6;// contours fins (style réaliste ; 0.78 et 1 pour l'ancien style dessiné)
 // forme remplie avec dégradé vertical, contour sombre
 var MOTIF=null;(function(){if(typeof MOTIF_PIERRE_URI==='undefined'||typeof document==='undefined')return;const im=new Image();im.onload=()=>{MOTIF=im;for(const k in SPR_CACHE)if(/^(v|l|mi|fc)/.test(k))delete SPR_CACHE[k];if(typeof VI!=='undefined'&&VI)VI.dirty=true;};im.src=MOTIF_PIERRE_URI;})();
 function motifPierre(g,ech){if(!MOTIF)return null;const p=g.createPattern(MOTIF,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix().scale(ech,ech));return p;}
 function peint(g,chemin,coul,opt={}){g.beginPath();chemin(g);const gr=g.createLinearGradient(0,opt.y0==null?0:opt.y0,opt.dx||0,opt.y1==null?100:opt.y1);gr.addColorStop(0,teinte(coul,opt.clair==null?.28:opt.clair));gr.addColorStop(.55,coul);gr.addColorStop(1,teinte(coul,opt.sombre==null?-.38:opt.sombre));g.fillStyle=gr;g.fill();
- if(opt.pierre&&MOTIF){const p=motifPierre(g,opt.pierre);if(p){g.save();g.globalCompositeOperation='multiply';g.globalAlpha=.85;g.fillStyle=p;g.fill();g.restore();}}if(opt.trait!==false){g.lineWidth=opt.lw||1.6;g.strokeStyle=opt.trait||TRAIT;g.stroke();}}
-function boule(g,x,y,r,coul,opt={}){g.beginPath();g.arc(x,y,r,0,Math.PI*2);const gr=g.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);gr.addColorStop(0,teinte(coul,.35));gr.addColorStop(.6,coul);gr.addColorStop(1,teinte(coul,-.35));g.fillStyle=gr;g.fill();if(opt.trait!==false){g.lineWidth=opt.lw||1.4;g.strokeStyle=opt.trait||TRAIT;g.stroke();}}
-function ell(g,x,y,rx,ry,coul,opt={}){g.beginPath();g.ellipse(x,y,rx,ry,opt.rot||0,0,Math.PI*2);const gr=g.createRadialGradient(x-rx*.3,y-ry*.45,1,x,y,Math.max(rx,ry));gr.addColorStop(0,teinte(coul,.3));gr.addColorStop(.6,coul);gr.addColorStop(1,teinte(coul,-.38));g.fillStyle=gr;g.fill();if(opt.trait!==false){g.lineWidth=opt.lw||1.5;g.strokeStyle=TRAIT;g.stroke();}}
+ if(opt.pierre&&MOTIF){const p=motifPierre(g,opt.pierre);if(p){g.save();g.globalCompositeOperation='multiply';g.globalAlpha=.85;g.fillStyle=p;g.fill();g.restore();}}if(opt.trait!==false){g.lineWidth=(opt.lw||1.6)*LWK;g.strokeStyle=opt.trait||TRAIT;g.stroke();}}
+function boule(g,x,y,r,coul,opt={}){g.beginPath();g.arc(x,y,r,0,Math.PI*2);const gr=g.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);gr.addColorStop(0,teinte(coul,.35));gr.addColorStop(.6,coul);gr.addColorStop(1,teinte(coul,-.35));g.fillStyle=gr;g.fill();if(opt.trait!==false){g.lineWidth=(opt.lw||1.4)*LWK;g.strokeStyle=opt.trait||TRAIT;g.stroke();}}
+function ell(g,x,y,rx,ry,coul,opt={}){g.beginPath();g.ellipse(x,y,rx,ry,opt.rot||0,0,Math.PI*2);const gr=g.createRadialGradient(x-rx*.3,y-ry*.45,1,x,y,Math.max(rx,ry));gr.addColorStop(0,teinte(coul,.3));gr.addColorStop(.6,coul);gr.addColorStop(1,teinte(coul,-.38));g.fillStyle=gr;g.fill();if(opt.trait!==false){g.lineWidth=(opt.lw||1.5)*LWK;g.strokeStyle=TRAIT;g.stroke();}}
 function ombreSol(g,x,y,rx,ry,a=.35){g.save();g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);const gr=g.createRadialGradient(x,y,1,x,y,rx);gr.addColorStop(0,`rgba(0,0,0,${a})`);gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fill();g.restore();}
-function trait(g,pts,coul,lw){g.beginPath();g.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)g.lineTo(pts[i],pts[i+1]);g.lineCap='round';g.lineJoin='round';g.lineWidth=lw+2;g.strokeStyle=TRAIT;g.stroke();g.lineWidth=lw;g.strokeStyle=coul;g.stroke();}
+function trait(g,pts,coul,lw){g.beginPath();g.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)g.lineTo(pts[i],pts[i+1]);g.lineCap='round';g.lineJoin='round';g.lineWidth=lw+2*LWK;g.strokeStyle=TRAIT;g.stroke();g.lineWidth=lw;g.strokeStyle=coul;g.stroke();}
 function poly(pts){return g=>{g.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)g.lineTo(pts[i],pts[i+1]);g.closePath();};}
 function rrect(x,y,w,h,r){return g=>{g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();};}
 
@@ -175,7 +175,7 @@ function dessBehemoth(g,d){const c=d.corps;g.save();g.translate(50,92);g.scale(1
 var SPR_CACHE={};
 // ---------- créatures pré-rendues en 3D (sprites3d.js) ----------
 var IMG3D={};
-function charger3D(){if(typeof SPR3D==='undefined')return;for(const id in SPR3D){const im=new Image();im.onload=()=>{IMG3D[id]=im;for(const k in SPR_CACHE)if(k.startsWith(id+':')||k.startsWith('m'+id+':'))delete SPR_CACHE[k];if(typeof V!=='undefined')V.miniDirty=true;};im.src=SPR3D[id].img;}}
+function charger3D(){if(typeof SPR3D==='undefined')return;for(const id of Object.keys(SPR3D)){const up=CRE[id]&&CRE[id].amelio;if(up&&!SPR3D[up])SPR3D[up]=SPR3D[id];}for(const id in SPR3D){const im=new Image();im.onload=()=>{IMG3D[id]=im;for(const k in SPR_CACHE)if(k.startsWith(id+':')||k.startsWith('m'+id+':'))delete SPR_CACHE[k];if(typeof V!=='undefined')V.miniDirty=true;};im.src=SPR3D[id].img;}}
 function a3d(id){return IMG3D[id]?SPR3D[id]:null;}
 // image k de l'animation an (idle, atk, hit, die) : [image, sx, sy, sw, sh]
 function cadre3D(id,an,k){const D=SPR3D[id];const ord=['idle','atk','hit','die'];let o=0;for(const a of ord){if(a===an)break;o+=D.n[a]||0;}const n=D.n[an]||D.n.idle;k=Math.max(0,Math.min(n-1,k|0));return[IMG3D[id],(o+k)*D.w,0,D.w,D.h];}
@@ -192,7 +192,10 @@ function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[
  eclairage(c);SPR_CACHE[k]=c;return c;}
 // modelé : lumière chaude en haut à gauche, ombre froide en bas à droite, liseré de contre-jour (donne du volume aux figures dessinées)
 function eclairage(c){const g=c.getContext('2d');const W=c.width,H=c.height;g.save();g.setTransform(1,0,0,1,0,0);g.globalCompositeOperation='source-atop';
- const gr=g.createLinearGradient(W*.15,H*.05,W*.85,H*.95);gr.addColorStop(0,'rgba(255,236,190,.22)');gr.addColorStop(.45,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(10,14,40,.28)');g.fillStyle=gr;g.fillRect(0,0,W,H);
+ // grain de matière (peau, cuir, métal) : casse l'aplat du dessin
+ if(!eclairage.p){const n=mkC(128,128),gn=n.getContext('2d'),im=gn.createImageData(128,128);const [,T2,T3]=textures();for(let i=0;i<128*128;i++){const v=128+(T2[((i>>7)*2&255)*256+((i&127)*2&255)]-.5)*150+(T3[i&65535]-.5)*90;im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=Math.max(0,Math.min(255,v));im.data[i*4+3]=255;}gn.putImageData(im,0,0);eclairage.p=n;}
+ {const t=mkC(W,H),tg=t.getContext('2d');tg.drawImage(c,0,0);tg.globalCompositeOperation='overlay';tg.globalAlpha=.32;tg.fillStyle=tg.createPattern(eclairage.p,'repeat');tg.fillRect(0,0,W,H);tg.globalAlpha=1;tg.globalCompositeOperation='destination-in';tg.drawImage(c,0,0);g.globalCompositeOperation='copy';g.drawImage(t,0,0);g.globalCompositeOperation='source-atop';}
+ const gr=g.createLinearGradient(W*.15,H*.05,W*.85,H*.95);gr.addColorStop(0,'rgba(255,236,190,.26)');gr.addColorStop(.45,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(10,14,40,.4)');g.fillStyle=gr;g.fillRect(0,0,W,H);
  const sol=g.createLinearGradient(0,H*.6,0,H*.92);sol.addColorStop(0,'rgba(0,0,0,0)');sol.addColorStop(1,'rgba(20,12,4,.22)');g.fillStyle=sol;g.fillRect(0,0,W,H);g.restore();}
 function spriteMiroir(id,S){const k='m'+id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const s=spriteCreature(id,S);const c=mkC(S,S);const g=c.getContext('2d');g.translate(S,0);g.scale(-1,1);g.drawImage(s,0,0);SPR_CACHE[k]=c;return c;}
 

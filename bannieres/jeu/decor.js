@@ -61,7 +61,7 @@ function peindreSol(c,objs){const N=c.N,W=N*PX;const cv=mkC(W,W);const g=cv.getC
  const r=creeRng(5);g.fillStyle='rgba(90,70,50,.55)';for(const [a,b,c2,d2] of segs)for(let k=0;k<3;k++){const t=r.f();g.beginPath();g.arc((a+.5+(c2-a)*t)*PX+(r.f()-.5)*PX*.25,(b+.5+(d2-b)*t)*PX+(r.f()-.5)*PX*.25,1.2,0,7);g.fill();}
  return cv;}
 
-function rivieres(g,c,objs){const N=c.N,r=creeRng((c.ter.length*7+N)*13+(c.graine||0));const occ=new Uint8Array(N*N);for(const o of objs){for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=o.x+dx,y=o.y+dy;if(x>=0&&y>=0&&x<N&&y<N)occ[y*N+x]=o.t==='ville'?2:1;}}
+function rivieres(g,c,objs,coul){const N=c.N,r=creeRng((c.ter.length*7+N)*13+(c.graine||0));const occ=new Uint8Array(N*N);for(const o of objs){for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=o.x+dx,y=o.y+dy;if(x>=0&&y>=0&&x<N&&y<N)occ[y*N+x]=o.t==='ville'?2:1;}}
  const nb=Math.max(1,Math.round(N/18));const eau=i=>c.ter[i]===EAU;const nz=bruit(r.i(1,1e9));
  for(let k=0;k<nb;k++){// source : case libre au pied d'une montagne
   let src=-1;for(let t=0;t<400&&src<0;t++){const x=r.i(2,N-3),y=r.i(2,N-3),i=y*N+x;if(c.obs[i]||eau(i)||occ[i])continue;if(DIR8.some(([dx,dy])=>{const j=(y+dy)*N+x+dx;return c.obs[j]===OBS.MONT||c.obs[j]===OBS.MONTP;}))src=i;}
@@ -72,6 +72,7 @@ function rivieres(g,c,objs){const N=c.N,r=creeRng((c.ter.length*7+N)*13+(c.grain
   const ch=aEtoile(N,src,dst,j=>occ[j]===2?Infinity:occ[j]?40:(c.route[j]?6:1)+(c.obs[j]?1.5:0)+nz((j%N)/3,((j/N)|0)/3)*4);if(!ch||ch.length<6)continue;
   const pts=ch.map(i=>[(i%N+.5+(nz(i%N,(i/N)|0)-.5)*.5)*PX,(((i/N)|0)+.5+(nz((i/N)|0,i%N)-.5)*.5)*PX]);
   const trace=(lw,col)=>{g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(let p=1;p<pts.length-1;p++){const mx=(pts[p][0]+pts[p+1][0])/2,my=(pts[p][1]+pts[p+1][1])/2;g.quadraticCurveTo(pts[p][0],pts[p][1],mx,my);}g.lineTo(pts[pts.length-1][0],pts[pts.length-1][1]);g.lineWidth=lw;g.strokeStyle=col;g.lineCap='round';g.lineJoin='round';g.stroke();};
+  if(coul){trace(PX*.3,coul);continue;}
   trace(PX*.42,'rgba(60,46,28,.55)');trace(PX*.32,'#3f7fa6');trace(PX*.2,'#5aa0c4');g.setLineDash([PX*.18,PX*.35]);trace(PX*.05,'rgba(230,245,255,.7)');g.setLineDash([]);
   // ponts sur les routes
   for(const i of ch)if(c.route[i]){const x=(i%N+.5)*PX,y=(((i/N)|0)+.5)*PX;g.fillStyle='#8a6238';g.strokeStyle='rgba(40,24,10,.8)';g.lineWidth=1.5;g.beginPath();g.rect(x-PX*.32,y-PX*.26,PX*.64,PX*.52);g.fill();g.stroke();g.strokeStyle='rgba(60,36,14,.6)';for(let p=-2;p<=2;p++){g.beginPath();g.moveTo(x-PX*.32,y+p*PX*.1);g.lineTo(x+PX*.32,y+p*PX*.1);g.stroke();}}

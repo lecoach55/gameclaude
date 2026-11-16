@@ -21,7 +21,7 @@ Sauvegarde locale `bannieres-v1` (ne pas changer la clé) + document en ligne `p
 ## Studio 3D (`outils/studio/`)
 Réutilise le dossier préparé de Valdragon (`sh valdragon/outils/preparer.sh /home/claude/t3d`) :
 - `portraits.py dossier` : portraits des héros (une variante par nom, genre respecté), puis conversion en `jeu/portraits3d.js` (voir l'historique git du 16/11/2026).
-- `studio.py dossier [ids]` + `pack.py` + `planche.py` : créatures pré-rendues en 3D (repos, attaque, blessure, mort). **Essai écarté le 16/11/2026** : à la taille d'un combat, les modèles réalistes sombres se lisaient moins bien que les créatures dessinées et juraient avec elles ; les quadrupèdes construits par le code faisaient « jouets ». Le moteur sait encore les afficher (`SPR3D`, `dessiner3D`) si l'on veut y revenir.
+- `studio.py dossier [ids]` + `pack.py` + `planche.py` : créatures pré-rendues en 3D (repos, attaque, blessure, mort). Écartés le 16/11 au matin, **repris le soir même** pour le passage au réalisme (humanoïdes et dragons seulement, voir plus haut). Les quadrupèdes construits par le code font toujours « jouets ».
 
 ## Graphismes 3D (16/11/2026) — `jeu/rendu3d.js` + `jeu/lib/three.js`
 Three.js r160 (global `THREE`, avec RoomEnvironment) intégré à la page. Menu ☰ → « 🧊 Carte en 3D » (oui par défaut, mémorisé dans `bs-3d`) ; repli automatique sur l'ancien rendu 2D si WebGL manque.
@@ -31,6 +31,14 @@ Three.js r160 (global `THREE`, avec RoomEnvironment) intégré à la page. Menu 
 - Qualité : 2 = ombres, 1 = sans ombres, 0 = image allégée ; baisse automatique si la médiane dépasse 27 ms par image (mémorisée dans `bs-q3d`). Paramètres de test : `?v3d=0` (2D), `?q3d=2` (qualité imposée).
 - Mesures en rendu logiciel (`mesures/perf_3d_logiciel.json` vs `perf_2d_logiciel.json`) : la carte 3D y tombe à ~1 img/s, ce qui ne dit rien d'un vrai GPU ; juger avec le banc 🧪 sur les appareils de Victor. Les tests (`parcours`, `monkey`) sont donc plus lents en 3D ; `monkey.py` accepte `V3D=0` et `Q3D=0`.
 - Avant/après : `mesures/avant_apres_3d.png`.
+
+## Réalisme (16/11/2026, 2e passe) — ressources Poly Haven (CC0) et Mixamo
+- `outils/ressources/ph_dl.py` télécharge textures et modèles Poly Haven (bruts dans `/home/claude/ph`, hors dépôt) ; `tex3d.py` en tire `jeu/tex3d/*.jpg` (512 px, teintes réglées : sols, roches, neige, murs, ardoises, tuiles, chaume, bois).
+- `outils/studio3d/imposteur.py` (+ `imposteur.html`, liste `imposteurs.json`) rend les arbres et rochers Poly Haven (sapin, olivier, arbustes, arbres du désert, buisson, rochers moussus) en images détourées sous deux angles : `h` (carte/combat, 52°) et `b` (ville, 8°) → `jeu/imp/*.webp` + `imp.json` (pied, échelle).
+- Carte : sol mélangé par case dans le shader (`matSol` : texture tableau, bords irréguliers, routes et rivières d'après un masque, lueur de la lave), forêts en imposteurs instanciés avec ombres, montagnes à crêtes en texture de roche triplanaire et neige selon la pente, eau à vagues animées, éclairage par un ciel (`envCiel`). Bâtiments en matières triplanaires (`PM`, `PT`, `PB`…).
+- Combat et ville : mêmes sols, arbres et rochers ; ville : nuages et montagnes adoucis.
+- Créatures : humanoïdes et dragons pré-rendus en 3D par `outils/studio` (modèles Mixamo de Valdragon, dragon « Drago » CC BY 4.0) → `jeu/sprites3d.js` (`pack.py` : couleurs relevées). Les créatures sans modèle réaliste (griffon, cavaliers, centaure, pégase, licorne, tréant, loups, roc, béhémoth) restent dessinées, avec contours fins et grain de matière (`LWK`, `eclairage`) ; les quadrupèdes construits par le code restent écartés (aspect « jouet »).
+- Page : ~5,3 Mo. Crédits affichés sur l'accueil.
 
 ## Contenu ajouté la nuit du 15 au 16/11/2026
 Horde (4e faction, portraits Warrok), 28 créatures améliorées (habitations améliorées, amélioration des troupes en ville), le Graal (obélisques, carte au trésor, merveille ; option de victoire), sorts d'aventure (Vision lointaine, Portail de ville), semaine de la créature, créatures qui proposent de rejoindre le héros, combat rapide contre les proies faciles, perspective et cadavres en combat, effets d'éclair et de boule de feu, rivières, musique générative et bruitages repris de Valdragon.

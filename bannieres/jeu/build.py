@@ -13,6 +13,9 @@ def inl(m):
 html=re.sub(r'<script( type="module")? src="([^"]+)"></script>',inl,html)
 import glob,base64
 blobs=''.join(f'<script type="text/plain" id="snd-{os.path.basename(f)[:-4]}">'+base64.b64encode(open(f,'rb').read()).decode()+'</script>\n' for f in sorted(glob.glob(os.path.join(d,'snd','*.mp3'))))
+blobs+=''.join(f'<script type="text/plain" id="t3-{os.path.basename(f)[:-4]}">'+base64.b64encode(open(f,'rb').read()).decode()+'</script>\n' for f in sorted(glob.glob(os.path.join(d,'tex3d','*.jpg'))))
+blobs+=''.join(f'<script type="text/plain" id="i3-{os.path.basename(f)[:-5]}">'+base64.b64encode(open(f,'rb').read()).decode()+'</script>\n' for f in sorted(glob.glob(os.path.join(d,'imp','*.webp'))))
+blobs+='<script type="application/json" id="imp-json">'+open(os.path.join(d,'imp','imp.json')).read()+'</script>\n'
 html=html.replace('</body>',blobs+'</body>')
 out=sys.argv[1] if len(sys.argv)>1 else os.path.join(d,'..','build','bannieres.html')
 os.makedirs(os.path.dirname(os.path.abspath(out)),exist_ok=True)

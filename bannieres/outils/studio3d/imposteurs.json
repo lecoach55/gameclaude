@@ -1,0 +1,166 @@
+{
+"sapin_a": [
+"fir_tree_01",
+{
+"enfant": "_a_",
+"sat": 1.35,
+"lum": 0.78,
+"alpha": 0.18
+}
+],
+"sapin_b": [
+"fir_tree_01",
+{
+"enfant": "_b_",
+"sat": 1.35,
+"lum": 0.78,
+"alpha": 0.18
+}
+],
+"sapin_c": [
+"fir_tree_01",
+{
+"enfant": "_c_",
+"sat": 1.35,
+"lum": 0.78,
+"alpha": 0.18
+}
+],
+"feuillu_a": [
+"island_tree_01",
+{
+"teinte": [
+0.62,
+0.9,
+0.5
+],
+"expo": 0.85,
+"sat": 1.25
+}
+],
+"feuillu_b": [
+"island_tree_02",
+{
+"teinte": [
+0.62,
+0.9,
+0.5
+],
+"expo": 0.85,
+"sat": 1.25
+}
+],
+"arbuste_a": [
+"searsia_lucida",
+{
+"enfant": "_a_",
+"sat": 1.2,
+"teinte": [
+0.7,
+0.92,
+0.55
+],
+"expo": 0.85
+}
+],
+"arbuste_b": [
+"searsia_lucida",
+{
+"enfant": "_c_",
+"sat": 1.2,
+"teinte": [
+0.7,
+0.92,
+0.55
+],
+"expo": 0.85
+}
+],
+"arbuste_c": [
+"searsia_lucida",
+{
+"enfant": "_e_",
+"sat": 1.2,
+"teinte": [
+0.7,
+0.92,
+0.55
+],
+"expo": 0.85
+}
+],
+"jeune_a": [
+"fir_sapling",
+{
+"enfant": "_a",
+"sat": 1.3,
+"alpha": 0.2,
+"lum": 0.85
+}
+],
+"jeune_b": [
+"pine_sapling_small",
+{
+"enfant": "_a",
+"sat": 1.3,
+"alpha": 0.2,
+"lum": 0.85
+}
+],
+"mort_a": [
+"dead_tree_trunk_02",
+{}
+],
+"desert_a": [
+"quiver_tree_01",
+{}
+],
+"desert_b": [
+"othonna_cerarioides",
+{
+"enfant": "_a"
+}
+],
+"desert_c": [
+"othonna_cerarioides",
+{
+"enfant": "_d"
+}
+],
+"buisson_a": [
+"shrub_04",
+{
+"teinte": [
+0.7,
+0.95,
+0.6
+],
+"expo": 0.85,
+"sat": 1.2
+}
+],
+"roc_a": [
+"rock_moss_set_01",
+{
+"enfant": "rock01"
+}
+],
+"roc_b": [
+"rock_moss_set_01",
+{
+"enfant": "rock02"
+}
+],
+"roc_c": [
+"rock_moss_set_01",
+{
+"enfant": "rock03"
+}
+],
+"roc_d": [
+"rock_moss_set_01",
+{
+"enfant": "rock05"
+}
+]
+}

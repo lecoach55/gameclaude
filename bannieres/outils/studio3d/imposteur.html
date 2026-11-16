@@ -1,0 +1,24 @@
+<!DOCTYPE html><html><body style="margin:0;background:transparent">
+<canvas id="c"></canvas>
+<script src="/jeu/lib/three.js"></script>
+<script>
+// Studio d'imposteurs : rend un modèle Poly Haven vu sous un angle donné, fond transparent, lumière de la carte.
+const T=THREE;let ren=new T.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,alpha:true,preserveDrawingBuffer:true});
+ren.outputColorSpace=T.SRGBColorSpace;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;
+window.rendre=async(url,o)=>{// o:{elev (degrés), taille px, rot (rad), teinte:[r,g,b], expo}
+ const S=o.taille||384;ren.setPixelRatio(1);ren.setSize(S,S,false);ren.setClearColor(0,0);ren.toneMappingExposure=o.expo||1;
+ const sc=new T.Scene();const pm=new T.PMREMGenerator(ren);sc.environment=pm.fromScene(new T.RoomEnvironment(),.04).texture;sc.environmentIntensity=o.env??.45;
+ sc.add(new T.HemisphereLight(0xdfe8ff,0x4a3a24,.7));const sun=new T.DirectionalLight(0xffe8c8,2.6);sc.add(sun,sun.target);
+ const g=await new T.GLTFLoader().loadAsync(url);const m=g.scene;if(o.enfant){for(const ch of [...m.children])if(!ch.name.includes(o.enfant))m.remove(ch);}m.rotation.y=o.rot||0;sc.add(m);m.updateMatrixWorld(true);
+ m.traverse(x=>{if(x.isMesh){x.castShadow=x.receiveShadow=true;const mt=x.material;if(mt){mt.side=T.DoubleSide;if(mt.map&&(mt.transparent||mt.alphaTest))mt.alphaTest=o.alpha??.45,mt.transparent=false;if(o.teinte&&mt.color)mt.color.multiply(new T.Color(...o.teinte));if(o.sat!=null&&mt.color){}}}});
+ const bb=new T.Box3().setFromObject(m);const c=bb.getCenter(new T.Vector3()),sz=bb.getSize(new T.Vector3());
+ const e=(o.elev||52)*Math.PI/180;const dir=new T.Vector3(0,Math.sin(e),Math.cos(e));
+ // caméra orthographique qui cadre la boîte vue sous cet angle
+ const R=Math.max(sz.x,sz.z)/2;const hProj=sz.y*Math.cos(e)+2*R*Math.sin(e);const wProj=Math.max(sz.x,sz.z)*1.02;const half=Math.max(hProj,wProj)/2*1.04;
+ const cam=new T.OrthographicCamera(-half,half,half,-half,.01,1000);cam.position.copy(c).addScaledVector(dir,100);cam.lookAt(c);cam.updateMatrixWorld();cam.updateProjectionMatrix();
+ sun.position.copy(c).add(new T.Vector3(-8,16,6).normalize().multiplyScalar(50));sun.target.position.copy(c);sun.shadow.mapSize.set(2048,2048);const sh=sun.shadow.camera;const L=Math.max(sz.x,sz.y,sz.z);Object.assign(sh,{left:-L,right:L,top:L,bottom:-L,near:1,far:200});sh.updateProjectionMatrix();sun.castShadow=true;sun.shadow.bias=-.0005;sun.shadow.normalBias=.02;
+ ren.render(sc,cam);
+ // pied du modèle (centre du bas) en pixels, et pixels par mètre
+ const pied=new T.Vector3(c.x,bb.min.y,c.z).project(cam);const ppm=S/(2*half);
+ return{url:ren.domElement.toDataURL('image/png'),pied:[(pied.x+1)/2*S,(1-pied.y)/2*S],ppm,haut:sz.y,larg:Math.max(sz.x,sz.z)};};
+</script></body></html>

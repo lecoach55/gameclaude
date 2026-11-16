@@ -7,7 +7,8 @@ ANIMS=['idle','atk','hit','die']
 PXU={'dragonvert':224/3.3,'dragonos':224/3.3,'wyverne':176/2.6}
 def traiter(im):
     im=im.convert('RGBA');r,g,b,a=im.split();rgb=Image.merge('RGB',(r,g,b))
-    rgb=ImageEnhance.Color(rgb).enhance(1.18);rgb=ImageEnhance.Contrast(rgb).enhance(1.08)
+    import numpy as np;A=np.asarray(a,dtype=np.float32)>40;L=np.asarray(rgb.convert('L'),dtype=np.float32)[A].mean()/255 if A.any() else .5
+    rgb=ImageEnhance.Color(rgb).enhance(1.4);rgb=ImageEnhance.Brightness(rgb).enhance(max(.9,min(1.3,.42/max(.05,L))));rgb=ImageEnhance.Contrast(rgb).enhance(1.1)
     # contour sombre doux (comme les créatures dessinées)
     a2=a.filter(ImageFilter.MaxFilter(3));contour=Image.new('RGBA',im.size,(24,14,6,0));contour.putalpha(a2.point(lambda v:int(v*.6)))
     corps=Image.merge('RGBA',(*rgb.split(),a));contour.alpha_composite(corps);return contour

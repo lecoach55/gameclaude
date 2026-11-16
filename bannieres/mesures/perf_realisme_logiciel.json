@@ -1,0 +1,37 @@
+{
+ "mode3d": true,
+ "generation_ms": 629,
+ "carte": {
+  "fps": 60.2,
+  "pire": 16.6,
+  "n": 1
+ },
+ "gpu_carte": {
+  "calls": 235,
+  "tris": 133630,
+  "geo": 79,
+  "tex": 29
+ },
+ "carte_dezoom_tout_vu": {
+  "fps": 0.5,
+  "pire": 5566.5,
+  "n": 3
+ },
+ "gpu_dezoom": {
+  "calls": 599,
+  "tris": 168140,
+  "geo": 217,
+  "tex": 39
+ },
+ "combat": {
+  "fps": 59,
+  "pire": 83.3,
+  "n": 296
+ },
+ "ville": {
+  "fps": 0.2,
+  "pire": 4266.6,
+  "n": 1
+ },
+ "erreurs": []
+}

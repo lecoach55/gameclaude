@@ -101,7 +101,7 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
 function etat3D(q,now){const e=CB.anim3d&&CB.anim3d[q.id];if(q.n<=0||(e&&e.a==='die')){const t=e?Math.min(1,(now-e.t0)/500):1;return['die',Math.min(2,Math.floor(t*3))];}
  if(e&&now-e.t0<e.d){const t=(now-e.t0)/e.d;return[e.a,Math.floor(t*(e.a==='hit'?2:4))];}return['idle',Math.floor((now/260+q.id*1.7))%4];}
 function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(q.h).s||1;const S=G2.w*(G2.W<700?2.75:2.2)*ps;
- if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);const ppu=G2.w*(G2.W<700?1.0:.8);const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
+ if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);const ppu=G2.w*(G2.W<700?1.25:1.05)*ps;const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
   ombreSol(g,pos.x,by,G2.w*.5,G2.w*.14,.4);const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
   dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);if(fl){g.globalCompositeOperation='lighter';g.globalAlpha=.45*(1-(now-fl.t0)/fl.d);dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);g.globalCompositeOperation='source-over';}
   g.restore();g.save();g.globalAlpha=al;badgePile(g,q,pos,G2);g.restore();return;}const spr=q.cote===0?spriteCreature(q.c,160):spriteMiroir(q.c,160);g.save();g.globalAlpha=al;

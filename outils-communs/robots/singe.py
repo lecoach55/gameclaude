@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+"""Singe commun : touche au hasard les vrais boutons d'un jeu web (téléphone et ordinateur) et relève ce qui casse.
+
+usage : python3 outils-communs/robots/singe.py <jeu>/outils/singe.json [--secondes 60] [--graine 1]
+                [--appareils telephone,ordinateur] [--sortie dossier] [--fichier page.html]
+Rapport (écran + <sortie>/singe.json + captures) :
+  erreurs JS (pageerror + console.error), avec les 5 dernières actions et une capture à la première occurrence ;
+  blocages (plus rien de cliquable, ou écran figé alors qu'on clique) ; invariants du jeu violés ;
+  contenus coupés par écran (sonde.debordements) ; clics SANS EFFET par bouton (l'écran et l'état n'ont pas bougé) ;
+  progression (expression « etat » du jeu au début et à la fin).
+Code de retour 1 s'il y a une erreur JS, un blocage ou un invariant violé (les débordements et clics sans effet sont informatifs).
+
+Réglages (JSON, chemins relatifs au fichier de réglages) — seul « fichier » ou « dossier » est obligatoire :
+  "fichier": "../build/index.html"    page ouverte en file://   — ou —  "dossier": "../jeu", "page": "index.html" (serveur local)
+  "port": 8791, "requete": "?v3d=0"
+  "stockage": {"cle": "valeur"}       localStorage préparé (nouvelle partie à chaque appareil)
+  "init": "window.TEST_MONKEY=1"     script injecté avant le jeu
+  "entree": ["Nouvelle partie", "#bGo", {"js": "demarrer()"}, {"attendre": 500}]   pour arriver dans la partie
+  "pret": "ECRAN==='aventure'"        condition attendue après l'entrée (60 s)
+  "eviter": ["Signaler", "Mesurer la fluidité", "mBanc"]   textes ou id jamais touchés (🐞, banc, effacer la partie…)
+  "selecteur": ".carte,[data-v]"      éléments cliquables propres au jeu, en plus des boutons/liens/onglets
+  "priorites": [{"motif": "semaine suivante", "poids": 0.3}]   probabilité de toucher ce bouton quand il est là (faire avancer la partie)
+  "etat": "G.jour"                    progression : relevée au début/fin et ajoutée à l'empreinte (clic sans effet, blocage)
+  "invariants": "[isFinite(G.or)||'or '+G.or].filter(x=>x!==true)"   liste de problèmes (vide = tout va bien)
+  "avancer": {"toutes": 40, "pas": [{"js": "UI.warned=true"}, "#endTurn"]}   faire progresser la partie toutes les N actions (erreurs ignorées)
+  "relance": {"si": "ECRAN==='accueil'", "entree": ["#bTest"]}       revenir dans la partie si le singe en sort
+  "touches": ["Escape", " ", "ArrowLeft"]   touches tapées au hasard (5 % des actions)
+  "hasard": 0.15                      part des tapotements en un point au hasard (carte, canvas)
+  "glisser": 0.05                     part des glissés (caméra, carte)
+  "pause": [40, 250]                  attente après chaque action (ms, au hasard)
+  "erreurs_ignorees": ["Failed to load resource"]
+  "ignorer_debordements": [".tbl-wrap"]
+  "blocage": 60                       actions d'affilée sans aucun changement → blocage (capture, Échap)
+"""
+import asyncio, json, os, random, re, sys, time
+from collections import Counter, defaultdict
+ICI = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(ICI))
+from sonde import cliquer, debordements, resume, SONDE  # noqa: E402
+from atelier import serveur, ARGS  # noqa: E402
+from playwright.async_api import async_playwright  # noqa: E402
+
+APPAREILS = {'telephone': dict(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True, device_scale_factor=1),
+             'ordinateur': dict(viewport={'width': 1366, 'height': 860}, device_scale_factor=1)}
+
+
+def args():
+    a = sys.argv[1:]
+    if not a or a[0].startswith('-'):
+        print(__doc__); sys.exit(2)
+    o = {'reglages': a[0], 'secondes': 60, 'graine': 1, 'appareils': 'telephone,ordinateur', 'sortie': None, 'fichier': None}
+    i = 1
+    while i < len(a):
+        k = a[i].lstrip('-')
+        if k in o and i + 1 < len(a):
+            o[k] = a[i + 1]; i += 2
+        else:
+            print('option inconnue :', a[i]); sys.exit(2)
+    o['secondes'] = float(o['secondes']); o['graine'] = int(o['graine'])
+    return o
+
+
+def charger(o):
+    R = json.load(open(o['reglages'], encoding='utf-8'))
+    base = os.path.dirname(os.path.abspath(o['reglages']))
+    if o['fichier']:
+        R['fichier'] = os.path.abspath(o['fichier']); R.pop('dossier', None)
+    elif R.get('fichier'):
+        R['fichier'] = os.path.normpath(os.path.join(base, R['fichier']))
+    if R.get('dossier'):
+        R['dossier'] = os.path.normpath(os.path.join(base, R['dossier']))
+    if not R.get('fichier') and not R.get('dossier'):
+        raise SystemExit('réglages : « fichier » ou « dossier » obligatoire')
+    if R.get('fichier') and not os.path.exists(R['fichier']):
+        raise SystemExit(f"page introuvable : {R['fichier']} (construire le jeu d'abord ?)")
+    R.setdefault('jeu', os.path.basename(os.path.dirname(base)) if os.path.basename(base) == 'outils' else os.path.basename(base))
+    return R
+
+
+def url_de(R):
+    q = R.get('requete', '')
+    if R.get('fichier'):
+        return 'file://' + R['fichier'] + q
+    return serveur(R['dossier'], int(R.get('port', 8799))) + R.get('page', 'index.html') + q
+
+
+async def faire(pg, pas, delai=20):
+    """Une étape d'entrée : texte de bouton, sélecteur CSS (#id, .classe, [attr]), {"js": …} ou {"attendre": ms}."""
+    if isinstance(pas, dict):
+        if 'js' in pas: await pg.evaluate(f"()=>{{{pas['js']}}}")
+        if 'attendre' in pas: await pg.wait_for_timeout(int(pas['attendre']))
+        if 'cliquer' in pas: await cliquer(pg, pas['cliquer'], delai=delai)
+        return
+    if re.match(r'^[#.\[]', pas):
+        await pg.click(pas, timeout=delai * 1000)
+    else:
+        await cliquer(pg, pas, delai=delai)
+
+
+async def entrer(pg, etapes, pret, delai=60):
+    for pas in etapes or []:
+        await faire(pg, pas, delai=min(20, delai)); await pg.wait_for_timeout(150)
+    if pret:
+        await pg.wait_for_function(f"()=>{{try{{return !!({pret})}}catch(e){{return false}}}}", timeout=delai * 1000, polling=200)
+
+
+async def val(pg, expr, defaut=None):
+    if not expr: return defaut
+    try:
+        return await pg.evaluate(f"()=>{{try{{return JSON.parse(JSON.stringify({expr}))}}catch(e){{return 'erreur : '+e.message}}}}")
+    except Exception as e:
+        return 'indisponible : ' + str(e)[:80]
+
+
+async def un_appareil(p, R, nom, secondes, graine, sortie):
+    rng = random.Random(f"{graine}-{nom}")
+    nav = await p.chromium.launch(args=ARGS)
+    ctx = await nav.new_context(**APPAREILS[nom], reduced_motion='reduce')
+    pg = await ctx.new_page()
+    ign = [re.compile(x) for x in R.get('erreurs_ignorees', [])] + [re.compile(r'Failed to load resource|favicon')]
+    erreurs, vues, journal = [], {}, []
+    def err(t):
+        t = str(t)[:300]
+        if any(x.search(t) for x in ign): return
+        erreurs.append(t)
+    pg.on('pageerror', lambda e: err(e))
+    pg.on('console', lambda m: err('console : ' + m.text) if m.type == 'error' else None)
+    # confirmations acceptées, sauf celles qui effacent ou recommencent la partie (fausseraient la progression mesurée)
+    DANGER = re.compile(r'effacer|supprimer|nouvelle partie|recommencer|réinitialiser|abandonner', re.I)
+    pg.on('dialog', lambda d: asyncio.ensure_future(d.dismiss() if d.type == 'confirm' and DANGER.search(d.message) else d.accept()))
+    sto = R.get('stockage') or {}
+    await pg.add_init_script("try{if(!sessionStorage.getItem('__singe')){localStorage.clear();sessionStorage.setItem('__singe','1');%s}}catch(e){}"
+                             % ';'.join(f"localStorage.setItem({json.dumps(k)},{json.dumps(v if isinstance(v, str) else json.dumps(v))})" for k, v in sto.items()))
+    if R.get('init'): await pg.add_init_script(R['init'])
+    await pg.add_init_script(path=SONDE)
+    t_ch = time.time()
+    url0 = url_de(R)
+    await pg.goto(url0, timeout=180000); await pg.wait_for_timeout(int(R.get('attente', 800)))
+    await entrer(pg, R.get('entree'), R.get('pret'))
+    chargement = round(time.time() - t_ch, 1)
+    etat0 = await val(pg, R.get('etat'))
+    eviter = R.get('eviter', []) + ['Signaler un problème', 'Mesurer la fluidité', 'Mode test', '🐞', '🧪', 'mBug', 'mBanc', 'bBug', 'tkBug']
+    prio = [(re.compile(x['motif'], re.I), float(x.get('poids', 0.3))) for x in R.get('priorites', [])]
+    p_hasard, p_glisser, touches = float(R.get('hasard', 0.15)), float(R.get('glisser', 0.05)), R.get('touches', ['Escape'])
+    pause = R.get('pause', [40, 250]); seuil_bloc = int(R.get('blocage', 60))
+    W, H = APPAREILS[nom]['viewport']['width'], APPAREILS[nom]['viewport']['height']
+    expr_emp = "()=>JSON.stringify([window.__sonde?__sonde.empreinte():''," + (f"(()=>{{try{{return {R['etat']}}}catch(e){{return null}}}})()" if R.get('etat') else 'null') + "])"
+    n, sans_effet, touches_bouton, vides, figees, blocages, invar, deb = 0, Counter(), Counter(), 0, 0, [], Counter(), {}
+    ecrans = set(); n_err = 0; relances = 0; rates = 0; sorties = []
+    t0 = time.time()
+    while time.time() - t0 < secondes:
+        try:
+            if R.get('relance') and await val(pg, R['relance']['si'], False) is True:
+                relances += 1
+                try: await entrer(pg, R['relance'].get('entree'), R['relance'].get('pret') or R.get('pret'), delai=15)
+                except Exception as e:
+                    blocages.append({'quoi': 'relance impossible : ' + str(e)[:100], 'ecran': await val(pg, '__sonde.ecran()'), 'apres': list(journal), 'capture': ''})
+                    if len(blocages) >= 5: break
+            av = await pg.evaluate(expr_emp)
+            tout = await pg.evaluate("(o)=>__sonde.cibles(o)", {'sel': R.get('selecteur'), 'eviter': eviter, 'loin': True})
+            c = [x for x in tout if not x['loin']]; loin = [x for x in tout if x['loin']]
+        except Exception as e:                          # page en train de se recharger, ou sortie du jeu (lien)
+            journal.append('rechargement : ' + str(e)[:60]); await pg.wait_for_timeout(800); rates += 1
+            if rates >= 5:                              # le jeu a été quitté : on y revient et on le note
+                sorties.append(f'{pg.url[:100]} (après : {" → ".join(x for x in journal[-4:] if x)})')
+                try:
+                    await pg.goto(url0, timeout=60000); await pg.wait_for_timeout(int(R.get('attente', 800)))
+                    await entrer(pg, R.get('entree'), R.get('pret'), delai=15)
+                except Exception as e2:
+                    blocages.append({'quoi': 'retour dans le jeu impossible : ' + str(e2)[:100], 'ecran': '', 'apres': list(journal), 'capture': ''}); break
+                rates = 0
+            continue
+        rates = 0
+        r = rng.random(); action = None; bouton = None
+        try:
+            if loin and (not [x for x in c if x['dialogue']] and [x for x in loin if x['dialogue']] or not c or rng.random() < 0.15):
+                dl = [x for x in loin if x['dialogue']]
+                ch = rng.choice(dl if dl and rng.random() < 0.8 else loin)
+                xy = await pg.evaluate("(i)=>__sonde.viser(i)", ch['i'])
+                if xy: ch['x'], ch['y'] = xy; c = c + [ch]
+                else: ch = None
+            else:
+                ch = None
+            if ch is not None or (c and r >= p_hasard + p_glisser + 0.05):
+                for motif, poids in (prio if ch is None else []):
+                    l = [x for x in c if motif.search(x['t'])]
+                    if l and rng.random() < poids: ch = rng.choice(l); break
+                if ch is None:
+                    dl = [x for x in c if x['dialogue']]
+                    ch = rng.choice(dl) if dl and rng.random() < 0.8 else rng.choice(c)
+                bouton = ch['t']; action = 'bouton ' + bouton; touches_bouton[bouton] += 1
+                loc = pg.locator(f'[data-sonde-i="{ch["i"]}"]')
+                if ch['tag'] == 'SELECT':
+                    opts = await loc.evaluate("e=>[...e.options].filter(o=>!o.disabled).map(o=>o.value)")
+                    if opts: await loc.select_option(rng.choice(opts))
+                elif ch['tag'] == 'INPUT' and ch['type'] in ('number', 'text', 'range', 'search', ''):
+                    await loc.fill(str(rng.choice([1, 3, 10, 50, 0, -5, 99999, '1.5', 'abc'])) if ch['type'] != 'range' else str(rng.randint(0, 100)))
+                elif APPAREILS[nom].get('has_touch'):
+                    await pg.touchscreen.tap(ch['x'], ch['y'])
+                else:
+                    await pg.mouse.click(ch['x'], ch['y'])
+            elif r < p_hasard or not c:
+                x, y = rng.randrange(W), rng.randrange(H); action = f'tape {x},{y}'
+                if APPAREILS[nom].get('has_touch'): await pg.touchscreen.tap(x, y)
+                else: await pg.mouse.click(x, y)
+                if not c: vides += 1
+            elif r < p_hasard + p_glisser:
+                x, y = rng.randrange(W), rng.randrange(H); dx, dy = rng.randint(-200, 200), rng.randint(-200, 200); action = f'glisse {x},{y}'
+                await pg.mouse.move(x, y); await pg.mouse.down(); await pg.mouse.move(x + dx, y + dy, steps=5); await pg.mouse.up()
+            elif r < p_hasard + p_glisser + 0.025:
+                x, y = rng.randrange(W), rng.randrange(H); dy = rng.choice([-700, -300, 300, 700]); action = f'défile {dy}'
+                await pg.mouse.move(x, y); await pg.mouse.wheel(0, dy)
+            else:
+                k = rng.choice(touches); action = 'touche ' + k; await pg.keyboard.press(k)
+        except Exception as e:
+            journal.append(f'{action} : {str(e)[:80]}')
+        if c: vides = 0
+        n += 1; journal.append(action); journal = journal[-6:]
+        await pg.wait_for_timeout(rng.randint(int(pause[0]), int(pause[1])))
+        try:
+            ap = await pg.evaluate(expr_emp)
+        except Exception:
+            ap = None
+        if ap is not None and ap == av:
+            figees += 1
+            if bouton: sans_effet[bouton] += 1
+        else:
+            figees = 0
+        if len(erreurs) > n_err:
+            for e in erreurs[n_err:]:
+                cle = re.sub(r'\d+', '#', e)[:120]
+                if cle not in vues:
+                    vues[cle] = {'erreur': e, 'fois': 0, 'apres': list(journal), 'capture': f'{nom}_erreur_{len(vues) + 1}.png'}
+                    try: await pg.screenshot(path=os.path.join(sortie, vues[cle]['capture']))
+                    except Exception: pass
+                vues[cle]['fois'] += 1
+            n_err = len(erreurs)
+        if vides >= 30 or figees >= seuil_bloc:
+            quoi = 'plus rien de cliquable' if vides >= 30 else f'{figees} actions sans aucun changement'
+            cap = f'{nom}_blocage_{len(blocages) + 1}.png'
+            try: await pg.screenshot(path=os.path.join(sortie, cap))
+            except Exception: pass
+            blocages.append({'quoi': quoi, 'ecran': await val(pg, '__sonde.ecran()'), 'sous_le_doigt': await val(pg, '__sonde.dessus()'), 'boutons': await val(pg, '__sonde.boutons()'), 'etat': await val(pg, R.get('etat')), 'apres': list(journal), 'capture': cap})
+            await pg.keyboard.press('Escape'); vides = figees = 0
+            if len(blocages) >= 5: break
+        av_r = R.get('avancer')
+        if av_r and n % int(av_r.get('toutes', 40)) == 0:
+            try:
+                for pas in av_r.get('pas', []): await faire(pg, pas, delai=3)
+                journal.append('avancer')
+            except Exception as e:
+                journal.append('avancer : ' + str(e)[:60])
+        if n % 25 == 0:
+            iv = await val(pg, R.get('invariants'), [])
+            for x in (iv if isinstance(iv, list) else [f'invariants illisibles : {iv}'] if iv else []):
+                invar[str(x)[:120]] += 1
+            try:
+                ec = await val(pg, '__sonde.ecran()', '?')
+                if ec not in ecrans and len(ecrans) < 40:
+                    ecrans.add(ec)
+                    d = await debordements(pg, ignorer=R.get('ignorer_debordements', []))
+                    if d: deb[ec] = resume(d, 3)
+            except Exception:
+                pass
+    etat1 = await val(pg, R.get('etat'))
+    try: await pg.screenshot(path=os.path.join(sortie, f'{nom}_fin.png'))
+    except Exception: pass
+    await nav.close()
+    morts = [(b, k) for b, k in sans_effet.most_common() if touches_bouton[b] >= 3 and k == touches_bouton[b]]
+    return {'appareil': nom, 'secondes': round(time.time() - t0), 'chargement_s': chargement, 'actions': n, 'relances': relances,
+            'etat_debut': etat0, 'etat_fin': etat1, 'boutons_distincts': len(touches_bouton), 'ecrans_vus': len(ecrans),
+            'erreurs': list(vues.values()), 'blocages': blocages, 'sorties_du_jeu': sorties, 'invariants': dict(invar), 'debordements': deb,
+            'sans_effet_pct': round(100 * sum(sans_effet.values()) / max(1, sum(touches_bouton.values()))),
+            'boutons_jamais_efficaces': [f'{b} ({k}×)' for b, k in morts[:10]],
+            'plus_touches': touches_bouton.most_common(10)}
+
+
+async def principal():
+    o = args(); R = charger(o)
+    sortie = o['sortie'] or os.path.join('/tmp', 'singe-' + R['jeu']); os.makedirs(sortie, exist_ok=True)
+    res = []
+    async with async_playwright() as p:
+        for nom in o['appareils'].split(','):
+            nom = nom.strip().replace('é', 'e')
+            if nom not in APPAREILS: raise SystemExit(f'appareil inconnu : {nom} (telephone, ordinateur)')
+            res.append(await un_appareil(p, R, nom, o['secondes'], o['graine'], sortie))
+    rap = {'jeu': R['jeu'], 'graine': o['graine'], 'appareils': res}
+    json.dump(rap, open(os.path.join(sortie, 'singe.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    grave = 0
+    for r in res:
+        g = len(r['erreurs']) + len(r['blocages']) + len(r['invariants']); grave += g
+        print(f"{'ÉCHEC' if g else 'OK   '} {R['jeu']} · {r['appareil']} : {r['actions']} actions en {r['secondes']} s, {r['boutons_distincts']} boutons, "
+              f"{r['ecrans_vus']} écrans · état {r['etat_debut']} → {r['etat_fin']} · {len(r['erreurs'])} erreur(s), {len(r['blocages'])} blocage(s), "
+              f"{len(r['invariants'])} invariant(s) · clics sans effet {r['sans_effet_pct']} %")
+        for e in r['erreurs'][:5]: print(f"   erreur ×{e['fois']} : {e['erreur'][:160]}  (après : {' → '.join(x for x in e['apres'][-3:] if x)}) [{e['capture']}]")
+        for b in r['blocages'][:3]: print(f"   blocage : {b['quoi']} sur « {b['ecran']} » ; sous le doigt : {b['sous_le_doigt']} [{b['capture']}]")
+        for x in r['sorties_du_jeu'][:3]: print(f'   sorti du jeu vers {x}')
+        for k, v in list(r['invariants'].items())[:3]: print(f'   invariant ×{v} : {k}')
+        for k, v in list(r['debordements'].items())[:4]: print(f'   coupé sur « {k} » : {v}')
+        if r['boutons_jamais_efficaces']: print('   jamais d\'effet : ' + ', '.join(r['boutons_jamais_efficaces'][:6]))
+    print('rapport :', os.path.join(sortie, 'singe.json'))
+    return 1 if grave else 0
+
+
+if __name__ == '__main__':
+    sys.exit(asyncio.run(principal()))

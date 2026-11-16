@@ -4,6 +4,7 @@
 //   __sonde.cliquer(motif, {dans, sel, force})  → e.click() (événement click seulement, pas pointerdown/touchstart : sinon cliquer(…, souris=True) côté Python) ; true si un élément visible, actif et non recouvert a été cliqué, sinon false
 //       motif : texte (contenu, insensible à la casse) ou RegExp ; s'utilise avec wait_for_function pour attendre le bouton.
 //   __sonde.boutons(dans)                       → textes des éléments cliquables visibles (diagnostic quand un clic échoue)
+//   __sonde.cibles({sel, eviter}) / empreinte() / ecran() → pour les robots au hasard (robots/singe.py) et cliquer(…, effet=True)
 //   __sonde.debordements({ignorer, tol, ellipses, verticaux}) → liste des contenus coupés :
 //       page      : la page défile en largeur (le seul cas que voyaient les anciens contrôles scrollWidth)
 //       bloc      : un bloc à défilement propre (overflow auto/scroll) déborde en largeur : un élément trop large y est coupé (accident probable)
@@ -77,8 +78,12 @@
     for (const r of racine(dans)) for (const e of r.querySelectorAll(SEL)) if (visible(e)) { const t = texte(e); if (t) out.push(t.slice(0, 40) + (actif(e) ? '' : ' (inactif)')); }
     return [...new Set(out)].slice(0, 40);
   }
-  // bandeau défilant, carrousel animé → débordement voulu
-  const defile = e => !!(e.getAnimations && e.getAnimations({ subtree: true }).some(a => a.playState === 'running' && /transform|translate|left|margin/i.test(JSON.stringify(a.effect && a.effect.getKeyframes ? a.effect.getKeyframes() : ''))));
+  // bandeau défilant, carrousel animé → débordement voulu (aussi à l'arrêt quand prefers-reduced-motion est actif ou qu'une animation est déclarée : bloc d'au moins une demi-largeur d'écran, une seule ligne ≥ 3 fois plus large)
+  const anime = x => { const cs = getComputedStyle(x); return cs.animationName && cs.animationName !== 'none'; };
+  const bandeau = e => e.clientWidth >= innerWidth / 2 && e.scrollWidth > 3 * e.clientWidth && e.clientHeight < 80
+    && (matchMedia('(prefers-reduced-motion: reduce)').matches || anime(e) || [...e.children].some(anime))
+    && [e, ...e.children].some(x => getComputedStyle(x).whiteSpace === 'nowrap' || /flex/.test(getComputedStyle(x).display));
+  const defile = e => bandeau(e) || !!(e.getAnimations && e.getAnimations({ subtree: true }).some(a => a.playState === 'running' && /transform|translate|left|margin/i.test(JSON.stringify(a.effect && a.effect.getKeyframes ? a.effect.getKeyframes() : ''))));
   // défilement horizontal voulu : un tableau plus large que le bloc, ou une rangée (onglets, vignettes) de petits éléments sans retour à la ligne
   const bande = (e, cs) => {
     const w = e.clientWidth;
@@ -135,5 +140,63 @@
     }
     return out;
   }
-  window.__sonde = { cliquer, boutons, debordements, visible, texte, nom };
+  // ----- pour les robots au hasard (outils-communs/robots/singe.py) -----
+  // cibles({sel, eviter, max, loin}) : éléments cliquables visibles, actifs, NON recouverts, dont le centre est à l'écran (sans faire défiler).
+  //   Chacun reçoit data-sonde-i ; renvoie [{i, t, x, y, tag, type, dialogue}] (dialogue = dans une fenêtre ouverte).
+  const DLG = 'dialog[open],[role=dialog],[role=alertdialog],[aria-modal=true],.modal:not([hidden]):not(.cache):not(.hidden)';
+  const auCentre = e => {
+    const r = e.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return null;
+    const h = document.elementFromPoint(x, y);
+    return h && (h === e || e.contains(h) || h.contains(e) || (e.tagName === 'INPUT' && h.tagName === 'LABEL' && h.control === e)) ? [x, y] : null;
+  };
+  function cibles(o) {
+    o = o || {};
+    const ev = (o.eviter || []).map(norm), out = [];
+    document.querySelectorAll('[data-sonde-i]').forEach(e => e.removeAttribute('data-sonde-i'));
+    const sel = o.sel ? SEL + ',' + o.sel : SEL;
+    for (const e of document.querySelectorAll(sel)) {
+      if (out.length >= (o.max || 300)) break;
+      if (!visible(e) || !actif(e)) continue;
+      const t = texte(e), tl = t.toLowerCase(), id = (e.id || '').toLowerCase();
+      if (ev.some(x => x && (tl.includes(x) || id === x))) continue;
+      const c = auCentre(e);
+      let loin = false;
+      if (!c) {   // hors écran (plus bas dans une fenêtre ou un panneau qui défile) : proposé avec loin:true, viser(i) le fait venir
+        const r = e.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+        if (!o.loin || (x >= 0 && y >= 0 && x < innerWidth && y < innerHeight)) continue;   // à l'écran mais recouvert : pas une cible
+        loin = true;
+      }
+      e.setAttribute('data-sonde-i', out.length);
+      out.push({ i: out.length, t: (t || e.id || e.getAttribute('aria-label') || e.tagName).split('\n')[0].slice(0, 40), x: c ? Math.round(c[0]) : -1, y: c ? Math.round(c[1]) : -1, tag: e.tagName, type: e.type || '', dialogue: !!e.closest(DLG), loin });
+    }
+    return out;
+  }
+  // viser(i) : fait défiler la cible i jusqu'au centre ; renvoie [x, y] si elle est alors atteignable (non recouverte), sinon null.
+  function viser(i) {
+    const e = document.querySelector('[data-sonde-i="' + i + '"]'); if (!e) return null;
+    e.scrollIntoView({ block: 'center', inline: 'center' });
+    const c = auCentre(e); return c ? [Math.round(c[0]), Math.round(c[1])] : null;
+  }
+  // empreinte() : résumé court de ce que voit le joueur (texte affiché, cases cochées, valeurs saisies, étiquettes et états aria des boutons, fenêtres ouvertes, défilement).
+  //   Deux empreintes égales avant/après un clic = le clic n'a rien changé à l'écran (bouton mort, ou clic intercepté par une fenêtre).
+  function empreinte() {
+    const t = (document.body && document.body.innerText) || '';
+    let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+    let v = 0; for (const e of document.querySelectorAll('input,select,textarea')) { const s = e.type === 'checkbox' || e.type === 'radio' ? (e.checked ? '1' : '0') : (e.value || ''); for (let i = 0; i < s.length; i++) v = (v * 31 + s.charCodeAt(i)) | 0; }
+    // boutons à icône : l'effet se lit dans leurs attributs (« Couper le son » → « Activer le son »)
+    let a = 0; for (const e of document.querySelectorAll(SEL)) { const s = [e.getAttribute('aria-label'), e.title, e.getAttribute('aria-pressed'), e.getAttribute('aria-expanded'), e.getAttribute('aria-selected'), e.getAttribute('aria-checked'), e.disabled].join(); for (let i = 0; i < s.length; i++) a = (a * 31 + s.charCodeAt(i)) | 0; }
+    const dl = [...document.querySelectorAll(DLG)].filter(visible).length;
+    return [h, a, t.length, v, dl, location.hash, scrollX | 0, scrollY | 0].join('|');   // pas le focus : un bouton mort prend le focus
+  }
+  // ecran() : nom court de l'écran affiché (fenêtre ouverte, sinon premier titre visible) pour regrouper les relevés par écran.
+  function ecran() {
+    const d = [...document.querySelectorAll(DLG)].filter(visible).pop();
+    const z = d || document.body;
+    const titre = [...z.querySelectorAll('h1,h2,h3,[role=heading],.titre,.title')].find(visible);
+    return (d ? 'fenêtre ' + (d.id || '') + ' ' : '') + (titre ? texte(titre).slice(0, 30) : (d ? '' : 'page'));
+  }
+  // dessus() : ce qui est sous le doigt au centre et en bas de l'écran (diagnostic d'un voile invisible qui avale les clics)
+  const dessus = () => [[innerWidth / 2, innerHeight / 2], [innerWidth / 2, innerHeight - 30]].map(([x, y]) => { const h = document.elementFromPoint(x, y); return h ? nom(h) : 'rien'; }).join(' / ');
+  window.__sonde = { cliquer, boutons, debordements, visible, texte, nom, cibles, viser, empreinte, ecran, dessus };
 })();

@@ -1,0 +1,43 @@
+{
+ "jeu": "sedes-petri",
+ "dossier": "../jeu",
+ "port": 8772,
+ "entree": [
+  "[data-scen=\"1073\"]",
+  {
+   "attendre": 200
+  },
+  "#stStart",
+  {
+   "attendre": 600
+  }
+ ],
+ "pret": "typeof S!=='undefined' && S && S.turn!=null",
+ "eviter": [
+  "Abdiquer",
+  "Nouvelle partie",
+  "Recommencer"
+ ],
+ "selecteur": ".act:not(.dis),[data-mode],[data-tab],[data-opt],[data-dec],[data-cont],[data-close],[data-pname],[data-cdone]",
+ "priorites": [
+  {
+   "motif": "^Clore|Continuer|Fermer",
+   "poids": 0.2
+  }
+ ],
+ "etat": "dateStr()+' · tour '+S.turn",
+ "invariants": "[isFinite(S.authority)||'autorité '+S.authority].filter(x=>x!==true)",
+ "pause": [
+  60,
+  300
+ ],
+ "avancer": {
+  "toutes": 30,
+  "pas": [
+   {
+    "js": "UI.warned=true"
+   },
+   "#endTurn"
+  ]
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "jeu": "president-de-club",
+ "fichier": "../jeu/index.html",
+ "entree": [{"js": "A.create()"}, {"attendre": 600}],
+ "pret": "typeof S!=='undefined' && S && S.week!=null",
+ "eviter": ["Supprimer", "Effacer", "Nouvelle partie", "Quitter", "Démissionner"],
+ "selecteur": ".choice,.tab,[data-tab],.btn",
+ "avancer": {"toutes": 40, "pas": [{"js": "if(!UI.modalOpen){S.autoReport=true;A.play()}"}]},
+ "etat": "'saison '+S.year+' · semaine '+S.week",
+ "invariants": "(()=>{const b=[];if(!isFinite(S.cash))b.push('trésorerie '+S.cash);return b;})()"
+}

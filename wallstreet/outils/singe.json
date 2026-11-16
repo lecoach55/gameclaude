@@ -1,0 +1,35 @@
+{
+ "_note": "construire avant : sh wallstreet/jeu/build.sh /home/claude/bourse6.html (ou --fichier autre.html)",
+ "jeu": "wallstreet",
+ "fichier": "/home/claude/bourse6.html",
+ "stockage": {
+  "wallst-tuto": "1",
+  "wallst-sound": "0"
+ },
+ "entree": [
+  "#sGo",
+  {
+   "attendre": 500
+  }
+ ],
+ "pret": "window.__wst && window.__wst.G",
+ "eviter": [
+  "Commencer une partie",
+  "Envoyer à Claude",
+  "Lecture auto",
+  "Nouvelle partie",
+  "Effacer"
+ ],
+ "selecteur": "tr[data-t],.tab",
+ "priorites": [
+  {
+   "motif": "\\+1 (semaine|mois)|\\+1 jour|Séance suivante",
+   "poids": 0.15
+  }
+ ],
+ "etat": "'séance '+__wst.G.day+' · '+__wst.G.tx.length+' opérations'",
+ "invariants": "(()=>{const W=__wst,G=W.G,v=W.value(),b=[];if(!isFinite(v))b.push('patrimoine '+v);if(!isFinite(G.cash))b.push('cash '+G.cash);for(const t in G.pos){const q=G.pos[t].q!=null?G.pos[t].q:G.pos[t];if(!isFinite(q))b.push('position '+t);}return b;})()",
+ "ignorer_debordements": [
+  ".tw"
+ ]
+}

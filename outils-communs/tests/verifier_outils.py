@@ -213,6 +213,63 @@ asyncio.run(m())
         raise RuntimeError('attendu ' + ' / '.join(manque) + ' ; obtenu : ' + out[-400:])
 
 
+SINGE_JEU = """<!doctype html><meta charset=utf-8><style>body{margin:0;font:16px sans-serif}button{margin:6px;padding:10px}
+#dlg{position:fixed;inset:40px;background:#fff;border:2px solid #333;overflow:auto}#voile{position:fixed;inset:0;background:#0003}</style>
+<style>@keyframes d{to{transform:translateX(-50%)}}</style><div id=tape style="overflow:hidden;white-space:nowrap"><span style="display:inline-block;animation:d 9s linear infinite;animation-play-state:paused">""" + 'AAPL 215 +1 % ' * 300 + """</span></div>
+<div id=onglets style="display:flex;overflow:hidden;width:300px">""" + ''.join(f'<span style="flex:none;width:60px">Onglet{i}</span>' for i in range(20)) + """</div>
+<p id=phrase style="white-space:nowrap;overflow:hidden">""" + 'Une phrase très longue qui ne tient pas. ' * 40 + """</p>
+<div id=jeu><h1>Partie</h1><button onclick="jour++">+1 mois</button><button>Mort</button><button onclick="null.x">Casser</button><button onclick="ouvrir()">Aide</button></div>
+<div id=voile hidden></div><div id=dlg role=dialog hidden><h2>Aide</h2><div style="height:2000px">long texte</div><button onclick="bas++;fermer()">Tout en bas</button></div>
+<script>window.jour=0;window.bas=0;function ouvrir(){voile.hidden=false;dlg.hidden=false}function fermer(){voile.hidden=true;dlg.hidden=true}</script>"""
+
+
+@controle('sonde : cliquer(effet=) voit un clic sans effet ; cibles() ignore un bouton recouvert par une fenêtre et propose celui du bas ; bandeau défilant à l\'arrêt ignoré, barre d\'onglets et phrase coupées vues')
+def _():
+    code = r"""
+import sys,os,tempfile
+sys.path.insert(0,sys.argv[1])
+from sonde import cliquer,ClicSansEffet,debordements,SONDE
+from playwright.sync_api import sync_playwright
+d=tempfile.mkdtemp();open(os.path.join(d,'index.html'),'w',encoding='utf-8').write(sys.argv[2])
+with sync_playwright() as p:
+    b=p.chromium.launch();pg=b.new_page(viewport={'width':390,'height':700});pg.goto('file://'+os.path.join(d,'index.html'))
+    print('BANDEAU',sorted(x['sel'].split('>')[-1] for x in debordements(pg)))
+    try:cliquer(pg,'Mort',effet=True,delai_effet=0.5);print('MORT non')
+    except ClicSansEffet as e:print('MORT vu','Mort' in str(e))
+    print('EFFET',cliquer(pg,'+1 mois',effet='jour'),pg.evaluate('jour'))
+    cliquer(pg,'Aide')
+    try:cliquer(pg,'+1 mois',delai=0.5);print('RECOUVERT non')
+    except TimeoutError:print('RECOUVERT vu')
+    c=pg.evaluate("__sonde.cibles({loin:true})");print('CIBLES',sorted((x['t'],x['loin']) for x in c))
+    print('DESSUS',pg.evaluate('__sonde.dessus()'))
+    b.close()
+"""
+    out = run(sys.executable, '-c', code, OC, SINGE_JEU, timeout=60)
+    att = ["BANDEAU ['div#onglets', 'p#phrase']", 'MORT vu True', 'EFFET True 1', 'RECOUVERT vu', "CIBLES [('Tout en bas', True)]", 'DESSUS div#dlg>div / div#voile']
+    manque = [a for a in att if a not in out]
+    if manque:
+        raise RuntimeError('attendu ' + ' / '.join(manque) + ' ; obtenu : ' + out[-400:])
+
+
+@controle('robots/singe.py : trouve l\'erreur JS, le bouton mort, atteint le bouton du bas d\'une fenêtre, code 1')
+def _():
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, 'index.html'), 'w', encoding='utf-8').write(SINGE_JEU)
+        json.dump({'fichier': 'index.html', 'etat': "[jour,bas]", 'invariants': "jour<1e9?[]:['jour']", 'pause': [10, 40]}, open(os.path.join(d, 'singe.json'), 'w'))
+        out = run(sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 'singe.json'), '--secondes', '5', '--appareils', 'ordinateur,telephone',
+                  '--sortie', os.path.join(d, 'o'), attendu=1, timeout=90)
+        r = json.load(open(os.path.join(d, 'o', 'singe.json')))
+        for a in r['appareils']:
+            pb = []
+            if not any('reading \'x\'' in e['erreur'] and e['apres'][-1] == 'bouton Casser' for e in a['erreurs']): pb.append('erreur de « Casser » non vue')
+            if not any(x.startswith('Mort') for x in a['boutons_jamais_efficaces']): pb.append('bouton mort non vu')
+            if any(x.startswith('+1 mois') for x in a['boutons_jamais_efficaces']): pb.append('« +1 mois » dit sans effet')
+            if not (a['etat_fin'][0] > 0 and a['etat_fin'][1] > 0): pb.append(f"progression {a['etat_fin']}")
+            if a['blocages'] or a['invariants']: pb.append('blocage ou invariant inattendu')
+            if pb:
+                raise RuntimeError(a['appareil'] + ' : ' + ', '.join(pb) + ' ; ' + out[-300:])
+
+
 @controle('bureau.py : état, json, page')
 def _():
     run(sys.executable, 'bureau/outils/bureau.py')

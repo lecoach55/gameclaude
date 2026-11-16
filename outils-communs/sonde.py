@@ -4,8 +4,15 @@
 # cliquer attend (10 s par défaut) qu'un bouton visible, actif et non recouvert contienne le texte, puis le clique.
 # Si rien n'apparaît : TimeoutError qui liste les boutons visibles (au lieu de « Cannot read properties of undefined (reading 'click') »).
 # Marche aussi avec une page figée par horloge.js (joue des images au lieu d'attendre).
+# cliquer(pg, '+1 mois', effet='G.day') : vérifie en plus que le clic a changé quelque chose (sinon ClicSansEffet) ;
+#   effet=True compare ce qui est affiché à l'écran (__sonde.empreinte()).
 # debordements(pg, ignorer=['.tbl-wrap']) : liste des contenus coupés (page, blocs qui défilent, overflow:hidden, bords d'écran).
 import os, re, time
+
+
+class ClicSansEffet(RuntimeError):
+    """Le bouton a été cliqué mais rien n'a changé (valeur `effet` identique après le délai) : bouton mort ou clic intercepté."""
+
 SONDE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sonde.js')
 _JS = None
 
@@ -43,16 +50,31 @@ def _opts(dans, sel, force):
     return o
 
 
-def cliquer(pg, motif, dans=None, sel=None, delai=10, force=False, apres=0, souris=False):
+_EFFET = "(e)=>{try{return JSON.stringify(e===true?window.__sonde.empreinte():(0,eval)(e))}catch(x){return 'erreur:'+x}}"
+_ECRAN = "()=>window.__sonde?__sonde.ecran():''"
+
+
+def _effet_msg(motif, avant, ecran, liste):
+    m = motif.pattern if isinstance(motif, re.Pattern) else motif
+    return (f"cliquer : « {m} » cliqué mais sans effet (valeur inchangée : {avant[:60]}) ; écran : {ecran or '?'} ; "
+            "boutons visibles : " + (' | '.join(liste) or '(aucun)'))
+
+
+def cliquer(pg, motif, dans=None, sel=None, delai=10, force=False, apres=0, souris=False, effet=None, delai_effet=2):
     """Clique le premier élément cliquable visible dont le texte contient `motif` (chaîne, insensible à la casse, ou re.compile).
     dans='#go' limite la recherche à un conteneur ; sel='tr[data-t]' change les éléments visés.
     Attend jusqu'à `delai` s qu'il apparaisse ; apres=ms attend après le clic. Renvoie True, ou lève TimeoutError.
     souris=True : vrai clic de souris/doigt au centre (pointerdown, mousedown…) au lieu de element.click().
-    Page figée (horloge.js) : l'attente joue 1 image par 100 ms réelles (captures suivantes reproductibles)."""
+    Page figée (horloge.js) : l'attente joue 1 image par 100 ms réelles (captures suivantes reproductibles).
+    effet='expression JS' (ex. 'G.day') : après le clic, attend jusqu'à `delai_effet` s que sa valeur change, sinon lève ClicSansEffet
+    (bouton mort, ou clic avalé par une fenêtre) ; effet=True compare l'affichage (texte, cases, fenêtres ouvertes : __sonde.empreinte())."""
     if _async(pg):
-        return _cliquer_async(pg, motif, dans, sel, delai, force, apres, souris)
+        return _cliquer_async(pg, motif, dans, sel, delai, force, apres, souris, effet, delai_effet)
     m, o, t0 = _motif(motif), _opts(dans, sel, force), time.time()
     figee = None
+    if effet is not None:
+        if pg.evaluate("()=>!window.__sonde"): pg.evaluate(_js())
+        avant = pg.evaluate(_EFFET, effet)
     while True:
         r = pg.evaluate(_CLIC_SOURIS if souris else _CLIC, [m, o])
         if r == 'absente':
@@ -60,6 +82,14 @@ def cliquer(pg, motif, dans=None, sel=None, delai=10, force=False, apres=0, sour
         if r != 'non':
             if souris: pg.mouse.click(r[0], r[1])
             if apres: pg.wait_for_timeout(apres)
+            if effet is not None:
+                t1 = time.time()
+                if figee is None: figee = pg.evaluate(_FIGEE)
+                while pg.evaluate(_EFFET, effet) == avant:
+                    if time.time() - t1 > delai_effet:
+                        raise ClicSansEffet(_effet_msg(motif, avant, pg.evaluate(_ECRAN), boutons(pg, dans)))
+                    pg.wait_for_timeout(50)
+                    if figee: pg.evaluate("()=>__horloge.avancer(1,1000/60)")
             return True
         if time.time() - t0 > delai:
             raise TimeoutError(_message(motif, boutons(pg, dans)))
@@ -68,9 +98,12 @@ def cliquer(pg, motif, dans=None, sel=None, delai=10, force=False, apres=0, sour
         if figee: pg.evaluate("()=>__horloge.avancer(1,1000/60)")   # page figée : 1 image par tour, pas plus
 
 
-async def _cliquer_async(pg, motif, dans, sel, delai, force, apres, souris):
+async def _cliquer_async(pg, motif, dans, sel, delai, force, apres, souris, effet=None, delai_effet=2):
     m, o, t0 = _motif(motif), _opts(dans, sel, force), time.time()
     figee = None
+    if effet is not None:
+        if await pg.evaluate("()=>!window.__sonde"): await pg.evaluate(_js())
+        avant = await pg.evaluate(_EFFET, effet)
     while True:
         r = await pg.evaluate(_CLIC_SOURIS if souris else _CLIC, [m, o])
         if r == 'absente':
@@ -78,6 +111,14 @@ async def _cliquer_async(pg, motif, dans, sel, delai, force, apres, souris):
         if r != 'non':
             if souris: await pg.mouse.click(r[0], r[1])
             if apres: await pg.wait_for_timeout(apres)
+            if effet is not None:
+                t1 = time.time()
+                if figee is None: figee = await pg.evaluate(_FIGEE)
+                while await pg.evaluate(_EFFET, effet) == avant:
+                    if time.time() - t1 > delai_effet:
+                        raise ClicSansEffet(_effet_msg(motif, avant, await pg.evaluate(_ECRAN), await _boutons_async(pg, dans)))
+                    await pg.wait_for_timeout(50)
+                    if figee: await pg.evaluate("()=>__horloge.avancer(1,1000/60)")
             return True
         if time.time() - t0 > delai:
             raise TimeoutError(_message(motif, await _boutons_async(pg, dans)))

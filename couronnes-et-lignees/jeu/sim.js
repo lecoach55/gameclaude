@@ -84,6 +84,7 @@ function pickBuild(s) {
 function heuristicAction(s) {
   setPolicies(s);
   if (globalThis.COUNCIL_BOT !== 0) D.autoCouncil(s);
+  if (globalThis.TREATY_BOT !== 0 && s.giftTurn !== s.turn) { const h = D.neighborHouses(s).find(h => !D.houseOf(s, h).traite && D.houseOf(s, h).rel >= 30); if (h) D.proposeTreaty(s, h, 'commerce'); }
   if (globalThis.GIFT_BOT !== 0 && s.gold > 90 && s.giftTurn !== s.turn) { const b = D.borderTargets(s).filter(x => x.owner !== 'rival').sort((a, b) => D.houseOf(s, a.owner).rel - D.houseOf(s, b.owner).rel)[0]; if (b && D.houseOf(s, b.owner).rel < 50) D.sendGift(s, b.owner); }
   const r = D.ruler(s), acts = Object.fromEntries(D.getActions(s).map(a => [a.id, a]));
   const ok = id => acts[id] && acts[id].ok, e = id => (acts[id] && acts[id].eff != null ? acts[id].eff : 1);

@@ -386,6 +386,25 @@
     log(s, `Vos présents parviennent à la maison ${h.replace(/^d(e |')/, '')} : ${gain > 20 ? 'on vous remercie chaleureusement' : 'on les accepte poliment'}.`);
     return gain;
   }
+  function warTick(s) {
+    const W = s.war; if (!W) return;
+    const alive = h => s.regions.some(r => r.owner === h);
+    if (!alive(W.a) || !alive(W.b) || s.turn > W.until) { const msg = `La guerre entre les maisons ${W.a.replace(/^d(e |')/, '')} et ${W.b.replace(/^d(e |')/, '')} s'achève${W.side ? ` ; la maison que vous souteniez ${W.gain >= 0 ? 'en sort grandie' : 'en sort meurtrie'}` : ''}.`; log(s, msg); if (W.side) relation(s, W.side, W.gain >= 0 ? 10 : -5); s.war = null; return; }
+    const g = mapGeom(s.seed), fronts = [];
+    s.regions.forEach(r => { if (r.owner !== W.a && r.owner !== W.b) return; for (const j of g.adj[r.i]) { const o = s.regions[j]; if ((r.owner === W.a && o.owner === W.b) || (r.owner === W.b && o.owner === W.a)) fronts.push([r, o]); } });
+    if (fronts.length && rand(s) < 0.35) { let pa = 0.5; if (W.side === W.a) pa = 0.72; if (W.side === W.b) pa = 0.28; const aWins = rand(s) < pa; const cand = fronts.filter(([r]) => r.owner === (aWins ? W.a : W.b)); if (cand.length) { const [, o] = pick(s, cand); const old = o.owner; o.owner = aWins ? W.a : W.b; o.flip = s.year; if (W.side) W.gain += (o.owner === W.side) ? 1 : -1; s.mapNews.push({ i: o.i, t: `Guerre : la maison ${o.owner.replace(/^d(e |')/, '')} prend ${o.name} à la maison ${old.replace(/^d(e |')/, '')}.`, k: 'lords' }); } }
+  }
+  function treatyTick(s) {
+    for (const h in s.houses || {}) { const H = s.houses[h]; if (!H.traite) continue; if (!s.regions.some(r => r.owner === h)) { H.traite = null; continue; } if (H.traite === 'commerce') s.gold += 2; if (H.traite === 'paix') s.menace = Math.max(0, s.menace - 1); }
+  }
+  function proposeTreaty(s, h, k) {
+    const H = houseOf(s, h), need = k === 'commerce' ? 30 : 20;
+    if (H.traite || H.rel < need || s.giftTurn === s.turn) return false;
+    const n = Object.values(s.houses).filter(x => x.traite).length; if (n >= 3) return false;
+    s.giftTurn = s.turn; H.traite = k; relation(s, h, 5);
+    log(s, `Traité ${k === 'commerce' ? 'de commerce' : 'de non-agression'} scellé avec la maison ${h.replace(/^d(e |')/, '')}.`, 'good');
+    return true;
+  }
   function housesTick(s) {
     const g = mapGeom(s.seed), mine = new Set(myRegions(s).map(r => r.i));
     for (const h of neighborHouses(s)) {
@@ -493,7 +512,7 @@
   function willLeave(s, p, c) { const h = heir(s); return RANKS[c.rank].leaves && p.sex === 'F' && p.id !== s.rulerId && !(h && h.id === p.id); }
   function candidateFx(s, p, c) {
     const R = RANKS[c.rank], e = c.rank === 'vassal' ? eff(s, 'marier') : 1;
-    return { gold: R.gold, prest: R.prest, stab: Math.round(R.stab * e), alliance: R.alliance && s.alliances < s.P.maxAlliances ? 1 : 0, menace: R.menace, ok: s.prestige >= c.req && s.gold + Math.min(0, R.gold) >= 0, leaves: willLeave(s, p, c) };
+    return { gold: R.gold, prest: R.prest, stab: Math.round(R.stab * e), alliance: R.alliance && s.alliances < s.P.maxAlliances ? 1 : 0, menace: R.menace, ok: s.prestige + (c.from && c.from !== s.rival ? Math.max(0, houseOf(s, c.from).rel) / 4 : 0) >= c.req && s.gold + Math.min(0, R.gold) >= 0, leaves: willLeave(s, p, c) };
   }
   function marryCandidate(s, p, idx) {
     const list = marriageMarket(s, p), c = list[idx];
@@ -504,6 +523,7 @@
     loyalty(s, p, RANKS[c.rank].loy);
     s.stats.marriages = (s.stats.marriages || 0) + 1;
     s.stats['m_' + c.rank] = (s.stats['m_' + c.rank] || 0) + 1;
+    if (c.from && c.from !== s.rival && c.from !== s.house) relation(s, c.from, 25);
     const who = c.rank === 'marchand' ? `${c.name}, ${c.sex === 'F' ? 'fille' : 'fils'} d'un riche ${c.trade} de ${c.place}` : c.rank === 'vassal' ? `${c.name}, ${c.sex === 'F' ? 'fille' : 'fils'} d'un vassal de ${c.place}` : `${c.name} ${c.from}`;
     if (f.leaves) {
       p.inDyn = false; p.leftAt = s.year; p.husband = `${c.name} ${c.from}`;
@@ -721,6 +741,7 @@
     const ours = (s.army * milPower(s) * (0.7 + rand(s) * 0.6) * (s.omen ? 1.3 : 1) + s.alliances * 3) * tm; s.omen = false;
     const tgt = reg.owner === 'rival' ? `${reg.name}, terre de la maison ${s.rival}` : `${reg.name}`;
     const a0 = s.army, won = ours > enemy;
+    if (reg.owner !== 'rival' && reg.owner !== 'me' && houseOf(s, reg.owner).traite) { houseOf(s, reg.owner).traite = null; relation(s, reg.owner, -30); s.prestige -= 8; log(s, `Vous rompez votre traité avec la maison ${reg.owner.replace(/^d(e |')/, '')} : parjure !`, 'bad'); }
     if (reg.owner !== 'rival' && reg.owner !== 'me') { relation(s, reg.owner, -40); for (const h of neighborHouses(s)) if (h !== reg.owner && houseOf(s, h).mood !== 'belliqueuse') relation(s, h, -4); }
     if (won) {
       s.stats.warsWon++; gainRegion(s, reg.i); s.prestige += 14; s.gold += 22; s.army = Math.round(s.army * (1 - 0.14 * (Tt ? TACTICS[Tt].loss : 1)));
@@ -1201,7 +1222,7 @@
         { l: 'Faire casser le mariage', d: '−8 or, −20 loyauté, +3 prestige', f: s => { const p = s.people[s._ctx]; s.gold -= 8; s.prestige += 3; loyalty(s, p, -20); return 'L\'évêque annule l\'union ; le cœur brisé ne pardonnera pas.'; } },
       ] },
     // ---------- Les maisons voisines ----------
-    { id: 'voisin_raid', w: 5, cond: s => neighborHouses(s).some(h => houseOf(s, h).rel <= -35),
+    { id: 'voisin_raid', w: 5, cond: s => neighborHouses(s).some(h => houseOf(s, h).rel <= -35 && houseOf(s, h).traite !== 'paix'),
       text: s => { const h = pick(s, neighborHouses(s).filter(h => houseOf(s, h).rel <= -35)); s._h = h; return `Les cavaliers de la maison ${h.replace(/^d(e |')/, '')}, qui vous haïssent, pillent vos villages frontaliers.`; },
       choices: [
         { l: 'Riposter', d: 'Il faut 30 soldats : −5 soldats, +4 prestige, relation −10', f: s => { relation(s, s._h, -10); if (s.army >= 30) { s.army -= 5; s.prestige += 4; return 'Vos chevaliers brûlent leurs granges en retour.'; } s.army -= 5; s.stab -= 4; return 'Votre riposte échoue ; la frontière brûle.'; } },
@@ -1276,6 +1297,14 @@
         { l: 'Bloquer les salaires par ordonnance', d: '+12 or, −5 stabilité', f: s => { s.gold += 12; s.stab -= 5; return 'L\'ordonnance est criée sur les places ; on la maudit tout bas.'; } },
         { l: 'Payer ce qu\'il faut', d: '−2 or par tour pour toujours, +6 stabilité', f: s => { s.corvee = (s.corvee || 0) + 2; s.stab += 6; return 'Les champs sont cultivés, et les paysans restent.'; } },
         { l: 'Affranchir des serfs contre rachat', d: '+18 or, −5 prestige chez les barons', f: s => { s.gold += 18; s.prestige -= 5; return 'Des hommes libres paient leur liberté au prix fort.'; } },
+      ] },
+    { id: 'guerre_voisins', chain: true, w: 0, cond: s => !!s.war,
+      text: s => `La guerre fait rage entre la maison ${s.war.a.replace(/^d(e |')/, '')} (${relLabel(houseOf(s, s.war.a).rel).toLowerCase()} envers vous) et la maison ${s.war.b.replace(/^d(e |')/, '')} (${relLabel(houseOf(s, s.war.b).rel).toLowerCase()}). Les deux camps sollicitent votre aide.`,
+      choices: [
+        { l: 'Soutenir la première', d: '−15 or ; relations +30 / −30 ; elle a plus de chances de l\'emporter', f: s => { s.gold -= 15; s.war.side = s.war.a; relation(s, s.war.a, 30); relation(s, s.war.b, -30); return 'Vos subsides et vos conseils partent vers son camp.'; } },
+        { l: 'Soutenir la seconde', d: '−15 or ; relations −30 / +30 ; elle a plus de chances de l\'emporter', f: s => { s.gold -= 15; s.war.side = s.war.b; relation(s, s.war.a, -30); relation(s, s.war.b, 30); return 'Vos subsides et vos conseils partent vers son camp.'; } },
+        { l: 'Arbitrer la paix', d: 'Avec 45 de prestige : la guerre cesse, +6 prestige, relations +10 ; sinon −3 prestige', f: s => { if (s.prestige >= 45) { relation(s, s.war.a, 10); relation(s, s.war.b, 10); s.prestige += 6; s.war = null; return 'Les deux seigneurs s\'embrassent sous votre tente.'; } s.prestige -= 3; return 'On rit de votre médiation.'; } },
+        { l: 'Profiter de leurs querelles', d: 'Leurs garnisons −10 tant que dure la guerre ; relations −15', f: s => { for (const r of s.regions) if (r.owner === s.war.a || r.owner === s.war.b) r.def = Math.max(6, r.def - 10); relation(s, s.war.a, -15); relation(s, s.war.b, -15); return 'Leurs châteaux se vident pour le front : vos capitaines prennent note.'; } },
       ] },
     { id: 'comete', w: 2, cond: ALL,
       text: () => 'Une comète traverse le ciel nocturne. Les prêcheurs y voient un présage.',
@@ -1381,7 +1410,7 @@
     s.stab += tsum(r, 'stab') + (s.stab < 50 ? P.stabDrift : 0) - P.baron - Math.floor(s.domains / 7);
     s.prestige += tsum(r, 'prest') + (s.builds >= 4 ? 1 : 0) + (s.cathedral ? 1 : 0) + edif(s, 'abbaye') + edif(s, 'universite');
     if (edif(s, 'lices')) addTroops(s, 'chevaliers', edif(s, 'lices') * 2); s.stab += edif(s, 'hopital');
-    councilTick(s); housesTick(s); regencyTick(s);
+    councilTick(s); housesTick(s); regencyTick(s); treatyTick(s); warTick(s);
     if (s.chantier) { s.chantier--; if (!s.chantier) { s.cathedral = true; s.prestige += 35; log(s, 'Les flèches de la cathédrale s\'élèvent enfin vers le ciel. Toute la chrétienté en parle.', 'big'); } }
     for (const k in s.fat) { s.fat[k] *= P.fatigueDecay; if (s.fat[k] < 0.1) delete s.fat[k]; }
     const rl = (r.traits.includes('cruel') ? -2 : 0) + (r.traits.includes('charismatique') ? 2 : 0) + (s.pol.cour === 2 ? 1 : s.pol.cour === 0 ? -1 : 0);
@@ -1480,7 +1509,8 @@
     }
     if (rand(s) < P.lordWar) {
       const pairs = []; s.regions.forEach(r => { if (r.owner === 'me' || r.owner === 'rival') return; for (const j of g.adj[r.i]) { const o = s.regions[j]; if (o.owner !== 'me' && o.owner !== 'rival' && o.owner !== r.owner) pairs.push([r, o]); } });
-      if (pairs.length) { const wp = pairs.flatMap(pr => houseOf(s, pr[0].owner).mood === 'belliqueuse' ? [pr, pr, pr] : [pr]); const [a, b] = pick(s, wp); const old = b.owner; b.owner = a.owner; b.flip = s.year; s.mapNews.push({ i: b.i, t: `Guerre entre seigneurs : la maison ${a.owner.replace(/^d(e |')/, '')} prend ${b.name} à la maison ${old.replace(/^d(e |')/, '')}.`, k: 'lords' }); log(s, s.mapNews[s.mapNews.length - 1].t); }
+      if (pairs.length && !s.war && rand(s) < 0.45) { const [a, b] = pick(s, pairs); s.war = { a: a.owner, b: b.owner, until: s.turn + 3, side: null, gain: 0 }; s.mapNews.push({ i: b.i, t: `La guerre éclate entre la maison ${a.owner.replace(/^d(e |')/, '')} et la maison ${b.owner.replace(/^d(e |')/, '')}.`, k: 'lords' }); log(s, s.mapNews[s.mapNews.length - 1].t); (s.chains = s.chains || []).push({ id: 'guerre_voisins', at: s.turn }); }
+      else if (pairs.length) { const wp = pairs.flatMap(pr => houseOf(s, pr[0].owner).mood === 'belliqueuse' ? [pr, pr, pr] : [pr]); const [a, b] = pick(s, wp); const old = b.owner; b.owner = a.owner; b.flip = s.year; s.mapNews.push({ i: b.i, t: `Guerre entre seigneurs : la maison ${a.owner.replace(/^d(e |')/, '')} prend ${b.name} à la maison ${old.replace(/^d(e |')/, '')}.`, k: 'lords' }); log(s, s.mapNews[s.mapNews.length - 1].t); }
     }
   }
   function invasion(s) {
@@ -1593,6 +1623,6 @@
     return sc >= 850 ? 'Empire légendaire' : sc >= 750 ? 'Grande dynastie' : sc >= 650 ? 'Royaume prospère' : sc >= 550 ? 'Maison respectée' : 'Lignée modeste';
   }
 
-  const api = { TROOPS, mixOf, troopCounts, compBonus, epilogue, EDU_PATHS, eduChance, STANCES, TACTICS, stanceOf, scoutReport, tacticMult, ruseBonus, MOODS, houseOf, neighborHouses, relation, relLabel, giftCost, sendGift, COUNCIL, councilOf, seatSkill, councilCandidates, appoint, councilFx, autoCouncil, BUILDINGS, buildTypes, edif, MISSIONS, ISSUERS, rivalAggro, newRivalLord, vassalCost, vassalOdds, rivalCount, mapGeom, borderTargets, campaignOdds, regionEnemy, myRegions, initRegions, syncDomains, TEMPERS, RANKS, marriageMarket, candidateFx, willLeave, applyAI, histDueEvent, markHistDone, AI_BOUNDS, POLICIES, policyFx, setPolicy, ERAS, eraOf, AMBITIONS, ambitionProgress, eff, DEFAULT_P, TRAITS, EVENTS, createGame, getActions, marriageOptions, playTurn, resolveEvent, ruler, heir, successionLine, livingDyn, unmarriedAdults, age, person, fullName, score, rank, rand, childrenOf };
+  const api = { proposeTreaty, TROOPS, mixOf, troopCounts, compBonus, epilogue, EDU_PATHS, eduChance, STANCES, TACTICS, stanceOf, scoutReport, tacticMult, ruseBonus, MOODS, houseOf, neighborHouses, relation, relLabel, giftCost, sendGift, COUNCIL, councilOf, seatSkill, councilCandidates, appoint, councilFx, autoCouncil, BUILDINGS, buildTypes, edif, MISSIONS, ISSUERS, rivalAggro, newRivalLord, vassalCost, vassalOdds, rivalCount, mapGeom, borderTargets, campaignOdds, regionEnemy, myRegions, initRegions, syncDomains, TEMPERS, RANKS, marriageMarket, candidateFx, willLeave, applyAI, histDueEvent, markHistDone, AI_BOUNDS, POLICIES, policyFx, setPolicy, ERAS, eraOf, AMBITIONS, ambitionProgress, eff, DEFAULT_P, TRAITS, EVENTS, createGame, getActions, marriageOptions, playTurn, resolveEvent, ruler, heir, successionLine, livingDyn, unmarriedAdults, age, person, fullName, score, rank, rand, childrenOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Dyn = api;
 })(typeof window !== 'undefined' ? window : this);

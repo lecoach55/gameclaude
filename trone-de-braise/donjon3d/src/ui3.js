@@ -379,13 +379,13 @@ function title(){const sv=load();
 
 
 /* ---------- boucle ---------- */
-let last=performance.now(),last0=performance.now(),fogT=0,stepD=0,stepN=.55;
+let occPrev=false,last=performance.now(),last0=performance.now(),fogT=0,stepD=0,stepN=.55;
 function loop(t){if(TEST)testFrame(t);const dt=Math.min(.05,(t-last)/1000);last=t;const ts=t/1000;
  if(!started&&G3.mode==='title'){G3.updTitle(dt,ts);G3.render(ts,dt);}
- if(started&&VD.P){if(!ST.active&&!paused)perfTick((t-last0)/1000);last0=t;
-  if(mode==='explo'){if(!paused){const px=VD.P.x,py=VD.P.y;VD.step(dt,input());const mv=Math.hypot(VD.P.x-px,VD.P.y-py);stepD+=mv;if(stepD>stepN){stepD=0;stepN=.5+Math.random()*.14;sfx('step',.5+Math.random()*.35);}exploEvents();}
+ if(started&&VD.P){const occ=G3.occupe,occ1=occ||occPrev;occPrev=occ;if(occ1){perf.t=0;perf.n=0;}else if(!ST.active&&!paused)perfTick((t-last0)/1000);last0=t;/* pendant la préparation des effets : ni mesure de fluidité, ni déplacement à l'aveugle */
+  if(mode==='explo'){if(!paused&&!occ){const px=VD.P.x,py=VD.P.y;VD.step(dt,input());const mv=Math.hypot(VD.P.x-px,VD.P.y-py);stepD+=mv;if(stepD>stepN){stepD=0;stepN=.5+Math.random()*.14;sfx('step',.5+Math.random()*.35);}exploEvents();}
    if(mode==='explo'){fogT-=dt;if(fogT<=0){fogDirty=true;fogT=.15;}G3.updExplo(VD,dt,ts,fogDirty);fogDirty=false;if(!window.__skipR)G3.render(ts,dt);drawExploOverlay(dt);hudT-=dt;if(hudT<=0){hud();drawMini(mx,216);hudT=.1;}}}
-  if(mode==='battle'&&VD.B){const db=dt*tsc;updBattle(db);G3.updBattle(VD,db,ts);G3.render(ts,db);drawBattle(cx,db,ts);}}
+  if(mode==='battle'&&VD.B){const db=occ?0:dt*tsc;updBattle(db);G3.updBattle(VD,db,ts);G3.render(ts,db);drawBattle(cx,db,ts);}}
  requestAnimationFrame(loop);}
 /* ---------- pilotage par Le Trône de Braise ---------- */
 let bilanFait=false;
@@ -435,7 +435,8 @@ async function runBench(sc,lv){if(TF.busy)return null;TF.busy=true;const aq=wind
  try{for(const lv of LV){qSet(lv);for(const [k,F] of SC){btn.textContent=`${QN[lv]} · ${k} ${F}…`;await toExplo();seedRng(4242+F);paused=true;VD.newGame(VD.P,4242+F);VD.startFloor(F);const keep=k==='explo'?null:VD.E.find(e=>k==='boss'?e.boss:!e.boss);VD.E.length=0;if(keep)VD.E.push(keep);exploEvents();paused=false;await wait(400);
    if(k==='explo'){const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await wait(2500);}
    else{const e=VD.E.find(e=>k==='boss'?e.boss:!e.boss);if(!e)continue;VD.P.x=e.x;VD.P.y=e.y+(e.boss?1:.4);for(let i=0;i<25;i++){await wait(200);skipStory();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await wait(800);}
-   skipStory();await wait(200);const m=await measure(5000);res.push(Object.assign({scene:k+' '+F,niveau:QN[lv]},m));}}
+   skipStory();await wait(200);const tp=performance.now();while(G3.occupe&&performance.now()-tp<30000)await wait(100);const prep=Math.round(performance.now()-tp);if(prep>150)await wait(500);/* on mesure le régime établi, pas la préparation des effets */
+   const m=await measure(5000);res.push(Object.assign({scene:k+' '+F,niveau:QN[lv]},m,prep>150?{prep}:{}));}}
  }catch(e){res.push({erreur:String(e)});}
  Math.random=rnd;await toExplo();qSet(q0);window.__noAutoQ=aq;
  const out={jeu:'trone-de-braise',page:'donjon3d',date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,qAuto,depart:QN[q0],res,env:BENV};

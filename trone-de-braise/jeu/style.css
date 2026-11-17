@@ -234,6 +234,26 @@ body.tact .orbe{width:72px;height:72px}
 body.tact .cp{width:46px;height:46px;font-size:22px}
 body.tact .barre-comp{bottom:96px}
 body.tact #minicarte{width:110px;height:110px}
+/* 17/11 : interface du donjon sans chevauchement (téléphone, panneau étroit du Mac, ordinateur) — contrôle : outils/hud2d.py */
+body.tact #joy,body.tact #attq{bottom:170px}
+body.tact .action{bottom:310px}
+.bonus span{white-space:nowrap}
+@media(max-height:520px){body.tact #joy,body.tact #attq{bottom:96px}body.tact .barre-comp{bottom:12px}body.tact .bonus{top:auto;bottom:82px}body.tact .action{bottom:118px}}
+@media(max-width:1100px){body:not(.tact) .bonus{bottom:124px}body:not(.tact) .action{bottom:156px}}
+@media(max-width:1100px){body:not(.tact) .niv{left:50%;right:auto;margin-left:0;transform:translateX(-50%);bottom:auto;top:auto;bottom:calc(16px + 72px + 6px);max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}}
+@media(min-width:1101px){body:not(.tact) .niv{left:auto;right:calc(50% + 172px);margin-left:0;transform:none;max-width:calc(50% - 172px - 132px);overflow:hidden;text-overflow:ellipsis}}
+@media(max-width:600px){
+ body:not(.tact) .cp{width:46px;height:46px;font-size:22px}
+ body:not(.tact) .barre-comp{bottom:12px;padding:7px 9px}
+ body:not(.tact) .niv{bottom:80px}
+ body:not(.tact) .orbe{width:64px;height:64px;bottom:102px}
+ body:not(.tact) .orbe.vie{left:12px}body:not(.tact) .orbe.mana{right:12px}
+ body:not(.tact) .orbe span{font-size:13px}
+ body:not(.tact) .xp{left:12px;right:12px}
+ body:not(.tact) #minicarte{width:110px;height:110px}
+ body:not(.tact) .bonus{bottom:228px}
+ body:not(.tact) .action{bottom:176px}
+}
 /* chronique, dynastie, maisons */
 .chron{max-height:62vh;overflow:auto;font-size:15px;line-height:1.5}
 .chron div{padding:7px 0 7px 14px;border-left:2px solid rgba(217,174,79,.2);margin-left:4px;position:relative}
@@ -251,7 +271,7 @@ body.tact #minicarte{width:110px;height:110px}
 .etiq{display:inline-block;font-family:var(--texte);font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:9px;margin-left:6px;vertical-align:middle}.etiq.g{background:#7a2216;color:#ffd8cc}.etiq.a{background:#1f5a2a;color:#d8ffd8}.etiq.p{background:#2a3242;color:#c8ccd6}
 .bonus{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);display:flex;gap:6px}
 .bonus span{background:rgba(10,8,6,.82);border:1px solid #6e5430;border-radius:14px;padding:3px 10px;font-size:13px;font-weight:700;color:#f0e0c0}
-body.tact .bonus{bottom:160px}
+body.tact .bonus{bottom:auto;top:132px}
 .tip{position:absolute;display:none;width:270px;background:linear-gradient(180deg,#1b2433,#121822);border:1px solid var(--or);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;pointer-events:none;z-index:6;box-shadow:var(--ombre)}
 #objectif{position:absolute;left:14px;top:68px;z-index:4;max-width:min(400px,60vw);background:linear-gradient(180deg,rgba(24,32,45,.95),rgba(15,20,28,.95));border:1px solid var(--orf);border-left:3px solid var(--or);border-radius:4px 12px 12px 4px;padding:9px 14px;font-size:15px;line-height:1.4;cursor:pointer;box-shadow:var(--ombre);transition:transform .2s var(--courbe)}
 #objectif:hover{transform:translateX(2px)}

@@ -57,7 +57,7 @@ function initCreation() {
  const box = $('#cClasses'); box.innerHTML = '';
  for (const id in CLASSES) {
   const C = CLASSES[id], d = document.createElement('div'); d.className = 'carte-classe' + (id === CREA.classe ? ' sel' : ''); d.dataset.c = id;
-  d.innerHTML = `<canvas width="240" height="240"></canvas><h3>${C.nom}</h3><p>${C.desc}</p><div class="comp">${C.comp.map(c => c.ic + ' ' + c.nom).join(' · ')}</div>`;
+  d.innerHTML = `<canvas width="240" height="240"></canvas><h3>${C.nom}</h3><p>${C.desc}</p><div class="comp">${avec3D() && COMP3D[id] ? COMP3D[id].map(c => `<span style="white-space:nowrap">${c[0]} ${c[1]}</span>`).join(' · ') : C.comp.map(c => c.ic + ' ' + c.nom).join(' · ')}</div>`;
   d.onclick = () => { CREA.classe = id; box.querySelectorAll('.carte-classe').forEach(x => x.classList.toggle('sel', x === d)); SON('clic'); };
   box.appendChild(d); apercuHeros(d.querySelector('canvas'), id, CREA.sexe);
  }
@@ -127,7 +127,7 @@ function panneau() {
    <div class="gi"><small>Revenu</small><b>🪙 ${Math.round(revenuProv(G, p))}</b></div></div>
    <div class="loyaute"><span>Loyauté</span><span>${Math.round(p.loy)} %</span></div><div class="jauge"><i style="width:${clamp(p.loy, 0, 100)}%"></i></div>
    ${bat.length ? `<div class="batis">🏛️ ${bat.join(', ')}</div>` : ''}
-   <div class="donjon-l ${p.nettoye ? 'purge' : ''}"><span class="crane">${p.nettoye ? '🕯️' : '☠'}</span><div><b>${D.nom}</b><small>${p.nettoye ? `Purgé — le mal reviendra dans ~${p.nettoye} saison${p.nettoye > 1 ? 's' : ''}` : `Niveau ${p.dniv} · trois étages et un maître`}</small></div></div>
+   <div class="donjon-l ${p.nettoye ? 'purge' : ''}"><span class="crane">${p.nettoye ? '🕯️' : '☠'}</span><div><b>${D.nom}</b><small>${p.nettoye ? `Purgé — le mal reviendra dans ~${p.nettoye} saison${p.nettoye > 1 ? 's' : ''}` : `Niveau ${p.dniv} · ${avec3D() ? 'deux étages, le maître au second' : 'trois étages et un maître'}`}</small></div></div>
   </div><div class="acts">`;
  const o = G.ordres > 0, J = G.maisons.joueur, combat = !G.joueur.blesse && !G.joueur.regence;
  const b = (ic, lb, sous, ct, act, ok = true, cls = '') => `<button class="act ${cls}" data-a="${act}" ${ok ? '' : 'disabled'}><span class="ic">${ic}</span><span class="lb">${lb}${sous ? `<small>${sous}</small>` : ''}</span><span class="ct">${ct || ''}</span></button>`;
@@ -428,10 +428,21 @@ function brancherArm(h, enDonjon) {
  f.querySelectorAll('[data-forge]').forEach(b => b.onclick = () => { const k = b.dataset.forge, cout = prixForge(h); if (G.maisons.joueur.or < cout) return toast('Pas assez d’or'); G.maisons.joueur.or -= cout; const o = genObjet(h.niveau + 1, h.classe, { empl: k === 'hasard' ? null : k, min: 'magique', bonus: k === 'hasard' ? .12 : .05 }); G.joueur.inventaire.push(o); SON(o.rar === 'legendaire' ? 'legendaire' : 'objet_rare'); majBarre(); sauver(); ARM.sel = o.id; armurerie('equip'); setTimeout(() => { const c = $(`.case[data-id="${o.id}"]`); if (c) c.click(); }, 30); });
 }
 const SEUILS_COMP = [1, 2, 4, 6];
+// Compétences réellement jouées dans le donjon 3D au tour par tour (affichage seulement ; règles et chiffres : donjon3d/src/core.js, SK)
+const COMP3D = {
+ chevalier: [['⚔️', 'Frappe', 1, 'Coup d’épée. +10 énergie.'], ['🛡️', 'Provocation', 1, 'Attire les attaques ciblées pendant 2 tours, défense +50 %.'], ['🪓', 'Fendoir', 1, 'Frappe tous les ennemis à 55 %.'], ['🏰', 'Rempart', 3, 'Le groupe subit −40 % de dégâts jusqu’au prochain tour du héros.'], ['💀', 'Exécution', 6, 'Coup puissant (180 %), double sous 30 % de vie.']],
+ arcaniste: [['✨', 'Trait arcanique', 1, 'Projectile magique. +8 énergie.'], ['🔥', 'Boule de feu', 1, 'Tous les ennemis (70 %) et brûlure 3 tours.'], ['💚', 'Soin', 1, 'Rend 30 % de la vie d’un allié, plus la Magie.'], ['❄️', 'Lance de givre', 2, '140 % et gèle : la cible perd son prochain tour.'], ['🔮', 'Barrière', 5, 'Bouclier qui absorbe 25 % de la vie de l’allié, plus la Magie ×2.'], ['☄️', 'Météore', 8, 'Pluie de feu sur tous les ennemis (160 %).']],
+ rodeur: [['🏹', 'Tir', 1, 'Flèche précise. +10 énergie.'], ['🧪', 'Flèche empoisonnée', 1, '70 % et poison cumulable 3 tours.'], ['🎯', 'Volée', 1, '4 flèches sur des ennemis au hasard (50 % chacune).'], ['🐺', 'Marque du chasseur', 3, 'La cible subit +30 % de dégâts pendant 3 tours.'], ['💥', 'Tir fatal', 7, '220 %, coup critique garanti.']]
+};
+const avec3D = () => !(G && G.options && G.options.d3 === false);
+function blocComp3D(h) {
+ const L = COMP3D[h.classe] || [];
+ return `${h.points > 0 ? `<p style="margin:0 0 8px"><b style="color:var(--or2)">${h.points} point${h.points > 1 ? 's' : ''} à répartir</b> → Donjon 2D, plus bas.</p>` : ''}<h4 style="margin:4px 0 6px;color:var(--or2);font-weight:400">En expédition 3D</h4><p style="font-size:13.5px;color:var(--velin2);margin:0 0 6px">En 3D comptent : <b>classe, niveau et rareté de l’équipement</b>. Les compétences s’y apprennent seules avec le niveau ; les points et talents ci-dessous servent au donjon 2D (Menu → Donjons).</p><div class="comps">${L.map(([ic, nom, niv, d]) => `<div class="compl"><div class="ic"${h.niveau < niv ? ' style="opacity:.6;filter:grayscale(.6)"' : ''}>${ic}</div><div class="tx"><b>${nom}</b>${h.niveau < niv ? ` <small style="color:#e99">— au niveau ${niv}</small>` : ''}<br>${d}</div></div>`).join('')}</div><h4 style="margin:14px 0 6px;color:var(--or2);font-weight:400">Donjon 2D</h4>`;
+}
 function ongletComp(h) {
  const C = CLASSES[h.classe], T = TALENTS[h.classe];
  const talents = `<h4 style="margin:14px 0 6px;color:var(--or2);font-weight:400">Talents ${h.niveau < 3 ? '<small style="color:#e99">(à partir du niveau 3)</small>' : ''}</h4><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px">${T.map(t => { const r = h.talents[t.id] || 0, ok = h.points > 0 && h.niveau >= 3 && r < 3; return `<div class="compl"><div class="ic" style="font-size:20px">${t.ic}</div><div class="tx"><b>${t.nom}</b> ${'●'.repeat(r)}${'○'.repeat(3 - r)}<br><small>${r ? t.txt(r) : t.txt(1) + ' par rang'}</small></div><button class="btn petit ${ok ? 'or' : ''}" data-tal="${t.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>`;
- return talents.replace(/^/, '') && `<p>Points à répartir : <b style="color:var(--or2)">${h.points}</b> <small style="color:#a98">(un par niveau)</small></p><div class="comps">${C.comp.map((c, i) => { const r = h.comp[c.id] || 0, ok = h.points > 0 && h.niveau >= SEUILS_COMP[i] && r < 10; return `<div class="compl"><div class="ic">${c.ic}</div><div class="tx"><b>${c.nom}</b> — rang ${r}${r ? ` (+${Math.round((r - 1) * 22)} % de puissance)` : ''} · touche ${i + 1}${i === 0 ? ' ou clic droit' : ''}<br>${c.desc}<br><small style="color:#8ab8ff">${c.cout} mana · recharge ${c.cd} s</small>${h.niveau < SEUILS_COMP[i] ? `<br><small style="color:#e99">Disponible au niveau ${SEUILS_COMP[i]}</small>` : ''}</div><button class="btn petit ${ok ? 'or' : ''}" data-up="${c.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>` + talents;
+ return talents.replace(/^/, '') && (avec3D() ? blocComp3D(h) : '') + `<p>Points à répartir : <b style="color:var(--or2)">${h.points}</b> <small style="color:#a98">(un par niveau)</small></p><div class="comps">${C.comp.map((c, i) => { const r = h.comp[c.id] || 0, ok = h.points > 0 && h.niveau >= SEUILS_COMP[i] && r < 10; return `<div class="compl"><div class="ic">${c.ic}</div><div class="tx"><b>${c.nom}</b> — rang ${r}${r ? ` (+${Math.round((r - 1) * 22)} % de puissance)` : ''} · touche ${i + 1}${i === 0 ? ' ou clic droit' : ''}<br>${c.desc}<br><small style="color:#8ab8ff">${c.cout} mana · recharge ${c.cd} s</small>${h.niveau < SEUILS_COMP[i] ? `<br><small style="color:#e99">Disponible au niveau ${SEUILS_COMP[i]}</small>` : ''}</div><button class="btn petit ${ok ? 'or' : ''}" data-up="${c.id}" ${ok ? '' : 'disabled'}>+</button></div>`; }).join('')}</div>` + talents;
 }
 const prixForge = h => 40 + 16 * h.niveau;
 function ongletForge(h) {

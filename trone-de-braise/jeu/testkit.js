@@ -1,4 +1,6 @@
-// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) =====
+// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) — version 7 =====
+// Version : TK.version (ligne « const TK={version:… »), envoyée dans chaque mesure et signalement (champ tk). À augmenter à chaque
+// changement, avec une ligne dans VERSIONS de outils-communs/maj_testkit.py. Mettre à jour la copie d'un jeu : python3 outils-communs/maj_testkit.py <jeu>
 // Ajoute : compteur d'images par seconde (mode test), bouton 🐞 « signaler un problème » (capture + état + erreurs),
 // banc de mesure scripté, et envoi des résultats dans la base de l'artefact (lisible par Claude avec db_list).
 // Usage dans le jeu :
@@ -9,10 +11,10 @@
 //   await TK.banc([{nom:'scène 1', preparer:async()=>{...}}, ...], 5000);  // mesure chaque scène 5 s
 // Jeux sans canvas (SVG/DOM) : fournir capture:async()=>dataURL (voir svgCapture ci-dessous) et canvas:()=>document.createElement('canvas') pour le nom du GPU.
 // Jeux en HTML/DOM : capture:()=>domCapture(document.body). Sans base (capacité db absente, hors ligne, app Electron) :
-// option secours:true → 🐞 ouvre un rapport à copier / enregistrer (TK.rapport(obj,titre) réutilisable pour le banc).
+// option secours:true → 🐞 ouvre un rapport à copier (bouton « Enregistrer » seulement si la capacité downloads est accordée) (TK.rapport(obj,titre) réutilisable pour le banc).
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
 function Testkit(o){
- const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
+ const TK={version:7,test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
  // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
  // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
@@ -30,7 +32,9 @@ function Testkit(o){
  addEventListener('unhandledrejection',e=>TK.erreurs.push('promesse: '+String(e.reason).slice(0,300)));
  const gpu=()=>{try{const c0=o.canvas&&o.canvas();let gl=c0&&(c0.getContext('webgl2')||c0.getContext('webgl'));if(!gl){const c=document.createElement('canvas');gl=c.getContext('webgl');} // jeux 2D : canvas WebGL temporaire
   const x=gl.getExtension('WEBGL_debug_renderer_info');return x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(e){return '?';}};
- const stats=a0=>{const a=a0.filter(d=>d<1000),pz=a0.length-a.length;if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{})};};
+ // Pause = image > 1 s ET > 8× l'image médiane : sur un appareil où TOUTES les images dépassent 1 s (rendu logiciel, vieux Mac en Haute),
+ // elles comptent (v7 ; avant : tout écarté → fps vide justement sur l'appareil le plus lent). lent:true = image médiane > 125 ms.
+ const stats=a0=>{if(!a0.length)return{n:0};const o0=a0.slice().sort((x,y)=>x-y),seuil=Math.max(1000,8*o0[(o0.length-1)>>1]);const a=a0.filter(d=>d<seuil),pz=a0.length-a.length;const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{}),...(seuil>1000?{lent:true}:{})};};
  const tick=t=>{if(TK.lt){const d=t-TK.lt;TK.ft.push(d);if(TK.ft.length>240)TK.ft.shift();if(TK.rec)TK.rec.push(d);}TK.lt=t;if(TK.ov&&t-(TK.tt||0)>500){TK.tt=t;const s=stats(TK.ft.slice(-60));TK.ov.firstChild.textContent=`🧪 ${s.fps||'-'} img/s · pire ${s.pire||'-'} ms`;}requestAnimationFrame(tick);};requestAnimationFrame(tick);
  TK.modeTest=()=>{TK.test=true;if(TK.ov)return;const d=document.createElement('div');d.style.cssText='position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(0,0,0,.72);color:#9fe0a0;font:12px monospace;padding:4px 8px;border-radius:6px';d.innerHTML='<span>🧪</span>';document.body.appendChild(d);TK.ov=d;};
  // Mesure fiable : on attend que la page soit visible ; si le navigateur a suspendu l'affichage pendant la mesure
@@ -40,21 +44,25 @@ function Testkit(o){
   await new Promise(r=>setTimeout(r,ms));document.removeEventListener('visibilitychange',vf);const a=TK.rec;TK.rec=null;
   const suspendu=masq||a.length<ms/1000*3; // moins de 3 images/s mesurées : affichage suspendu par le navigateur
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
-  const st=stats(a);if(suspendu)st.masquee=true;return st;};
+  // Après la 2e mesure : masquee si la page a été cachée, a affiché < 3 images, a eu une pause ou des images qui ne couvrent pas 60 % de la durée ; sinon ce sont de vraies
+  // images lentes (appareil très lent) : chiffre gardé, marqué lent (v7 ; avant : « masquée » à tort sous 3 img/s).
+  const st=stats(a);if(suspendu){const tot=a.reduce((x,y)=>x+y,0);if(masq||a.length<3||st.pauses||tot<ms*.6)st.masquee=true;else st.lent=true;}return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
-  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
+  const out={jeu:o.jeu,tk:TK.version,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
-  const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
+  const st={jeu:o.jeu,tk:TK.version,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
   TK.dernier=st;return TK.envoyer('signalement_'+Date.now(),st);};
  // Secours quand la base est indisponible (capacité db non déclarée, hors ligne, app de bureau) : panneau avec le rapport
- // à copier (sans les gros champs) et bouton pour l'enregistrer en fichier. Option o.secours:true pour l'activer sur 🐞.
- TK.rapport=(obj,titre)=>{try{const gros=new Set(['capture','sauvegarde']);const court=JSON.stringify(obj,(k,v)=>gros.has(k)?(v?'['+String(v).length+' car. — voir le fichier]':v):v,1);
+ // à copier (sans les gros champs), « Copier tout » (complet) ; « Enregistrer le fichier » seulement via claude.use('downloads') — jamais de lien de téléchargement direct (inopérant dans le visualiseur d'artefact). Option o.secours:true pour l'activer sur 🐞.
+ TK.rapport=(obj,titre)=>{try{const gros=new Set(['capture','sauvegarde']);const court=JSON.stringify(obj,(k,v)=>gros.has(k)?(v?'['+String(v).length+' car. — voir « Copier tout »]':v):v,1);
   const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:12px';
-  f.innerHTML='<div style="background:#14201a;color:#e8efe9;border:1px solid #3c5a48;border-radius:12px;padding:14px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:8px;font:14px system-ui,sans-serif"><b></b><div style="font-size:12.5px;opacity:.8">La base de l’artefact n’est pas joignable ('+(TK.base||'?').replace(/</g,'&lt;')+'). Copiez ce rapport dans la conversation avec Claude, ou enregistrez le fichier complet.</div><textarea readonly style="flex:1;min-height:200px;font:11px monospace;background:#0b130e;color:#cfe;border:1px solid #2c4436;border-radius:6px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button data-k="c">Copier</button><button data-k="t">Enregistrer le fichier</button><button data-k="f">Fermer</button></div></div>';
+  f.innerHTML='<div style="background:#14201a;color:#e8efe9;border:1px solid #3c5a48;border-radius:12px;padding:14px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:8px;font:14px system-ui,sans-serif"><b></b><div style="font-size:12.5px;opacity:.8">La base de l’artefact n’est pas joignable : '+(TK.base||'?').replace(/</g,'&lt;')+'. Copiez ce rapport dans la conversation avec Claude, ou « Copier tout » pour le rapport complet.</div><textarea readonly style="flex:1;min-height:200px;font:11px monospace;background:#0b130e;color:#cfe;border:1px solid #2c4436;border-radius:6px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap" class="tk-bts"><style>.tk-bts button{min-height:40px;padding:0 14px;font:inherit}</style><button data-k="c">Copier</button><button data-k="t">Copier tout (complet)</button><button data-k="s" hidden>Enregistrer le fichier</button><button data-k="f">Fermer</button></div></div>';
   f.querySelector('b').textContent=titre||'Rapport';const ta=f.querySelector('textarea');ta.value=court;
   f.onclick=async e=>{const k=e.target.dataset&&e.target.dataset.k;if(e.target===f||k==='f')f.remove();
    else if(k==='c'){ta.select();let ok=false;try{await navigator.clipboard.writeText(court);ok=true;}catch(_){try{ok=document.execCommand('copy');}catch(__){}}e.target.textContent=ok?'Copié ✓':'Sélectionné : copiez à la main';}
-   else if(k==='t'){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:'application/json'}));a.download=(o.jeu||'jeu')+'_'+(obj.date||Date.now()).toString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);}catch(_){e.target.textContent='Impossible ici';}}};
+   else if(k==='t'){const tout=JSON.stringify(obj);let ok=false;try{await navigator.clipboard.writeText(tout);ok=true;}catch(_){try{ta.value=tout;ta.select();ok=document.execCommand('copy');}catch(__){}ta.value=court;}e.target.textContent=ok?'Copié ✓ ('+Math.round(tout.length/1024)+' Ko)':'Sélectionné : copiez à la main';}
+   else if(k==='s'&&dl){try{await dl.save({filename:(o.jeu||'jeu')+'_'+String(obj.date||Date.now()).replace(/[:.]/g,'-')+'.json',data:JSON.stringify(obj)});e.target.textContent='Enregistré ✓';}catch(x){e.target.textContent=x&&x.code==='declined'?'Annulé':'Impossible ici';}}};
+  let dl=null;try{if(window.claude&&window.claude.use)window.claude.use('downloads').then(d=>{dl=d;if(d)f.querySelector('[data-k="s"]').hidden=false;},()=>{});}catch(_){}
   document.body.appendChild(f);return f;}catch(e){return null;}};
  TK.bouton=(parent,style)=>{const b=document.createElement('button');b.textContent='🐞';b.title='Signaler un problème à Claude';b.style.cssText=style||'position:fixed;right:10px;bottom:10px;z-index:9999;width:38px;height:38px;border-radius:50%;opacity:.75';parent.appendChild(b);
   b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);if(!ok&&o.secours&&TK.dernier)TK.rapport(TK.dernier,'Signalement (non envoyé)');};return b;};

@@ -600,22 +600,44 @@ function zoom(u,z,d){const p=u?worldPos(u,.8):new THREE.Vector3(0,.8,1);const o=
 function setTarget(fn){for(const[u,R]of BT.units)R.selTarget=fn?fn(u):false;}
 // précompile tous les matériaux de la scène (même cachés par le brouillard) juste après sa construction
 // Préparation des shaders SANS bloquer : compileAsync lance la compilation (en parallèle si le GPU le permet),
-// et on n'affiche pas la nouvelle scène tant qu'elle n'est pas prête (au plus 4 s) -> plus de gel de plusieurs secondes.
-let needComp=0,hold=0,holdT=0;
-function precompile(sc,block){const hid=[];sc.traverse(o=>{if(!o.visible&&!o.isLight){hid.push(o);o.visible=true;}});let p=null;
- try{p=renderer.compileAsync?renderer.compileAsync(sc,cam):(renderer.compile(sc,cam),null);}catch(e){}hid.forEach(o=>o.visible=false);
- if(p&&block){const id=++hold;holdT=performance.now();p.catch(()=>{}).then(()=>{if(hold===id)hold=0;});}}
-function warm(obj,sc){if(!renderer)return;const v=obj.visible;obj.visible=true;try{const p=renderer.compileAsync(obj,cam,sc);p&&p.catch(()=>{});}catch(_){}obj.visible=v;}
-function render(t,dt){if(!renderer.shadowMap.autoUpdate&&(++shN%shEvery===0||needComp))renderer.shadowMap.needsUpdate=true;if(needComp&&rp&&rp.scene){needComp++;if(needComp===2)precompile(rp.scene,true);else if(needComp===20&&!hold)precompile(rp.scene,false);if(needComp>20&&!hold)needComp=0;}
- if(hold){if(performance.now()-holdT<4000)return;hold=0;}if(grade){const G=GRADE.tier[(mode==='battle'?BT.tier:mode==='title'?0:EX.tier)||0];grade.uniforms.tint.value.set(...G.tint);grade.uniforms.sat.value=G.sat;grade.uniforms.con.value=G.con;grade.uniforms.vig.value=G.vig*(mode==='battle'?1.1:1);grade.uniforms.t.value=(t*7)%100;grade.uniforms.asp.value=W/H;flashV=Math.max(0,flashV-(dt||.016)*3.5);grade.uniforms.flash.value=flashV;}composer.render(dt);}
+// et on n'affiche pas la nouvelle scène tant qu'elle n'est pas prête -> plus de gel de plusieurs secondes.
+// 17/11 : on attend la VRAIE fin de la compilation (au plus HOLD_MAX, sécurité si le contexte se perd) au lieu de couper à 4 s,
+// et on compile les variantes réellement dessinées : la scène est rendue dans une cible du composer (espace linéaire, sans
+// tonalité ACES) et non à l'écran ; compiler sans cible préparait des programmes que l'on ne dessine jamais.
+const HOLD_MAX=12000;let holdSeq=0,needComp=0,hold=0,holdT=0,prepEl=null,qSig=null,chauffe=0,qComp=0;
+function prepMsg(on){if(on&&!prepEl){prepEl=document.createElement('div');prepEl.id='prep3d';prepEl.textContent='Préparation des effets…';prepEl.style.cssText='position:fixed;left:50%;top:22%;transform:translateX(-50%);z-index:60;background:linear-gradient(180deg,rgba(24,32,45,.95),rgba(15,20,28,.95));color:#e8dcc4;font:600 15px "Alegreya Sans",sans-serif;letter-spacing:.02em;padding:9px 18px;border-radius:4px 12px 12px 4px;border:1px solid rgba(217,174,79,.45);border-left:3px solid #d9ae4f;box-shadow:0 8px 24px rgba(0,0,0,.6);pointer-events:none';document.body.appendChild(prepEl);}if(prepEl)prepEl.style.display=on?'block':'none';}
+function postMats(){const out=[];for(const ps of composer.passes){if(!ps.enabled)continue;const ms=[ps.material,ps.materialHighPassFilter,ps.compositeMaterial,ps.blendMaterial,...(ps.separableBlurMaterials||[])].filter(Boolean);ms.forEach(m=>out.push([m,ps.renderToScreen?null:composer.renderTarget1]));}return out;}
+// compileAsync de three r160 lève une erreur (et ne se résout jamais) si un matériau est jeté pendant la compilation :
+// comme Valdragon (compA), un matériau sans programme compte comme prêt.
+function compA(sc,c,tg){const mats=renderer.compile(sc,c,tg||null);if(!renderer.extensions.has('KHR_parallel_shader_compile'))return Promise.resolve();
+ return new Promise(res=>{const t0=performance.now();const chk=()=>{try{mats.forEach(m=>{const q=renderer.properties.get(m).currentProgram;if(!q||q.isReady())mats.delete(m);});}catch(e){mats.clear();}
+  if(!mats.size||performance.now()-t0>HOLD_MAX)res();else setTimeout(chk,10);};chk();});}
+function compAt(obj,rt,sc){const r0=renderer.getRenderTarget();let p=null;try{renderer.setRenderTarget(rt);p=compA(obj,cam,sc);}catch(e){}finally{renderer.setRenderTarget(r0);}return p;}
+function precompile(sc,block){const hid=[];sc.traverse(o=>{if(!o.visible&&!o.isLight){hid.push(o);o.visible=true;}});const ps=[];
+ ps.push(compAt(sc,composer.renderTarget1));hid.forEach(o=>o.visible=false);
+ try{const tmp=new THREE.Scene(),g=new THREE.PlaneGeometry(1,1);for(const[m,rt]of postMats()){const q=new THREE.Mesh(g,m);q.frustumCulled=false;tmp.add(q);ps.push(compAt(q,rt,tmp));}g.dispose();}catch(e){}
+ const p=Promise.all(ps.filter(Boolean).map(x=>x.catch(()=>{})));
+ if(block){const id=++holdSeq;hold=id;holdT=performance.now();p.then(()=>{if(hold===id){hold=0;chauffe=1;}});}}
+function warm(obj,sc){if(!renderer)return;const v=obj.visible;obj.visible=true;try{compAt(obj,composer.renderTarget1,sc);}catch(_){}obj.visible=v;}
+function render(t,dt){if(!renderer.shadowMap.autoUpdate&&(++shN%shEvery===0||needComp))renderer.shadowMap.needsUpdate=true;if(needComp&&rp&&rp.scene){needComp++;if(needComp===(qComp?3:2))precompile(rp.scene,true);else if(needComp===20&&!hold)precompile(rp.scene,false);if(needComp>20&&!hold)needComp=0;}
+ if(qComp&&needComp>0&&needComp<3)return;/* changement de qualité : une image pour afficher le message, puis la préparation */
+ if(hold){const ht=performance.now()-holdT;if(ht<HOLD_MAX){if(ht>400||qComp)prepMsg(1);return;}hold=0;chauffe=1;}
+ /* rendu de chauffe : les programmes sont prêts, mais le pilote crée encore ses états de rendu au 1er dessin (SwiftShader, Metal).
+    On affiche d'abord le message (une image), puis on dessine trois fois (tampons alternés du composer), jeu en pause (G3.occupe), avant de rendre la main. */
+ if(chauffe===1){chauffe=2;if(qComp||(prepEl&&prepEl.style.display!=='none')){prepMsg(1);return;}}
+
+ if(prepEl&&prepEl.style.display!=='none'&&!chauffe)prepMsg(0);if(grade){const G=GRADE.tier[(mode==='battle'?BT.tier:mode==='title'?0:EX.tier)||0];grade.uniforms.tint.value.set(...G.tint);grade.uniforms.sat.value=G.sat;grade.uniforms.con.value=G.con;grade.uniforms.vig.value=G.vig*(mode==='battle'?1.1:1);grade.uniforms.t.value=(t*7)%100;grade.uniforms.asp.value=W/H;flashV=Math.max(0,flashV-(dt||.016)*3.5);grade.uniforms.flash.value=flashV;}composer.render(dt);
+ if(chauffe>=2){try{renderer.getContext().finish();}catch(e){}if(++chauffe>4){chauffe=0;qComp=0;}}}
 function flash(v){flashV=Math.max(flashV,v);}
 function setBloom(s){bloom.strength=s;}
 let qLvl=-1,shFix=null,shEvery=1,shN=0;function setLevel(l){l=Math.max(0,Math.min(3,l));const shOld=renderer.shadowMap.enabled;qLvl=l;hiQ=l>=1;const dpr=devicePixelRatio||1;
  const pr=[Math.min(1,dpr),Math.min(1.3,dpr),Math.min(1.6,dpr),Math.min(2,dpr)][l];renderer.setPixelRatio(pr);composer.setPixelRatio(pr);const ns=l>=2?4:l>=1?2:0;[composer.renderTarget1,composer.renderTarget2].forEach(rt=>{if(rt.samples!==ns){rt.samples=ns;rt.dispose();}});bloom.enabled=l>=2;renderer.shadowMap.autoUpdate=l>=2;shEvery=l>=2?1:l>=1?2:4;if(shFix===null){shFix=l>=1;renderer.shadowMap.type=l>=2?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;}renderer.shadowMap.enabled=shFix;if(ENV){scW.environment=l>=2?ENV:null;scB.environment=l>=2?ENV:null;}if(EX.fogP)EX.fogP.visible=l>=1;if(BT.fogP)BT.fogP.visible=l>=1;
+ /* variantes de shader changées (environnement, bloom, MSAA, ombres) : on les prépare avant de les montrer (gel de 5-7 s sur Mac Intel sinon) */
+ const sig=[l>=2,ns,renderer.shadowMap.enabled,renderer.shadowMap.type].join();if(qSig!==null&&sig!==qSig){needComp=1;qComp=1;prepMsg(1);}qSig=sig;
  if(EX.key)EX.key.shadow.mapSize.set(l>=3?1024:512,l>=3?1024:512);resize();
  if(shOld!==renderer.shadowMap.enabled){scW.traverse(o=>{if(o.material)o.material.needsUpdate=true;});scB.traverse(o=>{if(o.material)o.material.needsUpdate=true;});}}
 function setQuality(hi){setLevel(hi?2:0);}
 export const G3={unfocus(){BT.focus=null;BT.zoom=null;},set camZoom(v){camZoom=v;},get camZoom(){return camZoom;},setQuality,setTheme,init,buildFloor,updExplo,buildArena,updBattle,render,rotIn,setYaw,get yaw(){return EX.yaw||0;},project,screenOf,hitTest,act,hit,die,revive,FX,shake,zoom,setTarget,setBloom,part,burst,worldPos,get mode(){return mode;},get mapRef(){return EX.mapRef;},focus,victory,get cine(){return !!BT.cine;},buildTitle,updTitle,endTitle,portrait,setLevel,get level(){return qLvl;},flash,smoke,get kitErr(){return K.ok?null:(K.err||'inconnu');},setUiBottom(px){BT.uiB=Math.max(BT.uiB||0,px);},set mode(m){mode=m;rp.scene=m==='battle'?scB:scW;},
- exploBurst(x,y,col,n=20){burst(new THREE.Vector3(x,.5,y),col,n,3);},exploScreen(x,y,h=1.2){return project(new THREE.Vector3(x,h*(K.ok?.7:1),y));},refreshParty(VD){if(!EX.party)return;EX.party.forEach(R=>{scW.remove(R.root);purgeObj(R.root);});EX.party=VD.P.heroes.map(h=>{const R=heroM(h.cls,eqOf(h));R.root.scale.multiplyScalar(EXS());scW.add(R.root);return R;});},unitOf,ready:kitReady,isReady:()=>K.ok!==undefined&&kitDone};
+ exploBurst(x,y,col,n=20){burst(new THREE.Vector3(x,.5,y),col,n,3);},exploScreen(x,y,h=1.2){return project(new THREE.Vector3(x,h*(K.ok?.7:1),y));},refreshParty(VD){if(!EX.party)return;EX.party.forEach(R=>{scW.remove(R.root);purgeObj(R.root);});EX.party=VD.P.heroes.map(h=>{const R=heroM(h.cls,eqOf(h));R.root.scale.multiplyScalar(EXS());scW.add(R.root);return R;});},unitOf,ready:kitReady,get occupe(){return !!hold||needComp===1||(qComp&&needComp>0&&needComp<4)||!!chauffe;},isReady:()=>K.ok!==undefined&&kitDone};
 let kitDone=false;kitReady.then(()=>{kitDone=true;});
 window.G3=G3;G3._d=()=>({scW,scB,cam,renderer,composer,rp,bloom,grade,EX,BT,CUT,K,THREE});

@@ -70,7 +70,7 @@ function completer(G) {
 /* ---------- Objectifs (fil conducteur récompensé) ---------- */
 const OBJECTIFS = [
  { t: 'Purger un donjon (la crypte de Val-Sombre est la plus facile)', ok: G => G.stats.donjons >= 1, r: G => { G.maisons.joueur.or += 60; return '+60 or'; } },
- { t: 'Dépenser un point de compétence ou de talent (🛡️ Armurerie → ✦)', ok: G => G.joueur.heros.points === 0 && G.joueur.heros.niveau >= 2, r: G => { G.joueur.heros.potions = Math.max(G.joueur.heros.potions, 5); return 'Ceinture de 5 potions'; } },
+ { t: 'Dépenser un point de compétence ou de talent (🛡️ Armurerie → ✦ ; utile au donjon 2D, en 3D tout vient du niveau)', ok: G => G.joueur.heros.points === 0 && G.joueur.heros.niveau >= 2, r: G => { G.joueur.heros.potions = Math.max(G.joueur.heros.potions, 5); return 'Ceinture de 5 potions'; } },
  { t: 'Recruter des troupes dans une de vos provinces', ok: G => troupesDe(G, 'joueur') >= 14, r: G => { G.maisons.joueur.or += 30; return '+30 or'; } },
  { t: 'Conquérir une province (Les Saulaies ou les Marches Grises sont mal défendues)', ok: G => provincesDe(G, 'joueur').length >= 3, r: G => { G.maisons.joueur.or += 80; G.maisons.joueur.prestige += 5; return '+80 or, +5 prestige'; } },
  { t: 'Engager un compagnon d’armes (🛡️ Armurerie → Compagnon)', ok: G => !!G.joueur.compagnon, r: G => { G.joueur.inventaire.push(genObjet(G.joueur.heros.niveau + 1, G.joueur.heros.classe, { min: 'rare' })); return 'Un objet rare'; } },

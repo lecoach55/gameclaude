@@ -53,3 +53,9 @@ Ne pas toucher à la difficulté des combats ni au retour des monstres dans les 
 
 ## Mesures sur les appareils de Victor
 Écran titre → 🧪 Mode test (rien n’est sauvegardé) → ☰ → ▶ Banc. En jeu : ☰ ou Échap → 🐞 Signaler. Lire avec `db_whoami` + `db_list` (collection `data/users/<id>`) : `mesures_*`, `signalement_*`.
+
+## Gel du passage en Haute et interface 2D (v5.5, 17/11/2026)
+- Donjon 3D : `precompile` compile les variantes réellement dessinées (cible du composer : linéaire, sans ACES ; + matériaux des passes bloom/étalonnage), attend la vraie fin de compilation (`compA`, plafond 12 s), puis 3 images de chauffe, jeu en pause (`G3.occupe` : ni déplacement, ni combat, ni qualité auto) et message « Préparation des effets… ». `setLevel` relance tout cela quand environnement/bloom/MSAA/ombres changent. Banc 🧪 : attend `!G3.occupe`, champ `prep` (ms de préparation).
+- Mesure : `python3 outils/gel3d.py [racine] [sortie.json]` (Normale → Haute en exploration, rendu logiciel) : avant 21 programmes compilés à la 1re image, pire image en jeu 2 627 ms ; après 0 programme, pire 483 ms (= régime ≈ 400-430 ms), préparation annoncée ≈ 5 s.
+- Donjon 2D : orbes, barre, nom, bonus et joystick sans chevauchement ; contrôle `python3 outils/hud2d.py dossier` (7 formats : téléphone, paysage, petit téléphone, panneau du Mac 449, 912, tablette, ordinateur).
+- Affichage des compétences 3D (création, Armurerie → ✦), « deux étages » en 3D dans le panneau de province : `COMP3D` dans ui.js, à garder synchrone avec `donjon3d/src/core.js` (SK).

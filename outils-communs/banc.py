@@ -5,6 +5,10 @@ usage :
   python3 outils-communs/banc.py <jeu>/outils/banc.json [sortie.json]          une mesure de la version en cours
   python3 outils-communs/banc.py <jeu>/outils/banc.json --avant HEAD           AVANT (révision git) / APRÈS (dossier de travail), entrelacés
   python3 outils-communs/banc.py <jeu>/outils/banc.json --avant-dossier /tmp/ancien_jeu   (ou --avant-page fichier.html)
+        --avant HEAD extrait TOUT le dépôt à cette révision (≈ 2 s : un jeu qui lit un autre dossier se construit) ;
+        --avant-dossier accepte aussi la RACINE d'une copie du dépôt (git worktree) : on y sert le même chemin que les réglages
+        (+ --construire : construit aussi dans cette copie). Page absente = arrêt immédiat (code 2) ; une version jamais prête
+        n'est pas relancée aux tours suivants (avant : 180 s perdues à chaque passe).
   python3 outils-communs/banc.py --comparer avant.json apres.json              compare deux sorties déjà faites
 options : --tours N (défaut 2 avec --avant : A B B A A B… ; 1 sinon) · --scenes a,b · --appareils telephone,ordinateur
           --plafond (mode "reel" seulement : images plafonnées à 60/s comme un écran ; défaut : sans plafond)
@@ -13,6 +17,7 @@ options : --tours N (défaut 2 avec --avant : A B B A A B… ; 1 sinon) · --sce
           --reference mesures/x.json (compare à une mesure enregistrée : moins fiable, autre minute / autre machine)
           --sans-verrou (par défaut, un seul banc à la fois par machine : le second attend la fin du premier, en le disant)
           --attente-max 1800 (s : abandon, code 3, si l'autre banc ne finit pas)
+          --gels tous|nom1,nom2 (seulement les gels) · --sans-gels
 Au fil de l'eau : <sortie>.partiel.json (ou /tmp/banc-<jeu>.partiel.json) est réécrit après chaque scène (mesures faites, temps
 restant estimé, aussi affiché à l'écran) et effacé à la fin ; la sortie note la charge de la machine au début et à la fin.
 
@@ -34,11 +39,20 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; toutes les clés sa
   "scenes": [{"nom":"carte", "js":"…", "attente_ms":1500, "duree_ms":4000, "infos":"R3.info()", "seule":false}]
        js = instructions pour se placer dans la scène ; infos = expression JS dont le résultat est joint (appels, triangles…) ;
        seule = true : page neuve pour cette scène (sinon les scènes s'enchaînent dans la même page, dans l'ordre)
+  "pret_max_s": 180              attente maximale de "pret" (s)
+  "gels": [{"nom":"normale_haute", "avant":"G3.setLevel(1)", "avant_ms":1500, "js":"G3.setLevel(2)", "duree_ms":8000,
+            "occupe":"G3.occupe", "stockage":{"cle":"valeur"}, "infos":"…"}]   (stockage du gel : ajouté à celui des réglages)
+       GEL au changement (qualité, étage, entrée en combat) en TEMPS RÉEL, page neuve à chaque gel (prêt → entrée → avant → js).
+       Rend : pire_en_jeu_ms (pire écart entre deux images hors préparation annoncée par "occupe" et l'image qui la suit),
+       premiere_image_ms, regime_ms, prep_ms, programmes (WebGL linkProgram, tout moteur) dont programmes_en_jeu (compilés
+       quand "occupe" est faux au moment même de la compilation : ceux qui gèlent l'écran ; doit être 0), compilation_ms (temps dans linkProgram/getProgramParameter :
+       souvent faible, le pilote peut compiler au 1er dessin), pire_tache_ms. Avant/après : « plus lent » si programmes_en_jeu
+       augmente, ou pire image en jeu +2×seuil ET +100 ms.
   "chronos": {"rendu_ms": "render()"}   instructions chronométrées (moyenne de 10 exécutions, en ms) après les scènes
   "seuil": 10                           % (défaut 10)
   "routes": {"https://exemple.cdn/lib/": "chemin/local/"}   adresses servies en local (routes.py ; chemins relatifs à la racine) ;
        par défaut Three.js sur jsDelivr/unpkg est TOUJOURS servi en local (copie téléchargée une fois) ; "routes": false pour couper
-Sortie : {jeu, date, plafond, appareils:{nom:{scenes:{nom:{fps,bas1,pire,n,ms,med,p95,infos}}, chronos, chargement_ms, erreurs}}}
+Sortie : {jeu, date, plafond, appareils:{nom:{scenes:{nom:{fps,bas1,pire,n,ms,med,p95,infos}}, gels:{nom:{…}}, chronos, chargement_ms, erreurs}}}
          + avec --avant : {avant, apres, ecarts} et un tableau lisible.  Valeurs RELATIVES (rendu logiciel) : comparer, pas conclure en absolu.
 """
 import asyncio, json, os, re, sys, time, shutil, subprocess, tempfile, threading, functools, statistics, datetime
@@ -111,20 +125,81 @@ def construire(cfg, racine):
 
 
 def extraire(rev, cfg):
-    """Copie de la révision `rev` : le dossier du jeu + outils-communs (chemins relatifs intacts) ; node_modules repris par lien."""
-    jeu_dir = (cfg.get('fichier') or cfg.get('dossier') or '.').split('/')[0]
+    """Copie COMPLÈTE de la révision `rev` (git archive de tout le dépôt : ≈ 2 s, 136 Mo le 17/11) : un jeu qui lit un autre dossier
+    (donjon 3D du Trône → valdragon/jeu) se construit comme dans le dépôt. Avant le 17/11 au soir : dossier du jeu + outils-communs
+    seulement → « construction échouée ». node_modules (non versionnés) repris par lien depuis le dépôt de travail."""
     d = tempfile.mkdtemp(prefix='banc_avant_')
-    for sous in [jeu_dir, 'outils-communs']:
-        r = subprocess.run(f'git -C {RAC} archive {rev} {sous} | tar -x -C {d}', shell=True, capture_output=True, text=True)
-        if r.returncode and sous == jeu_dir:
-            raise RuntimeError(f'révision introuvable ({rev}) : {r.stderr[-200:]}')
-    for racine, dirs, _ in os.walk(os.path.join(RAC, jeu_dir)):
+    r = subprocess.run(f'git -C {RAC} archive {rev} | tar -x -C {d}', shell=True, capture_output=True, text=True)
+    if r.returncode or not os.listdir(d):
+        shutil.rmtree(d, ignore_errors=True)
+        raise RuntimeError(f'révision introuvable ({rev}) : {r.stderr[-200:]}')
+    for racine, dirs, _ in os.walk(RAC):
+        if '.git' in dirs:
+            dirs.remove('.git')
         if 'node_modules' in dirs:
             src = os.path.join(racine, 'node_modules'); dst = os.path.join(d, os.path.relpath(src, RAC))
-            if os.path.isdir(os.path.dirname(dst)) and not os.path.exists(dst):
-                os.symlink(src, dst)
+            if os.path.isdir(os.path.dirname(dst)) and not os.path.lexists(dst):
+                os.symlink(os.path.realpath(src), dst)
             dirs.remove('node_modules')
     return d
+
+
+def hors_depot(cfg):
+    """Vrai si la page servie est à un chemin absolu hors du dépôt (construite par une commande qui y écrit en dur)."""
+    c = cfg.get('fichier') or cfg.get('dossier') or '.'
+    return os.path.isabs(c) and not os.path.abspath(c).startswith(RAC + os.sep)
+
+
+def mettre_de_cote(d_ap, cfg, tmp):
+    """Construction de l'AVANT pour une page à chemin absolu : renvoie (dossier APRÈS mis de côté, dossier AVANT copié), tous
+    deux dans `tmp` (effacé à la fin). Le dossier d'origine retrouve le contenu APRÈS."""
+    ap, av = os.path.join(tmp, '.banc_apres'), os.path.join(tmp, '.banc_avant')
+    shutil.copytree(d_ap, ap, symlinks=True)
+    try:
+        construire(cfg, tmp)
+        shutil.copytree(d_ap, av, symlinks=True)
+    finally:
+        shutil.copytree(ap, d_ap, symlinks=True, dirs_exist_ok=True)  # l'APRÈS reprend sa place, même si la construction échoue
+    print(f'  page hors du dépôt ({d_ap}) : APRÈS mis de côté, AVANT construit puis copié à part', flush=True)
+    return ap, av
+
+
+def _fichier_page(dossier, page):
+    return os.path.join(dossier, page.split('?')[0].split('#')[0])
+
+
+def lieu_avant_dossier(cfg, dossier):
+    """--avant-dossier accepte la RACINE d'une copie du dépôt (worktree, clone : on y prend le même chemin que dans les réglages)
+    ou directement le dossier servi. Avant le 17/11 au soir, une racine de worktree était servie telle quelle : page 404 →
+    « jeu jamais prêt » après 180 s, à chaque passe (Trône de Braise : 21 min pour rien). Renvoie (dossier servi, page, est_racine)."""
+    dossier = os.path.abspath(dossier)
+    d_rac, p_rac = lieu(cfg, dossier)
+    rel = cfg.get('fichier') or cfg.get('dossier') or '.'
+    if not os.path.isabs(rel) and rel not in ('.', '') and os.path.isdir(os.path.join(dossier, rel.split('/')[0])):
+        return d_rac, p_rac, True  # racine d'une copie du dépôt (son premier dossier, ex. trone-de-braise/, existe)
+    page = lieu(cfg, RAC)[1]
+    return dossier, page, False
+
+
+def verifier_page(dossier, page, nom):
+    """Échec immédiat et clair si la page à ouvrir n'existe pas (au lieu d'attendre « jeu jamais prêt »)."""
+    f = _fichier_page(dossier, page)
+    if os.path.isdir(f):
+        f = os.path.join(f, 'index.html')
+    if not os.path.isfile(f):
+        raise PageAbsente(f'page {nom} introuvable : {f}' + (' (page construite : ajouter --construire ?)' if '/build/' in f or 'build' in page else ''))
+
+
+class PageIntrouvable(RuntimeError):
+    pass
+
+
+class PageAbsente(FileNotFoundError):
+    pass
+
+
+class JamaisPret(TimeoutError):
+    pass
 
 
 async def patienter(pg, ms, fige):
@@ -150,88 +225,185 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, 
     for gi, groupe in enumerate(groupes):
         ctx = await nav.new_context(viewport={'width': app.get('largeur', 390), 'height': app.get('hauteur', 780)},
                                     device_scale_factor=app.get('dpr', 1), is_mobile=False)
-        jr = await brancher_routes(ctx, cfg.get('routes'), base=RAC)  # Three.js du CDN servi en local (routes.py)
+        try:
+            jr = await brancher_routes(ctx, cfg.get('routes'), base=RAC)  # Three.js du CDN servi en local (routes.py)
+            pg = await ctx.new_page()
+            pg.on('pageerror', lambda e: res['erreurs'].append(str(e)[:300]))
+            cpu = cpu_force if cpu_force else app.get('cpu', 1)
+            if cpu and float(cpu) > 1:
+                cdp = await ctx.new_cdp_session(pg)
+                await cdp.send('Emulation.setCPUThrottlingRate', {'rate': float(cpu)})
+            fige = cfg.get('mode', 'fige') == 'fige'
+            init = 'window.__banc=1;' + (AVANT_JEU_FIGE if fige else '')
+            if cfg.get('stockage'):
+                init += 'try{localStorage.clear();' + ''.join(f'localStorage.setItem({json.dumps(k)},{json.dumps(v if isinstance(v, str) else json.dumps(v))});' for k, v in cfg['stockage'].items()) + '}catch(e){}'
+            prep_reelle = fige and cfg.get('preparation') == 'reelle'  # chargement et mise en scène en temps réel, images mesurées figées
+            attendre = lambda ms: patienter(pg, ms, fige and not prep_reelle)
+            if fige:
+                init += f"window.__HORLOGE_GRAINE={int(cfg.get('graine', 12345))};" + ('window.__HORLOGE_REEL=1;' if prep_reelle else '')
+            elif cfg.get('graine') is not None:
+                init += GRAINE_JS % int(cfg['graine'])
+            await pg.add_init_script(init)
+            if fige:
+                await pg.add_init_script(path=HORLOGE)
+                if cfg.get('coulant', True):
+                    await pg.add_init_script('window.__horloge&&window.__horloge.coulant(true)')
+            if cfg.get('init'):
+                await pg.add_init_script(cfg['init'])
+            t0 = time.time()
+            rep = await pg.goto(base + page, timeout=180000, wait_until='load')
+            if rep is not None and rep.status >= 400:
+                raise PageIntrouvable(f'page introuvable (HTTP {rep.status}) : {base + page}')
+            pret_max = float(cfg.get('pret_max_s', 180))
+            if cfg.get('pret'):
+                cond = '()=>{try{return !!(' + cfg['pret'] + ')}catch(e){return false}}'
+                if fige:
+                    while not await pg.evaluate(cond):
+                        if time.time() - t0 > pret_max:
+                            raise JamaisPret('jeu jamais prêt : ' + cfg['pret'] + ('' if prep_reelle else ' (essayer "preparation": "reelle")'))
+                        if not prep_reelle and time.time() - t0 > 30 and not res.get('_lent'):
+                            res['_lent'] = 1
+                            print('    préparation lente en temps figé (un chargement découpé selon performance.now ?) : essayer "preparation": "reelle"', flush=True)
+                        await attendre(100)
+                else:
+                    try:
+                        await pg.wait_for_function(cond, timeout=pret_max * 1000, polling=100)
+                    except Exception as e:
+                        if 'Timeout' not in type(e).__name__ + str(e)[:40]:
+                            raise
+                        raise JamaisPret('jeu jamais prêt : ' + cfg['pret']) from None
+            if gi == 0:
+                res['chargement_ms'] = round((time.time() - t0) * 1000)
+            await attendre(cfg.get('pret_ms', 800))
+            if cfg.get('entree'):
+                await pg.evaluate(fn(cfg['entree']))
+                await attendre(cfg.get('entree_ms', 500))
+            for s in groupe:
+                try:
+                    if s.get('js'):
+                        await pg.evaluate(fn(s['js']))
+                    await attendre(s.get('attente_ms', 1500))
+                    if fige:
+                        if prep_reelle:
+                            await pg.evaluate('()=>{__horloge.reel(false);__horloge.coulant(true);__horloge.avancer(10,1000/60)}')  # refige + 10 images de chauffe
+                        m = await pg.evaluate(MESURE_FIGE_JS, [s.get('images', cfg.get('images', 120)), 1000 / 60, s.get('budget_ms', cfg.get('budget_ms', 6000))])
+                        if prep_reelle:
+                            await pg.evaluate('()=>{__horloge.coulant(false);__horloge.reel(true)}')
+                        if m.get('ms', 1) < 0.1:
+                            m['note'] = "presque rien à chaque image : la scène ne s'anime pas par requestAnimationFrame (setInterval, ou rien ne bouge) ; essayer \"mode\": \"reel\""
+                            print('    note : ' + m['note'], flush=True)
+                    else:
+                        m = await pg.evaluate(MESURE_JS, s.get('duree_ms', 4000))
+                    if s.get('infos'):
+                        try:
+                            m['infos'] = await pg.evaluate('()=>(' + s['infos'] + ')')
+                        except Exception as e:
+                            m['infos'] = 'erreur : ' + str(e)[:120]
+                    res['scenes'][s['nom']] = m
+                except Exception as e:
+                    res['scenes'][s['nom']] = {'erreur': str(e)[:300]}
+                    res['erreurs'].append(f"scène {s['nom']} : {str(e)[:200]}")
+                print(f"    {app_nom:10s} {s['nom']:18s} {resume_mesure(res['scenes'][s['nom']])}" + (au_fil(s['nom'], res) if au_fil else ''), flush=True)
+            if gi == len(groupes) - 1:
+                for nom, js in (cfg.get('chronos') or {}).items():
+                    try:
+                        res['chronos'][nom] = await pg.evaluate('()=>{const now=window.__vraiNow||performance.now.bind(performance);const f=()=>{' + js + '\n};f();const t=now();for(let i=0;i<10;i++)f();return +((now()-t)/10).toFixed(2)}')
+                    except Exception as e:
+                        res['chronos'][nom] = None
+                        res['erreurs'].append(f'chrono {nom} : {str(e)[:200]}')
+            if jr['manquants']:
+                res['erreurs'].append('routes : fichier(s) introuvable(s) en local : ' + ', '.join(jr['manquants'][:3]))
+        finally:
+            await ctx.close()
+    res.pop('_lent', None)
+    return res
+
+
+# Gel au changement (qualité, étage, écran) : mesuré en TEMPS RÉEL sur une page neuve (le temps figé l'absorbe dans la préparation).
+# Compteur de programmes WebGL indépendant du moteur : linkProgram (et le temps passé dans linkProgram + getProgramParameter, où un
+# rendu logiciel sans KHR_parallel_shader_compile paie la compilation). Les images où le jeu se dit « occupe » (préparation
+# annoncée, écran de chargement) et celle qui suit sont comptées à part : seul le gel EN JEU est un défaut.
+SONDE_GEL_INIT = """(()=>{const g=window.__gelBanc={links:[],linkMs:0};const now=()=>performance.now();
+ for(const P of [window.WebGLRenderingContext,window.WebGL2RenderingContext]){if(!P)continue;const pr=P.prototype;
+  const l=pr.linkProgram;pr.linkProgram=function(p){const t=now();let oc=false;try{oc=!!(g.occ&&g.occ());}catch(e){}const r=l.call(this,p);g.links.push([t,oc]);g.linkMs+=now()-t;return r;};
+  const q=pr.getProgramParameter;pr.getProgramParameter=function(p,k){const t=now();const r=q.call(this,p,k);g.linkMs+=now()-t;return r;};}
+ try{new PerformanceObserver(L=>{for(const e of L.getEntries())(g.lt=g.lt||[]).push([e.startTime,e.duration]);}).observe({entryTypes:['longtask']});}catch(e){}})();"""
+SONDE_GEL_DEBUT = """(occ)=>{const g=window.__gelBanc;g.t0=performance.now();g.l0=g.links.length;g.ms0=g.linkMs;g.fr=[];g.fin=false;let last=g.t0,occP=false;
+ const o=()=>{if(!occ)return false;try{return !!(0,eval)(occ)}catch(e){return false}};g.occ=o;
+ const f=t=>{const n=performance.now();const oc=o();g.fr.push([last,n,oc||occP]);occP=oc;last=n;if(!g.fin)requestAnimationFrame(f);};requestAnimationFrame(f);}"""
+SONDE_GEL_FIN = """()=>{const g=window.__gelBanc;g.fin=true;const fr=g.fr,links=g.links.slice(g.l0);
+ const jeu=fr.filter(x=>!x[2]),prep=fr.filter(x=>x[2]),d=x=>x[1]-x[0];
+ const enJeu=links.filter(x=>!x[1]).length;
+ const reg=jeu.slice(-12).map(d).sort((a,b)=>a-b);const lt=(g.lt||[]).filter(x=>x[0]+x[1]>=g.t0);
+ return {premiere_image_ms:fr.length?Math.round(d(fr[0])):null,pire_image_ms:Math.round(Math.max(0,...fr.map(d))),
+  pire_en_jeu_ms:Math.round(Math.max(0,...jeu.map(d))),prep_ms:Math.round(prep.reduce((a,x)=>a+d(x),0)),
+  regime_ms:reg.length?+reg[Math.floor(reg.length/2)].toFixed(1):null,images:fr.length,
+  programmes:links.length,programmes_en_jeu:enJeu,compilation_ms:Math.round(g.linkMs-g.ms0),
+  pire_tache_ms:Math.round(Math.max(0,...lt.map(x=>x[1])))};}"""
+
+
+async def une_passe_gel(nav, cfg, base, page, app, gel, cpu_force=None):
+    """Page neuve en temps réel → prêt → entrée → gel.avant → gel.js (le changement) → mesure pendant gel.duree_ms."""
+    res = {'erreurs': []}
+    ctx = await nav.new_context(viewport={'width': app.get('largeur', 390), 'height': app.get('hauteur', 780)},
+                                device_scale_factor=app.get('dpr', 1), is_mobile=False)
+    try:
+        jr = await brancher_routes(ctx, cfg.get('routes'), base=RAC)
         pg = await ctx.new_page()
         pg.on('pageerror', lambda e: res['erreurs'].append(str(e)[:300]))
         cpu = cpu_force if cpu_force else app.get('cpu', 1)
         if cpu and float(cpu) > 1:
             cdp = await ctx.new_cdp_session(pg)
             await cdp.send('Emulation.setCPUThrottlingRate', {'rate': float(cpu)})
-        fige = cfg.get('mode', 'fige') == 'fige'
-        init = 'window.__banc=1;' + (AVANT_JEU_FIGE if fige else '')
-        if cfg.get('stockage'):
-            init += 'try{localStorage.clear();' + ''.join(f'localStorage.setItem({json.dumps(k)},{json.dumps(v if isinstance(v, str) else json.dumps(v))});' for k, v in cfg['stockage'].items()) + '}catch(e){}'
-        prep_reelle = fige and cfg.get('preparation') == 'reelle'  # chargement et mise en scène en temps réel, images mesurées figées
-        attendre = lambda ms: patienter(pg, ms, fige and not prep_reelle)
-        if fige:
-            init += f"window.__HORLOGE_GRAINE={int(cfg.get('graine', 12345))};" + ('window.__HORLOGE_REEL=1;' if prep_reelle else '')
-        elif cfg.get('graine') is not None:
-            init += GRAINE_JS % int(cfg['graine'])
+        init = 'window.__banc=1;window.__bancGel=1;'
+        stock = {**(cfg.get('stockage') or {}), **(gel.get('stockage') or {})}  # "stockage" du gel : ex. démarrer en Normale
+        if stock:
+            init += 'try{localStorage.clear();' + ''.join(f'localStorage.setItem({json.dumps(k)},{json.dumps(v if isinstance(v, str) else json.dumps(v))});' for k, v in stock.items()) + '}catch(e){}'
+        init += GRAINE_JS % int(cfg.get('graine', 12345))  # même hasard avant/après (comme le temps figé)
         await pg.add_init_script(init)
-        if fige:
-            await pg.add_init_script(path=HORLOGE)
-            if cfg.get('coulant', True):
-                await pg.add_init_script('window.__horloge&&window.__horloge.coulant(true)')
+        await pg.add_init_script(SONDE_GEL_INIT)
         if cfg.get('init'):
             await pg.add_init_script(cfg['init'])
-        t0 = time.time()
-        await pg.goto(base + page, timeout=180000, wait_until='load')
+        rep = await pg.goto(base + page, timeout=180000, wait_until='load')
+        if rep is not None and rep.status >= 400:
+            raise PageIntrouvable(f'page introuvable (HTTP {rep.status}) : {base + page}')
         if cfg.get('pret'):
-            cond = '()=>{try{return !!(' + cfg['pret'] + ')}catch(e){return false}}'
-            if fige:
-                while not await pg.evaluate(cond):
-                    if time.time() - t0 > 180:
-                        raise TimeoutError('jeu jamais prêt : ' + cfg['pret'] + ('' if prep_reelle else ' (essayer "preparation": "reelle")'))
-                    if not prep_reelle and time.time() - t0 > 30 and not res.get('_lent'):
-                        res['_lent'] = 1
-                        print('    préparation lente en temps figé (un chargement découpé selon performance.now ?) : essayer "preparation": "reelle"', flush=True)
-                    await attendre(100)
-            else:
-                await pg.wait_for_function(cond, timeout=180000, polling=100)
-        if gi == 0:
-            res['chargement_ms'] = round((time.time() - t0) * 1000)
-        await attendre(cfg.get('pret_ms', 800))
+            try:
+                await pg.wait_for_function('()=>{try{return !!(' + cfg['pret'] + ')}catch(e){return false}}',
+                                           timeout=float(cfg.get('pret_max_s', 180)) * 1000, polling=100)
+            except Exception as e:
+                if 'Timeout' not in type(e).__name__ + str(e)[:40]:
+                    raise
+                raise JamaisPret('jeu jamais prêt : ' + cfg['pret']) from None
+        await pg.wait_for_timeout(cfg.get('pret_ms', 800))
         if cfg.get('entree'):
             await pg.evaluate(fn(cfg['entree']))
-            await attendre(cfg.get('entree_ms', 500))
-        for s in groupe:
+            await pg.wait_for_timeout(cfg.get('entree_ms', 500))
+        if gel.get('avant'):
+            await pg.evaluate(fn(gel['avant']))
+        await pg.wait_for_timeout(gel.get('avant_ms', 1500))  # régime établi avant le changement
+        await pg.evaluate(SONDE_GEL_DEBUT, gel.get('occupe') or '')
+        await pg.evaluate(fn(gel['js']))
+        await pg.wait_for_timeout(gel.get('duree_ms', 8000))
+        m = await pg.evaluate(SONDE_GEL_FIN)
+        if gel.get('infos'):
             try:
-                if s.get('js'):
-                    await pg.evaluate(fn(s['js']))
-                await attendre(s.get('attente_ms', 1500))
-                if fige:
-                    if prep_reelle:
-                        await pg.evaluate('()=>{__horloge.reel(false);__horloge.coulant(true);__horloge.avancer(10,1000/60)}')  # refige + 10 images de chauffe
-                    m = await pg.evaluate(MESURE_FIGE_JS, [s.get('images', cfg.get('images', 120)), 1000 / 60, s.get('budget_ms', cfg.get('budget_ms', 6000))])
-                    if prep_reelle:
-                        await pg.evaluate('()=>{__horloge.coulant(false);__horloge.reel(true)}')
-                    if m.get('ms', 1) < 0.1:
-                        m['note'] = "presque rien à chaque image : la scène ne s'anime pas par requestAnimationFrame (setInterval, ou rien ne bouge) ; essayer \"mode\": \"reel\""
-                        print('    note : ' + m['note'], flush=True)
-                else:
-                    m = await pg.evaluate(MESURE_JS, s.get('duree_ms', 4000))
-                if s.get('infos'):
-                    try:
-                        m['infos'] = await pg.evaluate('()=>(' + s['infos'] + ')')
-                    except Exception as e:
-                        m['infos'] = 'erreur : ' + str(e)[:120]
-                res['scenes'][s['nom']] = m
+                m['infos'] = await pg.evaluate('()=>(' + gel['infos'] + ')')
             except Exception as e:
-                res['scenes'][s['nom']] = {'erreur': str(e)[:300]}
-                res['erreurs'].append(f"scène {s['nom']} : {str(e)[:200]}")
-            print(f"    {app_nom:10s} {s['nom']:18s} {resume_mesure(res['scenes'][s['nom']])}" + (au_fil(s['nom'], res) if au_fil else ''), flush=True)
-        if gi == len(groupes) - 1:
-            for nom, js in (cfg.get('chronos') or {}).items():
-                try:
-                    res['chronos'][nom] = await pg.evaluate('()=>{const now=window.__vraiNow||performance.now.bind(performance);const f=()=>{' + js + '\n};f();const t=now();for(let i=0;i<10;i++)f();return +((now()-t)/10).toFixed(2)}')
-                except Exception as e:
-                    res['chronos'][nom] = None
-                    res['erreurs'].append(f'chrono {nom} : {str(e)[:200]}')
+                m['infos'] = 'erreur : ' + str(e)[:120]
+        res.update(m)
         if jr['manquants']:
             res['erreurs'].append('routes : fichier(s) introuvable(s) en local : ' + ', '.join(jr['manquants'][:3]))
+    finally:
         await ctx.close()
-    res.pop('_lent', None)
     return res
+
+
+def resume_gel(m):
+    if 'erreur' in m:
+        return 'ERREUR ' + m['erreur'][:80]
+    return (f"pire image en jeu {m.get('pire_en_jeu_ms')} ms (régime {m.get('regime_ms')} ms) · programmes {m.get('programmes')}"
+            f" dont {m.get('programmes_en_jeu')} en jeu · compilation {m.get('compilation_ms')} ms · préparation {m.get('prep_ms')} ms")
 
 
 def _duree(s):
@@ -292,12 +464,22 @@ def resume_mesure(m):
     return t
 
 
-async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu, partiel=None):
+async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu, partiel=None, gels=()):
     """versions = [(nom, base, page)] ; tours entrelacés A B B A A B… Renvoie {nom: [passes]} (une passe = {appareil: résultat}).
     partiel = fichier JSON réécrit après CHAQUE scène (mesures déjà faites, progression, temps restant estimé)."""
     from playwright.async_api import async_playwright
     out = {v[0]: [] for v in versions}
-    total, fait, t0 = tours * len(versions) * len(appareils) * len(scenes), [0], time.time()
+    total, fait, t0 = tours * len(versions) * len(appareils) * (len(scenes) + len(gels)), [0], time.time()
+    abandon = {}  # (version, appareil) → erreur de préparation : page introuvable (1 échec) ou jamais prête (2 échecs) : plus relancée
+    echecs = {}
+
+    def noter_echec(cle, e):
+        if isinstance(e, PageIntrouvable):
+            abandon[cle] = str(e)[:300]
+        elif isinstance(e, JamaisPret):
+            echecs[cle] = echecs.get(cle, 0) + 1
+            if echecs[cle] >= 2:  # un échec isolé peut venir d'une machine chargée ; deux de suite : la version ne démarre pas
+                abandon[cle] = str(e)[:300]
     encours = {}
 
     def au_fil(nom_scene, res):
@@ -325,13 +507,36 @@ async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu
                 for an, a in appareils.items():
                     encours.clear(); encours.update({'version': nom, 'tour': t + 1, 'appareil': an})
                     f0 = fait[0]
+                    if (nom, an) in abandon:
+                        e = abandon[(nom, an)]
+                        print(f'    {an:10s} non relancée : même échec aux tours précédents ({e[:90]})', flush=True)
+                        passe[an] = {'scenes': {s['nom']: {'erreur': e} for s in scenes}, 'chronos': {}, 'erreurs': [f'passe {nom}/{an} : {e}'],
+                                     **({'gels': {g['nom']: {'erreur': e} for g in gels}} if gels else {})}
+                        fait[0] = f0 + len(scenes) + len(gels)
+                        continue
                     try:
-                        passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu, au_fil)
+                        passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu, au_fil) if scenes else {'scenes': {}, 'chronos': {}, 'erreurs': []}
                     except Exception as e:  # jeu jamais prêt, erreur dans « entree »… : la passe est notée en erreur, le banc continue
                         err = f'passe {nom}/{an} : {str(e)[:250]}'
                         print('    ERREUR ' + err, flush=True)
                         passe[an] = {'scenes': {s['nom']: {'erreur': str(e)[:300]} for s in scenes}, 'chronos': {}, 'erreurs': [err]}
                         fait[0] = f0 + len(scenes)  # scènes de la passe ratée comptées comme faites (estimation du reste)
+                        noter_echec((nom, an), e)
+                    if gels:
+                        passe[an]['gels'] = {}
+                        for g in gels:
+                            if (nom, an) in abandon:
+                                passe[an]['gels'][g['nom']] = {'erreur': abandon[(nom, an)]}
+                            else:
+                                try:
+                                    r = await une_passe_gel(nav, cfg, base, page, a, g, cpu)
+                                    passe[an]['erreurs'] += [x for x in r.pop('erreurs') if x not in passe[an]['erreurs']]
+                                    passe[an]['gels'][g['nom']] = r
+                                except Exception as e:
+                                    passe[an]['gels'][g['nom']] = {'erreur': str(e)[:300]}
+                                    passe[an]['erreurs'].append(f"gel {g['nom']} : {str(e)[:200]}")
+                                    noter_echec((nom, an), e)
+                            print(f"    {an:10s} gel {g['nom'][:14]:14s} {resume_gel(passe[an]['gels'][g['nom']])}" + au_fil('gel ' + g['nom'], passe[an]), flush=True)
         await nav.close()
     return out
 
@@ -365,8 +570,22 @@ def fusion(passes):
         for c in passes[0][an].get('chronos', {}):
             xs = [p[an]['chronos'].get(c) for p in passes if p[an]['chronos'].get(c) is not None]
             ch[c] = round(statistics.median(xs), 2) if xs else None
+        gl = {}
+        for g in passes[0][an].get('gels', {}):
+            vals = [p[an].get('gels', {}).get(g, {}) for p in passes]
+            ok = [v for v in vals if 'pire_en_jeu_ms' in v]
+            if not ok:
+                gl[g] = vals[0]; continue
+            med = lambda xs: (lambda x: int(x) if float(x).is_integer() else round(x, 1))(statistics.median(xs))
+            m = {k: (med([v[k] for v in ok if v.get(k) is not None]) if any(v.get(k) is not None for v in ok) else None)
+                 for k in ('premiere_image_ms', 'pire_image_ms', 'pire_en_jeu_ms', 'prep_ms', 'regime_ms', 'programmes', 'programmes_en_jeu', 'compilation_ms', 'pire_tache_ms')}
+            m['valeurs'] = [v.get('pire_en_jeu_ms') for v in vals]
+            m['valeurs_prog'] = [v.get('programmes_en_jeu') for v in vals]
+            if 'infos' in ok[-1]:
+                m['infos'] = ok[-1]['infos']
+            gl[g] = m
         ld = [p[an].get('chargement_ms') for p in passes if p[an].get('chargement_ms')]
-        r[an] = {'scenes': sc, 'chronos': ch, 'chargement_ms': round(statistics.median(ld)) if ld else None,
+        r[an] = {'scenes': sc, 'chronos': ch, **({'gels': gl} if gl else {}), 'chargement_ms': round(statistics.median(ld)) if ld else None,
                  'erreurs': sorted({e for p in passes for e in p[an]['erreurs']})}
     return r
 
@@ -387,6 +606,9 @@ def ecarts(avant, apres, seuil):
                 L.append(e)
                 if 'ms' not in b:
                     alertes.append(e)
+                continue
+            if max(a['ms'], b['ms']) < 0.1:  # presque rien par image (scène qui ne s'anime pas) : un écart de 0,02 ms n'est pas un ralentissement
+                L.append({'appareil': an, 'scene': s, 'avant_ms': a['ms'], 'apres_ms': b['ms'], 'ecart_pct': 0, 'bruit_pct': None, 'verdict': 'égal (négligeable)'})
                 continue
             d = (b['ms'] - a['ms']) / max(1e-9, a['ms']) * 100
             bruit = max(a.get('bruit') or 0, b.get('bruit') or 0)
@@ -410,6 +632,35 @@ def ecarts(avant, apres, seuil):
                 L.append(e)
                 if e['verdict'] == 'plus lent':
                     alertes.append(e)
+        for g, b in apres[an].get('gels', {}).items():
+            a = avant[an].get('gels', {}).get(g)
+            if not a:
+                continue
+            if 'pire_en_jeu_ms' not in a or 'pire_en_jeu_ms' not in b:
+                e = {'appareil': an, 'scene': 'gel ' + g, 'avant_ms': a.get('pire_en_jeu_ms') or 0, 'apres_ms': b.get('pire_en_jeu_ms') or 0, 'ecart_pct': 0,
+                     'bruit_pct': None, 'verdict': 'erreur après' if 'pire_en_jeu_ms' not in b else 'erreur avant', 'erreur': b.get('erreur') or a.get('erreur')}
+                L.append(e)
+                if 'pire_en_jeu_ms' not in b:
+                    alertes.append(e)
+                continue
+            # temps réel : bruit fort. Plus lent = pire image en jeu +2×seuil ET +100 ms, ou programmes compilés en jeu en hausse
+            va, vb = a['pire_en_jeu_ms'] or 0, b['pire_en_jeu_ms'] or 0
+            d = (vb - va) / max(1, va) * 100
+            pa, pb = a.get('programmes_en_jeu') or 0, b.get('programmes_en_jeu') or 0
+            # programmes compilés en jeu : le signal le plus sûr ; il prime, s'il va dans le même sens à CHAQUE tour (pas un 0 ↔ 1 de hasard)
+            pp = [(x, y) for x, y in zip(a.get('valeurs_prog') or [], b.get('valeurs_prog') or []) if x is not None and y is not None]
+            prog_plus = pb > pa and all(y > x for x, y in pp)
+            prog_moins = pb < pa and all(y < x for x, y in pp)
+            tp = [(x, y) for x, y in zip(a.get('valeurs') or [], b.get('valeurs') or []) if x is not None and y is not None]
+            t_plus = d > 2 * seuil and vb - va > 100 and all(y > x for x, y in tp)
+            t_moins = d < -2 * seuil and va - vb > 100 and all(y < x for x, y in tp)
+            verdict = ('plus lent' if prog_plus else 'plus rapide' if prog_moins else
+                       'plus lent' if t_plus and pb >= pa else 'plus rapide' if t_moins and pb <= pa else 'égal (bruit)')
+            e = {'appareil': an, 'scene': 'gel ' + g, 'avant_ms': va, 'apres_ms': vb, 'ecart_pct': round(d, 1), 'bruit_pct': None,
+                 'programmes_en_jeu': [pa, pb], 'verdict': verdict}
+            L.append(e)
+            if e['verdict'] == 'plus lent':
+                alertes.append(e)
     return L, alertes
 
 
@@ -417,17 +668,20 @@ def tableau(L):
     t = [f"{'appareil':10s} {'scène':22s} {'avant':>9s} {'après':>9s} {'écart':>8s} {'bruit':>6s}  verdict   (ms par image en moyenne, plus bas = mieux)"]
     for e in L:
         br = f"{e['bruit_pct']:.0f} %" if e.get('bruit_pct') is not None else '  -'
-        t.append(f"{e['appareil']:10s} {e['scene'][:22]:22s} {e['avant_ms']:9.2f} {e['apres_ms']:9.2f} {e['ecart_pct']:+7.1f}% {br:>6s}  {e['verdict']}")
+        pe = f"   (programmes compilés en jeu {e['programmes_en_jeu'][0]} → {e['programmes_en_jeu'][1]})" if e.get('programmes_en_jeu') else ''
+        t.append(f"{e['appareil']:10s} {e['scene'][:22]:22s} {e['avant_ms']:9.2f} {e['apres_ms']:9.2f} {e['ecart_pct']:+7.1f}% {br:>6s}  {e['verdict']}{pe}")
+    if any(e['scene'].startswith('gel ') for e in L):
+        t.append('(gel = pire image EN JEU après le changement, temps réel, préparation annoncée exclue)')
     return '\n'.join(t)
 
 
 def lire_args(argv):
     o = {'tours': None, 'scenes': None, 'appareils': None, 'plafond': False, 'cpu': None, 'construire': False, 'seuil': None, 'sans_verrou': False, 'attente_max': None,
-         'strict': False, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'reference': None, 'comparer': None, 'pos': []}
+         'strict': False, 'sans_gels': False, 'gels': None, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'reference': None, 'comparer': None, 'pos': []}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a in ('--plafond', '--construire', '--strict', '--sans-verrou'):
+        if a in ('--plafond', '--construire', '--strict', '--sans-verrou', '--sans-gels'):
             o[a[2:].replace('-', '_')] = True
         elif a == '--comparer':
             o['comparer'] = (argv[i + 1], argv[i + 2]); i += 2
@@ -459,12 +713,18 @@ def main(argv):
     reg = os.path.abspath(o['pos'][0]); sortie = o['pos'][1] if len(o['pos']) > 1 else None
     cfg = json.load(open(reg))
     seuil = float(o['seuil'] or cfg.get('seuil', 10))
-    scenes = cfg['scenes']
+    scenes = cfg.get('scenes') or []
+    gels = cfg.get('gels') or []
+    if o['sans_gels']:
+        gels = []
+    if o['gels']:
+        scenes, gels = [], [g for g in (cfg.get('gels') or []) if o['gels'] in ('1', 'tous') or g['nom'] in o['gels'].split(',')]
     if o['scenes']:
         voulu = o['scenes'].split(',')
         scenes = [s for s in scenes if s['nom'] in voulu]
-        if not scenes:
-            sys.exit('aucune scène ne correspond : ' + o['scenes'])
+        gels = [g for g in gels if g['nom'] in voulu]
+    if not scenes and not gels:
+        sys.exit('aucune scène ne correspond : ' + (o['scenes'] or o['gels'] or '(réglages sans "scenes" ni "gels")'))
     appareils = cfg.get('appareils') or APPAREILS_DEFAUT
     if o['appareils']:
         appareils = {k: v for k, v in appareils.items() if k in o['appareils'].split(',')}
@@ -484,22 +744,41 @@ def main(argv):
         if o['construire']:
             construire(cfg, RAC)
         d_ap, p_ap = lieu(cfg, RAC)
-        b_ap, s = servir(d_ap); serveurs.append(s)
-        versions = [('apres' if avec_avant else 'mesure', b_ap, p_ap)]
+        verifier_page(d_ap, p_ap, 'en cours' if not avec_avant else 'APRÈS')
         if avec_avant:
             if o['avant']:
+                t1 = time.time()
                 tmp = extraire(o['avant'], cfg)
-                construire(cfg, tmp)
-                d_av, p_av = lieu(cfg, tmp)
+                print(f"  révision {o['avant']} extraite en {time.time()-t1:.1f} s (dépôt complet)", flush=True)
+                if hors_depot(cfg):
+                    # page construite à un chemin ABSOLU (Cage & Gloire, Hameau, Wall Street : /home/claude/banc/…) : la construction
+                    # de l'AVANT écrit au MÊME endroit. Avant le 17/11 au soir, elle écrasait l'APRÈS → avant = après, aucune alerte possible.
+                    # Maintenant : l'APRÈS est mis de côté, l'AVANT construit puis copié à part, l'APRÈS remis en place.
+                    d_ap, d_av = mettre_de_cote(d_ap, cfg, tmp)
+                    p_av = p_ap
+                else:
+                    construire(cfg, tmp)
+                    d_av, p_av = lieu(cfg, tmp)
             elif o['avant_page']:
                 d_av, p_av = os.path.dirname(os.path.abspath(o['avant_page'])), os.path.basename(o['avant_page'])
             else:
-                d_av, p_av = os.path.abspath(o['avant_dossier']), lieu(cfg, RAC)[1]
+                d_av, p_av, racine = lieu_avant_dossier(cfg, o['avant_dossier'])
+                if racine:
+                    print(f"  --avant-dossier = racine d'une copie du dépôt : on sert {os.path.relpath(d_av, os.path.abspath(o['avant_dossier']))}/{p_av}", flush=True)
+                    if o['construire']:
+                        construire(cfg, os.path.abspath(o['avant_dossier']))
+            verifier_page(d_av, p_av, 'AVANT')
+        b_ap, s = servir(d_ap); serveurs.append(s)
+        versions = [('apres' if avec_avant else 'mesure', b_ap, p_ap)]
+        if avec_avant:
             b_av, s = servir(d_av); serveurs.append(s)
             versions = [('avant', b_av, p_av)] + versions
-        print(f"Banc {jeu} · {len(scenes)} scènes · {', '.join(appareils)} · {tours} tour(s) · {('temps figé, préparation réelle' if cfg.get('preparation') == 'reelle' else 'temps figé') + ' : coût réel par image, GPU compris' if cfg.get('mode', 'fige') == 'fige' else ('temps réel, plafond 60 img/s' if o['plafond'] else 'temps réel sans plafond')}", flush=True)
+        print(f"Banc {jeu} · {len(scenes)} scènes{f' + {len(gels)} gel(s) en temps réel' if gels else ''} · {', '.join(appareils)} · {tours} tour(s) · {'' if not scenes else ('temps figé, préparation réelle' if cfg.get('preparation') == 'reelle' else 'temps figé') + ' : coût réel par image, GPU compris' if cfg.get('mode', 'fige') == 'fige' else ('temps réel, plafond 60 img/s' if o['plafond'] else 'temps réel sans plafond')}", flush=True)
         print(f'mesures au fil de l\'eau : {partiel}', flush=True)
-        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu'], partiel))
+        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu'], partiel, gels))
+    except PageAbsente as e:  # page absente : rien à mesurer, on le dit tout de suite (avant : 180 s d'attente par passe)
+        print('banc : ' + str(e), flush=True)
+        return 2
     finally:
         if verrou:
             verrou.close()

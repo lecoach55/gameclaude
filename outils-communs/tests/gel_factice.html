@@ -1,0 +1,12 @@
+<!doctype html><body style="margin:0"><canvas id=c width=300 height=200></canvas><script>
+const gl=document.getElementById('c').getContext('webgl');
+function prog(i){const v=gl.createShader(gl.VERTEX_SHADER);gl.shaderSource(v,'attribute vec2 p;void main(){gl_Position=vec4(p*'+(0.5+i/1000).toFixed(4)+',0.,1.);}');gl.compileShader(v);
+ const f=gl.createShader(gl.FRAGMENT_SHADER);let s='precision mediump float;uniform float t;void main(){float a=t;';for(let k=0;k<30;k++)s+='a=sin(a*'+(1.01+k/97+i/13).toFixed(4)+'+cos(a));';s+='gl_FragColor=vec4(a,'+(i/50).toFixed(3)+',.5,1.);}';
+ gl.shaderSource(f,s);gl.compileShader(f);const p=gl.createProgram();gl.attachShader(p,v);gl.attachShader(p,f);gl.bindAttribLocation(p,0,'p');gl.linkProgram(p);return p;}
+const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,0,1]),gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+let P=[prog(0)],N=1,file=[];window.occupe=false;
+function dessin(t){for(let k=0;k<4&&file.length;k++){P.push(prog(file.shift()));}if(!file.length&&window.occupe)window.occupe=false;
+ for(const p of P){gl.useProgram(p);gl.uniform1f(gl.getUniformLocation(p,'t'),t/1000);gl.drawArrays(gl.TRIANGLES,0,3);}requestAnimationFrame(dessin);}
+requestAnimationFrame(dessin);
+window.changer=function(){const n=[];for(let i=0;i<24;i++)n.push(N++);if(PREPARE){window.occupe=true;file=n;}else{for(const i of n)P.push(prog(i));}};
+window.pret=1;</script></body>

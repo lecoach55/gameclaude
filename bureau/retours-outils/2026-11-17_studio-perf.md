@@ -2,5 +2,5 @@
 
 - 2026-11-17 15:54 · banc.py : n'écrit le JSON qu'à la fin (20-33 min par jeu 3D à CPU ×4, sans temps restant ni résultat partiel) ; écrire au fil des scènes → corrigé le 17/11 (équipe Outils : <sortie>.partiel.json au fil des scènes + temps restant)
 - 2026-11-17 15:54 · banc.py : pas de redirection du CDN (Hameau charge Three.js sur jsDelivr, bloqué) : réglage contourné par sed + lien vers /home/claude/t3d ; ajouter une clé routes → corrigé le 17/11 (équipe Outils : routes.py, clé routes, Hameau sans sed)
-- 2026-11-17 15:54 · banc.py : en temps figé le gel de compilation après un changement de qualité est absorbé par la préparation réelle ; il manque une mesure « 1re image après changement » (script gel.py à part)
+- 2026-11-17 15:54 · banc.py : en temps figé le gel de compilation après un changement de qualité est absorbé par la préparation réelle ; il manque une mesure « 1re image après changement » (script gel.py à part) → corrigé le 17/11 (soir) par l'équipe Outils : `"gels"` dans banc.json (temps réel, page neuve : pire image en jeu, programmes WebGL compilés en jeu, préparation annoncée exclue), `--gels tous`
 - 2026-11-17 15:54 · banc.py : machine à 2 cœurs, deux bancs en parallèle faussent les ms (charge 5-12) ; un verrou ou un avertissement de charge éviterait ça → corrigé le 17/11 (équipe Outils : verrou, un seul banc à la fois, charge notée)

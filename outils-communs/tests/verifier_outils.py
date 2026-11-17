@@ -692,6 +692,76 @@ def _():
         if 'charge' not in r or len(r['appareils']['telephone']['scenes']) != 4:
             raise RuntimeError('sortie incomplète : ' + json.dumps(r)[:300])
 
+@controle('banc.py --avant : racine d\'une copie du dépôt servie au bon chemin (avant : 404 puis 180 s « jamais prêt »), page absente → code 2 tout de suite, version jamais prête non relancée, --avant HEAD extrait tout le dépôt et n\'écrase plus une page à chemin absolu ; gels : programmes compilés en jeu 24 → 0 vus, --strict code 1 si le gel revient')
+def _():
+    import shutil
+    sb = os.path.join(OC, 'banc.py')
+    for vieux in os.listdir(RAC):  # restes d'un contrôle interrompu brutalement
+        if vieux.startswith('.verif_banc_'):
+            shutil.rmtree(os.path.join(RAC, vieux), ignore_errors=True)
+    jeu = tempfile.mkdtemp(dir=RAC, prefix='.verif_banc_')  # « jeu » dans le dépôt : réglages en chemin relatif comme les vrais
+    copie = tempfile.mkdtemp(prefix='verif_copie_')           # « worktree » : même chemin relatif sous une autre racine
+    rel = os.path.relpath(jeu, RAC)
+    try:
+        page = BANC_JEU.replace('TRAVAIL', '20000')
+        open(os.path.join(jeu, 'index.html'), 'w').write(page)
+        os.makedirs(os.path.join(copie, rel)); open(os.path.join(copie, rel, 'index.html'), 'w').write(page)
+        cfg = {'jeu': 'factice', 'dossier': rel, 'page': 'index.html', 'pret': 'window.pret', 'pret_ms': 100, 'images': 20, 'scenes': [{'nom': 'a', 'attente_ms': 100}]}
+        reg = os.path.join(copie, 'banc.json'); json.dump(cfg, open(reg, 'w'))
+        t = time.time()
+        r = subprocess.run([sys.executable, sb, reg, '--avant-dossier', copie, '--tours', '1', os.path.join(copie, 'o.json')], capture_output=True, text=True, timeout=120)
+        o = json.load(open(os.path.join(copie, 'o.json')))
+        if r.returncode or 'racine d\'une copie' not in r.stdout or 'ms' not in o['avant']['telephone']['scenes']['a'] or time.time() - t > 60:
+            raise RuntimeError(f'racine de copie non servie (code {r.returncode}, {time.time()-t:.0f} s) : ' + r.stdout[-300:])
+        vide = os.path.join(copie, 'vide'); os.makedirs(vide)
+        t = time.time()
+        r = subprocess.run([sys.executable, sb, reg, '--avant-dossier', vide], capture_output=True, text=True, timeout=60)
+        if r.returncode != 2 or 'introuvable' not in r.stdout or time.time() - t > 10:
+            raise RuntimeError(f'page absente non signalée tout de suite (code {r.returncode}) : ' + r.stdout[-300:])
+        # version AVANT jamais prête : un seul essai de pret_max_s, pas un par tour
+        os.makedirs(os.path.join(vide, rel)); open(os.path.join(vide, rel, 'index.html'), 'w').write(page.replace('window.pret', 'window.jamais'))
+        cfg['pret_max_s'] = 3; json.dump(cfg, open(reg, 'w'))
+        t = time.time()
+        r = subprocess.run([sys.executable, sb, reg, '--avant-dossier', vide, '--tours', '3'], capture_output=True, text=True, timeout=120)
+        if r.stdout.count('jamais prêt') < 1 or 'non relancée' not in r.stdout or time.time() - t > 40:
+            raise RuntimeError(f'version jamais prête relancée ({time.time()-t:.0f} s) : ' + r.stdout[-400:])
+        sys.path.insert(0, OC)
+        import banc as B_
+        d = B_.extraire('HEAD', {'dossier': 'outils-communs'})
+        try:
+            if not all(os.path.exists(os.path.join(d, x)) for x in ('bureau', 'outils-communs/banc.py', 'CLAUDE.md')):
+                raise RuntimeError('--avant HEAD : copie partielle du dépôt : ' + ', '.join(sorted(os.listdir(d))[:8]))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        # page construite à un chemin ABSOLU hors du dépôt (Cage & Gloire, Hameau, Wall Street) : --avant HEAD ne doit pas écraser
+        # l'APRÈS. Ici la construction écrit une page lourde si le dossier non suivi `jeu` est absent (copie de HEAD), légère sinon.
+        sortie = os.path.join(copie, 'abs'); os.makedirs(sortie)
+        open(os.path.join(copie, 'leger.html'), 'w').write(BANC_JEU.replace('TRAVAIL', '150000'))
+        open(os.path.join(copie, 'lourd.html'), 'w').write(BANC_JEU.replace('TRAVAIL', '450000'))
+        F = os.path.join(sortie, 'page.html')
+        ca = {'jeu': 'abs', 'fichier': F, 'pret': 'window.pret', 'pret_ms': 100, 'images': 60, 'scenes': [{'nom': 'a', 'attente_ms': 100}],
+              'construire': f"if [ -d {rel} ]; then cp {copie}/leger.html {F}; else cp {copie}/lourd.html {F}; fi"}
+        ra = os.path.join(copie, 'abs.json'); json.dump(ca, open(ra, 'w'))
+        r = subprocess.run([sys.executable, sb, ra, '--avant', 'HEAD', '--construire', '--tours', '2', os.path.join(copie, 'abs_o.json')], capture_output=True, text=True, timeout=150)
+        o = json.load(open(os.path.join(copie, 'abs_o.json')))
+        if o['ecarts'][0]['verdict'] != 'plus rapide' or 'mis de côté' not in r.stdout or open(F).read() != open(os.path.join(copie, 'leger.html')).read():
+            raise RuntimeError(f"page à chemin absolu : avant écrasé ou après non remis ({o['ecarts']}) : " + r.stdout[-300:])
+        # gels : compilation en jeu (24 programmes au 1er dessin) contre préparation annoncée (window.occupe)
+        g = open(os.path.join(OC, 'tests', 'gel_factice.html')).read()
+        for nom, prep in (('prepare', 'true'), ('enjeu', 'false')):
+            os.makedirs(os.path.join(copie, nom)); open(os.path.join(copie, nom, 'index.html'), 'w').write(g.replace('PREPARE', prep))
+        cg = {'jeu': 'gel', 'dossier': os.path.join(copie, 'enjeu'), 'pret': 'window.pret', 'pret_ms': 100, 'scenes': [],
+              'gels': [{'nom': 'qualite', 'js': 'changer()', 'occupe': 'window.occupe', 'avant_ms': 400, 'duree_ms': 2000}]}
+        rg = os.path.join(copie, 'gel.json'); json.dump(cg, open(rg, 'w'))
+        r = subprocess.run([sys.executable, sb, rg, '--avant-dossier', os.path.join(copie, 'prepare'), '--tours', '1', '--strict', os.path.join(copie, 'g.json')], capture_output=True, text=True, timeout=120)
+        o = json.load(open(os.path.join(copie, 'g.json')))
+        av, ap = o['avant']['telephone']['gels']['qualite'], o['apres']['telephone']['gels']['qualite']
+        if r.returncode != 1 or av.get('programmes_en_jeu') != 0 or ap.get('programmes_en_jeu') != 24 or av.get('programmes') != 24 or not av.get('prep_ms'):
+            raise RuntimeError(f'gel mal mesuré (code {r.returncode}) : avant {av} après {ap}')
+    finally:
+        shutil.rmtree(jeu, ignore_errors=True); shutil.rmtree(copie, ignore_errors=True)
+
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

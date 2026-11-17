@@ -1,6 +1,6 @@
 {
  "jeu": "bannieres",
- "_note": "Banc commun (outils-communs/banc.py) : mêmes scènes que outils/perf.py (carte 3D, carte dézoomée tout vu, combat, ville). python3 outils-communs/banc.py bannieres/outils/banc.json --avant HEAD",
+ "_note": "Banc commun (outils-communs/banc.py) : mêmes scènes que outils/perf.py (carte 3D, carte dézoomée tout vu, combat, ville). python3 outils-communs/banc.py bannieres/outils/banc.json --avant HEAD. Gels (temps réel, page neuve) : passage Normale→Haute et entrée en combat ; --gels tous pour eux seuls, --sans-gels pour les sauter.",
  "dossier": "bannieres/jeu",
  "page": "index.html?graine=7&taille=54&v3d=1",
  "appareils": {"ordinateur": {"largeur": 1280, "hauteur": 800, "cpu": 1}},
@@ -12,5 +12,9 @@
   {"nom": "carte_dezoom_tout_vu", "js": "const h=herosDe(0)[0];V.zoom=.55;centrer(h.x,h.y);for(const p of G.joueurs)p.vu.fill(1);V.fogDirty=true;", "attente_ms": 800, "infos": "R3.info()"},
   {"nom": "combat", "js": "V.zoom=1;const h=herosDe(0)[0];combatInteractif({heros:h,armee:h.armee.map(s=>s?{c:s.c,n:s.n*4}:null),joueur:0},{heros:null,armee:pileMonstre({cre:'squelette',n:120}),joueur:-1},{terrain:'herbe',banc:true});", "attente_ms": 1500},
   {"nom": "ville", "js": "CB.abandon=true;ouvrirVille(villesDe(0)[0]);", "attente_ms": 1200}
+ ],
+ "gels": [
+  {"nom": "normale_haute", "stockage": {"bs-q3d": "1", "bs-q3d-choix": "1"}, "avant_ms": 4000, "js": "R3.choisirQualite(2)", "duree_ms": 12000, "infos": "R3.info()"},
+  {"nom": "entree_combat", "js": "V.zoom=1;const h=herosDe(0)[0];combatInteractif({heros:h,armee:h.armee.map(s=>s?{c:s.c,n:s.n*4}:null),joueur:0},{heros:null,armee:pileMonstre({cre:'squelette',n:120}),joueur:-1},{terrain:'herbe',banc:true});", "avant_ms": 3000, "duree_ms": 12000}
  ]
 }

@@ -1,0 +1,14 @@
+{
+ "jeu": "cage-et-gloire",
+ "fichier": "/home/claude/cg.html",
+ "stockage": {"cg-qual": "0"},
+ "init": "window.TEST_MONKEY=1",
+ "entree": ["#bNouv", {"attendre": 300}, "#bGo", {"attendre": 600}],
+ "pret": "typeof G!=='undefined' && G && G.sem!=null",
+ "eviter": ["mBanc", "mBug", "Mesurer la fluidité", "Signaler", "Nouvelle partie", "Effacer"],
+ "selecteur": ".btn,[data-v],[data-i],[data-f],.carte",
+ "priorites": [{"motif": "semaine|résultat|on y va|voir le combat|suivant|cage", "poids": 0.35}],
+ "etat": "'semaine '+G.sem",
+ "invariants": "(()=>{const b=[];if(!isFinite(G.argent))b.push('argent '+G.argent);return b;})()",
+ "pause": [60, 600]
+}

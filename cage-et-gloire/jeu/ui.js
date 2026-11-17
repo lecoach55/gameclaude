@@ -78,7 +78,7 @@ function rendre(){if(!G)return;
  $('nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{VUE=b.dataset.v;rendre();$('vue').scrollTop=0;});
  const f={ecurie:vEcurie,combattants:vCombattants,ligues:vLigues,salle:vSalle,offres:vOffres}[VUE];$('vue').innerHTML=f();brancher($('vue'));
  // barre d'action
- if(G.aJouer.length){$('barreAction').innerHTML=`<button class="btn rouge" id="bSoir" style="font-family:var(--t);font-size:22px;letter-spacing:.05em">🥊 Soirée de combat : entrer dans la cage</button>`;$('bSoir').onclick=()=>preCombat(G.aJouer[0]);}
+ if(G.aJouer.length){$('barreAction').innerHTML=`<button class="btn rouge" id="bSoir" style="font-family:var(--t);font-size:clamp(16px,5.2vw,22px);letter-spacing:.05em;min-width:0">🥊 Soirée de combat : entrer dans la cage</button>`;$('bSoir').onclick=()=>preCombat(G.aJouer[0]);}
  else{$('barreAction').innerHTML=`<button class="btn fant" id="bAuto" title="Avancer jusqu'au prochain événement">⏩</button><button class="btn or" id="bSem">Semaine suivante ▶</button>`;$('bSem').onclick=()=>avancer(1);$('bAuto').onclick=()=>avancer(12);}}
 function brancher(el){el.querySelectorAll('[data-f]').forEach(x=>x.onclick=e=>{e.stopPropagation();fiche(x.dataset.f);});
  el.querySelectorAll('[data-act]').forEach(x=>x.onclick=e=>{e.stopPropagation();ACT[x.dataset.act](x.dataset.x,x);});

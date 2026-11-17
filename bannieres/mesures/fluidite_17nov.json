@@ -1,0 +1,287 @@
+{
+ "date": "2026-11-17",
+ "note": "rendu logiciel SwiftShader 800x500 : valeurs relatives. prof3d = ms par image synchronisée.",
+ "prof3d_q2_avant": {
+  "q2": {
+   "base": 1371.4,
+   "info": {
+    "calls": 204,
+    "tris": 136256,
+    "geo": 100,
+    "tex": 38
+   },
+   "sans_ombres": 1124.5,
+   "enfants": {
+    "Object3D#0(0)": 8.3,
+    "terrain#1(93312t)": 726,
+    "Mesh#2(2t)": 78.5,
+    "Mesh#3(2t)": 49.2,
+    "Group#4(145)": 441.8,
+    "Group#5(384)": 86.1,
+    "Mesh#6(2t)": -28,
+    "Mesh#7(64t)": 64,
+    "Group#8(2)": 141.9
+   },
+   "dpr": 1,
+   "sans_env": 970.5
+  },
+  "q2_dezoom": {
+   "base": 1692.2,
+   "info": {
+    "calls": 580,
+    "tris": 171254,
+    "geo": 457,
+    "tex": 49
+   },
+   "sans_ombres": 1364.3,
+   "enfants": {
+    "Object3D#0(0)": 155,
+    "terrain#1(93312t)": 817.6,
+    "Mesh#2(2t)": 126.4,
+    "Mesh#3(2t)": 68.6,
+    "Group#4(145)": 530.8,
+    "Group#5(384)": 244.5,
+    "Mesh#6(2t)": -11.2,
+    "Mesh#7(64t)": 30.3,
+    "Group#8(2)": -0.3
+   },
+   "dpr": 1,
+   "sans_env": 1186.2
+  },
+  "erreurs_q2": []
+ },
+ "prof3d_q0_avant": {
+  "q0": {
+   "base": 1054.4,
+   "info": {
+    "calls": 204,
+    "tris": 95432,
+    "geo": 78,
+    "tex": 37
+   },
+   "sans_ombres": 1043.2,
+   "enfants": {
+    "Object3D#0(0)": 15.8,
+    "terrain#1(52488t)": 555.6,
+    "Mesh#2(2t)": 107.4,
+    "Mesh#3(2t)": 22.7,
+    "Group#4(145)": 273.8,
+    "Group#5(384)": 92.6,
+    "Mesh#6(2t)": 5.6,
+    "Mesh#7(64t)": 6.3,
+    "Group#8(2)": -15
+   },
+   "dpr": 1,
+   "sans_env": 755.7
+  },
+  "q0_dezoom": {
+   "base": 1189.2,
+   "info": {
+    "calls": 580,
+    "tris": 130430,
+    "geo": 172,
+    "tex": 48
+   },
+   "sans_ombres": 1164.6,
+   "enfants": {
+    "Object3D#0(0)": 25.4,
+    "terrain#1(52488t)": 588,
+    "Mesh#2(2t)": 77.2,
+    "Mesh#3(2t)": -2.9,
+    "Group#4(145)": 365,
+    "Group#5(384)": 116.5,
+    "Mesh#6(2t)": -34.2,
+    "Mesh#7(64t)": 37.6,
+    "Group#8(2)": -57.1
+   },
+   "dpr": 1,
+   "sans_env": 841.8
+  },
+  "erreurs_q0": []
+ },
+ "prof3d_q0_apres": {
+  "q0": {
+   "base": 785.4,
+   "info": {
+    "calls": 204,
+    "tris": 95432,
+    "geo": 78,
+    "tex": 36
+   },
+   "sans_ombres": 716.9,
+   "enfants": {
+    "Object3D#0(0)": 3.1,
+    "terrain#1(52488t)": 350.4,
+    "Mesh#2(2t)": 62.4,
+    "Mesh#3(2t)": 13.4,
+    "Group#4(145)": 274.9,
+    "Group#5(384)": 106.3,
+    "Mesh#6(2t)": 40.1,
+    "Mesh#7(64t)": 4.2,
+    "Group#8(2)": 13.1
+   },
+   "dpr": 1,
+   "sans_env": 497.2
+  },
+  "q0_dezoom": {
+   "base": 916.5,
+   "info": {
+    "calls": 580,
+    "tris": 130430,
+    "geo": 172,
+    "tex": 47
+   },
+   "sans_ombres": 928.1,
+   "enfants": {
+    "Object3D#0(0)": -20.4,
+    "terrain#1(52488t)": 398.5,
+    "Mesh#2(2t)": 76.9,
+    "Mesh#3(2t)": 32.2,
+    "Group#4(145)": 323.1,
+    "Group#5(384)": 38.5,
+    "Mesh#6(2t)": 3.1,
+    "Mesh#7(64t)": -13.1,
+    "Group#8(2)": -74.3
+   },
+   "dpr": 1,
+   "sans_env": 621.8
+  },
+  "erreurs_q0": []
+ },
+ "perf_avant": {
+  "mode3d": true,
+  "generation_ms": 611,
+  "carte": {
+   "fps": 1.9,
+   "pire": 1099.9,
+   "n": 8
+  },
+  "gpu_carte": {
+   "calls": 204,
+   "tris": 95432,
+   "geo": 78,
+   "tex": 37
+  },
+  "carte_dezoom_tout_vu": {
+   "fps": 1.5,
+   "pire": 1466.7,
+   "n": 8
+  },
+  "gpu_dezoom": {
+   "calls": 580,
+   "tris": 130430,
+   "geo": 172,
+   "tex": 48
+  },
+  "combat": {
+   "fps": 60,
+   "pire": 16.8,
+   "n": 300
+  },
+  "ville": {
+   "fps": 25,
+   "pire": 1749.8,
+   "n": 75
+  },
+  "erreurs": []
+ },
+ "perf_apres": {
+  "mode3d": true,
+  "generation_ms": 583,
+  "carte": {
+   "fps": 1.5,
+   "pire": 1399.9,
+   "n": 6
+  },
+  "gpu_carte": {
+   "calls": 204,
+   "tris": 95432,
+   "geo": 78,
+   "tex": 37
+  },
+  "carte_dezoom_tout_vu": {
+   "fps": 1.2,
+   "pire": 1666.5,
+   "n": 6
+  },
+  "gpu_dezoom": {
+   "calls": 580,
+   "tris": 130430,
+   "geo": 172,
+   "tex": 48
+  },
+  "combat": {
+   "fps": 60,
+   "pire": 16.8,
+   "n": 300
+  },
+  "ville": {
+   "fps": 13,
+   "pire": 2366.5,
+   "n": 39
+  },
+  "erreurs": []
+ },
+ "chargement_cpu4": {
+  "avant": {
+   "ralenti": 4.0,
+   "poids_Ko": 7093,
+   "telephone": {
+    "page_ms": 3581,
+    "carte_ms": 10261,
+    "carte3d_ms": 12110,
+    "tGen": 1821,
+    "tas_Mo": 45,
+    "erreurs": []
+   },
+   "ordinateur": {
+    "page_ms": 4368,
+    "carte_ms": 16702,
+    "carte3d_ms": 20569,
+    "tGen": 1850,
+    "tas_Mo": 58,
+    "erreurs": []
+   }
+  },
+  "avant_bis": {
+   "ralenti": 4.0,
+   "poids_Ko": null,
+   "telephone": {
+    "page_ms": 5155,
+    "carte_ms": 9054,
+    "carte3d_ms": 14675,
+    "tGen": 2793,
+    "tas_Mo": 40,
+    "erreurs": []
+   },
+   "ordinateur": {
+    "page_ms": 6191,
+    "carte_ms": 19767,
+    "carte3d_ms": 26549,
+    "tGen": 2691,
+    "tas_Mo": 51,
+    "erreurs": []
+   }
+  },
+  "apres": {
+   "ralenti": 4.0,
+   "poids_Ko": 7101,
+   "telephone": {
+    "page_ms": 5149,
+    "carte_ms": 14026,
+    "carte3d_ms": 15085,
+    "tGen": 2494,
+    "tas_Mo": 43,
+    "erreurs": []
+   },
+   "ordinateur": {
+    "page_ms": 4979,
+    "carte_ms": 20791,
+    "carte3d_ms": 26153,
+    "tGen": 2458,
+    "tas_Mo": 51,
+    "erreurs": []
+   }
+  }
+ }
+}

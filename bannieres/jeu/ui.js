@@ -198,19 +198,23 @@ async function fenetreEchange(a,b){V.porTmp=a;await fenetre(`<h2>Rencontre : ${e
 
 // ---------- menu ----------
 async function menu(){if(!G)return;const e=SON.etat();const nb=window.NUAGE?(NUAGE.ok?'active':NUAGE.err?'refusée ('+esc(NUAGE.err)+')':'en attente'):'—';
- const k=await fenetre(`<h2>Menu</h2><p style="font-size:13px;text-align:center">${dateTxt()} · Graine ${G.graine}${TEST?' · 🧪 Mode test':''}<br>☁ Sauvegarde en ligne : ${nb}</p>`,
-  [{t:'💾 Sauvegarder'},{t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{t:'📜 Journal'},{t:'🗺 Carte du Graal'},{t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{t:R3.ok?(V.m3?'🧊 Carte en 3D : oui':'🧊 Carte en 3D : non (2D)'):'🧊 3D indisponible sur cet appareil',off:!R3.ok},{t:'📖 Aide'},{t:'🐞 Signaler un problème'},...(TEST?[{t:'▶ Banc de mesure'}]:[]),{t:'🏠 Quitter vers l’accueil'},{t:'Reprendre',or:true}]);
- const base=TEST?1:0;
- if(k===0){sauver();toast(TEST?'Mode test : rien n’est sauvegardé.':'Partie sauvegardée.');}
- else if(k===1){SON.basculerSon();menu();}else if(k===2){SON.basculerMusique();menu();}
- else if(k===5){try{localStorage.setItem('bs-rapide',localStorage.getItem('bs-rapide')==='1'?'0':'1');}catch(e){}menu();}
- else if(k===4)carteGraal();
- else if(k===3){await fenetre('<h2>Journal</h2>'+(G.log.slice(-40).reverse().map(l=>`<p style="font-size:13px">J${l.j} — ${esc(l.t)}</p>`).join('')||'<p>Rien pour l’instant.</p>'),[{t:'Fermer',or:true}]);}
- else if(k===6){basculer3D();}
- else if(k===7)aide();
- else if(k===8){toast('Envoi du signalement…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé à Claude.':'Signalement enregistré sur cet appareil ('+(TK?TK.base:'?')+').',3000);}
- else if(TEST&&k===9)banc();
- else if(k===9+base){sauver();G=null;ecran('accueil');majAccueil();}}
+ const it=[{id:'sauver',t:'💾 Sauvegarder'},{id:'son',t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{id:'musique',t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{id:'journal',t:'📜 Journal'},{id:'graal',t:'🗺 Carte du Graal'},{id:'rapide',t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{id:'3d',t:R3.ok?(V.m3?'🧊 Carte en 3D : oui':'🧊 Carte en 3D : non (2D)'):'🧊 3D indisponible sur cet appareil',off:!R3.ok},
+  ...(R3.ok&&V.m3&&R3.actif?[{id:'qualite',t:'🎚 Qualité 3D : '+NOMS_Q3D[R3.niveau()]+(R3.auto()?' (auto)':'')}]:[]),
+  {id:'aide',t:'📖 Aide'},{id:'bug',t:'🐞 Signaler un problème'},...(TEST?[{id:'banc',t:'▶ Banc de mesure'}]:[]),{id:'quitter',t:'🏠 Quitter vers l’accueil'},{id:'reprendre',t:'Reprendre',or:true}];
+ const k=await fenetre(`<h2>Menu</h2><p style="font-size:13px;text-align:center">${dateTxt()} · Graine ${G.graine}${TEST?' · 🧪 Mode test':''}<br>☁ Sauvegarde en ligne : ${nb}</p>`,it);
+ const c=it[k]&&it[k].id;
+ if(c==='sauver'){sauver();toast(TEST?'Mode test : rien n’est sauvegardé.':'Partie sauvegardée.');}
+ else if(c==='son'){SON.basculerSon();menu();}else if(c==='musique'){SON.basculerMusique();menu();}
+ else if(c==='rapide'){try{localStorage.setItem('bs-rapide',localStorage.getItem('bs-rapide')==='1'?'0':'1');}catch(e){}menu();}
+ else if(c==='graal')carteGraal();
+ else if(c==='journal'){await fenetre('<h2>Journal</h2>'+(G.log.slice(-40).reverse().map(l=>`<p style="font-size:13px">J${l.j} — ${esc(l.t)}</p>`).join('')||'<p>Rien pour l’instant.</p>'),[{t:'Fermer',or:true}]);}
+ else if(c==='3d'){basculer3D();}
+ else if(c==='qualite'){if(!R3.auto()&&R3.niveau()===0){R3.autoQualite();toast('Qualité 3D automatique : elle baisse seule si l’appareil peine.',2500);}else{const q=R3.auto()?2:R3.niveau()-1;R3.choisirQualite(q);toast('Qualité 3D : '+NOMS_Q3D[q]+' — '+['image allégée, sans ombres','sans ombres','ombres et image fine'][q],2500);}menu();}
+ else if(c==='aide')aide();
+ else if(c==='bug'){toast('Envoi du signalement…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé à Claude.':'Signalement enregistré sur cet appareil ('+(TK?TK.base:'?')+').',3000);}
+ else if(c==='banc')banc();
+ else if(c==='quitter'){sauver();G=null;ecran('accueil');majAccueil();}}
+const NOMS_Q3D=['Économie','Normale','Haute'];
 function basculer3D(){V.m3=!V.m3;try{localStorage.setItem('bs-3d',V.m3?'1':'0');}catch(e){}const c=V.ctr;
  if(V.m3){toast('Préparation de la carte en 3D…');R3.init().then(ok=>{if(ok){R3.ouvrir();if(c)R3.centrer(c[0],c[1]);}else{V.m3=false;toast('La 3D n’a pas pu démarrer sur cet appareil.');}});}
  else{R3.fermer();if(c)centrer(c[0],c[1]);}}
@@ -233,18 +237,19 @@ function aide(){return fenetre(`<h2>Comment jouer</h2>
 
 // ---------- mode test et banc ----------
 function modeTest(){TEST=true;TK&&TK.modeTest();demarrer({graine:7,taille:54,eau:1,monstres:1,difficulte:1,joueurs:[{fac:'bastion',humain:true},{fac:'necro',humain:false},{fac:'sylve',humain:false}]});}
-async function banc(){if(!TK)return;const h=herosDe(G.courant)[0];toast('Banc en cours… (≈25 s)',3000);
- const res=await TK.banc([
-  {nom:'carte',preparer:async()=>{ecran('aventure');if(h)centrer(h.x,h.y);V.zoom=1;}},
-  {nom:'carte_dezoom',preparer:async()=>{V.zoom=.6;if(h)centrer(h.x,h.y);}},
+async function banc(){if(!TK)return;const h=herosDe(G.courant)[0];const q3=en3D()&&R3.actif;const q0=q3?R3.niveau():null;toast('Banc en cours… (≈'+(q3?45:25)+' s)',3000);V.banc=true;if(q3)R3.figer(true);
+ const parQ=q3?[2,1,0].filter(q=>q!==q0).map(q=>({nom:'carte_'+['eco','normale','haute'][q],preparer:async()=>{ecran('aventure');R3.qualite(q);if(h)centrer(h.x,h.y);V.zoom=1;}})):[];
+ let res;try{res=await TK.banc([
+  {nom:'carte',preparer:async()=>{ecran('aventure');if(h)centrer(h.x,h.y);V.zoom=1;}},...parQ,
+  {nom:'carte_dezoom',preparer:async()=>{if(q3)R3.qualite(q0);V.zoom=.6;if(h)centrer(h.x,h.y);}},
   {nom:'combat',preparer:async()=>{V.zoom=1;const m=G.objs.find(o=>o.t==='monstre');const A={heros:h,armee:h.armee.map(s=>s?{c:s.c,n:s.n*3}:null),joueur:h.j},D={heros:null,armee:pileMonstre(m),joueur:-1};combatInteractif(A,D,{terrain:'herbe',banc:true});}},
   {nom:'ville',preparer:async()=>{if(CB)CB.quitter&&CB.quitter();const v=villesDe(G.courant)[0];ouvrirVille(v);}},
- ],5000);
+ ],5000);}finally{V.banc=false;if(q3){R3.qualite(q0);R3.figer(false);}}
  if(VI)VI.fermer&&VI.fermer();ecran('aventure');
  alerte('Banc terminé',res.res.map(r=>`${r.scene} : ${r.fps} img/s (pire ${r.pire} ms)`).join('<br>')+`<br><small>${res.enregistre?'Envoyé à Claude ✓':'Non envoyé : '+esc(res.base)}</small>`);}
 
 // ---------- boucle et démarrage ----------
-function boucle(){try{V.cpt=(V.cpt||0)+1;const repos=performance.now()-(V.activite||0)>4000&&!V.anim&&!V.occupe;if(ECRAN==='aventure'&&G){if(!repos||V.cpt%2)dessiner();}else if(ECRAN==='accueil'&&(performance.now()-(V.tAcc||0))>100){V.tAcc=performance.now();fondAccueil();}else if(ECRAN==='combat'&&CB)dessinerCombat();else if(ECRAN==='ville'&&VI)dessinerVille();}catch(e){console.error(e);TK&&TK.erreurs.push(String(e).slice(0,200));}requestAnimationFrame(boucle);}
+function boucle(){try{V.cpt=(V.cpt||0)+1;const repos=performance.now()-(V.activite||0)>4000&&!V.anim&&!V.occupe&&!V.banc;if(ECRAN==='aventure'&&G){if(!repos||V.cpt%2)dessiner();}else if(ECRAN==='accueil'&&(performance.now()-(V.tAcc||0))>100){V.tAcc=performance.now();fondAccueil();}else if(ECRAN==='combat'&&CB)dessinerCombat();else if(ECRAN==='ville'&&VI)dessinerVille();}catch(e){console.error(e);TK&&TK.erreurs.push(String(e).slice(0,200));}requestAnimationFrame(boucle);}
 window.addEventListener('resize',()=>{if(G){redim();borner();}if(ECRAN==='combat'&&CB)redimCombat();if(ECRAN==='ville'&&VI)redimVille();});
 window.addEventListener('keydown',e=>{V.activite=performance.now();if(e.target.tagName==='INPUT')return;const fh=fenHaut();const m=!!fh;
  if(e.key==='Escape'){if(m){const bs=fh.querySelectorAll('.fen > .btns .btn');const b=[...bs].find(x=>/Fermer|Annuler|Reprendre|Terminer|D’accord/.test(x.textContent))||bs[bs.length-1];if(b)b.click();}else if(ECRAN==='aventure')menu();else if(ECRAN==='ville'&&VI)VI.fermer();return;}
@@ -263,7 +268,7 @@ function brancher(){V.mini=$('minicarte');for(const ev of ['pointerdown','pointe
  $('bBouger').onclick=()=>avancer();$('bFinTour').onclick=()=>{SON.clic();const reste=herosDe(G.courant).filter(h=>h.mp>200);if(reste.length&&!V.avertiFin){V.avertiFin=true;toast(`Encore du mouvement pour ${reste.map(h=>h.nom).join(', ')} — touchez ⌛ à nouveau pour finir le tour.`,2600);setTimeout(()=>V.avertiFin=false,2600);return;}V.avertiFin=false;finTour();};
  $('bMenu').onclick=()=>menu();$('bCarte').onclick=()=>{V.mini.classList.toggle('ouvert');V.miniDirty=true;};
  brancherCarte();brancherCombat();brancherVille();
- try{TK=Testkit({jeu:'bannieres',canvas:()=>ECRAN==='combat'?$('cvCombat'):ECRAN==='ville'?$('cvVille'):ECRAN==='accueil'?$('fondAccueil'):en3D()?$('carte3d'):$('carte'),etat:()=>({ecran:ECRAN,test:TEST,graine:G&&G.graine,jour:G&&G.jour,courant:G&&G.courant,heros:G&&G.heros.map(h=>({nom:h.nom,j:h.j,x:h.x,y:h.y,mp:h.mp})),tGen:V.tGen,mode3d:en3D(),gpu:R3.info&&R3.info(),ecranTaille:innerWidth+'x'+innerHeight}),rendu:()=>{if(ECRAN==='aventure'&&en3D())R3.rendre();}});}catch(e){}
+ try{TK=Testkit({jeu:'bannieres',canvas:()=>ECRAN==='combat'?$('cvCombat'):ECRAN==='ville'?$('cvVille'):ECRAN==='accueil'?$('fondAccueil'):en3D()?$('carte3d'):$('carte'),etat:()=>({ecran:ECRAN,test:TEST,graine:G&&G.graine,jour:G&&G.jour,courant:G&&G.courant,heros:G&&G.heros.map(h=>({nom:h.nom,j:h.j,x:h.x,y:h.y,mp:h.mp})),tGen:V.tGen,mode3d:en3D(),q3d:R3.niveau&&R3.niveau(),q3dAuto:R3.auto&&R3.auto(),gpu:R3.info&&R3.info(),ecranTaille:innerWidth+'x'+innerHeight}),rendu:()=>{if(ECRAN==='aventure'&&en3D())R3.rendre();}});}catch(e){}
  try{window.NUAGE=SauvegardeEnLigne({etat:()=>serialiser(),meta:()=>({jour:G?G.jour:0}),coupe:()=>TEST||!G});}catch(e){}
  V.mini=$('minicarte');
  const q=new URLSearchParams(location.search);{let p=null;try{p=localStorage.getItem('bs-3d');}catch(e){}V.m3=R3.ok&&(q.get('v3d')?q.get('v3d')!=='0':p!=='0');}if(q.get('graine')){TEST=q.get('test')!=='0';demarrer({graine:+q.get('graine'),taille:+(q.get('taille')||54),eau:+(q.get('eau')||1),monstres:1,difficulte:1,joueurs:[{fac:q.get('fac')||'bastion',humain:true},{fac:'necro',humain:false},{fac:'sylve',humain:false}].slice(0,+(q.get('joueurs')||3))});}

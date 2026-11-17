@@ -1794,7 +1794,9 @@ var SON=(()=>{let ac=null,maitre=null,musG=null,actif=true,musique=true;try{acti
 </script>
 <script>
 /* testkit.js */
-// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) =====
+// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) — version 6 =====
+// Version : TK.version (ligne « const TK={version:… »), envoyée dans chaque mesure et signalement (champ tk). À augmenter à chaque
+// changement, avec une ligne dans VERSIONS de outils-communs/maj_testkit.py. Mettre à jour la copie d'un jeu : python3 outils-communs/maj_testkit.py <jeu>
 // Ajoute : compteur d'images par seconde (mode test), bouton 🐞 « signaler un problème » (capture + état + erreurs),
 // banc de mesure scripté, et envoi des résultats dans la base de l'artefact (lisible par Claude avec db_list).
 // Usage dans le jeu :
@@ -1804,9 +1806,11 @@ var SON=(()=>{let ac=null,maitre=null,musG=null,actif=true,musique=true;try{acti
 //   TK.modeTest();                       // affiche le compteur (à appeler depuis un bouton « Mode test »)
 //   await TK.banc([{nom:'scène 1', preparer:async()=>{...}}, ...], 5000);  // mesure chaque scène 5 s
 // Jeux sans canvas (SVG/DOM) : fournir capture:async()=>dataURL (voir svgCapture ci-dessous) et canvas:()=>document.createElement('canvas') pour le nom du GPU.
+// Jeux en HTML/DOM : capture:()=>domCapture(document.body). Sans base (capacité db absente, hors ligne, app Electron) :
+// option secours:true → 🐞 ouvre un rapport à copier (bouton « Enregistrer » seulement si la capacité downloads est accordée) (TK.rapport(obj,titre) réutilisable pour le banc).
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
 function Testkit(o){
- const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
+ const TK={version:6,test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
  // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
  // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
@@ -1824,7 +1828,7 @@ function Testkit(o){
  addEventListener('unhandledrejection',e=>TK.erreurs.push('promesse: '+String(e.reason).slice(0,300)));
  const gpu=()=>{try{const c0=o.canvas&&o.canvas();let gl=c0&&(c0.getContext('webgl2')||c0.getContext('webgl'));if(!gl){const c=document.createElement('canvas');gl=c.getContext('webgl');} // jeux 2D : canvas WebGL temporaire
   const x=gl.getExtension('WEBGL_debug_renderer_info');return x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(e){return '?';}};
- const stats=a=>{if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length};};
+ const stats=a0=>{const a=a0.filter(d=>d<1000),pz=a0.length-a.length;if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{})};};
  const tick=t=>{if(TK.lt){const d=t-TK.lt;TK.ft.push(d);if(TK.ft.length>240)TK.ft.shift();if(TK.rec)TK.rec.push(d);}TK.lt=t;if(TK.ov&&t-(TK.tt||0)>500){TK.tt=t;const s=stats(TK.ft.slice(-60));TK.ov.firstChild.textContent=`🧪 ${s.fps||'-'} img/s · pire ${s.pire||'-'} ms`;}requestAnimationFrame(tick);};requestAnimationFrame(tick);
  TK.modeTest=()=>{TK.test=true;if(TK.ov)return;const d=document.createElement('div');d.style.cssText='position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(0,0,0,.72);color:#9fe0a0;font:12px monospace;padding:4px 8px;border-radius:6px';d.innerHTML='<span>🧪</span>';document.body.appendChild(d);TK.ov=d;};
  // Mesure fiable : on attend que la page soit visible ; si le navigateur a suspendu l'affichage pendant la mesure
@@ -1836,12 +1840,24 @@ function Testkit(o){
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
   const st=stats(a);if(suspendu)st.masquee=true;return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
-  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
+  const out={jeu:o.jeu,tk:TK.version,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
-  const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
-  return TK.envoyer('signalement_'+Date.now(),st);};
+  const st={jeu:o.jeu,tk:TK.version,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
+  TK.dernier=st;return TK.envoyer('signalement_'+Date.now(),st);};
+ // Secours quand la base est indisponible (capacité db non déclarée, hors ligne, app de bureau) : panneau avec le rapport
+ // à copier (sans les gros champs), « Copier tout » (complet) ; « Enregistrer le fichier » seulement via claude.use('downloads') — jamais de lien de téléchargement direct (inopérant dans le visualiseur d'artefact). Option o.secours:true pour l'activer sur 🐞.
+ TK.rapport=(obj,titre)=>{try{const gros=new Set(['capture','sauvegarde']);const court=JSON.stringify(obj,(k,v)=>gros.has(k)?(v?'['+String(v).length+' car. — voir « Copier tout »]':v):v,1);
+  const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:12px';
+  f.innerHTML='<div style="background:#14201a;color:#e8efe9;border:1px solid #3c5a48;border-radius:12px;padding:14px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:8px;font:14px system-ui,sans-serif"><b></b><div style="font-size:12.5px;opacity:.8">La base de l’artefact n’est pas joignable : '+(TK.base||'?').replace(/</g,'&lt;')+'. Copiez ce rapport dans la conversation avec Claude, ou « Copier tout » pour le rapport complet.</div><textarea readonly style="flex:1;min-height:200px;font:11px monospace;background:#0b130e;color:#cfe;border:1px solid #2c4436;border-radius:6px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap" class="tk-bts"><style>.tk-bts button{min-height:40px;padding:0 14px;font:inherit}</style><button data-k="c">Copier</button><button data-k="t">Copier tout (complet)</button><button data-k="s" hidden>Enregistrer le fichier</button><button data-k="f">Fermer</button></div></div>';
+  f.querySelector('b').textContent=titre||'Rapport';const ta=f.querySelector('textarea');ta.value=court;
+  f.onclick=async e=>{const k=e.target.dataset&&e.target.dataset.k;if(e.target===f||k==='f')f.remove();
+   else if(k==='c'){ta.select();let ok=false;try{await navigator.clipboard.writeText(court);ok=true;}catch(_){try{ok=document.execCommand('copy');}catch(__){}}e.target.textContent=ok?'Copié ✓':'Sélectionné : copiez à la main';}
+   else if(k==='t'){const tout=JSON.stringify(obj);let ok=false;try{await navigator.clipboard.writeText(tout);ok=true;}catch(_){try{ta.value=tout;ta.select();ok=document.execCommand('copy');}catch(__){}ta.value=court;}e.target.textContent=ok?'Copié ✓ ('+Math.round(tout.length/1024)+' Ko)':'Sélectionné : copiez à la main';}
+   else if(k==='s'&&dl){try{await dl.save({filename:(o.jeu||'jeu')+'_'+String(obj.date||Date.now()).replace(/[:.]/g,'-')+'.json',data:JSON.stringify(obj)});e.target.textContent='Enregistré ✓';}catch(x){e.target.textContent=x&&x.code==='declined'?'Annulé':'Impossible ici';}}};
+  let dl=null;try{if(window.claude&&window.claude.use)window.claude.use('downloads').then(d=>{dl=d;if(d)f.querySelector('[data-k="s"]').hidden=false;},()=>{});}catch(_){}
+  document.body.appendChild(f);return f;}catch(e){return null;}};
  TK.bouton=(parent,style)=>{const b=document.createElement('button');b.textContent='🐞';b.title='Signaler un problème à Claude';b.style.cssText=style||'position:fixed;right:10px;bottom:10px;z-index:9999;width:38px;height:38px;border-radius:50%;opacity:.75';parent.appendChild(b);
-  b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);};return b;};
+  b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);if(!ok&&o.secours&&TK.dernier)TK.rapport(TK.dernier,'Signalement (non envoyé)');};return b;};
  return TK;}
 
 // Capture d'un <svg> (jeux en SVG) : sérialise, dessine dans un canvas réduit, renvoie un JPEG en dataURL.
@@ -1852,11 +1868,25 @@ function svgCapture(svg,largeur=480){return new Promise(res=>{try{
  const xml=new XMLSerializer().serializeToString(cl);const r=svg.getBoundingClientRect();const k=Math.min(1,largeur/r.width);
  const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=r.width*k|0;c.height=r.height*k|0;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6));}catch(e){res('');}};img.onerror=()=>res('');
  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml.replace('<svg','<svg width="'+r.width+'" height="'+r.height+'"'));}catch(e){res('');}});}
+// Capture d'une page HTML/DOM (jeux sans canvas ni SVG principal) : clone l'élément dans un <foreignObject>, recopie les styles,
+// remplace les <canvas> par leur image, renvoie un JPEG en dataURL ('' si le navigateur refuse, ex. Safari qui « salit » le canvas).
+function domCapture(el,largeur=480){return new Promise(res=>{try{el=el||document.body;
+ const css=[...document.styleSheets].flatMap(st=>{try{return [...st.cssRules].map(r=>r.cssText);}catch(e){return [];}}).join('\n');
+ const r=el.getBoundingClientRect(),W=Math.max(1,Math.round(innerWidth)),H=Math.max(1,Math.round(innerHeight)),k=Math.min(1,largeur/W);
+ const cl=el.cloneNode(true);const src=el.querySelectorAll('canvas'),dst=cl.querySelectorAll('canvas');
+ src.forEach((c,i)=>{try{const im=document.createElement('img');im.src=c.toDataURL();im.style.cssText=c.style.cssText;im.className=c.className;im.width=c.clientWidth;im.height=c.clientHeight;dst[i].replaceWith(im);}catch(e){}});
+ cl.querySelectorAll('script').forEach(x=>x.remove());
+ const wrap=document.createElement('div');wrap.setAttribute('xmlns','http://www.w3.org/1999/xhtml');wrap.style.cssText=document.documentElement.style.cssText+';width:'+W+'px;height:'+H+'px;overflow:hidden;background:'+getComputedStyle(document.body).backgroundColor;
+ const inner=document.createElement('div');inner.className=document.body.className;inner.style.cssText='position:relative;top:'+(-scrollY)+'px';inner.appendChild(cl);
+ const st=document.createElement('style');st.textContent=css;wrap.appendChild(st);wrap.appendChild(inner);
+ const xml=new XMLSerializer().serializeToString(wrap);
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'"><foreignObject width="100%" height="100%">'+xml+'</foreignObject></svg>';
+ const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=W*k|0;c.height=H*k|0;const g=c.getContext('2d');g.drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.6));}catch(e){res('');}};img.onerror=()=>res('');
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);setTimeout(()=>res(''),4000);}catch(e){res('');}});}
 // Jeux en scripts classiques (sans import) : exposer aussi la trousse sur window.
 // Plus sûr dans un artefact : charger une copie SANS les mots « export » en <script src> classique
 // (sed 's/^export //' testkit.js > jeu/testkit.js) : un <script type="module"> peut ne pas se charger dans le cadre isolé.
-if(typeof window!=="undefined"){window.Testkit=Testkit;window.svgCapture=svgCapture;}
-window.Testkit=Testkit;
+if(typeof window!=="undefined"){window.Testkit=Testkit;window.svgCapture=svgCapture;window.domCapture=domCapture;}
 
 </script>
 <script>
@@ -5743,12 +5773,12 @@ function brume(m,opt={}){m.onBeforeCompile=sh=>{sh.uniforms.bsFog=U.fog;sh.unifo
   sh.fragmentShader='varying vec2 vBsW;varying vec3 vBsP;varying vec3 vBsNw;uniform sampler2D bsFog;uniform float bsN;\n'+(tri?'uniform float bsEch;uniform float bsNeige;uniform sampler2D bsTexN;\n':'')+sh.fragmentShader.replace('#include <opaque_fragment>','#include <opaque_fragment>\n{float f=texture2D(bsFog,vBsW/bsN).r;gl_FragColor.rgb*=mix(.035,1.,f);}');
   if(tri)sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',`#ifdef USE_MAP
 {vec3 nw=normalize(vBsNw);vec3 an=pow(abs(nw),vec3(4.));an/=an.x+an.y+an.z;vec3 q=vBsP*bsEch;
- vec4 tc=texture2D(map,q.zy)*an.x+texture2D(map,q.xz)*an.y+texture2D(map,q.xy)*an.z;
+ vec4 tc=${S.qual<=0?'texture2D(map,an.x>an.z?q.zy:q.xy)*(an.x+an.z)+texture2D(map,q.xz)*an.y':'texture2D(map,q.zy)*an.x+texture2D(map,q.xz)*an.y+texture2D(map,q.xy)*an.z'};
  if(bsNeige<8.){float sn=smoothstep(bsNeige-.15,bsNeige+.15,vBsP.y+(tc.g-.45)*.6)*smoothstep(.3,.65,nw.y);vec4 ns=texture2D(bsTexN,q.xz*1.4);tc=mix(tc,ns,sn);}
  diffuseColor*=tc;}
 #endif`);
   if(opt.extra)opt.extra(sh);};
- m.customProgramCacheKey=()=>'bs'+(opt.vent||'')+(opt.onde?'o':'')+(opt.tri?'t'+opt.tri+(opt.neige??''):'')+(opt.cle||'');return m;}
+ m.customProgramCacheKey=()=>'bs'+(opt.vent||'')+(opt.onde?'o':'')+(opt.tri?'t'+opt.tri+(opt.neige??''):'')+(opt.cle||'')+((opt.cle==='sol'||opt.tri)&&S.qual<=0?'0':'');return m;}
 const PM={tri:'mur',r:.92},PM2={tri:'mur2',r:.92},PT={tri:'ardoise',r:.75,ech:1.2},PTU={tri:'tuile',r:.8,ech:1.2},PC={tri:'chaume',r:.95,ech:1.4},PB={tri:'bois',r:.85,ech:1.1};
 let ECH=3;// répétitions des textures par unité (carte 3, combat 1.4, ville .55)
 const MATS={};function mat(c,o={}){if(o.map===null)delete o.map;if(o.tri&&!RES.tx[o.tri])o=Object.assign({},o,{tri:null});if(o.tri)o=Object.assign({},o,{ech:(o.ech||1)*ECH});const k=c+JSON.stringify(o,(n,v)=>n==='map'?(v&&v.uuid):v);if(MATS[k])return MATS[k];const m=new T.MeshStandardMaterial(Object.assign({color:c,roughness:o.r??.85,metalness:o.m||0,flatShading:!!o.plat},o.map?{map:o.map}:{},o.tri?{map:RES.tx[o.tri]}:{}));if(o.em){m.emissive=new T.Color(o.em);m.emissiveIntensity=o.ei||1;}if(o.vc)m.vertexColors=true;if(o.transp){m.transparent=true;m.opacity=o.transp;}return MATS[k]=brume(m,o);}
@@ -5800,7 +5830,7 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
  const ge=new T.PlaneGeometry(N+40,N+40,1,1);ge.rotateX(-Math.PI/2);ge.translate(N/2,-.1,N/2);
  const me=brume(new T.MeshStandardMaterial({color:0x1a4558,roughness:.05,metalness:.15,transparent:true,opacity:.9,envMapIntensity:1.3,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}));eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
- const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));scene.add(bas);}
+ const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint
 let BRUIT=null;function texBruitGL(){if(BRUIT)return BRUIT;const [T1]=textures();const d=new Uint8Array(65536);for(let i=0;i<65536;i++)d[i]=Math.max(0,Math.min(255,T1[i]*255));BRUIT=new T.DataTexture(d,256,256,T.RedFormat);BRUIT.wrapS=BRUIT.wrapT=T.RepeatWrapping;BRUIT.magFilter=BRUIT.minFilter=T.LinearFilter;BRUIT.needsUpdate=true;return BRUIT;}
 function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.globalCompositeOperation='lighter';
@@ -5812,9 +5842,15 @@ function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N
  const uni={bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
  const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});
  return brume(m,{cle:'sol',extra:sh=>{Object.assign(sh.uniforms,uni);
-  sh.fragmentShader=sh.fragmentShader.replace('void main() {',`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;
+  sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;
 float bsRiv=0.,bsGlow=0.;
-vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;vec3 b=texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.29+.37,id)).rgb;return mix(a,b,smoothstep(.3,.7,nz));}
+vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;
+#ifdef BS_LEGER
+return a;
+#else
+vec3 b=texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.29+.37,id)).rgb;return mix(a,b,smoothstep(.3,.7,nz));
+#endif
+}
 float idc(vec2 c){return floor(texture2D(bsTer,(clamp(c,0.,bsN-1.)+.5)/bsN).r*255.+.5);}
 void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture2D(bsBr,p*.13).r;float nz2=texture2D(bsBr,p*.031+.5).r;
  vec2 f=p-.5+(vec2(texture2D(bsBr,p*.37).r,texture2D(bsBr,p*.37+.31).r)-.5)*.75;vec2 i0=floor(f);vec2 fr=clamp(f-i0,0.,1.);
@@ -5823,14 +5859,17 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  vec4 w=vec4((1.-fr.x)*(1.-fr.y),fr.x*(1.-fr.y),(1.-fr.x)*fr.y,fr.x*fr.y);
  w*=vec4(dot(c0,vec3(.33)),dot(c1,vec3(.33)),dot(c2,vec3(.33)),dot(c3,vec3(.33)))+.25;w=pow(w,vec4(3.));w/=w.x+w.y+w.z+w.w;
  vec3 col=c0*w.x+c1*w.y+c2*w.z+c3*w.w;
+
+#ifndef BS_LEGER
  {vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
+#endif
  float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
- diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
+ diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n#ifndef BS_LEGER\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}\n#endif').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
 // ---------- brouillard (texture N×N, filtrage linéaire = bords doux) ----------
 function majBrume(){const vu=G.joueurs[vueJoueur()].vu;for(let i=0;i<N*N;i++)fogData[i]=vu[i]?255:0;fogTex.needsUpdate=true;}
 let VAGUES=null;function texVagues(){if(VAGUES)return VAGUES;const S0=256;const [T1,T2]=textures();const d=new Uint8Array(S0*S0*4);const hh=(x,y)=>T2[((y+S0)%S0)*256+((x+S0)%S0)]*.6+T1[((y*2+S0)%S0)*256+((x*2+S0)%S0)]*.4;
@@ -5915,13 +5954,13 @@ function construireDecor(){decor=new T.Group();scene.add(decor);const c=G.carte;
    const px=x+.2+r.f()*.6,pz=y+.2+r.f()*.6;if(reel){const p0=r.f();imp(p0<.5?(ter==='sable'?'desert_b':ter==='lave'?'mort_a':'buisson_a'):p0<.8?'roc_'+'abcd'[r.i(0,3)]:arbresPour(ter,r),px,pz,p0<.5?.28+r.f()*.15:p0<.8?.14+r.f()*.1:.55+r.f()*.2,r,0);}
    else if(ter==='herbe'||ter==='terre'||ter==='marais'||ter==='rude'){if(r.f()<.6){const v=r.i(0,3);ajout('a'+(ter==='marais'?'mort':'feuillu')+v,geoArbre(ter==='marais'?'mort':'feuillu',v),mk(px,h(px,pz),pz,r.f()*6,.45+r.f()*.2),0);}else{const v=r.i(0,4);ajout('r'+v+ter,geoRocher(v,ter),mk(px,h(px,pz),pz,r.f()*6,.4+r.f()*.3),0);}}}}
  const mVeg=mat(0xffffff,{vc:1,r:.82,vent:'.035'}),mPierre=mat(0xffffff,{vc:1,r:.95,plat:0});
- for(const k in lots){const L=lots[k];const im=new T.InstancedMesh(L.geo,L.m||(k[0]==='a'?mVeg:mPierre),L.l.length);L.l.forEach((m,j)=>im.setMatrixAt(j,m));im.castShadow=!!L.ombre&&S.qual>=2;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();decor.add(im);}
- for(const k in imps){const L=imps[k];L.l.sort((a,b)=>a[3]-b[3]);decor.add(maillageImp('h',L.l,PAN_A,PAN_K,L.ombre&&S.qual>=2));}}
+ for(const k in lots){const L=lots[k];const im=new T.InstancedMesh(L.geo,L.m||(k[0]==='a'?mVeg:mPierre),L.l.length);L.l.forEach((m,j)=>im.setMatrixAt(j,m));im.userData.ombre=!!L.ombre;im.castShadow=!!L.ombre&&S.qual>=2;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();decor.add(im);}
+ for(const k in imps){const L=imps[k];L.l.sort((a,b)=>a[3]-b[3]);{const mi=maillageImp('h',L.l,PAN_A,PAN_K,L.ombre&&S.qual>=2);mi.userData.ombre=!!L.ombre;decor.add(mi);}}}
 // ---------- bâtiments en 3D ----------
 // pierre des remparts : image chargée dès le départ, texture créée seulement une fois l'image prête
 const IMP=new Image();IMP.src=MOTIF_PIERRE_URI;let TEXP=null;
 function texPierre(){if(TEXP)return TEXP;if(!IMP.complete||!IMP.naturalWidth)return null;const c=mkC(IMP.naturalWidth,IMP.naturalHeight);c.getContext('2d').drawImage(IMP,0,0);TEXP=new T.CanvasTexture(c);TEXP.wrapS=TEXP.wrapT=T.RepeatWrapping;TEXP.colorSpace=T.SRGBColorSpace;TEXP.repeat.set(1.5,1.5);return TEXP;}
-function bloc(gr,geo,c,o,pos,rot,sc){const m=new T.Mesh(geo,mat(c,o));if(pos)m.position.set(...pos);if(rot)m.rotation.set(...rot);if(sc)m.scale.set(...sc);m.castShadow=S.qual>=2;m.receiveShadow=true;gr.add(m);return m;}
+function bloc(gr,geo,c,o,pos,rot,sc){const m=new T.Mesh(geo,mat(c,o));if(pos)m.position.set(...pos);if(rot)m.rotation.set(...rot);if(sc)m.scale.set(...sc);m.userData.ombre=true;m.castShadow=S.qual>=2;m.receiveShadow=true;gr.add(m);return m;}
 const BOX=new T.BoxGeometry(1,1,1),CYL=new T.CylinderGeometry(.5,.5,1,12),CONE=new T.ConeGeometry(.5,1,12),CONE4=new T.ConeGeometry(.5,1,4),SPH=new T.SphereGeometry(.5,14,10);
 function tour(gr,x,z,r0,ht,mur,toit,forme,pierre){bloc(gr,CYL,mur,pierre,[x,ht/2,z],null,[r0*2,ht,r0*2]);if(forme==='plat'){for(let k=0;k<6;k++){const a=k/6*Math.PI*2;bloc(gr,BOX,mur,pierre,[x+Math.cos(a)*r0*.9,ht+.05,z+Math.sin(a)*r0*.9],null,[.07,.1,.07]);}}
  else bloc(gr,CONE,toit,PT,[x,ht+r0*(forme==='fleche'?1.6:1.1),z],null,[r0*2.5,r0*(forme==='fleche'?3.2:2.2),r0*2.5]);}
@@ -6082,8 +6121,8 @@ function borner3(){C3.cible.x=Math.max(0,Math.min(N,C3.cible.x));C3.cible.z=Math
 // ---------- API ----------
 const A={ok:true,actif:false};
 // qualité : 2 = ombres + image fine, 1 = sans ombres, 0 = image allégée. Baisse automatique si l'appareil peine (mémorisée).
-function qualDepart(){const q=new URLSearchParams(location.search).get('q3d');if(q!=null){S.fixe=true;return +q;}let m=null;try{m=localStorage.getItem('bs-q3d');}catch(e){}return m!=null?+m:(estMobile()?1:2);}
-const SURV={t0:0,l:[]};function surveiller(){if(S.fixe||S.qual<=0)return;const t=performance.now();if(SURV.der&&t-SURV.der<200&&performance.now()-(V.activite||0)<1500)SURV.l.push(t-SURV.der);SURV.der=t;
+function qualDepart(){const q=new URLSearchParams(location.search).get('q3d');if(q!=null){S.fixe=true;return +q;}let m=null;try{m=localStorage.getItem('bs-q3d');S.choisie=localStorage.getItem('bs-q3d-choix')==='1';}catch(e){}return m!=null&&m!==''&&!isNaN(+m)?Math.max(0,Math.min(2,+m)):(estMobile()?1:2);}
+const SURV={t0:0,l:[]};function surveiller(){if(S.fixe||S.choisie||S.banc||S.qual<=0)return;const t=performance.now();if(SURV.der&&t-SURV.der<200&&performance.now()-(V.activite||0)<1500)SURV.l.push(t-SURV.der);SURV.der=t;
  if(SURV.l.length>=90){const l=SURV.l.sort((a,b)=>a-b);const med=l[l.length>>1];SURV.l=[];if(med>27){A.qualite(S.qual-1);try{localStorage.setItem('bs-q3d',S.qual);}catch(e){}console.log('qualité 3D abaissée',S.qual,med);}}}
 A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart();
  if(!ren){try{ren=new T.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});}catch(e){A.ok=false;return false;}
@@ -6120,7 +6159,11 @@ A.zoomer=z=>{C3.dist=16/z;borner3();};
 A.suivre=(x,y)=>{const p=new T.Vector3(x+.5,0,y+.5).project(cam);if(Math.abs(p.x)>.5||Math.abs(p.y)>.5){C3.cible.x+=(x+.5-C3.cible.x)*.25;C3.cible.z+=(y+.5-C3.cible.z)*.25;borner3();}};
 // rectangle vu (pour la mini-carte) : intersections des coins de l'écran avec le sol
 A.vue=()=>{const pts=[];for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){v2.set(sx,sy);RC.setFromCamera(v2,cam);const d=RC.ray.direction;const o=RC.ray.origin;if(d.y>=-1e-3){pts.push([o.x+d.x*60,o.z+d.z*60]);continue;}const t=-o.y/d.y;pts.push([o.x+d.x*t,o.z+d.z*t]);}return pts;};
-A.qualite=q=>{S.qual=Math.max(0,Math.min(2,q));if(soleil)soleil.castShadow=S.qual>=2;if(scene)scene.traverse(o=>{if(o.material&&o.material.needsUpdate!==undefined&&o.isMesh)o.material.needsUpdate=true;});A.redim();};A.niveau=()=>S.qual;
+A.qualite=q=>{S.qual=Math.max(0,Math.min(2,q));if(soleil)soleil.castShadow=S.qual>=2;if(scene)scene.traverse(o=>{if(o.userData.ombre!==undefined)o.castShadow=o.userData.ombre&&S.qual>=2;if(o.material&&o.material.needsUpdate!==undefined&&o.isMesh)o.material.needsUpdate=true;});A.redim();};A.niveau=()=>S.qual;
+// choix du joueur (menu ☰) : mémorisé, et la baisse automatique ne s'applique plus ; figer : pendant le banc
+A.choisirQualite=q=>{S.choisie=true;A.qualite(q);try{localStorage.setItem('bs-q3d',S.qual);localStorage.setItem('bs-q3d-choix','1');}catch(e){}};
+A.autoQualite=()=>{S.choisie=false;try{localStorage.removeItem('bs-q3d');localStorage.removeItem('bs-q3d-choix');}catch(e){}A.qualite(estMobile()?1:2);};
+A.auto=()=>!S.fixe&&!S.choisie;A.figer=b=>{S.banc=!!b;SURV.l=[];};
 A.ouvrir=()=>{document.getElementById('carte3d').style.display='block';V.vide=false;};
 A.fermer=()=>{A.actif=false;document.getElementById('carte3d').style.display='none';V.fogDirty=true;V.vide=false;};
 A.pret=()=>RES.pret;A._scene=()=>scene;A._pi=(...a)=>planImp(...a);A._res=RES;A._ren=()=>ren;
@@ -6759,19 +6802,23 @@ async function fenetreEchange(a,b){V.porTmp=a;await fenetre(`<h2>Rencontre : ${e
 
 // ---------- menu ----------
 async function menu(){if(!G)return;const e=SON.etat();const nb=window.NUAGE?(NUAGE.ok?'active':NUAGE.err?'refusée ('+esc(NUAGE.err)+')':'en attente'):'—';
- const k=await fenetre(`<h2>Menu</h2><p style="font-size:13px;text-align:center">${dateTxt()} · Graine ${G.graine}${TEST?' · 🧪 Mode test':''}<br>☁ Sauvegarde en ligne : ${nb}</p>`,
-  [{t:'💾 Sauvegarder'},{t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{t:'📜 Journal'},{t:'🗺 Carte du Graal'},{t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{t:R3.ok?(V.m3?'🧊 Carte en 3D : oui':'🧊 Carte en 3D : non (2D)'):'🧊 3D indisponible sur cet appareil',off:!R3.ok},{t:'📖 Aide'},{t:'🐞 Signaler un problème'},...(TEST?[{t:'▶ Banc de mesure'}]:[]),{t:'🏠 Quitter vers l’accueil'},{t:'Reprendre',or:true}]);
- const base=TEST?1:0;
- if(k===0){sauver();toast(TEST?'Mode test : rien n’est sauvegardé.':'Partie sauvegardée.');}
- else if(k===1){SON.basculerSon();menu();}else if(k===2){SON.basculerMusique();menu();}
- else if(k===5){try{localStorage.setItem('bs-rapide',localStorage.getItem('bs-rapide')==='1'?'0':'1');}catch(e){}menu();}
- else if(k===4)carteGraal();
- else if(k===3){await fenetre('<h2>Journal</h2>'+(G.log.slice(-40).reverse().map(l=>`<p style="font-size:13px">J${l.j} — ${esc(l.t)}</p>`).join('')||'<p>Rien pour l’instant.</p>'),[{t:'Fermer',or:true}]);}
- else if(k===6){basculer3D();}
- else if(k===7)aide();
- else if(k===8){toast('Envoi du signalement…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé à Claude.':'Signalement enregistré sur cet appareil ('+(TK?TK.base:'?')+').',3000);}
- else if(TEST&&k===9)banc();
- else if(k===9+base){sauver();G=null;ecran('accueil');majAccueil();}}
+ const it=[{id:'sauver',t:'💾 Sauvegarder'},{id:'son',t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{id:'musique',t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{id:'journal',t:'📜 Journal'},{id:'graal',t:'🗺 Carte du Graal'},{id:'rapide',t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{id:'3d',t:R3.ok?(V.m3?'🧊 Carte en 3D : oui':'🧊 Carte en 3D : non (2D)'):'🧊 3D indisponible sur cet appareil',off:!R3.ok},
+  ...(R3.ok&&V.m3&&R3.actif?[{id:'qualite',t:'🎚 Qualité 3D : '+NOMS_Q3D[R3.niveau()]+(R3.auto()?' (auto)':'')}]:[]),
+  {id:'aide',t:'📖 Aide'},{id:'bug',t:'🐞 Signaler un problème'},...(TEST?[{id:'banc',t:'▶ Banc de mesure'}]:[]),{id:'quitter',t:'🏠 Quitter vers l’accueil'},{id:'reprendre',t:'Reprendre',or:true}];
+ const k=await fenetre(`<h2>Menu</h2><p style="font-size:13px;text-align:center">${dateTxt()} · Graine ${G.graine}${TEST?' · 🧪 Mode test':''}<br>☁ Sauvegarde en ligne : ${nb}</p>`,it);
+ const c=it[k]&&it[k].id;
+ if(c==='sauver'){sauver();toast(TEST?'Mode test : rien n’est sauvegardé.':'Partie sauvegardée.');}
+ else if(c==='son'){SON.basculerSon();menu();}else if(c==='musique'){SON.basculerMusique();menu();}
+ else if(c==='rapide'){try{localStorage.setItem('bs-rapide',localStorage.getItem('bs-rapide')==='1'?'0':'1');}catch(e){}menu();}
+ else if(c==='graal')carteGraal();
+ else if(c==='journal'){await fenetre('<h2>Journal</h2>'+(G.log.slice(-40).reverse().map(l=>`<p style="font-size:13px">J${l.j} — ${esc(l.t)}</p>`).join('')||'<p>Rien pour l’instant.</p>'),[{t:'Fermer',or:true}]);}
+ else if(c==='3d'){basculer3D();}
+ else if(c==='qualite'){if(!R3.auto()&&R3.niveau()===0){R3.autoQualite();toast('Qualité 3D automatique : elle baisse seule si l’appareil peine.',2500);}else{const q=R3.auto()?2:R3.niveau()-1;R3.choisirQualite(q);toast('Qualité 3D : '+NOMS_Q3D[q]+' — '+['image allégée, sans ombres','sans ombres','ombres et image fine'][q],2500);}menu();}
+ else if(c==='aide')aide();
+ else if(c==='bug'){toast('Envoi du signalement…');const ok=TK?await TK.signaler():false;toast(ok?'Merci ! Signalement envoyé à Claude.':'Signalement enregistré sur cet appareil ('+(TK?TK.base:'?')+').',3000);}
+ else if(c==='banc')banc();
+ else if(c==='quitter'){sauver();G=null;ecran('accueil');majAccueil();}}
+const NOMS_Q3D=['Économie','Normale','Haute'];
 function basculer3D(){V.m3=!V.m3;try{localStorage.setItem('bs-3d',V.m3?'1':'0');}catch(e){}const c=V.ctr;
  if(V.m3){toast('Préparation de la carte en 3D…');R3.init().then(ok=>{if(ok){R3.ouvrir();if(c)R3.centrer(c[0],c[1]);}else{V.m3=false;toast('La 3D n’a pas pu démarrer sur cet appareil.');}});}
  else{R3.fermer();if(c)centrer(c[0],c[1]);}}
@@ -6794,18 +6841,19 @@ function aide(){return fenetre(`<h2>Comment jouer</h2>
 
 // ---------- mode test et banc ----------
 function modeTest(){TEST=true;TK&&TK.modeTest();demarrer({graine:7,taille:54,eau:1,monstres:1,difficulte:1,joueurs:[{fac:'bastion',humain:true},{fac:'necro',humain:false},{fac:'sylve',humain:false}]});}
-async function banc(){if(!TK)return;const h=herosDe(G.courant)[0];toast('Banc en cours… (≈25 s)',3000);
- const res=await TK.banc([
-  {nom:'carte',preparer:async()=>{ecran('aventure');if(h)centrer(h.x,h.y);V.zoom=1;}},
-  {nom:'carte_dezoom',preparer:async()=>{V.zoom=.6;if(h)centrer(h.x,h.y);}},
+async function banc(){if(!TK)return;const h=herosDe(G.courant)[0];const q3=en3D()&&R3.actif;const q0=q3?R3.niveau():null;toast('Banc en cours… (≈'+(q3?45:25)+' s)',3000);V.banc=true;if(q3)R3.figer(true);
+ const parQ=q3?[2,1,0].filter(q=>q!==q0).map(q=>({nom:'carte_'+['eco','normale','haute'][q],preparer:async()=>{ecran('aventure');R3.qualite(q);if(h)centrer(h.x,h.y);V.zoom=1;}})):[];
+ let res;try{res=await TK.banc([
+  {nom:'carte',preparer:async()=>{ecran('aventure');if(h)centrer(h.x,h.y);V.zoom=1;}},...parQ,
+  {nom:'carte_dezoom',preparer:async()=>{if(q3)R3.qualite(q0);V.zoom=.6;if(h)centrer(h.x,h.y);}},
   {nom:'combat',preparer:async()=>{V.zoom=1;const m=G.objs.find(o=>o.t==='monstre');const A={heros:h,armee:h.armee.map(s=>s?{c:s.c,n:s.n*3}:null),joueur:h.j},D={heros:null,armee:pileMonstre(m),joueur:-1};combatInteractif(A,D,{terrain:'herbe',banc:true});}},
   {nom:'ville',preparer:async()=>{if(CB)CB.quitter&&CB.quitter();const v=villesDe(G.courant)[0];ouvrirVille(v);}},
- ],5000);
+ ],5000);}finally{V.banc=false;if(q3){R3.qualite(q0);R3.figer(false);}}
  if(VI)VI.fermer&&VI.fermer();ecran('aventure');
  alerte('Banc terminé',res.res.map(r=>`${r.scene} : ${r.fps} img/s (pire ${r.pire} ms)`).join('<br>')+`<br><small>${res.enregistre?'Envoyé à Claude ✓':'Non envoyé : '+esc(res.base)}</small>`);}
 
 // ---------- boucle et démarrage ----------
-function boucle(){try{V.cpt=(V.cpt||0)+1;const repos=performance.now()-(V.activite||0)>4000&&!V.anim&&!V.occupe;if(ECRAN==='aventure'&&G){if(!repos||V.cpt%2)dessiner();}else if(ECRAN==='accueil'&&(performance.now()-(V.tAcc||0))>100){V.tAcc=performance.now();fondAccueil();}else if(ECRAN==='combat'&&CB)dessinerCombat();else if(ECRAN==='ville'&&VI)dessinerVille();}catch(e){console.error(e);TK&&TK.erreurs.push(String(e).slice(0,200));}requestAnimationFrame(boucle);}
+function boucle(){try{V.cpt=(V.cpt||0)+1;const repos=performance.now()-(V.activite||0)>4000&&!V.anim&&!V.occupe&&!V.banc;if(ECRAN==='aventure'&&G){if(!repos||V.cpt%2)dessiner();}else if(ECRAN==='accueil'&&(performance.now()-(V.tAcc||0))>100){V.tAcc=performance.now();fondAccueil();}else if(ECRAN==='combat'&&CB)dessinerCombat();else if(ECRAN==='ville'&&VI)dessinerVille();}catch(e){console.error(e);TK&&TK.erreurs.push(String(e).slice(0,200));}requestAnimationFrame(boucle);}
 window.addEventListener('resize',()=>{if(G){redim();borner();}if(ECRAN==='combat'&&CB)redimCombat();if(ECRAN==='ville'&&VI)redimVille();});
 window.addEventListener('keydown',e=>{V.activite=performance.now();if(e.target.tagName==='INPUT')return;const fh=fenHaut();const m=!!fh;
  if(e.key==='Escape'){if(m){const bs=fh.querySelectorAll('.fen > .btns .btn');const b=[...bs].find(x=>/Fermer|Annuler|Reprendre|Terminer|D’accord/.test(x.textContent))||bs[bs.length-1];if(b)b.click();}else if(ECRAN==='aventure')menu();else if(ECRAN==='ville'&&VI)VI.fermer();return;}
@@ -6824,7 +6872,7 @@ function brancher(){V.mini=$('minicarte');for(const ev of ['pointerdown','pointe
  $('bBouger').onclick=()=>avancer();$('bFinTour').onclick=()=>{SON.clic();const reste=herosDe(G.courant).filter(h=>h.mp>200);if(reste.length&&!V.avertiFin){V.avertiFin=true;toast(`Encore du mouvement pour ${reste.map(h=>h.nom).join(', ')} — touchez ⌛ à nouveau pour finir le tour.`,2600);setTimeout(()=>V.avertiFin=false,2600);return;}V.avertiFin=false;finTour();};
  $('bMenu').onclick=()=>menu();$('bCarte').onclick=()=>{V.mini.classList.toggle('ouvert');V.miniDirty=true;};
  brancherCarte();brancherCombat();brancherVille();
- try{TK=Testkit({jeu:'bannieres',canvas:()=>ECRAN==='combat'?$('cvCombat'):ECRAN==='ville'?$('cvVille'):ECRAN==='accueil'?$('fondAccueil'):en3D()?$('carte3d'):$('carte'),etat:()=>({ecran:ECRAN,test:TEST,graine:G&&G.graine,jour:G&&G.jour,courant:G&&G.courant,heros:G&&G.heros.map(h=>({nom:h.nom,j:h.j,x:h.x,y:h.y,mp:h.mp})),tGen:V.tGen,mode3d:en3D(),gpu:R3.info&&R3.info(),ecranTaille:innerWidth+'x'+innerHeight}),rendu:()=>{if(ECRAN==='aventure'&&en3D())R3.rendre();}});}catch(e){}
+ try{TK=Testkit({jeu:'bannieres',canvas:()=>ECRAN==='combat'?$('cvCombat'):ECRAN==='ville'?$('cvVille'):ECRAN==='accueil'?$('fondAccueil'):en3D()?$('carte3d'):$('carte'),etat:()=>({ecran:ECRAN,test:TEST,graine:G&&G.graine,jour:G&&G.jour,courant:G&&G.courant,heros:G&&G.heros.map(h=>({nom:h.nom,j:h.j,x:h.x,y:h.y,mp:h.mp})),tGen:V.tGen,mode3d:en3D(),q3d:R3.niveau&&R3.niveau(),q3dAuto:R3.auto&&R3.auto(),gpu:R3.info&&R3.info(),ecranTaille:innerWidth+'x'+innerHeight}),rendu:()=>{if(ECRAN==='aventure'&&en3D())R3.rendre();}});}catch(e){}
  try{window.NUAGE=SauvegardeEnLigne({etat:()=>serialiser(),meta:()=>({jour:G?G.jour:0}),coupe:()=>TEST||!G});}catch(e){}
  V.mini=$('minicarte');
  const q=new URLSearchParams(location.search);{let p=null;try{p=localStorage.getItem('bs-3d');}catch(e){}V.m3=R3.ok&&(q.get('v3d')?q.get('v3d')!=='0':p!=='0');}if(q.get('graine')){TEST=q.get('test')!=='0';demarrer({graine:+q.get('graine'),taille:+(q.get('taille')||54),eau:+(q.get('eau')||1),monstres:1,difficulte:1,joueurs:[{fac:q.get('fac')||'bastion',humain:true},{fac:'necro',humain:false},{fac:'sylve',humain:false}].slice(0,+(q.get('joueurs')||3))});}

@@ -21,12 +21,12 @@ function brume(m,opt={}){m.onBeforeCompile=sh=>{sh.uniforms.bsFog=U.fog;sh.unifo
   sh.fragmentShader='varying vec2 vBsW;varying vec3 vBsP;varying vec3 vBsNw;uniform sampler2D bsFog;uniform float bsN;\n'+(tri?'uniform float bsEch;uniform float bsNeige;uniform sampler2D bsTexN;\n':'')+sh.fragmentShader.replace('#include <opaque_fragment>','#include <opaque_fragment>\n{float f=texture2D(bsFog,vBsW/bsN).r;gl_FragColor.rgb*=mix(.035,1.,f);}');
   if(tri)sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',`#ifdef USE_MAP
 {vec3 nw=normalize(vBsNw);vec3 an=pow(abs(nw),vec3(4.));an/=an.x+an.y+an.z;vec3 q=vBsP*bsEch;
- vec4 tc=texture2D(map,q.zy)*an.x+texture2D(map,q.xz)*an.y+texture2D(map,q.xy)*an.z;
+ vec4 tc=${S.qual<=0?'texture2D(map,an.x>an.z?q.zy:q.xy)*(an.x+an.z)+texture2D(map,q.xz)*an.y':'texture2D(map,q.zy)*an.x+texture2D(map,q.xz)*an.y+texture2D(map,q.xy)*an.z'};
  if(bsNeige<8.){float sn=smoothstep(bsNeige-.15,bsNeige+.15,vBsP.y+(tc.g-.45)*.6)*smoothstep(.3,.65,nw.y);vec4 ns=texture2D(bsTexN,q.xz*1.4);tc=mix(tc,ns,sn);}
  diffuseColor*=tc;}
 #endif`);
   if(opt.extra)opt.extra(sh);};
- m.customProgramCacheKey=()=>'bs'+(opt.vent||'')+(opt.onde?'o':'')+(opt.tri?'t'+opt.tri+(opt.neige??''):'')+(opt.cle||'');return m;}
+ m.customProgramCacheKey=()=>'bs'+(opt.vent||'')+(opt.onde?'o':'')+(opt.tri?'t'+opt.tri+(opt.neige??''):'')+(opt.cle||'')+((opt.cle==='sol'||opt.tri)&&S.qual<=0?'0':'');return m;}
 const PM={tri:'mur',r:.92},PM2={tri:'mur2',r:.92},PT={tri:'ardoise',r:.75,ech:1.2},PTU={tri:'tuile',r:.8,ech:1.2},PC={tri:'chaume',r:.95,ech:1.4},PB={tri:'bois',r:.85,ech:1.1};
 let ECH=3;// répétitions des textures par unité (carte 3, combat 1.4, ville .55)
 const MATS={};function mat(c,o={}){if(o.map===null)delete o.map;if(o.tri&&!RES.tx[o.tri])o=Object.assign({},o,{tri:null});if(o.tri)o=Object.assign({},o,{ech:(o.ech||1)*ECH});const k=c+JSON.stringify(o,(n,v)=>n==='map'?(v&&v.uuid):v);if(MATS[k])return MATS[k];const m=new T.MeshStandardMaterial(Object.assign({color:c,roughness:o.r??.85,metalness:o.m||0,flatShading:!!o.plat},o.map?{map:o.map}:{},o.tri?{map:RES.tx[o.tri]}:{}));if(o.em){m.emissive=new T.Color(o.em);m.emissiveIntensity=o.ei||1;}if(o.vc)m.vertexColors=true;if(o.transp){m.transparent=true;m.opacity=o.transp;}return MATS[k]=brume(m,o);}
@@ -78,7 +78,7 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
  const ge=new T.PlaneGeometry(N+40,N+40,1,1);ge.rotateX(-Math.PI/2);ge.translate(N/2,-.1,N/2);
  const me=brume(new T.MeshStandardMaterial({color:0x1a4558,roughness:.05,metalness:.15,transparent:true,opacity:.9,envMapIntensity:1.3,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}));eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
- const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));scene.add(bas);}
+ const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint
 let BRUIT=null;function texBruitGL(){if(BRUIT)return BRUIT;const [T1]=textures();const d=new Uint8Array(65536);for(let i=0;i<65536;i++)d[i]=Math.max(0,Math.min(255,T1[i]*255));BRUIT=new T.DataTexture(d,256,256,T.RedFormat);BRUIT.wrapS=BRUIT.wrapT=T.RepeatWrapping;BRUIT.magFilter=BRUIT.minFilter=T.LinearFilter;BRUIT.needsUpdate=true;return BRUIT;}
 function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.globalCompositeOperation='lighter';
@@ -90,9 +90,15 @@ function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N
  const uni={bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
  const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});
  return brume(m,{cle:'sol',extra:sh=>{Object.assign(sh.uniforms,uni);
-  sh.fragmentShader=sh.fragmentShader.replace('void main() {',`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;
+  sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;
 float bsRiv=0.,bsGlow=0.;
-vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;vec3 b=texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.29+.37,id)).rgb;return mix(a,b,smoothstep(.3,.7,nz));}
+vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;
+#ifdef BS_LEGER
+return a;
+#else
+vec3 b=texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.29+.37,id)).rgb;return mix(a,b,smoothstep(.3,.7,nz));
+#endif
+}
 float idc(vec2 c){return floor(texture2D(bsTer,(clamp(c,0.,bsN-1.)+.5)/bsN).r*255.+.5);}
 void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture2D(bsBr,p*.13).r;float nz2=texture2D(bsBr,p*.031+.5).r;
  vec2 f=p-.5+(vec2(texture2D(bsBr,p*.37).r,texture2D(bsBr,p*.37+.31).r)-.5)*.75;vec2 i0=floor(f);vec2 fr=clamp(f-i0,0.,1.);
@@ -101,14 +107,17 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  vec4 w=vec4((1.-fr.x)*(1.-fr.y),fr.x*(1.-fr.y),(1.-fr.x)*fr.y,fr.x*fr.y);
  w*=vec4(dot(c0,vec3(.33)),dot(c1,vec3(.33)),dot(c2,vec3(.33)),dot(c3,vec3(.33)))+.25;w=pow(w,vec4(3.));w/=w.x+w.y+w.z+w.w;
  vec3 col=c0*w.x+c1*w.y+c2*w.z+c3*w.w;
+
+#ifndef BS_LEGER
  {vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
+#endif
  float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
- diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
+ diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n#ifndef BS_LEGER\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}\n#endif').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
 // ---------- brouillard (texture N×N, filtrage linéaire = bords doux) ----------
 function majBrume(){const vu=G.joueurs[vueJoueur()].vu;for(let i=0;i<N*N;i++)fogData[i]=vu[i]?255:0;fogTex.needsUpdate=true;}
 let VAGUES=null;function texVagues(){if(VAGUES)return VAGUES;const S0=256;const [T1,T2]=textures();const d=new Uint8Array(S0*S0*4);const hh=(x,y)=>T2[((y+S0)%S0)*256+((x+S0)%S0)]*.6+T1[((y*2+S0)%S0)*256+((x*2+S0)%S0)]*.4;
@@ -193,13 +202,13 @@ function construireDecor(){decor=new T.Group();scene.add(decor);const c=G.carte;
    const px=x+.2+r.f()*.6,pz=y+.2+r.f()*.6;if(reel){const p0=r.f();imp(p0<.5?(ter==='sable'?'desert_b':ter==='lave'?'mort_a':'buisson_a'):p0<.8?'roc_'+'abcd'[r.i(0,3)]:arbresPour(ter,r),px,pz,p0<.5?.28+r.f()*.15:p0<.8?.14+r.f()*.1:.55+r.f()*.2,r,0);}
    else if(ter==='herbe'||ter==='terre'||ter==='marais'||ter==='rude'){if(r.f()<.6){const v=r.i(0,3);ajout('a'+(ter==='marais'?'mort':'feuillu')+v,geoArbre(ter==='marais'?'mort':'feuillu',v),mk(px,h(px,pz),pz,r.f()*6,.45+r.f()*.2),0);}else{const v=r.i(0,4);ajout('r'+v+ter,geoRocher(v,ter),mk(px,h(px,pz),pz,r.f()*6,.4+r.f()*.3),0);}}}}
  const mVeg=mat(0xffffff,{vc:1,r:.82,vent:'.035'}),mPierre=mat(0xffffff,{vc:1,r:.95,plat:0});
- for(const k in lots){const L=lots[k];const im=new T.InstancedMesh(L.geo,L.m||(k[0]==='a'?mVeg:mPierre),L.l.length);L.l.forEach((m,j)=>im.setMatrixAt(j,m));im.castShadow=!!L.ombre&&S.qual>=2;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();decor.add(im);}
- for(const k in imps){const L=imps[k];L.l.sort((a,b)=>a[3]-b[3]);decor.add(maillageImp('h',L.l,PAN_A,PAN_K,L.ombre&&S.qual>=2));}}
+ for(const k in lots){const L=lots[k];const im=new T.InstancedMesh(L.geo,L.m||(k[0]==='a'?mVeg:mPierre),L.l.length);L.l.forEach((m,j)=>im.setMatrixAt(j,m));im.userData.ombre=!!L.ombre;im.castShadow=!!L.ombre&&S.qual>=2;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();decor.add(im);}
+ for(const k in imps){const L=imps[k];L.l.sort((a,b)=>a[3]-b[3]);{const mi=maillageImp('h',L.l,PAN_A,PAN_K,L.ombre&&S.qual>=2);mi.userData.ombre=!!L.ombre;decor.add(mi);}}}
 // ---------- bâtiments en 3D ----------
 // pierre des remparts : image chargée dès le départ, texture créée seulement une fois l'image prête
 const IMP=new Image();IMP.src=MOTIF_PIERRE_URI;let TEXP=null;
 function texPierre(){if(TEXP)return TEXP;if(!IMP.complete||!IMP.naturalWidth)return null;const c=mkC(IMP.naturalWidth,IMP.naturalHeight);c.getContext('2d').drawImage(IMP,0,0);TEXP=new T.CanvasTexture(c);TEXP.wrapS=TEXP.wrapT=T.RepeatWrapping;TEXP.colorSpace=T.SRGBColorSpace;TEXP.repeat.set(1.5,1.5);return TEXP;}
-function bloc(gr,geo,c,o,pos,rot,sc){const m=new T.Mesh(geo,mat(c,o));if(pos)m.position.set(...pos);if(rot)m.rotation.set(...rot);if(sc)m.scale.set(...sc);m.castShadow=S.qual>=2;m.receiveShadow=true;gr.add(m);return m;}
+function bloc(gr,geo,c,o,pos,rot,sc){const m=new T.Mesh(geo,mat(c,o));if(pos)m.position.set(...pos);if(rot)m.rotation.set(...rot);if(sc)m.scale.set(...sc);m.userData.ombre=true;m.castShadow=S.qual>=2;m.receiveShadow=true;gr.add(m);return m;}
 const BOX=new T.BoxGeometry(1,1,1),CYL=new T.CylinderGeometry(.5,.5,1,12),CONE=new T.ConeGeometry(.5,1,12),CONE4=new T.ConeGeometry(.5,1,4),SPH=new T.SphereGeometry(.5,14,10);
 function tour(gr,x,z,r0,ht,mur,toit,forme,pierre){bloc(gr,CYL,mur,pierre,[x,ht/2,z],null,[r0*2,ht,r0*2]);if(forme==='plat'){for(let k=0;k<6;k++){const a=k/6*Math.PI*2;bloc(gr,BOX,mur,pierre,[x+Math.cos(a)*r0*.9,ht+.05,z+Math.sin(a)*r0*.9],null,[.07,.1,.07]);}}
  else bloc(gr,CONE,toit,PT,[x,ht+r0*(forme==='fleche'?1.6:1.1),z],null,[r0*2.5,r0*(forme==='fleche'?3.2:2.2),r0*2.5]);}
@@ -360,8 +369,8 @@ function borner3(){C3.cible.x=Math.max(0,Math.min(N,C3.cible.x));C3.cible.z=Math
 // ---------- API ----------
 const A={ok:true,actif:false};
 // qualité : 2 = ombres + image fine, 1 = sans ombres, 0 = image allégée. Baisse automatique si l'appareil peine (mémorisée).
-function qualDepart(){const q=new URLSearchParams(location.search).get('q3d');if(q!=null){S.fixe=true;return +q;}let m=null;try{m=localStorage.getItem('bs-q3d');}catch(e){}return m!=null?+m:(estMobile()?1:2);}
-const SURV={t0:0,l:[]};function surveiller(){if(S.fixe||S.qual<=0)return;const t=performance.now();if(SURV.der&&t-SURV.der<200&&performance.now()-(V.activite||0)<1500)SURV.l.push(t-SURV.der);SURV.der=t;
+function qualDepart(){const q=new URLSearchParams(location.search).get('q3d');if(q!=null){S.fixe=true;return +q;}let m=null;try{m=localStorage.getItem('bs-q3d');S.choisie=localStorage.getItem('bs-q3d-choix')==='1';}catch(e){}return m!=null&&m!==''&&!isNaN(+m)?Math.max(0,Math.min(2,+m)):(estMobile()?1:2);}
+const SURV={t0:0,l:[]};function surveiller(){if(S.fixe||S.choisie||S.banc||S.qual<=0)return;const t=performance.now();if(SURV.der&&t-SURV.der<200&&performance.now()-(V.activite||0)<1500)SURV.l.push(t-SURV.der);SURV.der=t;
  if(SURV.l.length>=90){const l=SURV.l.sort((a,b)=>a-b);const med=l[l.length>>1];SURV.l=[];if(med>27){A.qualite(S.qual-1);try{localStorage.setItem('bs-q3d',S.qual);}catch(e){}console.log('qualité 3D abaissée',S.qual,med);}}}
 A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart();
  if(!ren){try{ren=new T.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});}catch(e){A.ok=false;return false;}
@@ -398,7 +407,11 @@ A.zoomer=z=>{C3.dist=16/z;borner3();};
 A.suivre=(x,y)=>{const p=new T.Vector3(x+.5,0,y+.5).project(cam);if(Math.abs(p.x)>.5||Math.abs(p.y)>.5){C3.cible.x+=(x+.5-C3.cible.x)*.25;C3.cible.z+=(y+.5-C3.cible.z)*.25;borner3();}};
 // rectangle vu (pour la mini-carte) : intersections des coins de l'écran avec le sol
 A.vue=()=>{const pts=[];for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){v2.set(sx,sy);RC.setFromCamera(v2,cam);const d=RC.ray.direction;const o=RC.ray.origin;if(d.y>=-1e-3){pts.push([o.x+d.x*60,o.z+d.z*60]);continue;}const t=-o.y/d.y;pts.push([o.x+d.x*t,o.z+d.z*t]);}return pts;};
-A.qualite=q=>{S.qual=Math.max(0,Math.min(2,q));if(soleil)soleil.castShadow=S.qual>=2;if(scene)scene.traverse(o=>{if(o.material&&o.material.needsUpdate!==undefined&&o.isMesh)o.material.needsUpdate=true;});A.redim();};A.niveau=()=>S.qual;
+A.qualite=q=>{S.qual=Math.max(0,Math.min(2,q));if(soleil)soleil.castShadow=S.qual>=2;if(scene)scene.traverse(o=>{if(o.userData.ombre!==undefined)o.castShadow=o.userData.ombre&&S.qual>=2;if(o.material&&o.material.needsUpdate!==undefined&&o.isMesh)o.material.needsUpdate=true;});A.redim();};A.niveau=()=>S.qual;
+// choix du joueur (menu ☰) : mémorisé, et la baisse automatique ne s'applique plus ; figer : pendant le banc
+A.choisirQualite=q=>{S.choisie=true;A.qualite(q);try{localStorage.setItem('bs-q3d',S.qual);localStorage.setItem('bs-q3d-choix','1');}catch(e){}};
+A.autoQualite=()=>{S.choisie=false;try{localStorage.removeItem('bs-q3d');localStorage.removeItem('bs-q3d-choix');}catch(e){}A.qualite(estMobile()?1:2);};
+A.auto=()=>!S.fixe&&!S.choisie;A.figer=b=>{S.banc=!!b;SURV.l=[];};
 A.ouvrir=()=>{document.getElementById('carte3d').style.display='block';V.vide=false;};
 A.fermer=()=>{A.actif=false;document.getElementById('carte3d').style.display='none';V.fogDirty=true;V.vide=false;};
 A.pret=()=>RES.pret;A._scene=()=>scene;A._pi=(...a)=>planImp(...a);A._res=RES;A._ren=()=>ren;

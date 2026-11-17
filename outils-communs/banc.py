@@ -11,6 +11,10 @@ options : --tours N (défaut 2 avec --avant : A B B A A B… ; 1 sinon) · --sce
           --cpu 4 (ralenti processeur, remplace celui des réglages) · --construire (lance "construire" aussi pour la version en cours)
           --seuil 10 (%, écart minimal signalé) · --strict (code 1 si une scène ralentit au-delà du seuil et du bruit)
           --reference mesures/x.json (compare à une mesure enregistrée : moins fiable, autre minute / autre machine)
+          --sans-verrou (par défaut, un seul banc à la fois par machine : le second attend la fin du premier, en le disant)
+          --attente-max 1800 (s : abandon, code 3, si l'autre banc ne finit pas)
+Au fil de l'eau : <sortie>.partiel.json (ou /tmp/banc-<jeu>.partiel.json) est réécrit après chaque scène (mesures faites, temps
+restant estimé, aussi affiché à l'écran) et effacé à la fin ; la sortie note la charge de la machine au début et à la fin.
 
 Réglages (JSON ; chemins relatifs à la racine du dépôt ; toutes les clés sauf "scenes" sont facultatives) :
   "jeu": "trone-de-braise",
@@ -32,6 +36,8 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; toutes les clés sa
        seule = true : page neuve pour cette scène (sinon les scènes s'enchaînent dans la même page, dans l'ordre)
   "chronos": {"rendu_ms": "render()"}   instructions chronométrées (moyenne de 10 exécutions, en ms) après les scènes
   "seuil": 10                           % (défaut 10)
+  "routes": {"https://exemple.cdn/lib/": "chemin/local/"}   adresses servies en local (routes.py ; chemins relatifs à la racine) ;
+       par défaut Three.js sur jsDelivr/unpkg est TOUJOURS servi en local (copie téléchargée une fois) ; "routes": false pour couper
 Sortie : {jeu, date, plafond, appareils:{nom:{scenes:{nom:{fps,bas1,pire,n,ms,med,p95,infos}}, chronos, chargement_ms, erreurs}}}
          + avec --avant : {avant, apres, ecarts} et un tableau lisible.  Valeurs RELATIVES (rendu logiciel) : comparer, pas conclure en absolu.
 """
@@ -41,6 +47,7 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 RAC = os.path.dirname(ICI)
 sys.path.insert(0, ICI)
 from atelier import MESURE_JS, ARGS, ARGS_SANS_PLAFOND, HORLOGE  # noqa: E402
+from routes import brancher as brancher_routes  # noqa: E402
 
 # Mode « figé » (défaut) : horloge.js fige le temps et le hasard ; le banc joue lui-même chaque image et chronomètre son coût réel
 # (rappels requestAnimationFrame + mise en page forcée + attente du GPU par lecture d'1 pixel de chaque canvas AFFICHÉ créé par le jeu).
@@ -131,7 +138,7 @@ async def patienter(pg, ms, fige):
         await pg.wait_for_timeout(ms)
 
 
-async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None):
+async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, au_fil=None):
     """Ouvre le jeu sur un appareil et mesure les scènes demandées. Renvoie {scenes, chronos, chargement_ms, erreurs}."""
     res = {'scenes': {}, 'chronos': {}, 'erreurs': []}
     groupes = []  # suites de scènes qui partagent une page
@@ -143,6 +150,7 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None):
     for gi, groupe in enumerate(groupes):
         ctx = await nav.new_context(viewport={'width': app.get('largeur', 390), 'height': app.get('hauteur', 780)},
                                     device_scale_factor=app.get('dpr', 1), is_mobile=False)
+        jr = await brancher_routes(ctx, cfg.get('routes'), base=RAC)  # Three.js du CDN servi en local (routes.py)
         pg = await ctx.new_page()
         pg.on('pageerror', lambda e: res['erreurs'].append(str(e)[:300]))
         cpu = cpu_force if cpu_force else app.get('cpu', 1)
@@ -211,7 +219,7 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None):
             except Exception as e:
                 res['scenes'][s['nom']] = {'erreur': str(e)[:300]}
                 res['erreurs'].append(f"scène {s['nom']} : {str(e)[:200]}")
-            print(f"    {app_nom:10s} {s['nom']:18s} {resume_mesure(res['scenes'][s['nom']])}", flush=True)
+            print(f"    {app_nom:10s} {s['nom']:18s} {resume_mesure(res['scenes'][s['nom']])}" + (au_fil(s['nom'], res) if au_fil else ''), flush=True)
         if gi == len(groupes) - 1:
             for nom, js in (cfg.get('chronos') or {}).items():
                 try:
@@ -219,9 +227,60 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None):
                 except Exception as e:
                     res['chronos'][nom] = None
                     res['erreurs'].append(f'chrono {nom} : {str(e)[:200]}')
+        if jr['manquants']:
+            res['erreurs'].append('routes : fichier(s) introuvable(s) en local : ' + ', '.join(jr['manquants'][:3]))
         await ctx.close()
     res.pop('_lent', None)
     return res
+
+
+def _duree(s):
+    s = int(s)
+    return f'{s // 60} min {s % 60:02d} s' if s >= 60 else f'{s} s'
+
+
+VERROU = os.environ.get('BANC_VERROU') or os.path.join(tempfile.gettempdir(), 'banc-commun.verrou')
+
+
+def verrouiller(attendre=True, attente_max=1800):
+    """Un seul banc à la fois sur la machine (deux bancs ensemble faussent les ms : charge 5-12 sur 2 cœurs, vu le 17/11).
+    Renvoie (fichier verrou ouvert à garder, secondes attendues). Attend que l'autre banc finisse en le redisant chaque minute ;
+    abandonne (SystemExit, code 3) après attente_max secondes (--attente-max). BANC_VERROU=fichier : autre verrou (vérificateur)."""
+    import fcntl
+    f = open(VERROU, 'a+')
+    t, dit = time.time(), 0
+    while True:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except OSError:
+            if not attendre:
+                f.close()
+                return None, 0
+            if time.time() - dit >= 60:
+                f.seek(0)
+                qui = f.read().strip() or '?'
+                print(f'⏳ un autre banc tourne sur cette machine ({qui}) : attente de sa fin pour ne pas fausser les mesures'
+                      f' ({_duree(time.time() - t)} ; --sans-verrou pour passer outre)', flush=True)
+                dit = time.time()
+            if time.time() - t > attente_max:
+                f.close()
+                print(f'banc : un autre banc tient la machine depuis plus de {_duree(attente_max)} ; abandon (--attente-max, ou --sans-verrou)', flush=True)
+                sys.exit(3)
+            time.sleep(2)
+    attendu = time.time() - t
+    if attendu > 1:
+        print(f'   … libre après {_duree(attendu)}', flush=True)
+    f.seek(0); f.truncate(); f.write(f'pid {os.getpid()}, {" ".join(sys.argv[1:3])}'); f.flush()
+    return f, attendu
+
+
+def charge():
+    """Charge moyenne sur 1 min rapportée au nombre de cœurs (1,0 = machine pleine)."""
+    try:
+        return round(os.getloadavg()[0] / (os.cpu_count() or 1), 2)
+    except OSError:
+        return None
 
 
 def resume_mesure(m):
@@ -233,10 +292,28 @@ def resume_mesure(m):
     return t
 
 
-async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu):
-    """versions = [(nom, base, page)] ; tours entrelacés A B B A A B… Renvoie {nom: [passes]} (une passe = {appareil: résultat})."""
+async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu, partiel=None):
+    """versions = [(nom, base, page)] ; tours entrelacés A B B A A B… Renvoie {nom: [passes]} (une passe = {appareil: résultat}).
+    partiel = fichier JSON réécrit après CHAQUE scène (mesures déjà faites, progression, temps restant estimé)."""
     from playwright.async_api import async_playwright
     out = {v[0]: [] for v in versions}
+    total, fait, t0 = tours * len(versions) * len(appareils) * len(scenes), [0], time.time()
+    encours = {}
+
+    def au_fil(nom_scene, res):
+        fait[0] += 1
+        encours['scenes'] = res['scenes']
+        ecoule = time.time() - t0
+        reste = ecoule / fait[0] * (total - fait[0])
+        if partiel:
+            try:
+                tmp = partiel + '.tmp'
+                json.dump({'partiel': True, 'jeu': cfg.get('jeu'), 'scenes_faites': fait[0], 'scenes_total': total, 'ecoule_s': round(ecoule),
+                           'reste_estime_s': round(reste), 'passes': out, 'en_cours': encours}, open(tmp, 'w'), ensure_ascii=False)
+                os.replace(tmp, partiel)
+            except Exception:
+                pass
+        return f'   [{fait[0]}/{total}, reste ≈ {_duree(reste)}]' if fait[0] < total else f'   [{fait[0]}/{total}]'
     async with async_playwright() as p:
         nav = await p.chromium.launch(args=ARGS + ([] if plafond else ARGS_SANS_PLAFOND))
         for t in range(tours):
@@ -244,14 +321,17 @@ async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu
             for nom, base, page in ordre:
                 print(f'  tour {t+1}/{tours} · {nom}', flush=True)
                 passe = {}
+                out[nom].append(passe)  # rempli appareil par appareil (visible dans le fichier partiel)
                 for an, a in appareils.items():
+                    encours.clear(); encours.update({'version': nom, 'tour': t + 1, 'appareil': an})
+                    f0 = fait[0]
                     try:
-                        passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu)
+                        passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu, au_fil)
                     except Exception as e:  # jeu jamais prêt, erreur dans « entree »… : la passe est notée en erreur, le banc continue
                         err = f'passe {nom}/{an} : {str(e)[:250]}'
                         print('    ERREUR ' + err, flush=True)
                         passe[an] = {'scenes': {s['nom']: {'erreur': str(e)[:300]} for s in scenes}, 'chronos': {}, 'erreurs': [err]}
-                out[nom].append(passe)
+                        fait[0] = f0 + len(scenes)  # scènes de la passe ratée comptées comme faites (estimation du reste)
         await nav.close()
     return out
 
@@ -342,13 +422,13 @@ def tableau(L):
 
 
 def lire_args(argv):
-    o = {'tours': None, 'scenes': None, 'appareils': None, 'plafond': False, 'cpu': None, 'construire': False, 'seuil': None,
+    o = {'tours': None, 'scenes': None, 'appareils': None, 'plafond': False, 'cpu': None, 'construire': False, 'seuil': None, 'sans_verrou': False, 'attente_max': None,
          'strict': False, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'reference': None, 'comparer': None, 'pos': []}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a in ('--plafond', '--construire', '--strict'):
-            o[a[2:]] = True
+        if a in ('--plafond', '--construire', '--strict', '--sans-verrou'):
+            o[a[2:].replace('-', '_')] = True
         elif a == '--comparer':
             o['comparer'] = (argv[i + 1], argv[i + 2]); i += 2
         elif a.startswith('--'):
@@ -391,8 +471,15 @@ def main(argv):
     jeu = cfg.get('jeu') or os.path.basename(os.path.dirname(os.path.dirname(reg)))
     avec_avant = bool(o['avant'] or o['avant_dossier'] or o['avant_page'])
     tours = int(o['tours'] or (2 if avec_avant else 1))
+    verrou, attente_verrou = (None, 0) if o['sans_verrou'] else verrouiller(attente_max=float(o['attente_max'] or 1800))
     t0 = time.time()
     serveurs, tmp = [], None
+    ch0 = charge()
+    if attente_verrou > 1:
+        print(f'   (charge {ch0} par cœur au départ : en partie héritée du banc précédent, moyenne sur 1 min)', flush=True)
+    elif ch0 is not None and ch0 > 1.5:  # un banc seul ≈ 0,9 par cœur ; deux bancs ensemble : 2,5 à 6 (17/11)
+        print(f'⚠ machine déjà chargée (charge {ch0:.2f} par cœur) : un autre travail lourd tourne ? les ms seront plus hautes et plus bruitées', flush=True)
+    partiel = (os.path.abspath(sortie) if sortie else os.path.join(tempfile.gettempdir(), f'banc-{jeu}')) + '.partiel.json'
     try:
         if o['construire']:
             construire(cfg, RAC)
@@ -411,14 +498,18 @@ def main(argv):
             b_av, s = servir(d_av); serveurs.append(s)
             versions = [('avant', b_av, p_av)] + versions
         print(f"Banc {jeu} · {len(scenes)} scènes · {', '.join(appareils)} · {tours} tour(s) · {('temps figé, préparation réelle' if cfg.get('preparation') == 'reelle' else 'temps figé') + ' : coût réel par image, GPU compris' if cfg.get('mode', 'fige') == 'fige' else ('temps réel, plafond 60 img/s' if o['plafond'] else 'temps réel sans plafond')}", flush=True)
-        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu']))
+        print(f'mesures au fil de l\'eau : {partiel}', flush=True)
+        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu'], partiel))
     finally:
+        if verrou:
+            verrou.close()
         for s in serveurs:
             s.shutdown(); s.server_close()
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)
     meta = {'jeu': jeu, 'date': datetime.datetime.now().isoformat(timespec='seconds'), 'plafond': o['plafond'], 'tours': tours,
-            'cpu': o['cpu'], 'duree_s': round(time.time() - t0)}
+            'cpu': o['cpu'], 'duree_s': round(time.time() - t0), 'charge': {'debut': ch0, 'fin': charge(), **({'heritee': True} if attente_verrou > 1 else {})},
+            'attente_verrou_s': round(attente_verrou)}
     code = 0
     if avec_avant:
         av, ap = fusion(brut['avant']), fusion(brut['apres'])
@@ -445,6 +536,10 @@ def main(argv):
         os.makedirs(os.path.dirname(os.path.abspath(sortie)), exist_ok=True)
         json.dump(out, open(sortie, 'w'), indent=1, ensure_ascii=False)
         print('écrit :', sortie)
+    try:
+        os.remove(partiel)  # tout est dans la sortie (ou à l'écran) : le fichier partiel ne sert plus
+    except OSError:
+        pass
     print(f'durée : {time.time()-t0:.0f} s')
     return code
 

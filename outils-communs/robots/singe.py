@@ -3,6 +3,15 @@
 
 usage : python3 outils-communs/robots/singe.py <jeu>/outils/singe.json [--secondes 60] [--graine 1]
                 [--appareils telephone,ordinateur] [--sortie dossier] [--fichier page.html] [--couvrir] [--actions N]
+                [--ordinateur 1280x800] [--telephone 360x740]
+--images N (ou "images": N) : mode ÉCONOME pour la 3D lourde (rendu logiciel à plusieurs secondes par image) — horloge.js fige
+  le temps après l'entrée et le singe ne joue que N images après chaque action (au lieu de laisser le jeu dessiner en continu
+  pendant que les relevés attendent) ; chargement, entrée et relances restent en temps réel. Hameau : 4 → 39 actions en 2×45 s.
+  Entre deux actions les minuteries du jeu n'avancent que de N × 16 ms : une animation d'interface de 300 ms demande ≈ 20 actions
+  (les « clics sans effet » peuvent monter).
+--ordinateur / --telephone LxH : format d'écran (défaut 1366x860 et 390x844 ; le studio prend 1280x800) ; aussi en réglage
+  "ordinateur": "1280x800". Le téléphone est toujours tactile (has_touch, is_mobile), l'ordinateur toujours à la souris.
+Three.js chargé sur jsDelivr/unpkg (bloqués dans le bac à sable) : servi en local par outils-communs/routes.py (réglage "routes").
 --actions N : s'arrête après N actions (au plus --secondes) — essais reproductibles quelle que soit la vitesse de la machine.
 --couvrir (ou "couvrir": true) : mode EXPLORATEUR — touche d'abord les boutons jamais touchés sur l'écran affiché
   (poids 1/(1+n)², n = fois déjà touché sur cet écran) pour parcourir le plus d'écrans et de boutons possible.
@@ -38,13 +47,19 @@ Réglages (JSON, chemins relatifs au fichier de réglages) — seul « fichier �
   "blocage": 60                       actions d'affilée sans aucun changement → blocage (capture, Échap)
   "ecran": "S.event?'événement':'onglet '+tab"   nom de l'écran affiché (défaut : __sonde.ecran(), fenêtre ouverte ou premier titre)
   "couvrir": true                     mode explorateur par défaut pour ce jeu
+  "routes": {"https://cdn/lib/": "../vendor/"}   adresses servies en local (routes.py ; chemins relatifs aux réglages) ;
+                                      Three.js du CDN l'est toujours par défaut ; "routes": false pour couper
+  "ordinateur": "1280x800", "telephone": "390x844"   formats d'écran
+  "images": 2                         mode économe (3D lourde) : 2 images jouées après chaque action, temps figé entre deux
 """
 import asyncio, json, os, random, re, sys, time
 from collections import Counter, defaultdict
 ICI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(ICI))
 from sonde import cliquer, debordements, resume, SONDE  # noqa: E402
+HORLOGE = os.path.join(os.path.dirname(ICI), 'horloge.js')
 from atelier import serveur, ARGS  # noqa: E402
+from routes import brancher as brancher_routes, resume as resume_routes  # noqa: E402
 from playwright.async_api import async_playwright  # noqa: E402
 
 APPAREILS = {'telephone': dict(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True, device_scale_factor=1),
@@ -55,7 +70,8 @@ def args():
     a = sys.argv[1:]
     if not a or a[0].startswith('-'):
         print(__doc__); sys.exit(2)
-    o = {'reglages': a[0], 'secondes': 60, 'graine': 1, 'appareils': 'telephone,ordinateur', 'sortie': None, 'fichier': None, 'couvrir': False, 'actions': 0}
+    o = {'reglages': a[0], 'secondes': 60, 'graine': 1, 'appareils': 'telephone,ordinateur', 'sortie': None, 'fichier': None, 'couvrir': False, 'actions': 0,
+         'ordinateur': None, 'telephone': None, 'images': None}
     i = 1
     while i < len(a):
         k = a[i].lstrip('-')
@@ -82,6 +98,7 @@ def charger(o):
         raise SystemExit('réglages : « fichier » ou « dossier » obligatoire')
     if R.get('fichier') and not os.path.exists(R['fichier']):
         raise SystemExit(f"page introuvable : {R['fichier']} (construire le jeu d'abord ?)")
+    R['_base'] = base
     R.setdefault('jeu', os.path.basename(os.path.dirname(base)) if os.path.basename(base) == 'outils' else os.path.basename(base))
     return R
 
@@ -136,6 +153,7 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
     rng = random.Random(f"{graine}-{nom}")
     nav = await p.chromium.launch(args=ARGS)
     ctx = await nav.new_context(**APPAREILS[nom], reduced_motion='reduce')
+    jr = await brancher_routes(ctx, R.get('routes'), base=R['_base'])  # Three.js du CDN servi en local
     pg = await ctx.new_page()
     ign = [re.compile(x) for x in R.get('erreurs_ignorees', [])] + [re.compile(r'Failed to load resource|favicon')]
     erreurs, vues, journal = [], {}, []
@@ -152,11 +170,20 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
     await pg.add_init_script("try{if(!sessionStorage.getItem('__singe')){localStorage.clear();sessionStorage.setItem('__singe','1');%s}}catch(e){}"
                              % ';'.join(f"localStorage.setItem({json.dumps(k)},{json.dumps(v if isinstance(v, str) else json.dumps(v))})" for k, v in sto.items()))
     if R.get('init'): await pg.add_init_script(R['init'])
+    econome = int(R.get('_images') or 0)           # mode économe : horloge figée entre les actions, N images jouées après chacune
+    if econome:
+        await pg.add_init_script(f"window.__HORLOGE_GRAINE={int(graine)};window.__HORLOGE_REEL=1;")
+        await pg.add_init_script(path=HORLOGE)
+    async def temps_reel(oui):
+        if econome:
+            try: await pg.evaluate('(o)=>{if(window.__horloge){__horloge.reel(o);if(!o)__horloge.coulant(true);}}', oui)
+            except Exception: pass
     await pg.add_init_script(path=SONDE)
     t_ch = time.time()
     url0 = url_de(R)
     await pg.goto(url0, timeout=180000); await pg.wait_for_timeout(int(R.get('attente', 800)))
     await entrer(pg, R.get('entree'), R.get('pret'))
+    await temps_reel(False)
     chargement = round(time.time() - t_ch, 1)
     etat0 = await val(pg, R.get('etat'))
     eviter = R.get('eviter', []) + ['Signaler un problème', 'Mesurer la fluidité', 'Mode test', '🐞', '🧪', 'mBug', 'mBanc', 'bBug', 'tkBug']
@@ -175,8 +202,10 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
         try:
             if R.get('relance') and await val(pg, R['relance']['si'], False) is True:
                 relances += 1
-                try: await entrer(pg, R['relance'].get('entree'), R['relance'].get('pret') or R.get('pret'), delai=15)
+                await temps_reel(True)
+                try: await entrer(pg, R['relance'].get('entree'), R['relance'].get('pret') or R.get('pret'), delai=15); await temps_reel(False)
                 except Exception as e:
+                    await temps_reel(False)
                     blocages.append({'quoi': 'relance impossible : ' + str(e)[:100], 'ecran': await val(pg, '__sonde.ecran()'), 'apres': list(journal), 'capture': ''})
                     if len(blocages) >= 5: break
             av = await pg.evaluate(expr_emp)
@@ -198,7 +227,7 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
                 sorties.append(f'{pg.url[:100]} (après : {" → ".join(x for x in journal[-4:] if x)})')
                 try:
                     await pg.goto(url0, timeout=60000); await pg.wait_for_timeout(int(R.get('attente', 800)))
-                    await entrer(pg, R.get('entree'), R.get('pret'), delai=15)
+                    await entrer(pg, R.get('entree'), R.get('pret'), delai=15); await temps_reel(False)
                 except Exception as e2:
                     blocages.append({'quoi': 'retour dans le jeu impossible : ' + str(e2)[:100], 'ecran': '', 'apres': list(journal), 'capture': ''}); break
                 rates = 0
@@ -268,6 +297,10 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
         if c: vides = 0
         n += 1; journal.append(action); journal = journal[-6:]
         attente = rng.randint(int(pause[0]), int(pause[1]))
+        if econome:                                    # les images de jeu ne tournent que maintenant (pas pendant les relevés)
+            try: await pg.evaluate('(n)=>{if(!window.__horloge)return;__horloge.reel(false);__horloge.coulant(true);__horloge.avancer(n,1000/60)}', econome)  # refigé aussi après un rechargement
+            except Exception: pass
+            attente = min(attente, 60)
         await pg.wait_for_timeout(attente)
         try:
             ap = await pg.evaluate(expr_emp)
@@ -326,11 +359,22 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
             'sans_effet_pct': round(100 * sum(sans_effet.values()) / max(1, sum(touches_bouton.values()))),
             'boutons_jamais_efficaces': [f'{b} ({k}×)' for b, k in morts[:10]], 'couverture': couverture,
             'actions_lentes': [f'{ms} ms : {a}' for ms, a in sorted(lentes, reverse=True)[:8]],
-            'plus_touches': touches_bouton.most_common(10)}
+            'plus_touches': touches_bouton.most_common(10), 'ecran': APPAREILS[nom]['viewport'],
+            'routes': {'servis': jr['servis'], 'manquants': jr['manquants'][:10]}}
+
+
+def format_ecran(t):
+    m = re.match(r'^\s*(\d{3,4})\s*[x×X*]\s*(\d{3,4})\s*$', str(t))
+    if not m: raise SystemExit(f'format d\'écran illisible : {t} (attendu 1280x800)')
+    return {'width': int(m.group(1)), 'height': int(m.group(2))}
 
 
 async def principal():
     o = args(); R = charger(o)
+    R['_images'] = int(o['images'] if o['images'] is not None else R.get('images', 0) or 0)
+    for nom in ('telephone', 'ordinateur'):
+        f = o[nom] or R.get(nom)
+        if f: APPAREILS[nom] = dict(APPAREILS[nom], viewport=format_ecran(f))
     sortie = o['sortie'] or os.path.join('/tmp', 'singe-' + R['jeu']); os.makedirs(sortie, exist_ok=True)
     res = []
     async with async_playwright() as p:
@@ -342,10 +386,12 @@ async def principal():
     json.dump(rap, open(os.path.join(sortie, 'singe.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     grave = 0
     for r in res:
-        g = len(r['erreurs']) + len(r['blocages']) + len(r['invariants']); grave += g
+        g = len(r['erreurs']) + len(r['blocages']) + len(r['invariants']) + len(r['routes']['manquants']); grave += g
         print(f"{'ÉCHEC' if g else 'OK   '} {R['jeu']} · {r['appareil']} : {r['actions']} actions en {r['secondes']} s, {r['boutons_distincts']} boutons, "
               f"{r['ecrans_vus']} écrans · état {r['etat_debut']} → {r['etat_fin']} · {len(r['erreurs'])} erreur(s), {len(r['blocages'])} blocage(s), "
               f"{len(r['invariants'])} invariant(s) · clics sans effet {r['sans_effet_pct']} %")
+        if r['routes']['servis'] or r['routes']['manquants']:
+            print(f"   {resume_routes(dict(r['routes'], vides=0, refuses=0))}")
         for e in r['erreurs'][:5]: print(f"   erreur ×{e['fois']} : {e['erreur'][:160]}  (après : {' → '.join(x for x in e['apres'][-3:] if x)}) [{e['capture']}]")
         for b in r['blocages'][:3]: print(f"   blocage : {b['quoi']} sur « {b['ecran']} » ; sous le doigt : {b['sous_le_doigt']} [{b['capture']}]")
         for x in r['sorties_du_jeu'][:3]: print(f'   sorti du jeu vers {x}')

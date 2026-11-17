@@ -7,5 +7,5 @@
  "selecteur": ".choice,.tab,[data-tab],.btn",
  "avancer": {"toutes": 40, "pas": [{"js": "if(!UI.modalOpen){S.autoReport=true;A.play()}"}]},
  "etat": "'saison '+S.year+' · semaine '+S.week",
- "invariants": "(()=>{const b=[];if(!isFinite(S.cash))b.push('trésorerie '+S.cash);return b;})()"
+ "invariants": "(()=>{const b=[];if(typeof S==='undefined'||!S)return b;if(!isFinite(S.cash))b.push('trésorerie '+S.cash);return b;})()"
 }

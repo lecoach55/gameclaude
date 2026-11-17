@@ -3,6 +3,8 @@
 import asyncio,os,subprocess,sys,time,urllib.error,urllib.parse,urllib.request
 from playwright.async_api import async_playwright
 HORLOGE=os.path.join(os.path.dirname(os.path.abspath(__file__)),'horloge.js')  # temps virtuel + hasard à graine (captures reproductibles)
+if os.path.dirname(os.path.abspath(__file__)) not in sys.path:sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
+from routes import brancher as brancher_routes, resume as resume_routes, three_local  # Three.js du CDN servi en local
 ARGS=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']
 # Serveur des outils : comme « python3 -m http.server » (listes de dossiers, types MIME), muet, et qui donne son dossier et son pid sur /__atelier_dossier.
 SERVEUR_PY = r"""import functools,http.server,os,sys
@@ -79,11 +81,23 @@ def _fermer_temporaires():
 async def navigateur(p,plafond=True):
     """plafond=False : images non plafonnées à 60/s (vsync coupée) — pour un banc qui compare des coûts."""
     return await p.chromium.launch(args=ARGS+([] if plafond else ARGS_SANS_PLAFOND))
-async def page(nav,url,largeur=390,hauteur=780,stockage=None,acceleration=None,figer=None):
+async def page(nav,url,largeur=390,hauteur=780,stockage=None,acceleration=None,figer=None,tactile=False,routes=None):
     """Ouvre une page neuve. stockage={cle:valeur} pré-remplit localStorage ; acceleration=3 accélère le temps (tests sans rendu).
     figer=graine (entier) : horloge virtuelle + Math.random à graine (horloge.js) ; les images ne tournent qu'avec avancer(pg,n).
-    Avec figer, ne pas utiliser pg.wait_for_function sans polling=100 (il attend les images) : préférer attendre(pg, condition)."""
-    pg=await nav.new_page(viewport={'width':largeur,'height':hauteur});pg.erreurs=[]
+    Avec figer, ne pas utiliser pg.wait_for_function sans polling=100 (il attend les images) : préférer attendre(pg, condition).
+    tactile=True : vrai téléphone (has_touch, is_mobile : écran tactile, pg.touchscreen.tap, meta viewport respectée) ; défaut : souris.
+    routes : Three.js chargé sur jsDelivr/unpkg est servi en local (routes.py, copie téléchargée une fois) ; {préfixe: dossier} en plus,
+    routes=False pour couper. Journal des fichiers servis / manquants : pg.routes (resume_routes(pg.routes) pour l'afficher)."""
+    if tactile:
+        ctx=await nav.new_context(viewport={'width':largeur,'height':hauteur},has_touch=True,is_mobile=True,device_scale_factor=1)
+        pg=await ctx.new_page()
+        async def _fin(*_):
+            try:await ctx.close()
+            except Exception:pass  # navigateur déjà fermé
+        pg.on('close',lambda *_:asyncio.ensure_future(_fin()))  # le contexte part avec la page
+    else:
+        pg=await nav.new_page(viewport={'width':largeur,'height':hauteur})
+    pg.erreurs=[];pg.routes=await brancher_routes(pg,routes)
     pg.on('pageerror',lambda e:pg.erreurs.append(str(e)[:300]))
     if stockage:
         js=';'.join(f"localStorage.setItem({k!r},{v!r})" for k,v in stockage.items());await pg.add_init_script(f"try{{localStorage.clear();{js}}}catch(e){{}}")

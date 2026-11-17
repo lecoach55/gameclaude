@@ -6,6 +6,8 @@ Chaque contrôle est rapide (quelques secondes) et dit OK / ÉCHEC avec la raiso
 import os, re, sys, subprocess, tempfile, time, json, shutil, importlib.util
 
 RAC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# verrou du banc propre au vérificateur : un vrai banc en cours (15 min sur Hameau) ne le bloque pas, et il ne bloque pas ce banc
+os.environ['BANC_VERROU'] = os.path.join(tempfile.gettempdir(), f'banc-verificateur-{os.getpid()}.verrou')
 OC = os.path.join(RAC, 'outils-communs')
 RES = []
 
@@ -568,6 +570,128 @@ print('RES',lu(a),lu(b),a2==a,b2==b,b!=a,lu(c),c2.endswith(':18771/'),ta<0.5,'PE
                 raise RuntimeError(f'serveur orphelin resté sur le port {p}')
 
 
+ROUTES_JEU = """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">import * as THREE from 'three';import {mergeVertices} from 'three/addons/utils/BufferGeometryUtils.js';
+import {lib} from 'https://exemple.invalid/lib/lib.js';
+window.T=THREE.REVISION+'/'+(typeof mergeVertices)+'/'+lib;
+fetch('https://exemple.invalid/lib/absent.js').then(r=>window.absent=r.status,()=>window.absent='échec');
+fetch('https://refus.invalid/x.js').then(()=>window.refus='servi',()=>window.refus='refusé');</script>
+<button id=b onclick="window.n=(window.n||0)+1">Tape</button><script>window.frames_=0;(function f(){window.frames_++;requestAnimationFrame(f)})()</script>"""
+
+
+@controle('routes.py : Three.js r160 du CDN (importmap + addons) servi en local, route en plus, fichier manquant listé, route refusée ; atelier.page(tactile=True) = vrai téléphone ; routes=False coupe')
+def _():
+    import asyncio
+    sys.path.insert(0, OC)
+    import routes as R_, atelier as A_
+    if not R_.three_local():
+        raise RuntimeError('three_local() : aucune copie de three')
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, 'lib')); open(os.path.join(d, 'lib', 'lib.js'), 'w').write("export const lib='local';")
+        open(os.path.join(d, 'index.html'), 'w').write(ROUTES_JEU)
+        rt = {'https://exemple.invalid/lib/': os.path.join(d, 'lib'), 'https://refus.invalid/': None}
+
+        async def essai():
+            from playwright.async_api import async_playwright
+            async with async_playwright() as p:
+                nav = await A_.navigateur(p)
+                pg = await A_.page(nav, 'file://' + os.path.join(d, 'index.html'), tactile=True, routes=rt)
+                await pg.wait_for_function('window.T&&window.absent&&window.refus', timeout=60000, polling=100)
+                r = await pg.evaluate("()=>[window.T,window.absent,window.refus,navigator.maxTouchPoints>0,matchMedia('(pointer:coarse)').matches]")
+                j = pg.routes
+                pg2 = await A_.page(nav, 'file://' + os.path.join(d, 'index.html'), routes=False)
+                await pg2.wait_for_timeout(1500)
+                r2 = await pg2.evaluate("()=>[window.T||null,navigator.maxTouchPoints]")
+                await nav.close()
+                return r, j, r2
+        r, j, r2 = asyncio.run(essai())
+        if r[0] != '160/function/local':
+            raise RuntimeError(f'modules non servis en local : {r[0]} ; {R_.resume(j)}')
+        if r[1] != 404 or not any('absent.js' in u for u in j['manquants']):
+            raise RuntimeError(f'fichier manquant non signalé : {r[1]} {j}')
+        if r[2] != 'refusé' or j['refuses'] < 1:
+            raise RuntimeError(f'route null non refusée : {r[2]}')
+        if not (r[3] and r[4]):
+            raise RuntimeError('atelier.page(tactile=True) : pas un écran tactile')
+        if r2[0] is not None or r2[1] != 0:
+            raise RuntimeError(f'routes=False ou page par défaut : {r2}')
+    # résolution : version lue dans l'adresse, unpkg, préfixe le plus long d'abord
+    pr = R_.preparer({'https://cdn.jsdelivr.net/npm/three@0.160.0/build/': '/nulle/part/'})
+    a, f = R_.resoudre('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js?x=1', pr)
+    if (a, f) != ('manquant', '/nulle/part/three.module.js'):
+        raise RuntimeError(f'préfixe le plus long non prioritaire : {a} {f}')
+    for u in ('https://cdn.jsdelivr.net/npm/three@0.160.0/../../../etc/passwd', 'https://exemple.invalid/lib/%2e%2e/%2e%2e/etc/passwd'):
+        a, f = R_.resoudre(u, R_.preparer({'https://exemple.invalid/lib/': tempfile.gettempdir()}))
+        if a == 'fichier':
+            raise RuntimeError(f'fichier hors du dossier routé servi : {u} → {f}')
+    a, f = R_.resoudre('https://cdn.jsdelivr.net/npm/three@99.0.1/build/three.module.js', R_.preparer())  # version introuvable : manquant, pas de plantage
+    if a != 'manquant':
+        raise RuntimeError(f'version de three introuvable : {a}')
+    a, f = R_.resoudre('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js', R_.preparer())
+    if a != 'fichier' or not f.endswith('examples/jsm/loaders/GLTFLoader.js'):
+        raise RuntimeError(f'unpkg : {a} {f}')
+
+
+SINGE3D_JEU = ROUTES_JEU.replace("import {lib} from 'https://exemple.invalid/lib/lib.js';", "const lib='x';")
+
+
+@controle('robots/singe.py : Three.js du CDN servi (routes), --ordinateur 1280x800, mode économe --images 1 (1 image par action, pas des centaines)')
+def _():
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, 'index.html'), 'w').write(SINGE3D_JEU)
+        json.dump({'fichier': 'index.html', 'pret': 'window.T', 'etat': "[window.T,window.frames_,window.n||0]", 'pause': [10, 20], 'hasard': 0, 'glisser': 0,
+                   'routes': {'https://refus.invalid/': None}}, open(os.path.join(d, 'singe.json'), 'w'))
+        run(sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 'singe.json'), '--secondes', '20', '--actions', '12', '--appareils', 'ordinateur',
+            '--ordinateur', '1280x800', '--images', '1', '--sortie', os.path.join(d, 'o'), timeout=120)
+        a = json.load(open(os.path.join(d, 'o', 'singe.json')))['appareils'][0]
+        if a['ecran'] != {'width': 1280, 'height': 800}:
+            raise RuntimeError(f"format d'écran : {a['ecran']}")
+        if a['routes']['servis'] < 2 or a['routes']['manquants'] or not str(a['etat_fin'][0]).startswith('160/'):
+            raise RuntimeError(f"three non servi : {a['routes']} {a['etat_fin']}")
+        im = a['etat_fin'][1] - a['etat_debut'][1]
+        if not (a['actions'] >= 10 and im <= a['actions'] + 2):
+            raise RuntimeError(f"mode économe : {im} images pour {a['actions']} actions (attendu ≈ 1 par action)")
+
+
+@controle('banc.py : un seul banc à la fois (le second attend et le dit), fichier partiel écrit au fil des scènes puis effacé, temps restant, charge notée')
+def _():
+    import fcntl
+    sys.path.insert(0, OC)
+    import banc as B_
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, 'j')); open(os.path.join(d, 'j', 'index.html'), 'w').write(BANC_JEU.replace('TRAVAIL', '150000'))
+        cfg = {'jeu': 'factice', 'dossier': os.path.join(d, 'j'), 'page': 'index.html', 'pret': 'window.pret', 'pret_ms': 100, 'images': 60,
+               'scenes': [{'nom': f's{i}', 'attente_ms': 400} for i in range(4)]}
+        reg = os.path.join(d, 'banc.json'); json.dump(cfg, open(reg, 'w'))
+        sortie = os.path.join(d, 'r.json'); partiel = sortie + '.partiel.json'
+        verrou = open(B_.VERROU, 'a+'); fcntl.flock(verrou, fcntl.LOCK_EX)  # « un autre banc » tient la machine
+        r = subprocess.run([sys.executable, os.path.join(OC, 'banc.py'), reg, '--attente-max', '3'], capture_output=True, text=True, timeout=60)
+        if r.returncode != 3 or 'abandon' not in r.stdout:
+            raise RuntimeError(f'--attente-max : code {r.returncode} ' + r.stdout[-200:])
+        pr = subprocess.Popen([sys.executable, os.path.join(OC, 'banc.py'), reg, sortie], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        time.sleep(3)
+        attendu = pr.poll() is None and not os.path.exists(partiel)
+        fcntl.flock(verrou, fcntl.LOCK_UN); verrou.close()
+        vu, t0 = None, time.time()
+        while pr.poll() is None and time.time() - t0 < 120:
+            if os.path.exists(partiel):
+                try:
+                    vu = json.load(open(partiel))
+                except Exception:
+                    pass
+            time.sleep(0.05)
+        out = pr.communicate(timeout=60)[0]
+        if not attendu or 'un autre banc tourne' not in out:
+            raise RuntimeError('le second banc n\'a pas attendu le premier : ' + out[-300:])
+        if not vu or not vu.get('partiel') or vu['scenes_total'] != 4 or 'reste_estime_s' not in vu:
+            raise RuntimeError(f'fichier partiel jamais vu pendant la mesure : {str(vu)[:200]}')
+        if os.path.exists(partiel) or 'reste ≈' not in out:
+            raise RuntimeError('partiel non effacé ou temps restant absent : ' + out[-300:])
+        r = json.load(open(sortie))
+        if 'charge' not in r or len(r['appareils']['telephone']['scenes']) != 4:
+            raise RuntimeError('sortie incomplète : ' + json.dumps(r)[:300])
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():
@@ -576,6 +700,10 @@ if '--reseau' in sys.argv:
         if 'Diffuse' not in json.dumps(m.files('rock_wall')):
             raise RuntimeError('réponse inattendue')
 
+try:
+    os.remove(os.environ['BANC_VERROU'])
+except OSError:
+    pass
 ok = sum(1 for r in RES if r[1])
 for nom, bon, err, d in RES:
     print(f"{'OK    ' if bon else 'ÉCHEC '} {nom} ({d:.1f} s){'' if bon else ' — ' + err}")

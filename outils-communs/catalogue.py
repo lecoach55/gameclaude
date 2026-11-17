@@ -10,6 +10,23 @@ from PIL import Image,ImageDraw
 UA=[('User-Agent','valdragon-asset-tool/1.0')];o=urllib.request.build_opener();o.addheaders=UA;urllib.request.install_opener(o)
 def get(u,t=60):return urllib.request.urlopen(u,timeout=t).read()
 mots=[m.strip().lower() for m in sys.argv[1].split(',')];typ=sys.argv[2] if len(sys.argv)>2 else 'textures';MX=int(sys.argv[3]) if len(sys.argv)>3 else 24;out=sys.argv[4] if len(sys.argv)>4 else '/tmp/catalogue.jpg'
+def _feuilles(x):
+    """Tous les dict d'une réponse JSON, quelle que soit sa forme (ambientCG renvoie selon les jours des dict ou des listes)."""
+    if isinstance(x,dict):
+        yield x
+        for v in x.values():yield from _feuilles(v)
+    elif isinstance(x,list):
+        for v in x:yield from _feuilles(v)
+def apercu_acg(p):
+    """Adresse de la vignette 256 px : previewImage en dict {'256-PNG': url} ou en liste (dicts ou adresses)."""
+    if isinstance(p,dict):return p.get('256-PNG') or next((v for k,v in p.items() if '256' in k and isinstance(v,str)),None)
+    if isinstance(p,list):
+        urls=[v for v in p if isinstance(v,str)]+[v for dd in _feuilles(p) for v in dd.values() if isinstance(v,str) and v.startswith('http')]
+        return next((u for u in urls if '256' in u),urls[0] if urls else None)
+    return p if isinstance(p,str) else None
+def zip_1k(dl):
+    """Lien du zip 1K-JPG, où qu'il soit dans downloadFolders (dict ou liste)."""
+    return next((x.get('downloadLink') for x in _feuilles(dl) if x.get('attribute')=='1K-JPG' and x.get('downloadLink')),None)
 res=[]
 # Poly Haven
 for t in (['textures','models','hdris'] if typ=='tous' else [typ]):
@@ -24,7 +41,7 @@ for t in (['textures','models','hdris'] if typ=='tous' else [typ]):
         try:d=json.loads(get(f'https://ambientcg.com/api/v2/full_json?q={m}&type={at[t]}&limit=40&include=imageData,downloadData'))
         except Exception:continue
         for a in d.get('foundAssets',[]):
-            if not any(r['id']==a['assetId'] for r in res):res.append({'src':'ambientcg','id':a['assetId'],'type':t,'nom':a.get('displayName',a['assetId']),'pop':a.get('downloadCount',0),'img':a.get('previewImage',{}).get('256-PNG'),'zip':next((x['downloadLink'] for x in a.get('downloadFolders',{}).get('default',{}).get('downloadFiletypeCategories',{}).get('zip',{}).get('downloads',[]) if x['attribute']=='1K-JPG'),None)})
+            if not any(r['id']==a['assetId'] for r in res):res.append({'src':'ambientcg','id':a['assetId'],'type':t,'nom':a.get('displayName',a['assetId']),'pop':a.get('downloadCount',0),'img':apercu_acg(a.get('previewImage')),'zip':zip_1k(a.get('downloadFolders'))})
 res.sort(key=lambda r:-(r['pop'] or 0));res=res[:MX]
 def apercu(r):
     try:

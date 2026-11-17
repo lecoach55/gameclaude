@@ -1,0 +1,16 @@
+{
+ "jeu": "trone-de-braise",
+ "_note": "La carte ne s'anime pas par requestAnimationFrame (≈ 0 ms en temps figé : normal). Banc commun (outils-communs/banc.py) : mêmes scènes que outils/perf.py. python3 outils-communs/banc.py trone-de-braise/outils/banc.json --avant HEAD",
+ "dossier": "trone-de-braise/jeu",
+ "page": "index.html?graine=9",
+ "appareils": {"ordinateur": {"largeur": 1280, "hauteur": 800, "cpu": 1}},
+ "pret_ms": 800,
+ "entree": "ADAPT.fige=true;TEST=true;G=nouvellePartie({classe:'arcaniste'});G.evts=[];entrerRoyaume();JEU.UI.sel='valsombre';panneau();",
+ "scenes": [
+  {"nom": "carte", "attente_ms": 1000, "duree_ms": 4000},
+  {"nom": "donjon_combat", "js": "JEU.UI.auto=true;lancerExpedition({type:'catacombes',niveau:5,etages:3,nom:'Banc'},()=>{});", "attente_ms": 2500, "duree_ms": 5000,
+   "infos": "{entites: JEU.A?JEU.A.mobs.filter(m=>!m.mort).length+JEU.A.fx.length:0}"},
+  {"nom": "boss", "js": "JEU.UI.auto=true;lancerExpedition({type:'antre',niveau:6,etages:1,nom:'Banc',boss:'wyverne'},()=>{});const A=JEU.A;A.p.x=A.boss.x-4;A.p.y=A.boss.y;A.p.S.pvmax*=40;A.p.pv=A.p.S.pvmax;", "attente_ms": 2500, "duree_ms": 5000,
+   "infos": "{entites: JEU.A?JEU.A.mobs.filter(m=>!m.mort).length+JEU.A.fx.length:0}"}
+ ]
+}

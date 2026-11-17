@@ -398,6 +398,88 @@ def _():
         raise RuntimeError('bureau.py avec maj_testkit en panne : ' + st)
 
 
+BANC_JEU = """<!doctype html><meta charset=utf-8><body style="margin:0"><canvas id=c width=300 height=200></canvas><script>
+const g=document.getElementById('c').getContext('2d');let x=0,k=0;window.pret=false;setTimeout(()=>window.pret=true,200);
+function f(){const t0=performance.now();while(performance.now()-t0<2){x++;}  /* travail découpé selon le temps : ne doit pas bloquer en temps figé */
+ for(let i=0;i<TRAVAIL;i++)x+=Math.sqrt(i);k++;g.fillStyle='hsl('+(k%360)+',50%,50%)';g.fillRect(k%250,40,50,50);requestAnimationFrame(f);}requestAnimationFrame(f);
+</script>"""
+
+
+@controle('banc.py : avant/après entrelacé (même page → « égal », page 3× plus lourde → « plus lent » et code 1 avec --strict, scène qui plante → alerte), temps découpé sans blocage, --comparer, mesure au format testkit (bas1, pauses)')
+def _():
+    with tempfile.TemporaryDirectory() as d:
+        for nom, w in (('leger', 150000), ('leger2', 150000), ('lourd', 450000)):
+            os.makedirs(os.path.join(d, nom)); open(os.path.join(d, nom, 'index.html'), 'w').write(BANC_JEU.replace('TRAVAIL', str(w)))
+        cfg = {'jeu': 'factice', 'dossier': os.path.join(d, 'leger'), 'page': 'index.html', 'pret': 'window.pret', 'pret_ms': 200,
+               'images': 100, 'seuil': 15, 'scenes': [{'nom': 'jeu', 'attente_ms': 200}, {'nom': 'encore', 'attente_ms': 100}]}
+        reg = os.path.join(d, 'banc.json'); json.dump(cfg, open(reg, 'w'))
+        sb = os.path.join(OC, 'banc.py')
+        for essai in range(2):  # machine partagée : un à-coup du système peut ralentir toute une passe ; une vraie fausse alerte revient
+            subprocess.run([sys.executable, sb, reg, '--avant-dossier', os.path.join(d, 'leger2'), os.path.join(d, 'egal.json')], capture_output=True, text=True, timeout=150)
+            e = json.load(open(os.path.join(d, 'egal.json')))
+            if all(x['verdict'] == 'égal (bruit)' for x in e['ecarts']):
+                break
+        if any(x['verdict'] != 'égal (bruit)' for x in e['ecarts']) or len(e['ecarts']) != 2:
+            raise RuntimeError('fausse alerte sur deux pages identiques : ' + json.dumps(e['ecarts'])[:300])
+        m = e['apres']['telephone']['scenes']['jeu']
+        if not all(k in m for k in ('fps', 'bas1', 'pire', 'n', 'ms', 'med', 'p95')) or m['n'] < 8:
+            raise RuntimeError('mesure incomplète : ' + json.dumps(m))
+        r = subprocess.run([sys.executable, sb, reg, '--avant-dossier', os.path.join(d, 'lourd'), '--tours', '2', os.path.join(d, 'gain.json')], capture_output=True, text=True, timeout=150)
+        g = json.load(open(os.path.join(d, 'gain.json')))
+        if r.returncode != 0 or not all(x['verdict'] == 'plus rapide' for x in g['ecarts']):
+            raise RuntimeError('page 3× moins lourde non vue « plus rapide » : ' + json.dumps(g['ecarts'])[:300])
+        # inverser : la version en cours est la lourde → plus lent, code 1 avec --strict
+        cfg['dossier'] = os.path.join(d, 'lourd'); json.dump(cfg, open(reg, 'w'))
+        r = subprocess.run([sys.executable, sb, reg, '--avant-dossier', os.path.join(d, 'leger'), '--strict', '--scenes', 'jeu', os.path.join(d, 'lourd.json')], capture_output=True, text=True, timeout=150)
+        if r.returncode != 1 or 'plus lent' not in r.stdout:
+            raise RuntimeError(f'ralentissement non signalé (code {r.returncode}) : ' + r.stdout[-300:])
+        # une scène qui plante dans la version en cours = alerte (pas « aucun ralentissement »)
+        os.makedirs(os.path.join(d, 'casse')); open(os.path.join(d, 'casse', 'index.html'), 'w').write(BANC_JEU.replace('TRAVAIL', '150000').replace('<script>', '<script>window.casse=1;', 1))
+        cfg['dossier'] = os.path.join(d, 'casse'); cfg['scenes'][0]['js'] = "if(window.casse)throw new Error('scène cassée')"; json.dump(cfg, open(reg, 'w'))
+        r = subprocess.run([sys.executable, sb, reg, '--avant-dossier', os.path.join(d, 'leger'), '--strict', '--tours', '1', '--scenes', 'jeu'], capture_output=True, text=True, timeout=150)
+        if r.returncode != 1 or 'erreur après' not in r.stdout:
+            raise RuntimeError(f'scène en erreur non signalée (code {r.returncode}) : ' + r.stdout[-300:])
+        r = subprocess.run([sys.executable, sb, '--comparer', os.path.join(d, 'egal.json'), os.path.join(d, 'lourd.json'), '--strict'], capture_output=True, text=True, timeout=30)
+        if 'plus lent' not in r.stdout or r.returncode != 1:
+            raise RuntimeError('--comparer : ' + r.stdout[-300:])
+    # atelier.mesurer : mêmes clés que testkit.js
+    spec = importlib.util.spec_from_file_location('atelier_b', os.path.join(OC, 'atelier.py'))
+    a = importlib.util.module_from_spec(spec); spec.loader.exec_module(a)
+    for k in ('bas1', 'pauses', 'pauseMax', 'p95', 'a0.filter(d=>d<1000)'):
+        if k not in a.MESURE_JS:
+            raise RuntimeError('atelier.mesurer sans ' + k)
+
+
+@controle('horloge.js : modes reel (chargement en temps réel puis refigé) et coulant (une boucle « tant que < 5 ms » se termine, images toujours à t+pas)')
+def _():
+    code = r"""
+import asyncio,sys,json
+from playwright.async_api import async_playwright
+JS='''()=>{const reel=n;__horloge.reel(false);__horloge.coulant(true);const t=__horloge.avancer(0).t,n0=n;const r=__horloge.avancer(3,10);
+  let i=0;const t0=performance.now();while(performance.now()-t0<5)i++;return {reel,images:n-n0,ecart:r.t-t,boucle:i>0,n1:n};}'''
+async def m():
+    async with async_playwright() as p:
+        nav=await p.chromium.launch();pg=await nav.new_page()
+        await pg.add_init_script("window.__HORLOGE_REEL=1");await pg.add_init_script(path=sys.argv[1])
+        await pg.goto("data:text/html,<script>window.n=0;(function f(){n++;requestAnimationFrame(f)})()</script>")
+        await pg.wait_for_timeout(400)
+        r=await pg.evaluate(JS)
+        await pg.wait_for_timeout(300);r['n2']=await pg.evaluate("()=>n")
+        print('R'+json.dumps(r));await nav.close()
+asyncio.run(m())
+"""
+    out = run(sys.executable, '-c', code, os.path.join(OC, 'horloge.js'), timeout=60)
+    r = json.loads(out.split('R', 1)[1])
+    if r['reel'] < 5:
+        raise RuntimeError('mode réel : pas d\'images toutes seules au chargement : ' + json.dumps(r))
+    if r['images'] != 3 or not r['boucle']:
+        raise RuntimeError('mode coulant : ' + json.dumps(r))
+    if abs(r['ecart'] - 30) > 0.5:
+        raise RuntimeError('images coulantes pas à t+pas (attendu 30 ms) : ' + json.dumps(r))
+    if r['n2'] != r['n1']:
+        raise RuntimeError('refigé : des images tournent encore toutes seules : ' + json.dumps(r))
+
+
 @controle('bureau.py : état, json, page')
 def _():
     run(sys.executable, 'bureau/outils/bureau.py')

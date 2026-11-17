@@ -5,3 +5,4 @@
 - 2026-11-17 12:11 · testkit.js v6 (commun) : stats() écarte toutes les images > 1000 ms ; si une scène n'a que des images lentes, le banc renvoie fps/pire undefined — justement sur l'appareil le plus lent (vu au banc en rendu logiciel) → corrigé le 17/11 (équipe Outils, testkit v7)
 - 2026-11-17 16:36 · parcours/scen/monkey servent jeu/ (sources) et non la page construite ; monkey.py plante si une fenêtre reste ouverte (#bTest intercepté) ; parcours.py sauvegarde pendant le tour de l'IA
 - 2026-11-17 17:45 · parcours.py : ~2 min par jour de jeu en rendu logiciel même en Économie ; prévoir une option ?v3d=0 pour les robots
+- 2026-11-17 21:54 · parcours.py : pas d'option V3D (monkey.py l'a) ; en 3D logiciel 6 jours dépassent 10 min, le testeur a dû le copier pour forcer v3d=0

@@ -1,0 +1,40 @@
+{
+ "jeu": "cage-et-gloire",
+ "_note": "Banc commun 17/11 (service fluidité) : python3 outils-communs/banc.py cage-et-gloire/outils/banc.json --cpu 4",
+ "fichier": "/home/claude/banc/cg.html",
+ "construire": "cd cage-et-gloire && npm i --silent >/dev/null 2>&1; python3 jeu/build.py /home/claude/banc/cg.html",
+ "stockage": {
+  "cg-qual": "1"
+ },
+ "appareils": {
+  "ordinateur": {
+   "largeur": 1280,
+   "hauteur": 800,
+   "cpu": 1
+  }
+ },
+ "preparation": "reelle",
+ "pret": "typeof Arene!=='undefined'&&typeof ORGS!=='undefined'",
+ "pret_ms": 3000,
+ "images": 20,
+ "budget_ms": 8000,
+ "entree": "document.getElementById('accueil').classList.add('cache');const O=ORGS[4];const mk=i=>({id:'p'+i,sexe:'H',div:'mm',app:{peau:[1,4][i],chev:[2,0][i],cc:0,short:['#c1121f','#1d4ed8'][i],gant:'#111'}});Arene.preparer(O,[mk(0),mk(1)]);Arene.demarrer();",
+ "entree_ms": 4000,
+ "scenes": [
+  {
+   "nom": "arene_large",
+   "js": "Arene.ST.pos='S';Arene.ST.dist=1.5;Arene.placer(true);Arene.cam('large');",
+   "attente_ms": 1500
+  },
+  {
+   "nom": "echanges",
+   "js": "Arene.cam('serre');for(let i=0;i<4;i++)Arene.action({k:['jab','cross','hook','lowkick'][i],a:i%2,h:1,z:'tete',pos:'S'});",
+   "attente_ms": 1500
+  },
+  {
+   "nom": "sol",
+   "js": "Arene.action({k:'td',a:0,h:1,pos:'G0'});Arene.action({k:'gnp',a:0,h:1,pos:'G0'});",
+   "attente_ms": 1500
+  }
+ ]
+}

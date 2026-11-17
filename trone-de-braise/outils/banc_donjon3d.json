@@ -1,0 +1,96 @@
+{
+ "jeu": "trone-de-braise-donjon3d",
+ "_note": "Donjon 3D du Trône de Braise (moteur Valdragon) : mêmes scènes que le banc 🧪 du jeu (runBench, donjon3d/src/ui3.js) : expédition crypte niveau 6 (étages 5-6, PONT3D.configExpedition), explo et combat étage 5, boss étage 6 (dernier), qualités Économie/Normale/Haute (noms 'haute explo 5'…). Qualité fixée par G3.setLevel PUIS startFloor (comme le banc du jeu). vd_q2=1 : la page démarre en Normale, comme le Mac de Victor (gpuFaible) ; 'haute explo 5' est donc la 1re scène Haute de sa page (programmes Haute pas encore compilés), 'haute explo 5 bis' = même scène en régime établi. Une page par qualité + une pour le boss (on ne quitte pas un combat de l'extérieur). infos = appels/triangles/programmes d'une image complète (composer). Ex. : python3 outils-communs/banc.py trone-de-braise/outils/banc_donjon3d.json --construire --cpu 4 ; avant/après : --avant HEAD. Construire demande three + esbuild : ln -s /home/claude/t3d/node_modules trone-de-braise/donjon3d/src/node_modules (npm ci dans /home/claude/t3d avec donjon3d/src/package*.json).",
+ "dossier": "trone-de-braise",
+ "page": "build/donjon3d.html",
+ "construire": "python3 trone-de-braise/donjon3d/build.py",
+ "appareils": {
+  "ordinateur": {
+   "largeur": 560,
+   "hauteur": 350,
+   "cpu": 1,
+   "dpr": 1
+  }
+ },
+ "stockage": {
+  "vd_q2": "1",
+  "vd_mute": "1"
+ },
+ "init": "window.__noAutoQ=1;",
+ "preparation": "reelle",
+ "pret": "window.__expe&&window.G3&&G3.isReady()",
+ "pret_ms": 1000,
+ "entree": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};await new Promise((ok,ko)=>{const s=document.createElement('script');s.src='../donjon3d/pont.js';s.onload=ok;s.onerror=ko;document.head.appendChild(s);});let s=7;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};const c=PONT3D.configExpedition({heros:{classe:'chevalier',nom:'Banc',niveau:6,equip:{}},type:'crypte',niveau:6,etages:3,muet:true});c.muet=true;window.__expe.debut(c);await w(3000);for(let i=0;i<6;i++){SK();await w(300);}}",
+ "entree_ms": 500,
+ "images": 40,
+ "budget_ms": 20000,
+ "scenes": [
+  {
+   "nom": "eco explo 5",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(0);let s=4247;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4247);VD.startFloor(5);VD.E.length=0;const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await w(3000);SK();await w(300);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()",
+   "seule": true
+  },
+  {
+   "nom": "eco combat 5",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(0);let s=4247;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4247);VD.startFloor(5);const k=VD.E.find(e=>!e.boss);VD.E.length=0;VD.E.push(k);VD.P.x=k.x;VD.P.y=k.y+(k.boss?1:.4);for(let i=0;i<30;i++){await w(200);SK();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await w(1200);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()"
+  },
+  {
+   "nom": "eco boss 6",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(0);let s=4248;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4248);VD.startFloor(6);const k=VD.E.find(e=>e.boss);VD.E.length=0;VD.E.push(k);VD.P.x=k.x;VD.P.y=k.y+(k.boss?1:.4);for(let i=0;i<30;i++){await w(200);SK();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await w(1200);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()",
+   "seule": true
+  },
+  {
+   "nom": "normale explo 5",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(1);let s=4247;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4247);VD.startFloor(5);VD.E.length=0;const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await w(3000);SK();await w(300);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()",
+   "seule": true
+  },
+  {
+   "nom": "normale combat 5",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(1);let s=4247;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4247);VD.startFloor(5);const k=VD.E.find(e=>!e.boss);VD.E.length=0;VD.E.push(k);VD.P.x=k.x;VD.P.y=k.y+(k.boss?1:.4);for(let i=0;i<30;i++){await w(200);SK();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await w(1200);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()"
+  },
+  {
+   "nom": "normale boss 6",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(1);let s=4248;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4248);VD.startFloor(6);const k=VD.E.find(e=>e.boss);VD.E.length=0;VD.E.push(k);VD.P.x=k.x;VD.P.y=k.y+(k.boss?1:.4);for(let i=0;i<30;i++){await w(200);SK();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await w(1200);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()",
+   "seule": true
+  },
+  {
+   "nom": "haute explo 5",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(2);let s=4247;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4247);VD.startFloor(5);VD.E.length=0;const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await w(3000);SK();await w(300);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()",
+   "seule": true
+  },
+  {
+   "nom": "haute explo 5 bis",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(2);let s=4247;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4247);VD.startFloor(5);VD.E.length=0;const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await w(3000);SK();await w(300);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()",
+   "seule": false
+  },
+  {
+   "nom": "haute combat 5",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(2);let s=4247;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4247);VD.startFloor(5);const k=VD.E.find(e=>!e.boss);VD.E.length=0;VD.E.push(k);VD.P.x=k.x;VD.P.y=k.y+(k.boss?1:.4);for(let i=0;i<30;i++){await w(200);SK();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await w(1200);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()"
+  },
+  {
+   "nom": "haute boss 6",
+   "js": "async()=>{const w=ms=>new Promise(r=>setTimeout(r,ms));const SK=()=>{const s=document.getElementById('story'),k=s&&s.querySelector('.sskip');if(k&&s.style.display==='block')k.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));};G3.setLevel(2);let s=4248;Math.random=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};VD.newGame(VD.P,4248);VD.startFloor(6);const k=VD.E.find(e=>e.boss);VD.E.length=0;VD.E.push(k);VD.P.x=k.x;VD.P.y=k.y+(k.boss?1:.4);for(let i=0;i<30;i++){await w(200);SK();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await w(1200);SK();}",
+   "attente_ms": 300,
+   "infos": "(()=>{const d=G3._d(),r=d.renderer.info;r.autoReset=false;r.reset();d.composer.render(.016);const o={niveau:G3.level,mode:G3.mode,appels:r.render.calls,triangles:r.render.triangles,programmes:r.programs.length,textures:r.memory.textures,geometries:r.memory.geometries};r.autoReset=true;return o})()",
+   "seule": true
+  }
+ ]
+}

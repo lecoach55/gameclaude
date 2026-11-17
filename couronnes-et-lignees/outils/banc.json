@@ -1,0 +1,29 @@
+{
+ "jeu": "couronnes-et-lignees",
+ "_note": "Banc commun 17/11 (service fluidité) : python3 outils-communs/banc.py couronnes-et-lignees/outils/banc.json --cpu 4",
+ "fichier": "couronnes-et-lignees/jeu/index.html",
+ "construire": "cd couronnes-et-lignees/jeu && python3 build.py",
+ "stockage": {
+  "cl_guide": "1",
+  "cl_3d": "1",
+  "cl_sound": "{\"sfx\":false,\"music\":false}"
+ },
+ "graine": 1234,
+ "preparation": "reelle",
+ "pret": "typeof startTest==='function'",
+ "pret_ms": 1500,
+ "images": 20,
+ "budget_ms": 8000,
+ "entree": "startTest();document.querySelectorAll('div[style*=\"9999\"]').forEach(e=>e.remove());for(let i=0;i<12;i++){D.playTurn(S,'attendre');if(S.event)D.resolveEvent(S,0);}S.event=null;D.autoCouncil(S);render();",
+ "entree_ms": 1500,
+ "scenes": [
+  {
+   "nom": "royaume",
+   "attente_ms": 2000
+  }
+ ],
+ "chronos": {
+  "render_ms": "render()",
+  "tour_ms": "D.playTurn(S,'attendre');if(S.event)D.resolveEvent(S,0);S.event=null;"
+ }
+}

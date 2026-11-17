@@ -1,0 +1,31 @@
+{
+ "jeu": "wallstreet",
+ "_note": "Banc commun 17/11 (service fluidité) : python3 outils-communs/banc.py wallstreet/outils/banc.json --cpu 4",
+ "fichier": "/home/claude/banc/bourse6.html",
+ "construire": "sh wallstreet/jeu/build.sh /home/claude/banc/bourse6.html",
+ "stockage": {
+  "wallst-tuto": "1",
+  "wallst-sound": "0"
+ },
+ "graine": 7,
+ "preparation": "reelle",
+ "pret": "window.__wst&&window.__wst.G",
+ "pret_ms": 800,
+ "images": 30,
+ "entree": "const b=document.getElementById('sGo');if(b)b.click();",
+ "entree_ms": 800,
+ "scenes": [
+  {
+   "nom": "seance",
+   "attente_ms": 800
+  },
+  {
+   "nom": "apres_30j",
+   "js": "window.__wst.step(30)",
+   "attente_ms": 800
+  }
+ ],
+ "chronos": {
+  "jour_ms": "window.__wst.step(1)"
+ }
+}

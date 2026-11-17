@@ -1,0 +1,21 @@
+{
+ "jeu": "president-de-club",
+ "_note": "Banc commun 17/11 (service fluidité) : python3 outils-communs/banc.py president-de-club/outils/banc.json --cpu 4",
+ "fichier": "president-de-club/jeu/index.html",
+ "graine": 7,
+ "preparation": "reelle",
+ "pret_ms": 1000,
+ "images": 30,
+ "entree": "A.create();",
+ "entree_ms": 800,
+ "scenes": [
+  {
+   "nom": "tableau",
+   "attente_ms": 800
+  }
+ ],
+ "chronos": {
+  "semaine_ms": "UI.modalOpen=false;S.autoReport=true;A.play();"
+ },
+ "pret": "typeof S!=='undefined'&&typeof A!=='undefined'"
+}

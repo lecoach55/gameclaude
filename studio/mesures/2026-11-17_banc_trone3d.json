@@ -1,0 +1,237 @@
+{
+ "jeu": "trone-de-braise-donjon3d",
+ "date": "2026-11-17T14:01:16",
+ "plafond": false,
+ "tours": 1,
+ "cpu": "4",
+ "duree_s": 1275,
+ "appareils": {
+  "ordinateur": {
+   "scenes": {
+    "eco explo 5": {
+     "fps": 1.5,
+     "bas1": 0.7,
+     "pire": 1378.6,
+     "ms": 664.1,
+     "med": 555.9,
+     "p95": 1340.6,
+     "n": 31,
+     "bruit": null,
+     "valeurs": [
+      664.103
+     ],
+     "infos": {
+      "niveau": 0,
+      "mode": "explo",
+      "appels": 91,
+      "triangles": 58943,
+      "programmes": 53,
+      "textures": 62,
+      "geometries": 61
+     }
+    },
+    "eco combat 5": {
+     "fps": 2.6,
+     "bas1": 1.8,
+     "pire": 542.5,
+     "ms": 391.79,
+     "med": 387.8,
+     "p95": 464.8,
+     "n": 40,
+     "bruit": null,
+     "valeurs": [
+      391.785
+     ],
+     "infos": {
+      "niveau": 0,
+      "mode": "battle",
+      "appels": 71,
+      "triangles": 58067,
+      "programmes": 63,
+      "textures": 70,
+      "geometries": 81
+     }
+    },
+    "eco boss 6": {
+     "fps": 1,
+     "bas1": 0.7,
+     "pire": 1495.7,
+     "ms": 955.18,
+     "med": 963.2,
+     "p95": 1233.7,
+     "n": 22,
+     "bruit": null,
+     "valeurs": [
+      955.182
+     ],
+     "infos": {
+      "niveau": 0,
+      "mode": "battle",
+      "appels": 58,
+      "triangles": 48364,
+      "programmes": 63,
+      "textures": 52,
+      "geometries": 62
+     }
+    },
+    "normale explo 5": {
+     "fps": 0.7,
+     "bas1": 0.5,
+     "pire": 2145.5,
+     "ms": 1487.2,
+     "med": 1636.1,
+     "p95": 2145.5,
+     "n": 14,
+     "bruit": null,
+     "valeurs": [
+      1487.2
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "explo",
+      "appels": 91,
+      "triangles": 56742,
+      "programmes": 54,
+      "textures": 59,
+      "geometries": 61
+     }
+    },
+    "normale combat 5": {
+     "fps": 0.6,
+     "bas1": 0.4,
+     "pire": 2258.7,
+     "ms": 1704.87,
+     "med": 1843.3,
+     "p95": 2258.7,
+     "n": 12,
+     "bruit": null,
+     "valeurs": [
+      1704.867
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "battle",
+      "appels": 72,
+      "triangles": 58068,
+      "programmes": 64,
+      "textures": 67,
+      "geometries": 82
+     }
+    },
+    "normale boss 6": {
+     "fps": 0.8,
+     "bas1": 0.5,
+     "pire": 1867.3,
+     "ms": 1315.53,
+     "med": 1410.7,
+     "p95": 1867.3,
+     "n": 16,
+     "bruit": null,
+     "valeurs": [
+      1315.531
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "battle",
+      "appels": 59,
+      "triangles": 48365,
+      "programmes": 64,
+      "textures": 52,
+      "geometries": 63
+     }
+    },
+    "haute explo 5": {
+     "fps": 0.4,
+     "bas1": 0.3,
+     "pire": 3137.1,
+     "ms": 2252.69,
+     "med": 2196.1,
+     "p95": 3137.1,
+     "n": 9,
+     "bruit": null,
+     "valeurs": [
+      2252.689
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "explo",
+      "appels": 141,
+      "triangles": 105240,
+      "programmes": 87,
+      "textures": 70,
+      "geometries": 61
+     }
+    },
+    "haute explo 5 bis": {
+     "fps": 0.4,
+     "bas1": 0.3,
+     "pire": 2933.1,
+     "ms": 2630.89,
+     "med": 2853.3,
+     "p95": 2933.1,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      2630.888
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "explo",
+      "appels": 143,
+      "triangles": 107444,
+      "programmes": 87,
+      "textures": 73,
+      "geometries": 60
+     }
+    },
+    "haute combat 5": {
+     "fps": 0.3,
+     "bas1": 0.2,
+     "pire": 4265.6,
+     "ms": 3071.28,
+     "med": 3178.1,
+     "p95": 4265.6,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      3071.275
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "battle",
+      "appels": 105,
+      "triangles": 107885,
+      "programmes": 97,
+      "textures": 81,
+      "geometries": 82
+     }
+    },
+    "haute boss 6": {
+     "fps": 0.3,
+     "bas1": 0.2,
+     "pire": 4911.7,
+     "ms": 3430.88,
+     "med": 4120.8,
+     "p95": 4911.7,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      3430.875
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "battle",
+      "appels": 85,
+      "triangles": 88771,
+      "programmes": 82,
+      "textures": 63,
+      "geometries": 63
+     }
+    }
+   },
+   "chronos": {},
+   "chargement_ms": 12503,
+   "erreurs": []
+  }
+ }
+}

@@ -1,0 +1,710 @@
+{
+ "service": "banc commun de fluidité",
+ "date": "2026-11-17",
+ "outil": "outils-communs/banc.py (temps figé, coût réel par image GPU compris)",
+ "cpu": 4,
+ "rendu": "logiciel (SwiftShader) : valeurs RELATIVES, ne pas lire comme des img/s du Mac",
+ "note": "valdragon et trone3d mesurés pendant que l'autre tournait (2 cœurs, charge 5-12) : écarts de 1,5-2× possibles ; rapport studio/rapports/2026-11-17_fluidite.md",
+ "jeux": {
+  "valdragon": {
+   "reglages": "valdragon/outils/banc.json",
+   "appareils": {
+    "ordinateur": {
+     "scenes": {
+      "normale explo 2": {
+       "ms": 4772.69,
+       "pire": 6307.9,
+       "p95": 6307.9,
+       "n": 8,
+       "infos": {
+        "niveau": 1,
+        "mode": "explo",
+        "appels": 84,
+        "triangles": 66047,
+        "programmes": 94,
+        "textures": 70,
+        "geometries": 66
+       }
+      },
+      "normale explo 6": {
+       "ms": 3676.07,
+       "pire": 5873.8,
+       "p95": 5873.8,
+       "n": 8,
+       "infos": {
+        "niveau": 1,
+        "mode": "explo",
+        "appels": 80,
+        "triangles": 70923,
+        "programmes": 97,
+        "textures": 77,
+        "geometries": 82
+       }
+      },
+      "normale explo 10": {
+       "ms": 3438.51,
+       "pire": 5347,
+       "p95": 5347,
+       "n": 8,
+       "infos": {
+        "niveau": 1,
+        "mode": "explo",
+        "appels": 72,
+        "triangles": 64745,
+        "programmes": 97,
+        "textures": 88,
+        "geometries": 73
+       }
+      },
+      "normale explo 14": {
+       "ms": 2334.34,
+       "pire": 3657.2,
+       "p95": 3657.2,
+       "n": 8,
+       "infos": {
+        "niveau": 1,
+        "mode": "explo",
+        "appels": 83,
+        "triangles": 63472,
+        "programmes": 99,
+        "textures": 92,
+        "geometries": 80
+       }
+      },
+      "normale combat 6": {
+       "ms": 3443.14,
+       "pire": 5096,
+       "p95": 5096,
+       "n": 8,
+       "infos": {
+        "niveau": 1,
+        "mode": "battle",
+        "appels": 131,
+        "triangles": 82857,
+        "programmes": 114,
+        "textures": 97,
+        "geometries": 130
+       }
+      },
+      "normale boss 8": {
+       "ms": 1767.3,
+       "pire": 1939.5,
+       "p95": 1939.5,
+       "n": 8,
+       "infos": {
+        "niveau": 1,
+        "mode": "battle",
+        "appels": 137,
+        "triangles": 87875,
+        "programmes": 108,
+        "textures": 83,
+        "geometries": 120
+       }
+      },
+      "haute explo 2": {
+       "ms": 3115.55,
+       "pire": 3356.6,
+       "p95": 3356.6,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "explo",
+        "appels": 134,
+        "triangles": 125022,
+        "programmes": 66,
+        "textures": 73,
+        "geometries": 65
+       }
+      },
+      "haute explo 6": {
+       "ms": 2560.06,
+       "pire": 2754,
+       "p95": 2754,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "explo",
+        "appels": 134,
+        "triangles": 136676,
+        "programmes": 69,
+        "textures": 85,
+        "geometries": 83
+       }
+      },
+      "haute explo 10": {
+       "ms": 2372.25,
+       "pire": 2553.1,
+       "p95": 2553.1,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "explo",
+        "appels": 115,
+        "triangles": 120591,
+        "programmes": 69,
+        "textures": 96,
+        "geometries": 72
+       }
+      },
+      "haute explo 14": {
+       "ms": 2382.51,
+       "pire": 2505.7,
+       "p95": 2505.7,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "explo",
+        "appels": 136,
+        "triangles": 122806,
+        "programmes": 71,
+        "textures": 100,
+        "geometries": 79
+       }
+      },
+      "haute combat 6": {
+       "ms": 2777.18,
+       "pire": 2907.2,
+       "p95": 2907.2,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "battle",
+        "appels": 159,
+        "triangles": 131175,
+        "programmes": 85,
+        "textures": 105,
+        "geometries": 129
+       }
+      },
+      "haute boss 8": {
+       "ms": 3072.72,
+       "pire": 3333.9,
+       "p95": 3333.9,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "battle",
+        "appels": 178,
+        "triangles": 134607,
+        "programmes": 88,
+        "textures": 90,
+        "geometries": 112
+       }
+      }
+     },
+     "chronos": {},
+     "chargement_ms": 38081,
+     "erreurs": []
+    }
+   }
+  },
+  "trone3d": {
+   "reglages": "trone-de-braise/outils/banc_donjon3d.json",
+   "appareils": {
+    "ordinateur": {
+     "scenes": {
+      "eco explo 5": {
+       "ms": 664.1,
+       "pire": 1378.6,
+       "p95": 1340.6,
+       "n": 31,
+       "infos": {
+        "niveau": 0,
+        "mode": "explo",
+        "appels": 91,
+        "triangles": 58943,
+        "programmes": 53,
+        "textures": 62,
+        "geometries": 61
+       }
+      },
+      "eco combat 5": {
+       "ms": 391.79,
+       "pire": 542.5,
+       "p95": 464.8,
+       "n": 40,
+       "infos": {
+        "niveau": 0,
+        "mode": "battle",
+        "appels": 71,
+        "triangles": 58067,
+        "programmes": 63,
+        "textures": 70,
+        "geometries": 81
+       }
+      },
+      "eco boss 6": {
+       "ms": 955.18,
+       "pire": 1495.7,
+       "p95": 1233.7,
+       "n": 22,
+       "infos": {
+        "niveau": 0,
+        "mode": "battle",
+        "appels": 58,
+        "triangles": 48364,
+        "programmes": 63,
+        "textures": 52,
+        "geometries": 62
+       }
+      },
+      "normale explo 5": {
+       "ms": 1487.2,
+       "pire": 2145.5,
+       "p95": 2145.5,
+       "n": 14,
+       "infos": {
+        "niveau": 1,
+        "mode": "explo",
+        "appels": 91,
+        "triangles": 56742,
+        "programmes": 54,
+        "textures": 59,
+        "geometries": 61
+       }
+      },
+      "normale combat 5": {
+       "ms": 1704.87,
+       "pire": 2258.7,
+       "p95": 2258.7,
+       "n": 12,
+       "infos": {
+        "niveau": 1,
+        "mode": "battle",
+        "appels": 72,
+        "triangles": 58068,
+        "programmes": 64,
+        "textures": 67,
+        "geometries": 82
+       }
+      },
+      "normale boss 6": {
+       "ms": 1315.53,
+       "pire": 1867.3,
+       "p95": 1867.3,
+       "n": 16,
+       "infos": {
+        "niveau": 1,
+        "mode": "battle",
+        "appels": 59,
+        "triangles": 48365,
+        "programmes": 64,
+        "textures": 52,
+        "geometries": 63
+       }
+      },
+      "haute explo 5": {
+       "ms": 2252.69,
+       "pire": 3137.1,
+       "p95": 3137.1,
+       "n": 9,
+       "infos": {
+        "niveau": 2,
+        "mode": "explo",
+        "appels": 141,
+        "triangles": 105240,
+        "programmes": 87,
+        "textures": 70,
+        "geometries": 61
+       }
+      },
+      "haute explo 5 bis": {
+       "ms": 2630.89,
+       "pire": 2933.1,
+       "p95": 2933.1,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "explo",
+        "appels": 143,
+        "triangles": 107444,
+        "programmes": 87,
+        "textures": 73,
+        "geometries": 60
+       }
+      },
+      "haute combat 5": {
+       "ms": 3071.28,
+       "pire": 4265.6,
+       "p95": 4265.6,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "battle",
+        "appels": 105,
+        "triangles": 107885,
+        "programmes": 97,
+        "textures": 81,
+        "geometries": 82
+       }
+      },
+      "haute boss 6": {
+       "ms": 3430.88,
+       "pire": 4911.7,
+       "p95": 4911.7,
+       "n": 8,
+       "infos": {
+        "niveau": 2,
+        "mode": "battle",
+        "appels": 85,
+        "triangles": 88771,
+        "programmes": 82,
+        "textures": 63,
+        "geometries": 63
+       }
+      }
+     },
+     "chronos": {},
+     "chargement_ms": 12503,
+     "erreurs": []
+    }
+   }
+  },
+  "hameau": {
+   "reglages": "hameau/outils/banc.json",
+   "appareils": {
+    "ordinateur": {
+     "scenes": {
+      "village_jour": {
+       "ms": 4272.93,
+       "pire": 4718.6,
+       "p95": 4718.6,
+       "n": 8,
+       "infos": {
+        "appels": 382,
+        "triangles": 933760,
+        "programmes": 38
+       }
+      },
+      "hiver": {
+       "ms": 4197.73,
+       "pire": 4355.8,
+       "p95": 4355.8,
+       "n": 8,
+       "infos": {
+        "appels": 377,
+        "triangles": 909956,
+        "programmes": 38
+       }
+      },
+      "vue_large": {
+       "ms": 5227.99,
+       "pire": 5510.6,
+       "p95": 5510.6,
+       "n": 8,
+       "infos": {
+        "appels": 562,
+        "triangles": 944178,
+        "programmes": 38
+       }
+      },
+      "pluie": {
+       "ms": 4564.14,
+       "pire": 4887.3,
+       "p95": 4887.3,
+       "n": 8,
+       "infos": {
+        "appels": 305,
+        "triangles": 910084,
+        "programmes": 38
+       }
+      },
+      "lac": {
+       "ms": 3510.71,
+       "pire": 3992.2,
+       "p95": 3992.2,
+       "n": 8,
+       "infos": {
+        "appels": 163,
+        "triangles": 853114,
+        "programmes": 38
+       }
+      }
+     },
+     "chronos": {},
+     "chargement_ms": 28023,
+     "erreurs": []
+    }
+   }
+  },
+  "bannieres": {
+   "reglages": "bannieres/outils/banc.json",
+   "appareils": {
+    "ordinateur": {
+     "scenes": {
+      "carte": {
+       "ms": 2191.76,
+       "pire": 4510.1,
+       "p95": 4510.1,
+       "n": 8,
+       "infos": {
+        "calls": 204,
+        "tris": 136256,
+        "geo": 100,
+        "tex": 38
+       }
+      },
+      "carte_dezoom_tout_vu": {
+       "ms": 2327.2,
+       "pire": 4763,
+       "p95": 4763,
+       "n": 8,
+       "infos": {
+        "calls": 580,
+        "tris": 171254,
+        "geo": 457,
+        "tex": 49
+       }
+      },
+      "combat": {
+       "ms": 16.15,
+       "pire": 31.7,
+       "p95": 23.9,
+       "n": 120
+      },
+      "ville": {
+       "ms": 3.07,
+       "pire": 20.5,
+       "p95": 6,
+       "n": 120
+      }
+     },
+     "chronos": {},
+     "chargement_ms": 6924,
+     "erreurs": []
+    }
+   }
+  },
+  "cage-et-gloire": {
+   "reglages": "cage-et-gloire/outils/banc.json",
+   "appareils": {
+    "ordinateur": {
+     "scenes": {
+      "arene_large": {
+       "ms": 354.0,
+       "pire": 443.9,
+       "p95": 443.9,
+       "n": 20
+      },
+      "echanges": {
+       "ms": 402.35,
+       "pire": 493.6,
+       "p95": 493.6,
+       "n": 20
+      },
+      "sol": {
+       "ms": 337.11,
+       "pire": 441.7,
+       "p95": 441.7,
+       "n": 20
+      }
+     },
+     "chronos": {},
+     "chargement_ms": 5910,
+     "erreurs": []
+    }
+   }
+  },
+  "une-vie": {
+   "reglages": "une-vie/outils/banc.json",
+   "appareils": {
+    "telephone": {
+     "scenes": {
+      "rural0": {
+       "ms": 132.28,
+       "pire": 229.6,
+       "p95": 229.6,
+       "n": 20
+      },
+      "villa4": {
+       "ms": 188.25,
+       "pire": 271.3,
+       "p95": 271.3,
+       "n": 20
+      },
+      "hiver": {
+       "ms": 181.37,
+       "pire": 228.9,
+       "p95": 228.9,
+       "n": 20
+      }
+     },
+     "chronos": {},
+     "chargement_ms": 661,
+     "erreurs": []
+    }
+   }
+  },
+  "trone-de-braise": {
+   "reglages": "trone-de-braise/outils/banc.json",
+   "appareils": {
+    "ordinateur": {
+     "scenes": {
+      "carte": {
+       "ms": 0.1,
+       "pire": 1.8,
+       "p95": 0.8,
+       "n": 120
+      },
+      "donjon_combat": {
+       "ms": 40.68,
+       "pire": 74.2,
+       "p95": 59.6,
+       "n": 120,
+       "infos": {
+        "entites": 58
+       }
+      },
+      "boss": {
+       "ms": 39.57,
+       "pire": 73.7,
+       "p95": 53.3,
+       "n": 120,
+       "infos": {
+        "entites": 65
+       }
+      }
+     },
+     "chronos": {},
+     "chargement_ms": 840,
+     "erreurs": []
+    }
+   }
+  },
+  "sedes-petri": {
+   "reglages": "sedes-petri/outils/banc.json",
+   "appareils": {
+    "telephone": {
+     "scenes": {
+      "carte": {
+       "ms": 0.2,
+       "pire": 2.6,
+       "p95": 1.4,
+       "n": 30
+      }
+     },
+     "chronos": {
+      "renderAll_ms": 121.94,
+      "saison_ms": 6.23
+     },
+     "chargement_ms": 668,
+     "erreurs": []
+    }
+   }
+  },
+  "president-de-club": {
+   "reglages": "president-de-club/outils/banc.json",
+   "appareils": {
+    "telephone": {
+     "scenes": {
+      "tableau": {
+       "ms": 0.02,
+       "pire": 0.5,
+       "p95": 0,
+       "n": 30
+      }
+     },
+     "chronos": {
+      "semaine_ms": 62.3
+     },
+     "chargement_ms": 574,
+     "erreurs": []
+    }
+   }
+  },
+  "wallstreet": {
+   "reglages": "wallstreet/outils/banc.json",
+   "appareils": {
+    "telephone": {
+     "scenes": {
+      "seance": {
+       "ms": 2.01,
+       "pire": 7.2,
+       "p95": 4.6,
+       "n": 30
+      },
+      "apres_30j": {
+       "ms": 1.47,
+       "pire": 5.9,
+       "p95": 5.5,
+       "n": 30
+      }
+     },
+     "chronos": {
+      "jour_ms": 56.77
+     },
+     "chargement_ms": 1351,
+     "erreurs": []
+    }
+   }
+  },
+  "couronnes-et-complots": {
+   "reglages": "couronnes-et-complots/outils/banc.json",
+   "appareils": {
+    "telephone": {
+     "scenes": {
+      "carte": {
+       "ms": 0,
+       "pire": 0,
+       "p95": 0,
+       "n": 30
+      },
+      "carte_zoom": {
+       "ms": 0.0,
+       "pire": 0.1,
+       "p95": 0,
+       "n": 30
+      }
+     },
+     "chronos": {
+      "render_ms": 18.61
+     },
+     "chargement_ms": 2045,
+     "erreurs": []
+    },
+    "ordinateur": {
+     "scenes": {
+      "carte": {
+       "ms": 0,
+       "pire": 0,
+       "p95": 0,
+       "n": 30
+      },
+      "carte_zoom": {
+       "ms": 0.03,
+       "pire": 0.5,
+       "p95": 0.3,
+       "n": 30
+      }
+     },
+     "chronos": {
+      "render_ms": 12.97
+     },
+     "chargement_ms": 2335,
+     "erreurs": []
+    }
+   }
+  },
+  "couronnes-et-lignees": {
+   "reglages": "couronnes-et-lignees/outils/banc.json",
+   "appareils": {
+    "telephone": {
+     "scenes": {
+      "royaume": {
+       "ms": 0.67,
+       "pire": 2,
+       "p95": 2,
+       "n": 20
+      }
+     },
+     "chronos": {
+      "render_ms": 14.67,
+      "tour_ms": 2
+     },
+     "chargement_ms": 3086,
+     "erreurs": []
+    }
+   }
+  }
+ }
+}

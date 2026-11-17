@@ -1,0 +1,281 @@
+{
+ "jeu": "valdragon",
+ "date": "2026-11-17T14:27:05",
+ "plafond": false,
+ "tours": 1,
+ "cpu": "4",
+ "duree_s": 1959,
+ "appareils": {
+  "ordinateur": {
+   "scenes": {
+    "normale explo 2": {
+     "fps": 0.2,
+     "bas1": 0.2,
+     "pire": 6307.9,
+     "ms": 4772.69,
+     "med": 4580,
+     "p95": 6307.9,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      4772.688
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "explo",
+      "appels": 84,
+      "triangles": 66047,
+      "programmes": 94,
+      "textures": 70,
+      "geometries": 66
+     }
+    },
+    "normale explo 6": {
+     "fps": 0.3,
+     "bas1": 0.2,
+     "pire": 5873.8,
+     "ms": 3676.07,
+     "med": 3980.7,
+     "p95": 5873.8,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      3676.075
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "explo",
+      "appels": 80,
+      "triangles": 70923,
+      "programmes": 97,
+      "textures": 77,
+      "geometries": 82
+     }
+    },
+    "normale explo 10": {
+     "fps": 0.3,
+     "bas1": 0.2,
+     "pire": 5347,
+     "ms": 3438.51,
+     "med": 3474.9,
+     "p95": 5347,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      3438.513
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "explo",
+      "appels": 72,
+      "triangles": 64745,
+      "programmes": 97,
+      "textures": 88,
+      "geometries": 73
+     }
+    },
+    "normale explo 14": {
+     "fps": 0.4,
+     "bas1": 0.3,
+     "pire": 3657.2,
+     "ms": 2334.34,
+     "med": 1969.5,
+     "p95": 3657.2,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      2334.337
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "explo",
+      "appels": 83,
+      "triangles": 63472,
+      "programmes": 99,
+      "textures": 92,
+      "geometries": 80
+     }
+    },
+    "normale combat 6": {
+     "fps": 0.3,
+     "bas1": 0.2,
+     "pire": 5096,
+     "ms": 3443.14,
+     "med": 4450.3,
+     "p95": 5096,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      3443.138
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "battle",
+      "appels": 131,
+      "triangles": 82857,
+      "programmes": 114,
+      "textures": 97,
+      "geometries": 130
+     }
+    },
+    "normale boss 8": {
+     "fps": 0.6,
+     "bas1": 0.5,
+     "pire": 1939.5,
+     "ms": 1767.3,
+     "med": 1780.6,
+     "p95": 1939.5,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      1767.3
+     ],
+     "infos": {
+      "niveau": 1,
+      "mode": "battle",
+      "appels": 137,
+      "triangles": 87875,
+      "programmes": 108,
+      "textures": 83,
+      "geometries": 120
+     }
+    },
+    "haute explo 2": {
+     "fps": 0.3,
+     "bas1": 0.3,
+     "pire": 3356.6,
+     "ms": 3115.55,
+     "med": 3094.5,
+     "p95": 3356.6,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      3115.55
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "explo",
+      "appels": 134,
+      "triangles": 125022,
+      "programmes": 66,
+      "textures": 73,
+      "geometries": 65
+     }
+    },
+    "haute explo 6": {
+     "fps": 0.4,
+     "bas1": 0.4,
+     "pire": 2754,
+     "ms": 2560.06,
+     "med": 2565.1,
+     "p95": 2754,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      2560.063
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "explo",
+      "appels": 134,
+      "triangles": 136676,
+      "programmes": 69,
+      "textures": 85,
+      "geometries": 83
+     }
+    },
+    "haute explo 10": {
+     "fps": 0.4,
+     "bas1": 0.4,
+     "pire": 2553.1,
+     "ms": 2372.25,
+     "med": 2384.3,
+     "p95": 2553.1,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      2372.25
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "explo",
+      "appels": 115,
+      "triangles": 120591,
+      "programmes": 69,
+      "textures": 96,
+      "geometries": 72
+     }
+    },
+    "haute explo 14": {
+     "fps": 0.4,
+     "bas1": 0.4,
+     "pire": 2505.7,
+     "ms": 2382.51,
+     "med": 2386.5,
+     "p95": 2505.7,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      2382.513
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "explo",
+      "appels": 136,
+      "triangles": 122806,
+      "programmes": 71,
+      "textures": 100,
+      "geometries": 79
+     }
+    },
+    "haute combat 6": {
+     "fps": 0.4,
+     "bas1": 0.3,
+     "pire": 2907.2,
+     "ms": 2777.18,
+     "med": 2770.5,
+     "p95": 2907.2,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      2777.175
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "battle",
+      "appels": 159,
+      "triangles": 131175,
+      "programmes": 85,
+      "textures": 105,
+      "geometries": 129
+     }
+    },
+    "haute boss 8": {
+     "fps": 0.3,
+     "bas1": 0.3,
+     "pire": 3333.9,
+     "ms": 3072.72,
+     "med": 3075,
+     "p95": 3333.9,
+     "n": 8,
+     "bruit": null,
+     "valeurs": [
+      3072.725
+     ],
+     "infos": {
+      "niveau": 2,
+      "mode": "battle",
+      "appels": 178,
+      "triangles": 134607,
+      "programmes": 88,
+      "textures": 90,
+      "geometries": 112
+     }
+    }
+   },
+   "chronos": {},
+   "chargement_ms": 38081,
+   "erreurs": []
+  }
+ }
+}

@@ -1,0 +1,37 @@
+{
+ "jeu": "une-vie",
+ "_note": "Banc commun 17/11 (service fluidité) : python3 outils-communs/banc.py une-vie/outils/banc.json --cpu 4",
+ "dossier": "une-vie/build",
+ "page": "index.html",
+ "construire": "python3 une-vie/jeu/build.py",
+ "stockage": {
+  "vie8m_q": "hd"
+ },
+ "graine": 7,
+ "preparation": "reelle",
+ "pret_ms": 1500,
+ "images": 20,
+ "budget_ms": 8000,
+ "entree": "newLife();start();",
+ "entree_ms": 2000,
+ "scenes": [
+  {
+   "nom": "rural0",
+   "js": "S.c=C.find(c=>c.n==\"Niger\");S.m=8;S.age=30;S.urban=false;S.turnNo=1;theme(S.c.r);hdr()",
+   "attente_ms": 2500,
+   "infos": "window.W3&&W3.info?W3.info():null"
+  },
+  {
+   "nom": "villa4",
+   "js": "S.c=C.find(c=>c.n==\"France\");S.m=95;S.age=50;S.urban=true;S.turnNo=1;theme(S.c.r);hdr()",
+   "attente_ms": 2500,
+   "infos": "window.W3&&W3.info?W3.info():null"
+  },
+  {
+   "nom": "hiver",
+   "js": "S.c=C.find(c=>c.n==\"Allemagne\");S.m=60;S.age=40;S.urban=false;S.turnNo=3;theme(S.c.r);hdr()",
+   "attente_ms": 2500,
+   "infos": "window.W3&&W3.info?W3.info():null"
+  }
+ ]
+}

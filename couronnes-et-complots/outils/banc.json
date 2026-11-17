@@ -1,0 +1,38 @@
+{
+ "jeu": "couronnes-et-complots",
+ "_note": "Banc commun 17/11 (service fluidité) : python3 outils-communs/banc.py couronnes-et-complots/outils/banc.json --cpu 4",
+ "fichier": "couronnes-et-complots/jeu/couronnes-et-complots.html",
+ "construire": "cd couronnes-et-complots/jeu && npm i --silent >/dev/null 2>&1; node build.mjs",
+ "graine": 7,
+ "preparation": "reelle",
+ "pret_ms": 800,
+ "images": 30,
+ "appareils": {
+  "telephone": {
+   "largeur": 390,
+   "hauteur": 780,
+   "cpu": 1
+  },
+  "ordinateur": {
+   "largeur": 1280,
+   "hauteur": 800,
+   "cpu": 1
+  }
+ },
+ "entree": "$('np').value='4';$('np').dispatchEvent(new Event('change'));$('go').click();",
+ "entree_ms": 2500,
+ "scenes": [
+  {
+   "nom": "carte",
+   "attente_ms": 1000
+  },
+  {
+   "nom": "carte_zoom",
+   "js": "vb.w=VB0.w/2.3;vb.x=VB0.x+200;vb.y=VB0.y+120;applyVB();",
+   "attente_ms": 800
+  }
+ ],
+ "chronos": {
+  "render_ms": "render()"
+ }
+}

@@ -6,7 +6,7 @@ var CB=null;
 const SQ=.78; // aplatissement des hexagones (perspective)
 const SQP=.86; // portrait : le champ de bataille est tourné (attaquants en bas, défenseurs en haut)
 function redimCombat(){const cv=$('cvCombat');const d=Math.min(2,devicePixelRatio||1);cv.width=innerWidth*d;cv.height=innerHeight*d;CB.dpr=d;
- const bas=$('combat').querySelector('.barre-combat').offsetHeight||56;const W=innerWidth,H=innerHeight-bas;
+ const bas=$('combat').querySelector('.barre-combat').offsetHeight||56;CB.basH=bas;const W=innerWidth,H=innerHeight-bas;
  if(H>W*1.15){const top=Math.max(70,H*.09);let h=(W-12)/9.5;let w=h/1.1547;if(15.5*w*SQP>H-top-10){w=(H-top-10)/(15.5*SQP);h=w*1.1547;}
   CB.geo={w,h,ox:(W-8.5*h)/2,oy:top+Math.max(0,(H-top-15.5*w*SQP)/2),W,H,port:true};}
  else{const top=H*.25;const w=Math.min((W-16)/(H<520?16.5:15.5),(H-top-8)/(8.5*1.1547*SQ));const h=w*1.1547;CB.geo={w,h,ox:(W-15.5*w)/2,oy:top+Math.max(0,(H-top-8.5*h*SQ)/2)-4,W,H,port:false};}
@@ -22,7 +22,7 @@ function couleurCote(k){const j=CB.C.cotes[k].joueur;return j>=0?COULEURS[G.joue
 
 async function combatInteractif(A,D,opts){const C=creerCombat(A,D,Object.assign({graine:R.i(1,1e9)},opts));
  CB={C,humain:[humain(A.joueur),humain(D.joueur)],auto:!!opts.banc,banc:!!opts.banc,aff:new Map(),fx:[],alpha:new Map(),mode:null,survol:-1,log:[],t0:performance.now(),attente:null,fini:false};
- ecran('combat');redimCombat();SON.musique('combat');majBarreCombat();
+ ecran('combat');redimCombat();SON.musique('combat');majBarreCombat();if(($('combat').querySelector('.barre-combat').offsetHeight||56)!==CB.basH)redimCombat();// la file d'initiative remplie change la hauteur de la barre (téléphone)
  logC(`Combat : ${C.stats[0].nom||'Créatures'} contre ${C.stats[1].nom||(D.monstre?qteTxt(D.monstre.n)+' '+CRE[D.monstre.cre].pl.toLowerCase():'la garnison')}.`);
  while(!C.fin&&!CB.abandon){const p=C.actif;if(!p)break;majBarreCombat();
   let a;if(CB.humain[p.cote]&&!CB.auto){a=await new Promise(r=>CB.attente=r);CB.attente=null;if(CB.abandon)break;}else{await pause(CB.banc?60:260);a=iaCombat(C);}

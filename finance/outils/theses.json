@@ -1,0 +1,125 @@
+{
+  "_lire": "Thèse d'investissement et critères de rupture, ligne par ligne. Aucun montant, aucune donnée personnelle : seulement des faits publics sur les sociétés et les critères décidés avec Victor. Chaque analyse met ce fichier à jour (champ 'maj' + 'suivre').",
+  "lignes": {
+    "Sanofi": {
+      "secteur": "Santé",
+      "these": "Pharma défensive, dividende régulier en hausse, pipeline immunologie (Dupixent) qui porte la croissance.",
+      "rupture": [
+        "Échec ou retrait réglementaire d'un produit majeur du pipeline",
+        "Dividende coupé ou gelé plusieurs années",
+        "Perte d'exclusivité non compensée sur Dupixent"
+      ],
+      "suivre": ["essais cliniques phase III", "guidance annuelle", "litiges Dépakine/Zantac"],
+      "maj": "2026-11-17"
+    },
+    "Thales": {
+      "secteur": "Défense / aéronautique",
+      "these": "Budgets de défense européens en hausse structurelle, carnet de commandes long, activités cyber et avionique.",
+      "rupture": [
+        "Détente géopolitique durable avec baisse des budgets de défense européens",
+        "Prises de commandes en recul deux semestres de suite",
+        "Dérapage majeur sur un grand programme"
+      ],
+      "suivre": ["prises de commandes", "marge EBIT par division", "budgets de défense UE/France"],
+      "maj": "2026-11-17"
+    },
+    "Safran": {
+      "secteur": "Aéronautique",
+      "these": "Duopole des moteurs civils (LEAP), rente des services après-vente qui croît avec les heures de vol.",
+      "rupture": [
+        "Problème technique de série sur le LEAP",
+        "Chute durable du trafic aérien",
+        "Baisse du chiffre d'affaires des services moteurs civils"
+      ],
+      "suivre": ["livraisons LEAP", "croissance des services civils", "guidance annuelle"],
+      "maj": "2026-11-17"
+    },
+    "AXA": {
+      "secteur": "Assurance",
+      "these": "Assureur diversifié, rendement du dividende élevé, taux d'intérêt porteurs pour le placement des primes.",
+      "rupture": [
+        "Ratio combiné durablement au-dessus de 100 %",
+        "Dividende coupé",
+        "Sinistralité climatique non répercutée sur les tarifs"
+      ],
+      "suivre": ["ratio combiné", "ratio de solvabilité II", "politique de dividende"],
+      "maj": "2026-11-17"
+    },
+    "Orange": {
+      "secteur": "Télécoms",
+      "these": "Opérateur à cash-flow stable, dividende plancher, consolidation du marché français favorable aux prix.",
+      "rupture": [
+        "Guerre des prix relancée en France",
+        "Dividende coupé",
+        "Dette nette qui dérape au-delà de la cible de l'entreprise"
+      ],
+      "suivre": ["ARPU France", "cash-flow organique", "consolidation du marché"],
+      "maj": "2026-11-17"
+    },
+    "TotalEnergies": {
+      "secteur": "Énergie",
+      "these": "Cash-flow pétrolier qui finance un dividende élevé et des rachats d'actions, transition vers l'électricité.",
+      "rupture": [
+        "Baril durablement sous le point d'équilibre du dividende",
+        "Dividende ou rachats d'actions coupés",
+        "Investissements de transition destructeurs de valeur"
+      ],
+      "suivre": ["prix du Brent", "cash-flow opérationnel", "rachats d'actions"],
+      "maj": "2026-11-17"
+    },
+    "Heineken": {
+      "secteur": "Consommation",
+      "these": "Marque mondiale, pouvoir de fixation des prix, exposition aux marchés émergents.",
+      "rupture": [
+        "Volumes en baisse plusieurs trimestres sans compensation par les prix",
+        "Marge opérationnelle en recul durable",
+        "Avertissement sur résultats"
+      ],
+      "suivre": ["volumes par région", "marge opérationnelle", "effet de change émergents"],
+      "maj": "2026-11-17"
+    },
+    "NVIDIA": {
+      "secteur": "Technologie",
+      "these": "Position dominante sur les puces d'IA. Ligne la plus volatile du portefeuille ; Victor envisage de la vendre, sans date arrêtée.",
+      "rupture": [
+        "Croissance du chiffre d'affaires centres de données qui ralentit nettement",
+        "Marge brute en recul",
+        "Concurrence qui prend des parts de marché significatives",
+        "Décision de Victor de vendre (motif à clarifier : volatilité, valorisation, ou inéligibilité PEA)"
+      ],
+      "suivre": ["résultats trimestriels", "marge brute", "carnet de commandes centres de données", "candidats de remplacement éligibles PEA"],
+      "maj": "2026-11-17"
+    },
+    "S&P 500": {
+      "secteur": "ETF",
+      "these": "Socle indiciel du CTO : diversification sur les 500 premières capitalisations américaines.",
+      "rupture": ["Aucune : un ETF indiciel ne se vend pas sur l'actualité"],
+      "suivre": ["frais de l'ETF", "concentration des 7 premières valeurs de l'indice"],
+      "maj": "2026-11-17"
+    },
+    "WPEA": {
+      "secteur": "ETF",
+      "these": "Socle du PEA : MSCI World synthétique éligible PEA (IE0002XZSHO1), frais 0,20 %. Dilue la concentration France du CTO.",
+      "rupture": ["Aucune : un ETF indiciel ne se vend pas sur l'actualité"],
+      "suivre": ["écart de suivi (tracking difference)", "encours du fonds", "frais"],
+      "maj": "2026-11-17"
+    }
+  },
+  "surveillance": {
+    "luxe-europeen": {
+      "titres": ["LVMH", "Hermès", "Kering"],
+      "statut": "En attente. Les trois restent très en dessous de leurs sommets ; aucun signal de retournement.",
+      "declencheur": "Arrêt des révisions baissières des objectifs de cours des analystes — c'est le signal d'entrée retenu avec Victor, pas le niveau du cours.",
+      "maj": "2026-11-17"
+    },
+    "remplacement-nvidia": {
+      "statut": "Bloqué : il manque le motif de la vente (volatilité ? valorisation ? envie de tout passer au PEA ?). Le motif détermine le remplaçant.",
+      "candidats": {
+        "ASML": "Éligible PEA, monopole EUV, mais valorisation élevée et prix d'une action très élevé pour un versement mensuel de quelques centaines d'euros.",
+        "SAP": "Éligible PEA, logiciel d'entreprise, croissance plus lente mais moins volatile.",
+        "ETF MSCI World": "Le plus simple : ne pas remplacer, verser la part NVIDIA sur le socle indiciel du PEA."
+      },
+      "maj": "2026-11-17"
+    }
+  }
+}

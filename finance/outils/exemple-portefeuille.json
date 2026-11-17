@@ -1,0 +1,31 @@
+{
+  "_lire": "Exemple de fichier d'entrée, avec des chiffres inventés. Les vrais montants de Victor ne sont JAMAIS versionnés ici : le dépôt est public. À chaque analyse, recopier ce modèle dans un fichier de travail hors dépôt (/tmp ou /home/claude) et y mettre les valorisations relevées sur la capture d'écran.",
+  "cibles": {
+    "NVIDIA": 13.5,
+    "S&P 500": 15.0,
+    "Sanofi": 12.8,
+    "Thales": 12.8,
+    "Safran": 10.5,
+    "AXA": 10.0,
+    "Orange": 9.0,
+    "TotalEnergies": 9.0,
+    "Heineken": 7.5
+  },
+  "cto": {
+    "NVIDIA": 100.0,
+    "S&P 500": 100.0,
+    "Sanofi": 100.0,
+    "Thales": 100.0,
+    "Safran": 100.0,
+    "AXA": 100.0,
+    "Orange": 100.0,
+    "TotalEnergies": 100.0,
+    "Heineken": 100.0
+  },
+  "pea": {
+    "WPEA": 100.0
+  },
+  "prix_part": {
+    "WPEA": 6.12
+  }
+}

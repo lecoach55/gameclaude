@@ -1,44 +1,44 @@
 {
  "explo_F2": {
-  "pix": 11291,
-  "perso": 50.4,
-  "entourage": 43.7,
-  "contraste": 1.12,
-  "bord": 25.5
+  "pix": 11272,
+  "perso": 58.8,
+  "entourage": 44.7,
+  "contraste": 1.25,
+  "bord": 29.4
  },
  "explo_F6": {
-  "pix": 10444,
-  "perso": 64.5,
-  "entourage": 65.7,
+  "pix": 10466,
+  "perso": 66.1,
+  "entourage": 64.2,
   "contraste": 1.02,
-  "bord": 29.5
+  "bord": 31.6
  },
  "explo_F10": {
-  "pix": 11185,
-  "perso": 39.7,
-  "entourage": 17.8,
-  "contraste": 1.73,
-  "bord": 27.2
+  "pix": 11261,
+  "perso": 40.4,
+  "entourage": 15.8,
+  "contraste": 1.88,
+  "bord": 27.9
  },
  "explo_F14": {
-  "pix": 11358,
-  "perso": 92,
-  "entourage": 115.5,
-  "contraste": 1.23,
-  "bord": 32.8
+  "pix": 11436,
+  "perso": 88.8,
+  "entourage": 118.5,
+  "contraste": 1.29,
+  "bord": 31.3
  },
  "combat_F6": {
-  "pix": 19608,
-  "perso": 58.9,
-  "entourage": 59.1,
-  "contraste": 1,
-  "bord": 28
+  "pix": 19568,
+  "perso": 61.8,
+  "entourage": 59.2,
+  "contraste": 1.04,
+  "bord": 28.5
  },
  "boss_F8": {
-  "pix": 36575,
-  "perso": 54.2,
-  "entourage": 54.8,
-  "contraste": 1.01,
-  "bord": 29.9
+  "pix": 36542,
+  "perso": 55.9,
+  "entourage": 54.7,
+  "contraste": 1.02,
+  "bord": 30.7
  }
 }

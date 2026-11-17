@@ -18,9 +18,10 @@ function banner(h,p){$('bh').textContent=h;$('bp').textContent=p||'';const b=$('
 /* ---------- son ---------- */
 let AC=null,muted=false;try{muted=localStorage.getItem('vd_mute')==='1';}catch(e){}$('mute').innerHTML=uiIco(muted?'muet':'son',22);{const b=$('bBag');if(b.firstChild&&b.firstChild.nodeType===3)b.firstChild.remove();b.insertAdjacentHTML('afterbegin',uiIco('bag',24));}
 const QN=['Économie','Normale','Haute','Maximale'],QI=['▫️','✦','✨','💎'];let qMax=3,qAuto=true,hiQ=true;try{const s=localStorage.getItem('vd_q2');if(s!==null){qMax=+s;qAuto=false;}}catch(e){}
-const mobile=(matchMedia&&matchMedia('(pointer:coarse)').matches)||Math.min(innerWidth,innerHeight)<600;let qCur=Math.min(qMax,mobile?1:2);function qSet(l){qCur=l;G3.setLevel(l);$('fxq').innerHTML=uiIco('q'+l,22);hiQ=l>=1;}qSet(qCur);
+// téléphone = écran tactile (pointeur grossier), PAS une petite fenêtre : le panneau de l'app Claude (449 px) sur le Mac est un ordinateur
+const mobile=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);let qCur=Math.min(qMax,mobile?1:2);function qSet(l){qCur=l;G3.setLevel(l);$('fxq').innerHTML=uiIco('q'+l,22);hiQ=l>=1;}qSet(qCur);
 $('fxq').onclick=()=>{const n=(qCur+3)%4;qMax=n;qAuto=false;try{localStorage.setItem('vd_q2',String(n))}catch(e){}qSet(n);toast('Qualité '+QN[n]+(n===0?' : la plus fluide.':n===3?' : tous les effets, pour les téléphones puissants.':'.'));};
-const perf={t:0,n:0,bad:0,good:0,told:false};function perfTick(dt){if(window.__noAutoQ)return;perf.t+=dt;perf.n++;if(perf.t>2){const fps=perf.n/perf.t;perf.t=0;perf.n=0;
+const perf={t:0,n:0,bad:0,good:0,told:false};function perfTick(dt){if(window.__noAutoQ)return;if(G3.busy){perf.t=0;perf.n=0;return;}/* image retenue pendant la préparation des shaders : img/s factices */perf.t+=dt;perf.n++;if(perf.t>2){const fps=perf.n/perf.t;perf.t=0;perf.n=0;
  // baisse inutile ? (écran limité à 30 img/s par l'économie d'énergie, ou processeur saturé) : on remet la qualité d'avant et on ne la rebaisse plus
  if(perf.chk){if(--perf.chk.w<=0){const c=perf.chk;perf.chk=null;if(fps<c.fps*1.12&&qCur===c.lv-1){qSet(c.lv);perf.floor=c.lv;perf.useless=(perf.useless||0)+1;}}perf.bad=0;perf.good=0;return;}
  perf.bad=fps<42?perf.bad+1:0;perf.good=fps>58?perf.good+1:0;
@@ -414,13 +415,13 @@ async function runBench(){if(TF.busy)return;TF.busy=true;const nq0=window.__noAu
  try{for(const lv of LV){qSet(lv);for(const [k,F] of SC){btn.textContent=`${QN[lv]} · ${k} ${F}…`;await toExplo();seedRng(4242+F);paused=true;VD.newGame(VD.P,4242+F);VD.startFloor(F);const keep=k==='explo'?null:VD.E.find(e=>k==='boss'?e.boss:!e.boss);VD.E.length=0;if(keep)VD.E.push(keep);exploEvents();paused=false;await wait(400);
    if(k==='explo'){const r=VD.rooms[1];VD.P.x=r.x+r.w/2;VD.P.y=r.y+r.h/2;await wait(2500);}
    else{const e=VD.E.find(e=>k==='boss'?e.boss:!e.boss);if(!e)continue;VD.P.x=e.x;VD.P.y=e.y+(e.boss?1:.4);for(let i=0;i<25;i++){await wait(200);skipStory();}const d=G3._d();if(d.BT){d.BT.cine=null;d.BT.camT=9;}await wait(800);}
-   skipStory();await wait(200);const m=await measure(5000);res.push(Object.assign({scene:k+' '+F,niveau:QN[lv]},m));}}
+   skipStory();await wait(200);const tc=performance.now();for(let i=0;i<400&&G3.busy;i++)await wait(50);const prep=Math.round(performance.now()-tc);await wait(300);const m=await measure(5000);m.prep=prep;res.push(Object.assign({scene:k+' '+F,niveau:QN[lv]},m));}}
  }catch(e){res.push({erreur:String(e)});}
  Math.random=rnd;window.__noAutoQ=nq0;await toExplo();qSet(1);
  const out={date:new Date().toISOString(),gpu:gpuName(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res,env:BENV};
  try{localStorage.setItem('valdragon_mesures',JSON.stringify(out));}catch(e){}const ok=await cloudPut('mesures_'+Date.now(),out);
  btn.disabled=false;btn.textContent='▶ Banc';TF.busy=false;showBench(out,ok);}
-function showBench(o,ok){const rows=o.res.map(r=>`<tr><td>${r.niveau||''}</td><td>${r.scene||r.erreur}${r.cachee?' <b style="color:#ffb060">(fenêtre cachée : mesure fausse)</b>':''}</td><td><b>${r.fps??''}</b></td><td>${r.low1??''}</td><td>${r.pire??''}</td><td>${r.tris?(r.tris/1000|0)+'k':''}</td></tr>`).join('');
+function showBench(o,ok){const rows=o.res.map(r=>`<tr><td>${r.niveau||''}</td><td>${r.scene||r.erreur}${r.cachee?' <b style="color:#ffb060">(fenêtre cachée : mesure fausse)</b>':''}${r.prep>500?' <span style="opacity:.7">(prépa '+(r.prep/1000).toFixed(1)+' s)</span>':''}</td><td><b>${r.fps??''}</b></td><td>${r.low1??''}</td><td>${r.pire??''}</td><td>${r.tris?(r.tris/1000|0)+'k':''}</td></tr>`).join('');
  const p=document.createElement('div');p.style.cssText='position:fixed;inset:40px 8px auto 8px;z-index:100;background:rgba(10,8,6,.95);color:#e8dcc4;font:12px sans-serif;padding:10px;border:1px solid #6a5a40;border-radius:8px;max-height:80vh;overflow:auto';
  p.innerHTML=`<b>Banc de mesure</b> · ${o.gpu}<br><span style="opacity:.7">${o.ecran} · ${ok?'enregistré dans la base ✓':'enregistré sur cet appareil'}</span>${o.env?`<br><span style="opacity:.85">Écran : ${o.env.cadenceMax||'?'} img/s au maximum${o.env.batterie?` · batterie ${o.env.batterie.niveau} % ${o.env.batterie.branche?'(branché)':'(sur batterie)'}`:''}${o.env.cadenceMax&&o.env.cadenceMax<45?' · <b style="color:#ffb060">limité par l\'économie d\'énergie</b>':''}</span>`:''}<table style="width:100%;margin-top:6px;border-collapse:collapse"><tr><th>Qualité</th><th>Scène</th><th>img/s</th><th>1 % bas</th><th>pire ms</th><th>tri</th></tr>${rows}</table><button style="margin-top:8px">Fermer</button>`;
  document.body.appendChild(p);p.querySelector('button').onclick=()=>p.remove();}

@@ -41,10 +41,13 @@ export function piece(name,s=1,shadow=true){const p=K.piece[name];if(!p)return n
 /* ---------- personnages ---------- */
 const HUE_GLSL=`vec3 vdHue(vec3 c,float h){const vec3 k=vec3(.57735);float ca=cos(h);return c*ca+cross(k,c)*sin(h)+k*dot(k,c)*(1.-ca);}`;
 export const RIM={col:new THREE.Color(1,.85,.65),i:{value:.4}};
+// 17/11 : liseré de contre-jour propre aux héros (plus large et plus froid que celui des monstres) pour détacher leur silhouette du sol sombre
+export const RIMH={col:new THREE.Color(.95,.9,.82),i:{value:.7}};
+// réglé par biome dans g3d.js (rimBiome) : crypte/cavernes .55 neutre chaud, forge .45 orangé, givre .22 (sur sol clair un liseré blanchit les héros)
 function prepMat(m,o){if(o.grime===false)return prepMat0(m,o);return grime(prepMat0(m,o),{sc:o.gsc||4.5,amt:o.gamt??.3,sat:o.gsat??.72,dk:o.gdk??.9,base:0,rough:.3,met:o.gmet||0,hc:o.ghc||0,mat:o.set==='mx'?0:1,recol:o.recol||null});}
-function prepMat0(m,o){m=m.clone();if(o.rim!==false&&m.isMeshStandardMaterial){const hue={value:o.hue||0},rc={value:o.rimCol?new THREE.Color(o.rimCol):RIM.col};
-  m.onBeforeCompile=sh=>{sh.uniforms.vdH=hue;sh.uniforms.rimC=rc;sh.uniforms.rimI=RIM.i;sh.fragmentShader='uniform float vdH;uniform vec3 rimC;uniform float rimI;\n'+HUE_GLSL+'\n'+sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb=vdHue(diffuseColor.rgb,vdH);').replace('#include <opaque_fragment>','float vdR=1.-abs(dot(normalize(normal),normalize(vViewPosition)));outgoingLight+=rimC*pow(vdR,3.4)*rimI;\n#include <opaque_fragment>');};
-  m.customProgramCacheKey=()=>'vdrim';if(m.emissive){m.userData.e0=m.emissive.clone();m.userData.ei0=m.emissiveIntensity;}return m;}
+function prepMat0(m,o){m=m.clone();if(o.rim!==false&&m.isMeshStandardMaterial){const H=o.kind==='hero',hue={value:o.hue||0},rc={value:o.rimCol?new THREE.Color(o.rimCol):H?RIMH.col:RIM.col};
+  m.onBeforeCompile=sh=>{sh.uniforms.vdH=hue;sh.uniforms.rimC=rc;sh.uniforms.rimI=H?RIMH.i:RIM.i;sh.fragmentShader='uniform float vdH;uniform vec3 rimC;uniform float rimI;\n'+HUE_GLSL+'\n'+sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb=vdHue(diffuseColor.rgb,vdH);').replace('#include <opaque_fragment>','float vdR=1.-abs(dot(normalize(normal),normalize(vViewPosition)));outgoingLight+=rimC*pow(vdR,'+(H?'3.0':'3.4')+')*rimI*'+(H?'mix(vec3(1.),diffuseColor.rgb*2.,.35)':'1.')+';\n#include <opaque_fragment>');};
+  m.customProgramCacheKey=()=>H?'vdrimh':'vdrim';if(m.emissive){m.userData.e0=m.emissive.clone();m.userData.ei0=m.emissiveIntensity;}return m;}
  if(o.hue||o.sat!=null||o.dark){const hue={value:o.hue||0},sat={value:o.sat??1},dk={value:o.dark||1};
   m.onBeforeCompile=sh=>{sh.uniforms.vdH=hue;sh.uniforms.vdS=sat;sh.uniforms.vdD=dk;sh.fragmentShader='uniform float vdH;uniform float vdS;uniform float vdD;\n'+HUE_GLSL+'\n'+sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n diffuseColor.rgb=vdHue(diffuseColor.rgb,vdH);float vdL=dot(diffuseColor.rgb,vec3(.3,.59,.11));diffuseColor.rgb=mix(vec3(vdL),diffuseColor.rgb,vdS)*vdD;');};
   m.customProgramCacheKey=()=>'vdhue';}

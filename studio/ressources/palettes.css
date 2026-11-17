@@ -1,0 +1,27 @@
+/* Palettes communes du studio (direction artistique, revue du 16/11/2026).
+   Quatre familles, relevées sur les jeux existants puis harmonisées. Copier le bloc de sa famille dans :root.
+   Règles : texte ≥ 4,5:1 sur le fond ; une seule couleur d'accent par écran ; vert/rouge réservés à bon/mauvais. */
+
+/* 1. Médiéval sombre — Valdragon, Trône de Braise, Bannières, Couronnes & Complots, Couronnes & Lignées (nuit) */
+.pal-medieval-sombre{
+  --fond:#120e0a; --panneau:#1d1610; --bois:#4a3828; --filet:#6b5631;
+  --or:#d4a548; --or-clair:#f0c46a; --velin:#ecdfc0; --texte:#efe1bf; --texte-2:#b9a888;
+  --lapis:#1c2f5e; --braise:#e0612b; --sang:#a8322a; --bon:#6fae6a; --mauvais:#c9503c;
+}
+/* 2. Médiéval clair (parchemin) — Sedes Petri, Hameau, Couronnes & Lignées (jour) */
+.pal-medieval-clair{
+  --fond:#efe2c2; --panneau:#f6eedb; --filet:#c7ad7a; --encre:#2b1d12; --texte:#2b2016; --texte-2:#6b5a44;
+  --pourpre:#6e1a1a; --vermillon:#a8321f; --or:#b8872b; --lapis:#1c2f5e; --vert:#2f6b55;
+  --bon:#2f6b55; --mauvais:#a8321f;
+}
+/* 3. Moderne nuit — Président de Club, Cage & Gloire, Une vie */
+.pal-moderne-nuit{
+  --fond:#0d0f13; --panneau:#161920; --filet:#2a2f3a; --texte:#ecebe6; --texte-2:#958f86;
+  --accent:#e9c46a; /* or projecteur ; Une vie : ambre #e8a35c ; Président : jaune #f4c430 */
+  --bon:#5ccf88; --mauvais:#ff6a5c; --info:#6c9bd8;
+}
+/* 4. Moderne papier (journal financier) — Wall Street */
+.pal-moderne-papier{
+  --fond:#eef0e8; --panneau:#ffffff; --filet:#d5d8cc; --encre:#16233a; --texte:#16233a; --texte-2:#5b6474;
+  --accent:#1f3a5f; --or:#a67c2e; --bon:#16784b; --mauvais:#c0352b;
+}

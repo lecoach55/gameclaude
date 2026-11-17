@@ -1,0 +1,145 @@
+{
+ "bannieres": {
+  "image": "/home/claude/art/bannieres/vitrine.png",
+  "couleurs": [
+   "#626d32",
+   "#353519",
+   "#586035",
+   "#1a2425",
+   "#454226",
+   "#777d4d"
+  ],
+  "luminance": 0.244,
+  "saturation": 0.397
+ },
+ "cage-et-gloire": {
+  "image": "/home/claude/art/cage-et-gloire/vitrine.png",
+  "couleurs": [
+   "#49503e",
+   "#0f1112",
+   "#e3dfd5",
+   "#272a29",
+   "#6b8b67",
+   "#cad6c1"
+  ],
+  "luminance": 0.406,
+  "saturation": 0.205
+ },
+ "couronnes-et-complots": {
+  "image": "/home/claude/art/couronnes-et-complots/vitrine.png",
+  "couleurs": [
+   "#1c150f",
+   "#5d5e59",
+   "#2d231b",
+   "#72706a",
+   "#9d8f6e",
+   "#4b3d31"
+  ],
+  "luminance": 0.281,
+  "saturation": 0.263
+ },
+ "couronnes-et-lignees": {
+  "image": "/home/claude/art/couronnes-et-lignees/vitrine.png",
+  "couleurs": [
+   "#262d39",
+   "#776938",
+   "#4e402e",
+   "#6e5d32",
+   "#754727",
+   "#9c9064"
+  ],
+  "luminance": 0.303,
+  "saturation": 0.376
+ },
+ "hameau": {
+  "image": "/home/claude/art/hameau/vitrine.png",
+  "couleurs": [
+   "#1f3a26",
+   "#5c6f4d",
+   "#3e493f",
+   "#6f8953",
+   "#95ab82",
+   "#604f38"
+  ],
+  "luminance": 0.332,
+  "saturation": 0.319
+ },
+ "president-de-club": {
+  "image": "/home/claude/art/president-de-club/vitrine.png",
+  "couleurs": [
+   "#2e6d41",
+   "#0c120d",
+   "#050c08",
+   "#030805",
+   "#203121",
+   "#498157"
+  ],
+  "luminance": 0.147,
+  "saturation": 0.346
+ },
+ "sedes-petri": {
+  "image": "/home/claude/art/sedes-petri/vitrine.png",
+  "couleurs": [
+   "#b7b89f",
+   "#a38f6a",
+   "#dbcfaf",
+   "#668160",
+   "#66433f",
+   "#eee1c2"
+  ],
+  "luminance": 0.58,
+  "saturation": 0.334
+ },
+ "trone-de-braise": {
+  "image": "/home/claude/art/trone-de-braise/vitrine.png",
+  "couleurs": [
+   "#030309",
+   "#161114",
+   "#212229",
+   "#413532",
+   "#342523",
+   "#6e584a"
+  ],
+  "luminance": 0.141,
+  "saturation": 0.284
+ },
+ "une-vie": {
+  "image": "/home/claude/art/une-vie/vitrine.png",
+  "couleurs": [
+   "#0d0f13",
+   "#575c44",
+   "#0e0f14",
+   "#0d0f12",
+   "#0b0d11",
+   "#0c0f13"
+  ],
+  "luminance": 0.169,
+  "saturation": 0.22
+ },
+ "valdragon": {
+  "image": "/home/claude/art/valdragon/vitrine.png",
+  "couleurs": [
+   "#010306",
+   "#110e0b",
+   "#1b1d18",
+   "#383225",
+   "#2e2216",
+   "#556057"
+  ],
+  "luminance": 0.116,
+  "saturation": 0.397
+ },
+ "wallstreet": {
+  "image": "/home/claude/art/wallstreet/vitrine.png",
+  "couleurs": [
+   "#292840",
+   "#eff1ea",
+   "#f8f9f4",
+   "#958f98",
+   "#fafbf6",
+   "#f8f7f3"
+  ],
+  "luminance": 0.677,
+  "saturation": 0.266
+ }
+}

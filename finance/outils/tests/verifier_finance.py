@@ -15,11 +15,9 @@ sys.path.insert(0, OUTILS)
 import portefeuille as pf  # noqa: E402
 import veille as vl  # noqa: E402
 
-CIBLES = {
-    "NVIDIA": 13.5, "S&P 500": 15.0, "Sanofi": 12.8, "Thales": 12.8,
-    "Safran": 10.5, "AXA": 10.0, "Orange": 9.0, "TotalEnergies": 9.0,
-    "Heineken": 7.5,
-}
+REGLES = pf.charger_regles()
+CIBLES = {k: float(v) for k, v in REGLES["cibles_cto"].items()
+          if not k.startswith("_")}
 
 resultats = []
 
@@ -138,6 +136,62 @@ def _():
     d = pf.charger(exemple)
     lignes, total = pf.ecarts(d["cto"], d["cibles"])
     assert total > 0 and len(lignes) == len(d["cibles"])
+
+
+@controle("les cibles viennent de cibles.json quand le fichier n'en donne pas")
+def _():
+    exemple = os.path.join(OUTILS, "exemple-portefeuille.json")
+    d = pf.charger(exemple)
+    assert d["cibles"] == CIBLES, d["cibles"]
+    assert abs(sum(CIBLES.values()) - 100.0) < 0.51, sum(CIBLES.values())
+
+
+@controle("le seuil écarte les lignes dont l'écart est du bruit")
+def _():
+    # Toutes les lignes à leur cible sauf S&P 500, sous-pondérée de ~5 points
+    base = 1000.0
+    cto = {k: base * v / 100.0 for k, v in CIBLES.items()}
+    cto["S&P 500"] *= 0.70  # bien en dessous de sa cible
+    plan = pf.repartir(cto, CIBLES, 250, seuil=2.0)
+    assert sum(plan.values()) == 250, sum(plan.values())
+    assert plan.get("S&P 500", 0) == 250, plan  # tout va à la seule ligne qui compte
+
+
+@controle("sans ligne au-delà du seuil, on répartit au prorata des cibles")
+def _():
+    cto = {k: 1000.0 * v / 100.0 for k, v in CIBLES.items()}  # pile sur les cibles
+    plan = pf.repartir(cto, CIBLES, 250, seuil=2.0)
+    assert sum(plan.values()) == 250, sum(plan.values())
+    assert plan["S&P 500"] > plan["Heineken"], plan
+
+
+@controle("une ligne gelée au-dessus de sa cible ne reçoit rien, seuil ou pas")
+def _():
+    cto = {k: 1000.0 * v / 100.0 for k, v in CIBLES.items()}
+    cto["NVIDIA"] *= 2.5  # très au-dessus de sa cible
+    for seuil in (0.0, 2.0):
+        plan = pf.repartir(cto, CIBLES, 250, seuil)
+        assert plan.get("NVIDIA", 0) == 0, (seuil, plan)
+
+
+@controle("la part du socle indiciel se calcule sur PEA + CTO")
+def _():
+    donnees = {"cto": {"S&P 500": 200.0, "Sanofi": 300.0}, "pea": {"WPEA": 500.0}}
+    s = pf.socle(donnees, REGLES)
+    assert abs(s["total"] - 1000.0) < 1e-9, s
+    assert abs(s["part"] - 70.0) < 1e-9, s  # 200 + 500 sur 1000
+    assert abs(s["ecart"] - (70.0 - s["visee"])) < 1e-9, s
+
+
+@controle("cibles.json est cohérent")
+def _():
+    assert REGLES["versement_mensuel"]["pea"] >= REGLES["versement_mensuel"]["cto"], \
+        "le socle indiciel du PEA doit recevoir au moins autant que le CTO"
+    assert REGLES["pea"]["fractions_possibles"] is False
+    assert REGLES["pea"]["isin"] == "IE0002XZSHO1", REGLES["pea"]["isin"]
+    assert REGLES["seuil_rebalancement"]["points"] > 0
+    for nom, cible in CIBLES.items():
+        assert float(cible) == int(cible), f"{nom} : cible non arrondie ({cible})"
 
 
 @controle("theses.json est lisible et complet")

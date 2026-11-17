@@ -4,34 +4,53 @@
 Aucune donnée personnelle ici : le portefeuille est fourni à l'exécution,
 dans un fichier JSON qui n'est PAS versionné (le dépôt est public).
 
+Les règles d'allocation (poids cibles, montants mensuels, seuil de
+rééquilibrage) viennent de `cibles.json`, à côté de ce script : c'est la source
+unique de vérité, pour qu'elles ne dérivent pas d'une séance à l'autre.
+
 Format du fichier d'entrée (voir exemple-portefeuille.json) :
 
     {
-      "cibles":   {"NVIDIA": 13.5, "S&P 500": 15.0, ...},   # en %
       "cto":      {"NVIDIA": 203.5, "S&P 500": 286.1, ...}, # valorisation en €
       "pea":      {"WPEA": 100.0},
       "prix_part": {"WPEA": 6.12}                            # pour le PEA sans fractions
     }
 
+La clé "cibles" est optionnelle : sans elle, ce sont celles de cibles.json.
+
 Usage :
     python3 portefeuille.py poids      portefeuille.json
-    python3 portefeuille.py repartir   portefeuille.json --cto 500 --pea 150
-    python3 portefeuille.py saveback   portefeuille.json --montant 15
+    python3 portefeuille.py repartir   portefeuille.json            # montants de cibles.json
+    python3 portefeuille.py repartir   portefeuille.json --cto 250 --pea 400
+    python3 portefeuille.py saveback   portefeuille.json
+    python3 portefeuille.py socle      portefeuille.json
 """
 
 import argparse
 import json
+import os
 import sys
+
+ICI = os.path.dirname(os.path.abspath(__file__))
+CIBLES = os.path.join(ICI, "cibles.json")
+
+
+def charger_regles():
+    with open(CIBLES, encoding="utf-8") as f:
+        return json.load(f)
 
 
 # ---------------------------------------------------------------- chargement
 
-def charger(chemin):
+def charger(chemin, regles=None):
+    regles = regles or charger_regles()
     with open(chemin, encoding="utf-8") as f:
         d = json.load(f)
-    for clef in ("cibles", "cto"):
-        if clef not in d:
-            raise SystemExit(f"Fichier invalide : clé « {clef} » manquante.")
+    if "cto" not in d:
+        raise SystemExit("Fichier invalide : clé « cto » manquante.")
+    if "cibles" not in d:  # source unique de vérité
+        d["cibles"] = {k: float(v) for k, v in regles["cibles_cto"].items()
+                       if not k.startswith("_")}
     somme = sum(d["cibles"].values())
     if abs(somme - 100.0) > 0.51:
         raise SystemExit(
@@ -71,7 +90,7 @@ def ecarts(cto, cibles):
     return lignes, total
 
 
-def repartir(cto, cibles, montant):
+def repartir(cto, cibles, montant, seuil=0.0):
     """Rééquilibrage par les achats : on comble les manques, on n'allège rien.
 
     Pour chaque ligne, besoin = poids cible du total APRÈS versement - valeur
@@ -79,12 +98,21 @@ def repartir(cto, cibles, montant):
     on ne vend jamais. Le montant est réparti au prorata des besoins, puis
     arrondi à l'euro par la méthode des plus grands restes, pour que la somme
     tombe juste.
+
+    `seuil` (en points de pourcentage) écarte les lignes dont l'écart à la cible
+    est du bruit : viser 0,3 point sur quelques centaines d'euros crée un rituel
+    mensuel sans effet. Si aucune ligne ne dépasse le seuil, on répartit au
+    prorata des cibles.
     """
     if montant <= 0:
         return {}
     total_apres = sum(cto.values()) + montant
+    p, _ = poids(cto) if sum(cto.values()) > 0 else ({}, 0)
     besoins = {}
     for nom, cible in cibles.items():
+        if seuil > 0 and p and (cible - p.get(nom, 0.0)) < seuil:
+            besoins[nom] = 0.0
+            continue
         besoin = total_apres * cible / 100.0 - cto.get(nom, 0.0)
         besoins[nom] = max(besoin, 0.0)
 
@@ -126,6 +154,30 @@ def saveback(cto, cibles, montant):
     return lignes[0]["nom"], montant
 
 
+def socle(donnees, regles):
+    """Part du socle indiciel (ETF) sur l'ensemble PEA + CTO, et écart à l'objectif.
+
+    C'est le seul chiffre qui dit si la correction du 17/11/2026 avance : tant
+    que le socle reste minoritaire, le portefeuille est un ETF fait à la main.
+    """
+    obj = regles["objectif_socle"]
+    composantes = set(obj["composantes"])
+    cto = donnees["cto"]
+    pea = donnees.get("pea", {})
+    total = sum(cto.values()) + sum(pea.values())
+    if total <= 0:
+        raise SystemExit("Portefeuille vide.")
+    indiciel = sum(v for k, v in cto.items() if k in composantes)
+    indiciel += sum(v for k, v in pea.items() if k in composantes)
+    part = indiciel / total * 100.0
+    return {
+        "part": part,
+        "visee": float(obj["part_visee"]),
+        "ecart": part - float(obj["part_visee"]),
+        "total": total,
+    }
+
+
 # ------------------------------------------------------------------ affichage
 
 def tableau(lignes, total):
@@ -151,16 +203,23 @@ def main(argv=None):
 
     b = sub.add_parser("repartir", help="répartir le versement du mois")
     b.add_argument("fichier")
-    b.add_argument("--cto", type=float, default=0.0)
-    b.add_argument("--pea", type=float, default=0.0)
+    b.add_argument("--cto", type=float, default=None, help="défaut : cibles.json")
+    b.add_argument("--pea", type=float, default=None, help="défaut : cibles.json")
     b.add_argument("--etf-pea", default=None, help="nom de la ligne ETF du PEA")
+    b.add_argument("--seuil", type=float, default=None,
+                   help="points d'écart en dessous desquels une ligne n'est pas "
+                        "alimentée (défaut : cibles.json)")
 
     c = sub.add_parser("saveback", help="sur quelle ligne placer le saveback")
     c.add_argument("fichier")
-    c.add_argument("--montant", type=float, required=True)
+    c.add_argument("--montant", type=float, default=None, help="défaut : cibles.json")
+
+    e = sub.add_parser("socle", help="part du socle indiciel et écart à l'objectif")
+    e.add_argument("fichier")
 
     args = p.parse_args(argv)
-    d = charger(args.fichier)
+    regles = charger_regles()
+    d = charger(args.fichier, regles)
     cto, cibles = d["cto"], d["cibles"]
 
     if args.cmd == "poids":
@@ -168,17 +227,39 @@ def main(argv=None):
         print(tableau(lignes, total))
         return 0
 
+    if args.cmd == "socle":
+        s = socle(d, regles)
+        print(f"Portefeuille total : {s['total']:,.2f} €".replace(",", " "))
+        print(f"Socle indiciel     : {s['part']:.1f} %  (objectif "
+              f"{s['visee']:.0f} %, écart {s['ecart']:+.1f} pts)")
+        if s["ecart"] < -5:
+            print("  → l'argent neuf doit continuer à aller d'abord au socle du PEA.")
+        else:
+            print("  → objectif atteint ou proche : le partage mensuel peut être revu.")
+        return 0
+
     if args.cmd == "saveback":
-        nom, m = saveback(cto, cibles, args.montant)
+        montant = args.montant if args.montant is not None else \
+            float(regles["saveback"]["montant_habituel"])
+        nom, m = saveback(cto, cibles, montant)
         print(f"Saveback de {m:.0f} € → {nom} (ligne la plus sous-pondérée)")
         return 0
 
     # repartir
+    m_cto = args.cto if args.cto is not None else float(regles["versement_mensuel"]["cto"])
+    m_pea = args.pea if args.pea is not None else float(regles["versement_mensuel"]["pea"])
+    seuil = args.seuil if args.seuil is not None else \
+        float(regles["seuil_rebalancement"]["points"])
+    args.cto, args.pea = m_cto, m_pea
+
     lignes, total = ecarts(cto, cibles)
     print(tableau(lignes, total))
+    s = socle(d, regles)
+    print(f"\nSocle indiciel : {s['part']:.1f} % (objectif {s['visee']:.0f} %)")
     if args.cto > 0:
-        plan = repartir(cto, cibles, args.cto)
-        print(f"\nCTO — {args.cto:.0f} €")
+        plan = repartir(cto, cibles, args.cto, seuil)
+        print(f"\nCTO — {args.cto:.0f} €  (seuil {seuil:.0f} pt, les lignes à moins de "
+              f"{seuil:.0f} pt de leur cible ne reçoivent rien)")
         for nom, euros in sorted(plan.items(), key=lambda x: -x[1]):
             print(f"  {nom:<14} {euros:>5} €")
         verif = sum(plan.values())

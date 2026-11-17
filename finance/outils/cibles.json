@@ -1,0 +1,63 @@
+{
+  "_lire": "Règles d'allocation du portefeuille de Victor — source unique de vérité. Tout outil et toute tâche programmée lit ce fichier plutôt que de recopier les chiffres : c'est comme ça que les règles arrêtent de dériver d'une séance à l'autre. Aucun montant détenu ici, seulement des règles. Révision du 17/11/2026 (voir CORRECTIONS.md).",
+  "version": "2026-11-17",
+
+  "versement_mensuel": {
+    "_lire": "Le 15 du mois. L'ETF monde du PEA reçoit la majorité de l'argent neuf : c'est la correction du 17/11/2026, le partage précédent (500 CTO / 150 PEA) aggravait la concentration France au lieu de la corriger.",
+    "pea": 400,
+    "cto": 250,
+    "commentaire": "Montants de référence ; Victor les ajuste certains mois. Le rapport compte plus que le montant : au moins 60 % de l'argent neuf va au socle indiciel du PEA."
+  },
+
+  "saveback": {
+    "_lire": "Le 1er du mois, 10 à 15 €, non divisible : une seule ligne, la plus sous-pondérée du CTO.",
+    "montant_habituel": 15
+  },
+
+  "seuil_rebalancement": {
+    "_lire": "On n'alimente que les lignes sous leur cible de plus de 2 points. En dessous, l'écart est du bruit : le viser crée un rituel mensuel sans effet. Correction du 17/11/2026 (les cibles précédentes à la décimale — 12,8 %, 10,5 % — étaient une fausse précision).",
+    "points": 2.0
+  },
+
+  "pea": {
+    "etf": "WPEA",
+    "isin": "IE0002XZSHO1",
+    "nom": "iShares MSCI World Swap PEA",
+    "frais": 0.20,
+    "fractions_possibles": false,
+    "_lire": "Le PEA Trade Republic n'accepte pas les fractions d'action : l'enveloppe doit être convertie en nombre entier de parts (~6 € la part), le reliquat reste en liquidités."
+  },
+
+  "cibles_cto": {
+    "_lire": "Poids cibles à l'intérieur du CTO, arrondis au point. NVIDIA est passée de 13,5 % à 9 % : on ne vend pas, mais la ligne n'est plus alimentée et son poids se dilue tout seul à mesure que le reste grossit.",
+    "S&P 500": 20,
+    "Sanofi": 12,
+    "Thales": 12,
+    "Safran": 11,
+    "AXA": 10,
+    "Orange": 9,
+    "TotalEnergies": 9,
+    "NVIDIA": 9,
+    "Heineken": 8
+  },
+
+  "objectif_socle": {
+    "_lire": "Sur l'ensemble PEA + CTO, part visée pour le socle indiciel (ETF monde + ETF S&P 500). Atteignable en environ un an sans rien vendre, par le seul versement mensuel.",
+    "part_visee": 50,
+    "composantes": ["WPEA", "S&P 500"]
+  },
+
+  "etalon": {
+    "_lire": "Étalon de mesure. Sans lui, « je suis à +0 » n'a pas de sens. À relever aux mêmes dates que le portefeuille, dans le point du dimanche.",
+    "indice": "MSCI World",
+    "devise": "EUR"
+  },
+
+  "regles": [
+    "Rééquilibrage par les achats uniquement : on ne vend jamais pour rééquilibrer.",
+    "Une recommandation de vente exige une rupture de thèse argumentée, jamais le seul niveau du cours.",
+    "Pas de market timing : le plan s'applique le 15 quel que soit le niveau des marchés.",
+    "Juger la stratégie sur le montant versé par mois, pas sur la performance du mois.",
+    "Aucun montant détenu ne doit entrer dans ce dépôt : il est public."
+  ]
+}

@@ -537,6 +537,38 @@ body.lite{background:var(--night)!important}body.lite .card{background:#13201a!i
 .role{display:inline-block;font:700 10px/1 var(--mono);padding:3px 5px;border-radius:4px;background:#ffffff12;color:#cfe3d6;vertical-align:1px;letter-spacing:.03em}
 .rolefit{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px;padding:8px 10px;border-radius:8px;background:#ffffff06;border:1px solid var(--line)}
 .rolefit span b{margin-left:3px}
+
+/* Téléphone : en-tête compact (≤ 150 px) et bouton « Jouer » dans une barre fixe en bas */
+.ls{display:none}
+@media (max-width:640px){
+  .lf{display:none}.ls{display:inline}
+  .top{grid-template-columns:auto 1fr;gap:8px 10px;padding:14px 12px 10px}
+  .crest,.crest svg{width:34px;height:39px}
+  .ident h1{font-size:21px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ident .sub{margin-top:4px;flex-wrap:nowrap;overflow:hidden}
+  .ident .sub span{white-space:nowrap}
+  .board{border-radius:10px;flex-wrap:nowrap}
+  .board .cell{flex:1 1 0;min-width:0;padding:5px 6px 6px;border-bottom:0}
+  .board .cell:last-child{border-right:0}
+  .board .lab{font-size:9px;gap:0;letter-spacing:.04em;white-space:nowrap}
+  .board .lab svg{display:none}
+  .board .val{font-size:17px;white-space:nowrap}
+  .board .val span{font-size:11px!important}
+  .board .meter{height:3px;margin-top:3px}
+  .playwrap{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#0b130e;border-top:1px solid #2a3f32;box-shadow:0 -6px 18px rgba(0,0,0,.55)}
+  .playwrap .play{grid-column:auto;font-size:17px;padding:7px 12px;border-radius:12px;min-height:50px;line-height:1.1}
+  .playwrap .play small{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .playwrap .multi{min-height:50px;min-width:74px;font-size:12px;line-height:1.15;padding:4px 8px;white-space:normal;max-width:96px}
+  #main{padding-bottom:84px}
+  #toasts{bottom:80px}
+  .xm{display:none}
+  .top>*{min-width:0}
+  .cmpbar{bottom:76px}
+  table.cls th,table.cls td{padding-left:5px;padding-right:5px}
+  table.cls td:nth-child(2){max-width:128px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body>button[title="Signaler un problème à Claude"]{bottom:76px!important}
+}
 </style>
 </head>
 <body>
@@ -544,7 +576,9 @@ body.lite{background:var(--night)!important}body.lite .card{background:#13201a!i
 <div id="modal" class="modal hidden" role="dialog" aria-modal="true"><div class="mbox" id="mbox"></div></div>
 <div id="toasts" aria-live="polite"></div>
 <script>/*TESTKIT-DEBUT*/
-// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) =====
+// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) — version 7 =====
+// Version : TK.version (ligne « const TK={version:… »), envoyée dans chaque mesure et signalement (champ tk). À augmenter à chaque
+// changement, avec une ligne dans VERSIONS de outils-communs/maj_testkit.py. Mettre à jour la copie d'un jeu : python3 outils-communs/maj_testkit.py <jeu>
 // Ajoute : compteur d'images par seconde (mode test), bouton 🐞 « signaler un problème » (capture + état + erreurs),
 // banc de mesure scripté, et envoi des résultats dans la base de l'artefact (lisible par Claude avec db_list).
 // Usage dans le jeu :
@@ -558,7 +592,7 @@ body.lite{background:var(--night)!important}body.lite .card{background:#13201a!i
 // option secours:true → 🐞 ouvre un rapport à copier (bouton « Enregistrer » seulement si la capacité downloads est accordée) (TK.rapport(obj,titre) réutilisable pour le banc).
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
 function Testkit(o){
- const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
+ const TK={version:7,test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
  // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
  // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
@@ -576,7 +610,9 @@ function Testkit(o){
  addEventListener('unhandledrejection',e=>TK.erreurs.push('promesse: '+String(e.reason).slice(0,300)));
  const gpu=()=>{try{const c0=o.canvas&&o.canvas();let gl=c0&&(c0.getContext('webgl2')||c0.getContext('webgl'));if(!gl){const c=document.createElement('canvas');gl=c.getContext('webgl');} // jeux 2D : canvas WebGL temporaire
   const x=gl.getExtension('WEBGL_debug_renderer_info');return x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(e){return '?';}};
- const stats=a0=>{const a=a0.filter(d=>d<1000),pz=a0.length-a.length;if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{})};};
+ // Pause = image > 1 s ET > 8× l'image médiane : sur un appareil où TOUTES les images dépassent 1 s (rendu logiciel, vieux Mac en Haute),
+ // elles comptent (v7 ; avant : tout écarté → fps vide justement sur l'appareil le plus lent). lent:true = image médiane > 125 ms.
+ const stats=a0=>{if(!a0.length)return{n:0};const o0=a0.slice().sort((x,y)=>x-y),seuil=Math.max(1000,8*o0[(o0.length-1)>>1]);const a=a0.filter(d=>d<seuil),pz=a0.length-a.length;const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{}),...(seuil>1000?{lent:true}:{})};};
  const tick=t=>{if(TK.lt){const d=t-TK.lt;TK.ft.push(d);if(TK.ft.length>240)TK.ft.shift();if(TK.rec)TK.rec.push(d);}TK.lt=t;if(TK.ov&&t-(TK.tt||0)>500){TK.tt=t;const s=stats(TK.ft.slice(-60));TK.ov.firstChild.textContent=`🧪 ${s.fps||'-'} img/s · pire ${s.pire||'-'} ms`;}requestAnimationFrame(tick);};requestAnimationFrame(tick);
  TK.modeTest=()=>{TK.test=true;if(TK.ov)return;const d=document.createElement('div');d.style.cssText='position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(0,0,0,.72);color:#9fe0a0;font:12px monospace;padding:4px 8px;border-radius:6px';d.innerHTML='<span>🧪</span>';document.body.appendChild(d);TK.ov=d;};
  // Mesure fiable : on attend que la page soit visible ; si le navigateur a suspendu l'affichage pendant la mesure
@@ -586,11 +622,13 @@ function Testkit(o){
   await new Promise(r=>setTimeout(r,ms));document.removeEventListener('visibilitychange',vf);const a=TK.rec;TK.rec=null;
   const suspendu=masq||a.length<ms/1000*3; // moins de 3 images/s mesurées : affichage suspendu par le navigateur
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
-  const st=stats(a);if(suspendu)st.masquee=true;return st;};
+  // Après la 2e mesure : masquee si la page a été cachée, a affiché < 3 images, a eu une pause ou des images qui ne couvrent pas 60 % de la durée ; sinon ce sont de vraies
+  // images lentes (appareil très lent) : chiffre gardé, marqué lent (v7 ; avant : « masquée » à tort sous 3 img/s).
+  const st=stats(a);if(suspendu){const tot=a.reduce((x,y)=>x+y,0);if(masq||a.length<3||st.pauses||tot<ms*.6)st.masquee=true;else st.lent=true;}return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
-  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
+  const out={jeu:o.jeu,tk:TK.version,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
-  const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
+  const st={jeu:o.jeu,tk:TK.version,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
   TK.dernier=st;return TK.envoyer('signalement_'+Date.now(),st);};
  // Secours quand la base est indisponible (capacité db non déclarée, hors ligne, app de bureau) : panneau avec le rapport
  // à copier (sans les gros champs), « Copier tout » (complet) ; « Enregistrer le fichier » seulement via claude.use('downloads') — jamais de lien de téléchargement direct (inopérant dans le visualiseur d'artefact). Option o.secours:true pour l'activer sur 🐞.
@@ -1638,17 +1676,26 @@ function livePos(form,away){const xy=LIVE_XY[form]||LIVE_XY['4-4-2'];return xy.m
 function liveStart(d,hn,an){
   const cv=document.getElementById('rsLive');if(!cv)return null;
   const lite=document.body.classList.contains('lite');
-  const dpr=lite?1:Math.min(2,window.devicePixelRatio||1);cv.width=LIVE.W*dpr;cv.height=LIVE.H*dpr;
+  // téléphone (cadre étroit) : terrain vertical, plus haut que large, pour des maillots lisibles
+  const vert=((cv.parentElement&&cv.parentElement.clientWidth)||640)<520,LW=vert?360:LIVE.W,LH=vert?520:LIVE.H;
+  const dpr=lite?1:Math.min(2,window.devicePixelRatio||1);cv.width=LW*dpr;cv.height=LH*dpr;
   let ctx=null;try{ctx=cv.getContext('2d');}catch(e){}if(!ctx)return null;ctx.scale(dpr,dpr);
   const grn=x=>{const n=parseInt(x.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return g>r+25&&g>b+15&&g<200;};
   const fix=c=>grn(c[0])?[c[1],c[0]]:c;
-  let hc=fix(teamLook(hn)),ac=fix(teamLook(an));if(hc[0]===ac[0])ac=[ac[1],ac[0]];
+  let hc=fix(teamLook(hn)),ac=fix(teamLook(an));
+  // maillots trop proches (distance de couleur) : maillot inversé, sinon maillot extérieur de rechange
+  if(kitDist(hc[0],ac[0])<170){
+    if(!grn(ac[1])&&kitDist(hc[0],ac[1])>=170)ac=[ac[1],ac[0]];
+    else{const alt=['#c62828','#1f3f99','#161616','#f4c430','#f2f2f2','#6a1b9a','#ef6c00'].reduce((b,c)=>kitDist(c,hc[0])>kitDist(b,hc[0])?c:b);ac=[alt,hexLum(alt)>.4?'#1a1a1a':'#f2f2f2'];}}
+  // gardiens : couleur distincte des deux équipes et de l'autre gardien
+  const GK=['#22c3d6','#1d2026','#f08a24','#e85aa0','#c6e83a'],far=(ex)=>GK.filter(c=>!ex.includes(c)).reduce((b,c)=>Math.min(...ex.map(x=>kitDist(c,x)))>Math.min(...ex.map(x=>kitDist(b,x)))?c:b);
+  const hgk=far([hc[0],ac[0]]),agk=far([hc[0],ac[0],hgk]),gkTrim=c=>hexLum(c)>.4?'#1a1a1a':'#f2f2f2';
   const oppForm=['4-4-2','4-3-3','4-2-3-1','3-5-2','5-3-2'][Math.abs(hashS(d.home?an:hn))%5];
   const hf=d.home?(d.form||'4-4-2'):oppForm,af=d.home?oppForm:(d.form||'4-4-2');
   // numéros : vrais numéros pour votre équipe (dans l'ordre du XI), 1-11 pour l'adversaire
   const ours=(d.lineup||[]).map(l=>{const p=l.id!=null&&getP(l.id);return p?shirtNo(p):null;});
   const nums=side=>{const mine=(side===0)===!!d.home;return [...Array(11)].map((_,i)=>mine&&ours[i]!=null?ours[i]:i+1);};
-  const M={ctx,d,t:0,hc,ac,lite,home:livePos(hf,false),away:livePos(af,true),hn:nums(0),an:nums(1),
+  const M={ctx,d,t:0,hc,ac,gk:[[hgk,gkTrim(hgk)],[agk,gkTrim(agk)]],vert,W:LW,H:LH,lite,home:livePos(hf,false),away:livePos(af,true),hn:nums(0),an:nums(1),
     cur:[null,null],ball:{x:.5,y:.5,tx:.5,ty:.5},poss:R()<.5?0:1,goal:0,gx:0,msg:'',msgT:0,big:'',bigT:0,done:false,raf:0,last:0,parts:[],chance:null,celeb:0};
   M.cur[0]=M.home.map(p=>p.slice());M.cur[1]=M.away.map(p=>p.slice());
   M.homeShare=(d.home?d.poss:100-d.poss)/100;
@@ -1676,7 +1723,7 @@ function liveStep(M,dt){
   const b=M.ball;
   if(M.msgT>0)M.msgT-=dt;if(M.bigT>0)M.bigT-=dt;if(M.celeb>0)M.celeb-=dt;
   for(let s=0;s<2;s++)for(let i=0;i<11;i++){const t=liveTarget(M,s,i),c=M.cur[s][i];const k=Math.min(1,dt*(M.celeb>0?3.2:2.2));c[0]+=(t[0]-c[0])*k;c[1]+=(t[1]-c[1])*k;}
-  M.parts=M.parts.filter(p=>(p.l-=dt)>0);M.parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=.35*dt;});
+  M.parts=M.parts.filter(p=>(p.l-=dt)>0);M.parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;if(M.vert)p.vx-=.35*dt;else p.vy+=.35*dt;});
   if(M.goal>0){M.goal-=dt;b.x+=(M.gx-b.x)*Math.min(1,dt*7);b.y+=(.5-b.y)*Math.min(1,dt*7);
     if(M.goal<=0){b.x=b.tx=.5;b.y=b.ty=.5;M.poss=M.gx>.5?1:0;M.pick();}return;}
   if(M.chance){const C=M.chance;C.t-=dt;
@@ -1691,34 +1738,42 @@ function liveStep(M,dt){
   }
 }
 // maillot vu de dessus : corps, manches, numéro
-function liveShirt(c,X,Y,s,col,num,gk){
-  const f=gk?'#2b2f36':col[0],e=gk?'#f4c430':col[1];
+function kitDist(a,b){const rgb=h=>{h=(h||'#000').replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return [n>>16,(n>>8)&255,n&255];};
+  const A=rgb(a),B=rgb(b),rm=(A[0]+B[0])/2,dr=A[0]-B[0],dg=A[1]-B[1],db=A[2]-B[2];return Math.sqrt((2+rm/256)*dr*dr+4*dg*dg+(2+(255-rm)/256)*db*db);}
+function liveShirt(c,X,Y,s,col,num){
+  const f=col[0],e=col[1];
   c.fillStyle='rgba(0,0,0,.32)';c.beginPath();c.ellipse(X+1.5,Y+s*1.05,s*.9,s*.35,0,0,Math.PI*2);c.fill();
   c.beginPath();c.moveTo(X-s*.55,Y-s*.75);c.lineTo(X-s*1.05,Y-s*.35);c.lineTo(X-s*.8,Y+s*.05);c.lineTo(X-s*.55,Y-s*.1);c.lineTo(X-s*.55,Y+s*.85);c.lineTo(X+s*.55,Y+s*.85);c.lineTo(X+s*.55,Y-s*.1);c.lineTo(X+s*.8,Y+s*.05);c.lineTo(X+s*1.05,Y-s*.35);c.lineTo(X+s*.55,Y-s*.75);c.lineTo(X+s*.2,Y-s*.75);c.quadraticCurveTo(X,Y-s*.5,X-s*.2,Y-s*.75);c.closePath();
   c.fillStyle=f;c.fill();c.lineWidth=Math.max(1.2,s*.16);c.strokeStyle=e;c.stroke();
-  const lum=hexLum(f);c.fillStyle=lum>.45?'#111':'#fff';c.font='800 '+Math.round(s*.95)+'px Barlow, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(String(num),X,Y+s*.12);c.textBaseline='alphabetic';
+  const lum=hexLum(f);c.fillStyle=lum>.35?'#111':'#fff';c.font='800 '+Math.round(s*.95)+'px Barlow, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(String(num),X,Y+s*.12);c.textBaseline='alphabetic';
 }
 function liveDraw(M){
-  const c=M.ctx,W=LIVE.W,H=LIVE.H,px=x=>16+x*(W-32),py=y=>14+y*(H-28);
-  if(!M.z){const cw=(c.canvas&&c.canvas.clientWidth)||640;M.z=clamp(640/cw,1,1.9);}const z=M.z,zr=Math.min(1.45,Math.pow(z,.7));
+  const c=M.ctx,W=M.W||LIVE.W,H=M.H||LIVE.H,V=!!M.vert;
+  // coordonnées du jeu (x : longueur, vers le but de droite / du haut ; y : largeur) → écran
+  const P=(x,y)=>V?[16+y*(W-32),14+(1-x)*(H-28)]:[16+x*(W-32),14+y*(H-28)];
+  if(!M.z){const cw=(c.canvas&&c.canvas.clientWidth)||W;M.z=clamp(W/cw,1,1.9);}const z=M.z,zr=Math.min(1.45,Math.pow(z,.7));
   c.clearRect(0,0,W,H);
-  for(let k=0;k<12;k++){c.fillStyle=k%2?'#1f6a3c':'#1b5f35';c.fillRect(px(k/12),py(0),(W-32)/12+1,H-28);}
-  if(!M.lite){const g=c.createRadialGradient(W/2,-60,20,W/2,-60,W*.8);g.addColorStop(0,'rgba(255,243,184,.18)');g.addColorStop(1,'rgba(255,243,184,0)');c.fillStyle=g;c.fillRect(0,0,W,H);}
+  const Lp=V?H-28:W-32;
+  for(let k=0;k<12;k++){c.fillStyle=k%2?'#1f6a3c':'#1b5f35';if(V)c.fillRect(16,14+k/12*Lp,W-32,Lp/12+1);else c.fillRect(16+k/12*Lp,14,Lp/12+1,H-28);}
+  if(!M.lite){const g=c.createRadialGradient(W/2,-60,20,W/2,-60,Math.max(W,H)*.8);g.addColorStop(0,'rgba(255,243,184,.18)');g.addColorStop(1,'rgba(255,243,184,0)');c.fillStyle=g;c.fillRect(0,0,W,H);}
   c.strokeStyle='rgba(255,255,255,.65)';c.lineWidth=1.6;
-  c.strokeRect(px(0),py(0),W-32,H-28);c.beginPath();c.moveTo(W/2,py(0));c.lineTo(W/2,py(1));c.stroke();
+  c.strokeRect(16,14,W-32,H-28);c.beginPath();if(V){c.moveTo(16,H/2);c.lineTo(W-16,H/2);}else{c.moveTo(W/2,14);c.lineTo(W/2,H-14);}c.stroke();
   c.beginPath();c.arc(W/2,H/2,38,0,Math.PI*2);c.stroke();
-  [[0,1],[1,-1]].forEach(([x0,s])=>{c.strokeRect(s>0?px(0):px(1)-86,H/2-78,86,156);c.strokeRect(s>0?px(0):px(1)-30,H/2-36,30,72);
-    c.fillStyle='rgba(255,255,255,.85)';c.fillRect(s>0?px(0)-6:px(1),H/2-22,6,44);});
-  const sz=8.2*zr;
-  for(let s=0;s<2;s++){const col=s===0?M.hc:M.ac,nm=s===0?M.hn:M.an;M.cur[s].forEach((p,i)=>liveShirt(c,px(p[0]),py(p[1]),sz,col,nm[i],i===0));}
-  const bx=px(M.ball.x),by=py(M.ball.y);
+  // surfaces (profondeur × largeur) et buts, à chaque bout
+  const box=(end,dp,wd)=>V?[W/2-wd/2,end?14:H-14-dp,wd,dp]:[end?W-16-dp:16,H/2-wd/2,dp,wd];
+  [0,1].forEach(end=>{c.strokeRect(...box(end,86,156));c.strokeRect(...box(end,30,72));
+    c.fillStyle='rgba(255,255,255,.85)';if(V)c.fillRect(W/2-22,end?8:H-14,44,6);else c.fillRect(end?W-16:10,H/2-22,6,44);});
+  const sz=(V?9:8.2)*zr;
+  for(let s=0;s<2;s++){const col=s===0?M.hc:M.ac,nm=s===0?M.hn:M.an,gk=(M.gk&&M.gk[s])||['#2b2f36','#f4c430'];M.cur[s].forEach((p,i)=>{const q=P(p[0],p[1]);liveShirt(c,q[0],q[1],sz,i===0?gk:col,nm[i]);});}
+  const [bx,by]=P(M.ball.x,M.ball.y);
   c.beginPath();c.arc(bx+2,by+3,4.5*zr,0,Math.PI*2);c.fillStyle='rgba(0,0,0,.4)';c.fill();
   c.beginPath();c.arc(bx,by,4.5*zr,0,Math.PI*2);c.fillStyle='#fff';c.fill();c.strokeStyle='#222';c.lineWidth=1;c.stroke();
-  M.parts.forEach(p=>{c.globalAlpha=Math.min(1,p.l*1.5);c.fillStyle=p.c;c.fillRect(px(p.x)-2,py(p.y)-3,4,6);});c.globalAlpha=1;
-  if(M.chance&&M.chance.kind==='occ'&&M.chance.phase===1&&M.chance.t>.5){const gx=px(M.chance.gx>.5?1:0);c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=3;c.beginPath();c.arc(gx,H/2+(M.chance.gy>.5?22:-22),7,0,Math.PI*2);c.stroke();}
+  M.parts.forEach(p=>{const q=P(p.x,p.y);c.globalAlpha=Math.min(1,p.l*1.5);c.fillStyle=p.c;c.fillRect(q[0]-2,q[1]-3,4,6);});c.globalAlpha=1;
+  if(M.chance&&M.chance.kind==='occ'&&M.chance.phase===1&&M.chance.t>.5){const q=P(M.chance.gx>.5?1:0,M.chance.gy>.5?.566:.434);c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=3;c.beginPath();c.arc(q[0],q[1],7,0,Math.PI*2);c.stroke();}
+  // message d'action en bas, « BUT ! » dans le tiers haut : ils ne se recouvrent plus
   if(M.msgT>0&&M.msg){const fs=Math.round(13*z),bh=28*z;c.font='600 '+fs+'px Barlow, sans-serif';const w=Math.min(W-20,c.measureText(M.msg).width+22*z);c.fillStyle='rgba(5,9,7,.85)';
-    c.beginPath();c.roundRect?c.roundRect(W/2-w/2,H-16-bh,w,bh,8):c.rect(W/2-w/2,H-16-bh,w,bh);c.fill();c.fillStyle='#e9efe5';c.textAlign='center';c.fillText(M.msg,W/2,H-16-bh/2+fs*.36,W-30);}
-  if(M.bigT>0&&M.big){const a=Math.min(1,M.bigT*2),sc=1+Math.max(0,M.bigT-1.4)*.6;c.save();c.globalAlpha=a;c.translate(W/2,H/2);c.scale(sc,sc);c.font='900 64px "Big Shoulders Display", Impact, sans-serif';c.textAlign='center';
+    const my=V?6:H-16-bh;c.beginPath();c.roundRect?c.roundRect(W/2-w/2,my,w,bh,8):c.rect(W/2-w/2,my,w,bh);c.fill();c.fillStyle='#e9efe5';c.textAlign='center';c.fillText(M.msg,W/2,my+bh/2+fs*.36,W-30);}
+  if(M.bigT>0&&M.big){const a=Math.min(1,M.bigT*2),sc=1+Math.max(0,M.bigT-1.4)*.6;c.save();c.globalAlpha=a;c.translate(W/2,Math.max(64,H*.3));c.scale(sc,sc);c.font='900 64px "Big Shoulders Display", Impact, sans-serif';c.textAlign='center';
     c.lineWidth=8;c.strokeStyle='rgba(0,0,0,.6)';c.strokeText(M.big,0,22);c.fillStyle=M.bigCol||'#f4c430';c.fillText(M.big,0,22);c.restore();}
 }
 function liveGoal(M,homeScored,who){if(!M)return;M.chance=null;M.goal=1.3;M.gx=homeScored?1.01:-.01;M.big='BUT !';M.bigT=1.7;M.msg=who;M.msgT=2.6;
@@ -1771,12 +1826,30 @@ function showEvent(q){
 A.evChoice=function(i){
   const q=UI.curEv;if(!q)return;const e=EVENTS[q.id];
   const chs=typeof e.ch==='function'?e.ch(q.d):e.ch,tt=typeof e.title==='function'?e.title(q.d):e.title;
+  const before=evSnap();
   const msg=chs[i].f(q.d);
   S.mood=clamp(S.mood,0,100);S.confidence=clamp(S.confidence,0,100);S.rep=clamp(S.rep,0,100);
+  const fx=evEffects(before,evSnap());
   if(msg)news(tt+' : '+msg);
   UI.curEv=null;checkOver();save();
-  openModal(`<div class="kicker">${esc(e.k)}</div><h2>${esc(tt)}</h2><p>${esc(msg||'C’est noté.')}</p><div class="row"><button class="btn pri" onclick="A.close()">Continuer</button></div>`);
+  openModal(`<div class="kicker">${esc(e.k)}</div><h2>${esc(tt)}</h2><p>${esc(msg||'C’est noté.')}</p>${fx}<div class="row"><button class="btn pri" onclick="A.close()">Continuer</button></div>`);
 };
+// Conséquences chiffrées d'un choix : différence de l'état avant/après (affichage seulement, aucun effet modifié)
+function evSnap(){const sq={};(S.players||[]).forEach(p=>sq[p.id]={n:pname(p),m:p.morale,i:p.inj||0});
+  return {cash:S.cash,mood:S.mood,conf:S.confidence,rep:S.rep,fans:S.fans,sq,n:(S.players||[]).length,
+    later:JSON.stringify([S.flags||{},S.subsidyMult,S.req||null,S.talks||null,S.pre||null,S.offers&&S.offers.length,S.sponsorBonus,S.ultras,S.spons,S.spSigned])};}
+function evEffects(a,b){
+  const out=[],r=v=>Math.round(v),pill=(d,txt,good)=>out.push(`<span class="pill ${good?'g':'b'} num">${txt}</span>`),sg=d=>(d>0?'+':'−')+Math.abs(d);
+  const dc=r(b.cash-a.cash);if(Math.abs(dc)>=1)pill(dc,'Trésorerie '+(dc>0?'+':'−')+money(Math.abs(dc)),dc>0);
+  [['mood','Humeur des supporters'],['conf','Confiance de l’AG'],['rep','Réputation'],['fans','Supporters']].forEach(([k,n])=>{const d=r(b[k])-r(a[k]);if(d)pill(d,n+' '+(d>0?'+':'−')+nf(Math.abs(d)),d>0);});
+  const mor=[];for(const id in b.sq){const x=a.sq[id],y=b.sq[id];if(!x)continue;const d=r(y.m)-r(x.m);if(d)mor.push([y.n,d]);if(y.i>x.i)pill(-1,esc(y.n)+' blessé',false);}
+  if(mor.length>3){const avg=r(mor.reduce((t,m)=>t+m[1],0)/mor.length);if(avg)pill(avg,'Moral du groupe '+sg(avg)+' ('+mor.length+' joueurs)',avg>0);}
+  else mor.forEach(([n,d])=>pill(d,'Moral de '+esc(n)+' '+sg(d),d>0));
+  const dn=b.n-a.n;if(dn)pill(dn,'Effectif '+sg(dn),dn>0);
+  const later=a.later!==b.later;
+  if(!out.length&&!later)return '';
+  return `<div class="evfx">${out.length?'<div class="row" style="gap:6px;flex-wrap:wrap">'+out.join('')+'</div>':''}${later?'<p class="muted" style="font-size:12.5px;margin:6px 0 0">À venir : ce choix aura aussi des suites dans les prochaines semaines.</p>':''}</div>`;
+}
 function showOver(){
   careerAdd(S.over.t);save();
   const best=S.history.reduce((b,h)=>b,null);
@@ -2070,7 +2143,12 @@ A.exportSave=function(){
 };
 A.copyExp=function(){const t=document.getElementById('exp');try{navigator.clipboard.writeText(t.value).then(()=>toast('Code copié.'),()=>{t.select();toast('Sélectionnez et copiez le code manuellement.');});}catch(e){t.select();}};
 A.importSave=function(){openModal(`<div class="kicker">Sauvegarde</div><h2>Importer une partie</h2><p>Collez un code de sauvegarde. La partie en cours sera remplacée.</p><textarea id="imp"></textarea><div class="row"><button class="btn pri" onclick="A.doImport()">Charger</button><button class="btn" onclick="A.close()">Annuler</button></div>`);};
-A.doImport=function(){try{const s=JSON.parse(decodeURIComponent(escape(atob(document.getElementById('imp').value.trim()))));if(!s||s.v!==1)throw 0;S=s;UI.queue=[];save();closeModal();toast('Partie chargée.');}catch(e){toast('Code invalide : vérifiez qu’il est complet.');}};
+A.doImport=function(){let s;try{s=JSON.parse(decodeURIComponent(escape(atob(document.getElementById('imp').value.trim()))));if(!s||s.v!==1||!Array.isArray(s.players))throw 0;}catch(e){toast('Code invalide : vérifiez qu’il est complet.');return;}
+ // Comme au chargement d'une partie (boot, loadSlot) : compléter les anciens codes, puis vérifier que chaque onglet s'affiche avant de remplacer la partie en cours.
+ const old=S,oldTab=UI.tab;try{S=s;migrate();S.track=S.track||{cash:[],pos:[]};S.sf=S.sf||{inc:{},exp:{},fi:{}};S.sf.fi=S.sf.fi||{};
+  for(const t of ['accueil','calendrier','classement','stats','effectif','mercato','staff','infra','finances','coupe','club']){UI.tab=t;render();}}
+ catch(e){S=old;UI.tab=oldTab;try{if(S)render();else renderStart();}catch(_){}toast('Ce code de sauvegarde est abîmé ou trop ancien : la partie en cours est conservée.');return;}
+ UI.tab='accueil';UI.queue=[];save();closeModal();render();scrollTo(0,0);toast('Partie chargée.');if(S.over)UI.queue.push({type:'over'});nextQueue();};
 A.confirmReset=function(){openModal(`<div class="kicker">Nouvelle partie</div><h2>Recommencer à zéro ?</h2><p>La partie en cours sera effacée de ce navigateur. Exportez-la d’abord si vous voulez la garder.</p><div class="row"><button class="btn dan" onclick="A.reset()">Effacer et recommencer</button><button class="btn" onclick="A.close()">Annuler</button></div>`);};
 A.reset=function(){try{localStorage.removeItem(KEY);}catch(e){}S=null;UI.queue=[];UI.tab='accueil';document.getElementById('modal').classList.add('hidden');UI.modalOpen=false;renderStart();};
 
@@ -2483,14 +2561,14 @@ function render(){
   document.getElementById('app').innerHTML=`
   <header class="top">
     <div class="crest">${crest(S.club.c1,S.club.c2,S.club.name)}</div>
-    <div class="ident"><h1>${esc(S.club.name)}</h1><div class="sub"><span>${L.n}</span><span>${esc(S.statut)}</span><span>Saison ${seasonLabel(S.year)}</span>${S.euro&&S.euro.phase!=='out'?`<span class="eu-chip" style="--ec:${EURO[S.euro.k].col}">${starSVG(EURO[S.euro.k].col,11)} ${EURO[S.euro.k].n}</span>`:''}</div></div>
-    <div class="playwrap"><button class="play" onclick="A.play()" ${S.over?'disabled':''}>${btnLabel}<small>${esc(btnSub)}</small></button>${!S.over&&!S.seasonOver&&S.N-S.week>1?`<button class="btn sm multi" onclick="A.playN(${Math.min(5,S.N-S.week)})">Enchaîner ${Math.min(5,S.N-S.week)} journées (sans rapport)</button>`:''}</div>
+    <div class="ident"><h1>${esc(S.club.name)}</h1><div class="sub"><span>${L.n}</span><span class="hide-m">${esc(S.statut)}</span><span>Saison ${seasonLabel(S.year)}</span>${S.euro&&S.euro.phase!=='out'?`<span class="eu-chip" style="--ec:${EURO[S.euro.k].col}">${starSVG(EURO[S.euro.k].col,11)} ${EURO[S.euro.k].n}</span>`:''}</div></div>
+    <div class="playwrap"><button class="play" onclick="A.play()" ${S.over?'disabled':''}>${btnLabel}<small>${esc(btnSub)}</small></button>${!S.over&&!S.seasonOver&&S.N-S.week>1?`<button class="btn sm multi" onclick="A.playN(${Math.min(5,S.N-S.week)})" aria-label="Enchaîner ${Math.min(5,S.N-S.week)} journées sans rapport"><span class="lf">Enchaîner ${Math.min(5,S.N-S.week)} journées (sans rapport)</span><span class="ls">+${Math.min(5,S.N-S.week)} journées</span></button>`:''}</div>
     <div class="board">
-      <div class="cell"><div class="lab">${ico('finances',13)}Trésorerie</div><div class="val ${S.cash<0?'neg':''}">${money(S.cash)}${dCash?`<span class="delta ${dCash>0?'up':'dn'}">${dCash>0?'▲':'▼'} ${money(Math.abs(dCash))}</span>`:''}</div></div>
-      <div class="cell"><div class="lab">${ico('classement',13)}Classement</div><div class="val">${S.week?pos+'<span style="font-size:15px">e</span>':'—'}<span style="font-size:15px;color:var(--muted)"> / ${L.teams}</span>${dPos?`<span class="delta ${dPos>0?'up':'dn'}">${dPos>0?'▲':'▼'} ${Math.abs(dPos)}</span>`:''}</div></div>
+      <div class="cell"><div class="lab">${ico('finances',13)}<span class="lf">Trésorerie</span><span class="ls">Caisse</span></div><div class="val ${S.cash<0?'neg':''}">${money(S.cash)}${dCash?`<span class="delta ${dCash>0?'up':'dn'}">${dCash>0?'▲':'▼'} ${money(Math.abs(dCash))}</span>`:''}</div></div>
+      <div class="cell"><div class="lab">${ico('classement',13)}<span class="lf">Classement</span><span class="ls">Rang</span></div><div class="val">${S.week?pos+'<span style="font-size:15px">e</span>':'—'}<span style="font-size:15px;color:var(--muted)"> / ${L.teams}</span>${dPos?`<span class="delta ${dPos>0?'up':'dn'}">${dPos>0?'▲':'▼'} ${Math.abs(dPos)}</span>`:''}</div></div>
       <div class="cell"><div class="lab">${ico('club',13)}Confiance<span class="hide-m"> de l’AG</span></div><div class="val">${Math.round(S.confidence)}</div><div class="meter"><i style="width:${S.confidence}%;background:${S.confidence<30?'var(--bad)':'var(--flood)'}"></i></div></div>
-      <div class="cell"><div class="lab">${ico('users',13)}Supporters</div><div class="val">${nf(S.fans)}</div><div class="meter"><i style="width:${S.mood}%;background:${S.mood<35?'var(--bad)':'var(--good)'}"></i></div></div>
-      <div class="cell"><div class="lab">${ico('bolt',13)}Force d’équipe</div><div class="val">${Math.round(st.ovr)}</div></div>
+      <div class="cell"><div class="lab">${ico('users',13)}<span class="lf">Supporters</span><span class="ls">Fans</span></div><div class="val">${nf(S.fans)}</div><div class="meter"><i style="width:${S.mood}%;background:${S.mood<35?'var(--bad)':'var(--good)'}"></i></div></div>
+      <div class="cell"><div class="lab">${ico('bolt',13)}<span class="lf">Force d’équipe</span><span class="ls">Force</span></div><div class="val">${Math.round(st.ovr)}</div></div>
       <div class="cell cal-cell"><div class="lab">${ico('calendrier',13)}Calendrier</div><div class="val">${S.week}<span style="font-size:15px;color:var(--muted)"> / ${S.N}</span></div></div>
     </div>
   </header>
@@ -2762,8 +2840,8 @@ function vClass(){
   const L=LV[S.div],tbl=standings();
   const last=S.lastRound||[];
   return `<div class="grid g2"><div class="card" style="grid-column:1/-1"><header><h3>${L.n} · ${seasonLabel(S.year)}</h3><span class="muted" style="font-size:13px"><span class="good">▌</span> montée (${L.promo}) · <span class="bad">▌</span> relégation (${L.rel})</span></header>
-  <div class="tbl-wrap"><table data-sort="9,-1" data-norank="1"><thead><tr><th>#</th><th>Club</th><th class="r">J</th><th class="r">G</th><th class="r">N</th><th class="r">P</th><th class="r">BP</th><th class="r">BC</th><th class="r">Diff</th><th class="r">Pts</th><th>Forme</th></tr></thead><tbody>
-  ${tbl.map((t,i)=>`<tr class="${t.user?'me ':''}${i<L.promo?'zone-up':i>=L.teams-L.rel?'zone-down':''}"><td>${i+1}</td><td>${tc(t.name)}${t.tag?` <span class="pill" title="${esc(t.last||'')}" style="font-size:10.5px">${t.tag}</span>`:t.last&&!t.user?` <span class="muted" style="font-size:11.5px" title="Classement la saison passée">(${esc(t.last)})</span>`:''}</td><td class="r">${t.P}</td><td class="r">${t.W}</td><td class="r">${t.D}</td><td class="r">${t.L}</td><td class="r">${t.GF}</td><td class="r">${t.GA}</td><td class="r">${t.GF-t.GA>0?'+':''}${t.GF-t.GA}</td><td class="r"><b>${t.Pts}</b></td><td>${formPills(t.form)}</td></tr>`).join('')}
+  <div class="tbl-wrap"><table class="cls" data-sort="9,-1" data-norank="1"><thead><tr><th>#</th><th>Club</th><th class="r">J</th><th class="r xm">G</th><th class="r xm">N</th><th class="r xm">P</th><th class="r xm">BP</th><th class="r xm">BC</th><th class="r">Diff</th><th class="r">Pts</th><th class="xm">Forme</th></tr></thead><tbody>
+  ${tbl.map((t,i)=>`<tr class="${t.user?'me ':''}${i<L.promo?'zone-up':i>=L.teams-L.rel?'zone-down':''}"><td>${i+1}</td><td>${tc(t.name)}${t.tag?` <span class="pill" title="${esc(t.last||'')}" style="font-size:10.5px">${t.tag}</span>`:t.last&&!t.user?` <span class="muted xm" style="font-size:11.5px" title="Classement la saison passée">(${esc(t.last)})</span>`:''}</td><td class="r">${t.P}</td><td class="r xm">${t.W}</td><td class="r xm">${t.D}</td><td class="r xm">${t.L}</td><td class="r xm">${t.GF}</td><td class="r xm">${t.GA}</td><td class="r">${t.GF-t.GA>0?'+':''}${t.GF-t.GA}</td><td class="r"><b>${t.Pts}</b></td><td class="xm">${formPills(t.form)}</td></tr>`).join('')}
   </tbody></table></div></div>
   <div class="card"><h3>Dernière journée</h3>${last.length?'<div class="tbl-wrap"><table><tbody>'+last.map(([h,a,gh,ga])=>`<tr class="${S.teams[h].user||S.teams[a].user?'me':''}"><td>${tc(S.teams[h].name)}</td><td class="r"><b>${gh} - ${ga}</b></td><td>${tc(S.teams[a].name)}</td></tr>`).join('')+'</tbody></table></div>':'<p class="muted">La saison n’a pas commencé.</p>'}</div>
   <div class="card"><h3>Vos résultats</h3><div class="tbl-wrap"><table><tbody>${S.myResults.slice().reverse().map(r=>`<tr><td>J${r.j}</td><td><span class="muted" style="display:inline-block;width:18px">${r.home?'vs':'à'}</span> ${tc(r.opp)}</td><td class="r"><b class="${r.res==='V'?'good':r.res==='D'?'bad':''}">${r.gf} - ${r.ga}</b></td><td class="r muted">${r.att?nf(r.att)+' spect.':''}</td></tr>`).join('')||'<tr><td class="muted">Aucun match joué.</td></tr>'}</tbody></table></div></div>

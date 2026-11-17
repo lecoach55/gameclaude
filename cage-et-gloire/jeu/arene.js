@@ -175,15 +175,7 @@ function regions(src){src.updateMatrixWorld(true);const BB=new THREE.Box3(),_p=n
  // position de repos en coordonnées communes aux deux maillages (x : gauche, y : hauteur 0-1, z : avant), pour le détail des matières
  const W5=WP.get(o),cx=(bb.min.x+bb.max.x)/2,cz=(bb.min.z+bb.max.z)/2,bp=new Float32Array(p.count*3);for(let i=0;i<p.count;i++){bp[i*3]=(W5[i*3]-cx)/hgt;bp[i*3+1]=(W5[i*3+1]-bb.min.y)/hgt;bp[i*3+2]=(W5[i*3+2]-cz)/hgt;}
  // le bassin du mannequin (coque + rotule) faisait un « ballon » rouge sous le short : on l'aplatit vers l'axe du corps
- {const inv=o.matrixWorld.clone().invert(),q=new THREE.Vector3();for(let i=0;i<p.count;i++)if(reg[i]===1){const dx=(W5[i*3]-cx)/hgt,c=Math.exp(-dx*dx/.005)*Math.exp(-Math.pow((W5[i*3+1]-bb.min.y)/hgt-.555,2)/.005),k=1-(JNT?.8:.65)*c,fz=(JNT?.6:.82)*k,y0=bb.min.y+.56*hgt;q.set(cx+(W5[i*3]-cx)*(JNT?.86:.95)*k,y0+(W5[i*3+1]-y0)*(1-.2*c),cz+(W5[i*3+2]-cz)*fz).applyMatrix4(inv);p.setXYZ(i,q.x,q.y,q.z);}p.needsUpdate=true;}
- // cuisses du mannequin trop rondes (« culotte bouffante » sous le short) : on les resserre vers l'axe hanche → genou
- // (même calcul pour les deux maillages, à partir des os en position de repos : coque et rotules restent alignées)
- {const B=n=>o.skeleton.bones.find(b=>b.name.replace(/^mixamorig:?/,'')===n);const inv=o.matrixWorld.clone().invert(),q=new THREE.Vector3(),a=new THREE.Vector3(),d=new THREE.Vector3(),v=new THREE.Vector3();
-  const ax={};for(const s of ['Left','Right']){const h=B(s+'UpLeg'),g=B(s+'Leg');if(h&&g)ax[s]=[h.getWorldPosition(new THREE.Vector3()),g.getWorldPosition(new THREE.Vector3())];}
-  if(ax.Left&&ax.Right)for(let i=0;i<p.count;i++){let bw=0,bi=0;for(let k=0;k<4;k++){const w=sw.getComponent(i,k);if(w>bw){bw=w;bi=si.getComponent(i,k);}}const nb=bones[bi]||'';const m=/^(Left|Right)UpLeg$/.exec(nb);if(!m)continue;
-   const [h,g]=ax[m[1]];d.subVectors(g,h);const L2=d.lengthSq();v.set(W5[i*3],W5[i*3+1],W5[i*3+2]);const t=Math.max(0,Math.min(1,a.subVectors(v,h).dot(d)/L2));
-   const u=Math.max(0,Math.min(1,(t-.45)/.5)),k=1-.22*(1-u*u*(3-2*u));a.copy(h).addScaledVector(d,t);v.sub(a);q.copy(a).addScaledVector(v,k).applyMatrix4(inv);p.setXYZ(i,q.x,q.y,q.z);}
-  p.needsUpdate=true;}
+ {const inv=o.matrixWorld.clone().invert(),q=new THREE.Vector3();for(let i=0;i<p.count;i++)if(reg[i]===1){const dx=(W5[i*3]-cx)/hgt,c=Math.exp(-dx*dx/.005)*Math.exp(-Math.pow((W5[i*3+1]-bb.min.y)/hgt-.555,2)/.005),k=1-.65*c,fz=(JNT?.72:.82)*k,y0=bb.min.y+.56*hgt;q.set(cx+(W5[i*3]-cx)*(JNT?.86:.95)*k,y0+(W5[i*3+1]-y0)*(1-.2*c),cz+(W5[i*3+2]-cz)*fz).applyMatrix4(inv);p.setXYZ(i,q.x,q.y,q.z);}p.needsUpdate=true;}
  // bruits basse fréquence (grain de peau, plis du tissu) calculés une fois par sommet sur le processeur
  const nzv=new Float32Array(p.count*2);for(let i=0;i<p.count;i++){const x=bp[i*3],y=bp[i*3+1],z=bp[i*3+2];nzv[i*2]=vnz(x*30,y*30,z*30);nzv[i*2+1]=vnz(x*70,y*16,z*70);}g.setAttribute('nzv',new THREE.BufferAttribute(nzv,2));
  g.setAttribute('reg',new THREE.BufferAttribute(reg,1));g.setAttribute('bp',new THREE.BufferAttribute(bp,3));g.userData.reg=1;});}
@@ -493,8 +485,8 @@ function majCam(dt){const F=A.f;const m=F[0].pos.clone().add(F[1].pos).multiplyS
  if(!CAM.repl){let da=Math.atan2(Math.sin(want-CAM.ang),Math.cos(want-CAM.ang));CAM.ang+=da*(1-Math.pow(.25,dt));}else CAM.ang+=dt*.25;
  if(CAM.mode&&CAM.mode.startsWith('coin')){const h=F[+CAM.mode.slice(4)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const sd=new THREE.Vector3(fw.z,0,-fw.x);const p=h.pos.clone().addScaledVector(fw,3.3).addScaledVector(sd,1.7);p.y=2.1;
   CAM.cur.lerp(p,1-Math.pow(.05,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().addScaledVector(fw,.4).setY(.85),1-Math.pow(.03,dt));C.lookAt(CAM.look);return;}
- if(CAM.mode&&CAM.mode.startsWith('portrait')){const h=F[+CAM.mode.slice(8)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const p=h.pos.clone().addScaledVector(fw,port?2.25:1.55);p.y=port?1.45:1.5;
-  const sd=new THREE.Vector3(fw.z,0,-fw.x).multiplyScalar(.35);p.add(sd);CAM.cur.lerp(p,1-Math.pow(.02,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().setY(port?1.22:1.35),1-Math.pow(.01,dt));C.lookAt(CAM.look);return;}
+ if(CAM.mode&&CAM.mode.startsWith('portrait')){const h=F[+CAM.mode.slice(8)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const p=h.pos.clone().addScaledVector(fw,port?2.25:1.55);p.y=port?1.55:1.5;
+  const sd=new THREE.Vector3(fw.z,0,-fw.x).multiplyScalar(.35);p.add(sd);CAM.cur.lerp(p,1-Math.pow(.02,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().setY(port?1.32:1.35),1-Math.pow(.01,dt));C.lookAt(CAM.look);return;}
  const cfg={large:[6.4,3.7,.95],moyen:[4.7,2.9,.95],serre:[3.4,2.1,.85],sol:[4.1,3.3,.35]}[CAM.mode]||[6,3.5,1];
  let r=cfg[0]*(port?1.22:1),hh=cfg[1]*(port?1.1:1);
  const tgt=new THREE.Vector3(m.x+Math.cos(CAM.ang)*r,hh,m.z+Math.sin(CAM.ang)*r);

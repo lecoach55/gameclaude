@@ -80,7 +80,7 @@ function ouvrirConfig(){choixGroupe('cTaille','taille');choixGroupe('cEau','eau'
 
 // ---------- démarrage ----------
 function demarrer(opts){ecran('generation');$('genMsg').textContent='Le cartographe trace des terres inconnues…';
- setTimeout(()=>{try{const t0=performance.now();opts.joueurs=opts.joueurs.map(p=>Object.assign({},p,{fac:p.fac==='hasard'?FACS[Math.floor(Math.random()*3)]:p.fac}));
+ setTimeout(()=>{try{const t0=performance.now();opts.joueurs=opts.joueurs.map(p=>Object.assign({},p,{fac:p.fac==='hasard'?FACS[Math.floor(Math.random()*FACS.length)]:p.fac}));
   nouvellePartie(opts);$('genMsg').textContent='Les peintres colorent le monde…';
   setTimeout(()=>{initRendu();entrerAventure();V.tGen=Math.round(performance.now()-t0);debutTour(true);},30);}catch(e){console.error(e);alerte('Erreur',String(e));ecran('accueil');}},60);}
 function entrerAventure(){ecran('aventure');redim();majUI();SON.musique('carte');}
@@ -102,13 +102,32 @@ async function debutTour(premier){const p=G.joueurs[G.courant];V.chemin=null;ban
    setTimeout(()=>fenetre(`<h2>Premiers pas</h2><p>🐎 <b>Déplacer le héros :</b> touchez une case pour tracer le chemin (flèches vertes : aujourd’hui), touchez-la encore pour partir.</p><p>🏰 <b>Votre ville :</b> touchez-la (ou 🏰) pour construire un bâtiment par jour et recruter des créatures.</p><p>💰 <b>Ressources :</b> ramassez les tas, capturez les mines (drapeau) ; méfiez-vous des créatures qui gardent trésors et passages (appui long pour juger de leur force).</p><p>⌛ <b>Fin du tour</b> quand vos héros ont fini de bouger. Chaque lundi, les créatures se multiplient.</p><p style="font-size:13px">Aide complète : menu ☰ → 📖.</p>`,[{t:'C’est parti !',or:true}]),600);}}
   if((G.jour-1)%7===0&&G.jour>1&&G.courant===G.joueurs.findIndex(q=>q.humain&&!q.elim)){SON.jour();const sm=G.semaine?CRE[G.semaine.cre]:null;bandeau(`<b>Semaine ${Math.floor((G.jour-1)/7)+1}</b>${sm?` — semaine ${/^[AEIOUÉ]/.test(sm.nom)?'de l’':'du '}${sm.nom.toLowerCase()} : +${G.semaine.bonus} ${sm.pl.toLowerCase()} dans chaque habitation`:' — les créatures se multiplient'}`,3600);}
   else bandeau(dateTxt(),1800);
-  if(!villesDe(p.id).length&&p.sansVille>0)toast(`⚠ Vous n’avez plus de ville : il vous reste ${7-p.sansVille} jour(s) pour en reprendre une.`,4000);
+  majAlerte();approches(p);
   return;}
  // ordinateur
  V.occupe=true;bandeau(`Tour de <span style="color:${COULEURS[p.coul].c}">${p.nom}</span>…`);majUI();
  await new Promise(r=>setTimeout(r,30));
  try{await tourIA(G.courant);}catch(e){console.error(e);TK&&TK.erreurs.push('IA: '+e);}
  if(G.fini)return finPartie();finTour();}
+// ---------- le royaume prévient (alerte persistante + héros ennemis qui approchent) ----------
+function majAlerte(){const e=$('alerte');if(!e)return;const av=$('aventure');const cache=()=>{e.style.display='none';e.innerHTML='';av&&av.classList.remove('avec-alerte');};
+ if(!G||G.fini||ECRAN!=='aventure')return cache();const p=G.joueurs[vueJoueur()];if(!p||!p.humain||p.elim)return cache();
+ const vs=villesDe(p.id);let txt='',act=null;
+ if(!vs.length){const n=Math.max(1,7-(p.sansVille||0));txt=`⚠ Plus aucune ville : <b>${n} jour${n>1?'s':''} avant la chute</b>. Reprenez une ville !`;}
+ else if(!herosDe(p.id).length){const v=vs.find(v=>v.bat.taverne);const n=(p.taverne||[]).filter(Boolean).length;
+  if(v&&n){txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} en propose ${n} (2 500 or)`;act=v;}
+  else if(v)txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} n’en propose plus avant lundi`;
+  else txt='⚠ Aucun héros : construisez une taverne pour en engager';}
+ if(!txt)return cache();
+ const cle=txt+(act?act.id:'');if(e._cle!==cle||e.style.display==='none'){e._cle=cle;e.innerHTML=`<span>${txt}</span>`+(act?'<button class="btn petit or" id="alerteGo">🍺 Taverne</button>':'');
+  if(act)$('alerteGo').onclick=()=>{if(V.occupe||G.courant!==p.id)return;ouvrirVille(act);fenTaverne();};}
+ e.style.display='flex';av&&av.classList.add('avec-alerte');}
+function approches(p){const vs=villesDe(p.id);if(!vs.length)return;const sem=Math.floor((G.jour-1)/7);V.approche=V.approche||{};const msgs=[];
+ for(const h of G.heros){if(h.j===p.id||h.j<0||!G.joueurs[h.j]||G.joueurs[h.j].elim)continue;if(!p.vu||!p.vu[idx(h.x,h.y)])continue;
+  let v=null,dm=99;for(const w of vs){const d=Math.max(Math.abs(w.x-h.x),Math.abs(w.y-h.y));if(d<dm){dm=d;v=w;}}if(!v||dm>8)continue;
+  const k=G.graine+':'+h.id+':'+sem;if(V.approche[k])continue;V.approche[k]=1;const q=G.joueurs[h.j];
+  msgs.push(`⚔ Un héros <span style="color:${COULEURS[q.coul].c}">${FAC[q.fac].adj}</span> approche de ${esc(v.nom)} !`);}
+ if(msgs.length){V.approcheMsg=msgs;setTimeout(()=>{SON.clic&&SON.clic();toast(msgs.slice(0,2).join('<br>')+(msgs.length>2?`<br>et ${msgs.length-2} autre(s)…`:''),5000);},1900);}}
 function finTour(){if(V.occupe&&G.joueurs[G.courant].humain)return;V.chemin=null;const avant=G.jour;finTourJoueur();if(G.jour!==avant)V.nouveauJour=true;V.fogDirty=true;V.miniDirty=true;setTimeout(()=>debutTour(false),20);}
 async function finPartie(){V.occupe=true;bandeau(null);const g=G.fini;const p=G.joueurs[g.gagnant];const gagne=p&&p.humain&&!g.defaite;try{localStorage.removeItem(CLE_SAUVE);}catch(e){}
  gagne?SON.fanfare():SON.defaite();
@@ -130,7 +149,7 @@ function majUI(){if(!G||ECRAN!=='aventure')return;const j=vueJoueur();const p=G.
  else if(v){f.innerHTML=`<div class="ligne"><b>${esc(v.nom)}</b><span>+${revenuVille(v)} or</span></div>`+miniArmee(v.garn);}
  else f.innerHTML=`<div style="opacity:.7">${p.nom} — ${FAC[p.fac].nom}</div>`;
  peindreCanvasRes(f);
- const mon=G.joueurs[G.courant].humain&&!V.occupe;for(const id of ['bHeroSuiv','bFiche','bVille','bBouger','bFinTour'])$(id).disabled=!mon;$('bBouger').disabled=!mon||!V.chemin;}
+ const mon=G.joueurs[G.courant].humain&&!V.occupe;for(const id of ['bHeroSuiv','bFiche','bVille','bBouger','bFinTour'])$(id).disabled=!mon;$('bBouger').disabled=!mon||!V.chemin;majAlerte();}
 function miniArmee(a){return'<div class="mini-armee">'+a.map(s=>`<div class="s ${s?'':'vide'}">${s?`<canvas width="48" height="48" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')+'</div>';}
 
 // ---------- tapotements sur la carte ----------
@@ -260,7 +279,7 @@ window.addEventListener('keydown',e=>{V.activite=performance.now();if(e.target.t
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!TEST&&window.NUAGE)NUAGE.push(true);});
 function brancher(){V.mini=$('minicarte');for(const ev of ['pointerdown','pointermove','wheel'])addEventListener(ev,()=>{V.activite=performance.now();},{passive:true});
  $('bNouvelle').onclick=()=>{SON.debloquer();SON.clic();ouvrirConfig();};$('bContinuer').onclick=()=>{SON.debloquer();continuer();};$('bAide').onclick=()=>aide();$('bTest').onclick=()=>{SON.debloquer();modeTest();};
- $('cRetour').onclick=()=>ecran('accueil');$('cAjout').onclick=()=>{if(CFG.joueurs.length<4){CFG.joueurs.push({fac:FACS[CFG.joueurs.length%3],humain:false});majJoueursCfg();}};
+ $('cRetour').onclick=()=>ecran('accueil');$('cAjout').onclick=()=>{if(CFG.joueurs.length<4){CFG.joueurs.push({fac:FACS.find(f=>!CFG.joueurs.some(p=>p.fac===f))||FACS[CFG.joueurs.length%FACS.length],humain:false});majJoueursCfg();}};
  $('cDe').onclick=()=>{$('cGraine').value=Math.floor(Math.random()*999999);};
  $('cGo').onclick=()=>{SON.clic();TEST=false;const gr=parseInt($('cGraine').value);demarrer({graine:isNaN(gr)?Math.floor(Math.random()*999999)+1:gr,taille:CFG.taille,eau:CFG.eau,monstres:CFG.monstres,difficulte:CFG.difficulte,victoire:CFG.victoire,joueurs:CFG.joueurs.map(p=>Object.assign({},p))});};
  $('bHeroSuiv').onclick=()=>heroSuivant();$('bFiche').onclick=()=>{const h=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):herosDe(G.courant)[0];if(h)ouvrirFiche(h);};

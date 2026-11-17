@@ -72,6 +72,9 @@ h1 span{color:#e8b850;font-style:italic}
 .boutons-av{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
 .boutons-av .ib{width:100%}
 .boutons-av .fin{grid-column:span 1}
+.alerte{position:absolute;left:10px;top:10px;max-width:min(440px,calc(100% - 260px));background:rgba(52,16,8,.92);border:2px solid #c0603a;border-radius:6px;padding:4px 6px 4px 12px;font-size:14px;color:#f6e6bc;display:none;z-index:9;align-items:center;gap:10px;box-shadow:0 3px 12px rgba(0,0,0,.55)}
+.alerte .btn{min-height:44px;white-space:nowrap;flex:none}
+.avec-alerte .bandeau{top:72px}
 .info-bulle{position:absolute;pointer-events:none;background:rgba(24,14,6,.94);border:1px solid #c09a48;border-radius:5px;padding:6px 9px;font-size:13px;max-width:260px;display:none;z-index:20;box-shadow:0 4px 14px rgba(0,0,0,.6)}
 .bandeau{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(24,14,6,.9);border:2px solid #c09a48;border-radius:6px;padding:8px 18px;font-size:16px;color:#f6d77a;display:none;z-index:10;pointer-events:none;text-align:center}
 /* fenêtres */
@@ -129,6 +132,8 @@ h1 span{color:#e8b850;font-style:italic}
  .boutons-av{grid-template-columns:repeat(7,1fr);width:100%}
  .boutons-av .ib{height:40px}
  .bandeau{top:36px;font-size:14px}
+ .avec-alerte .bandeau{top:88px}
+ .alerte{left:6px;right:6px;top:34px;max-width:none;font-size:13px;padding:2px 4px 2px 8px}
  .barre-res{top:0;bottom:auto;right:0;height:28px;font-size:12px;gap:8px;border-top:none;border-bottom:2px solid #b8903e;overflow-x:auto}
  .barre-res canvas{width:16px;height:16px}
  .barre-combat{flex-wrap:wrap;gap:4px}
@@ -201,6 +206,7 @@ h1 span{color:#e8b850;font-style:italic}
  </aside>
  <div id="infoBulle" class="info-bulle"></div>
  <div id="bandeau" class="bandeau"></div>
+ <div id="alerte" class="alerte"></div>
 </section>
 <!-- combat -->
 <section id="combat" class="ecran">
@@ -1794,7 +1800,7 @@ var SON=(()=>{let ac=null,maitre=null,musG=null,actif=true,musique=true;try{acti
 </script>
 <script>
 /* testkit.js */
-// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) — version 6 =====
+// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) — version 7 =====
 // Version : TK.version (ligne « const TK={version:… »), envoyée dans chaque mesure et signalement (champ tk). À augmenter à chaque
 // changement, avec une ligne dans VERSIONS de outils-communs/maj_testkit.py. Mettre à jour la copie d'un jeu : python3 outils-communs/maj_testkit.py <jeu>
 // Ajoute : compteur d'images par seconde (mode test), bouton 🐞 « signaler un problème » (capture + état + erreurs),
@@ -1810,7 +1816,7 @@ var SON=(()=>{let ac=null,maitre=null,musG=null,actif=true,musique=true;try{acti
 // option secours:true → 🐞 ouvre un rapport à copier (bouton « Enregistrer » seulement si la capacité downloads est accordée) (TK.rapport(obj,titre) réutilisable pour le banc).
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
 function Testkit(o){
- const TK={version:6,test:false,ft:[],rec:null,lt:0,erreurs:[]};
+ const TK={version:7,test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
  // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
  // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
@@ -1828,7 +1834,9 @@ function Testkit(o){
  addEventListener('unhandledrejection',e=>TK.erreurs.push('promesse: '+String(e.reason).slice(0,300)));
  const gpu=()=>{try{const c0=o.canvas&&o.canvas();let gl=c0&&(c0.getContext('webgl2')||c0.getContext('webgl'));if(!gl){const c=document.createElement('canvas');gl=c.getContext('webgl');} // jeux 2D : canvas WebGL temporaire
   const x=gl.getExtension('WEBGL_debug_renderer_info');return x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(e){return '?';}};
- const stats=a0=>{const a=a0.filter(d=>d<1000),pz=a0.length-a.length;if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{})};};
+ // Pause = image > 1 s ET > 8× l'image médiane : sur un appareil où TOUTES les images dépassent 1 s (rendu logiciel, vieux Mac en Haute),
+ // elles comptent (v7 ; avant : tout écarté → fps vide justement sur l'appareil le plus lent). lent:true = image médiane > 125 ms.
+ const stats=a0=>{if(!a0.length)return{n:0};const o0=a0.slice().sort((x,y)=>x-y),seuil=Math.max(1000,8*o0[(o0.length-1)>>1]);const a=a0.filter(d=>d<seuil),pz=a0.length-a.length;const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{}),...(seuil>1000?{lent:true}:{})};};
  const tick=t=>{if(TK.lt){const d=t-TK.lt;TK.ft.push(d);if(TK.ft.length>240)TK.ft.shift();if(TK.rec)TK.rec.push(d);}TK.lt=t;if(TK.ov&&t-(TK.tt||0)>500){TK.tt=t;const s=stats(TK.ft.slice(-60));TK.ov.firstChild.textContent=`🧪 ${s.fps||'-'} img/s · pire ${s.pire||'-'} ms`;}requestAnimationFrame(tick);};requestAnimationFrame(tick);
  TK.modeTest=()=>{TK.test=true;if(TK.ov)return;const d=document.createElement('div');d.style.cssText='position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(0,0,0,.72);color:#9fe0a0;font:12px monospace;padding:4px 8px;border-radius:6px';d.innerHTML='<span>🧪</span>';document.body.appendChild(d);TK.ov=d;};
  // Mesure fiable : on attend que la page soit visible ; si le navigateur a suspendu l'affichage pendant la mesure
@@ -1838,7 +1846,9 @@ function Testkit(o){
   await new Promise(r=>setTimeout(r,ms));document.removeEventListener('visibilitychange',vf);const a=TK.rec;TK.rec=null;
   const suspendu=masq||a.length<ms/1000*3; // moins de 3 images/s mesurées : affichage suspendu par le navigateur
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
-  const st=stats(a);if(suspendu)st.masquee=true;return st;};
+  // Après la 2e mesure : masquee si la page a été cachée, a affiché < 3 images, a eu une pause ou des images qui ne couvrent pas 60 % de la durée ; sinon ce sont de vraies
+  // images lentes (appareil très lent) : chiffre gardé, marqué lent (v7 ; avant : « masquée » à tort sous 3 img/s).
+  const st=stats(a);if(suspendu){const tot=a.reduce((x,y)=>x+y,0);if(masq||a.length<3||st.pauses||tot<ms*.6)st.masquee=true;else st.lent=true;}return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
   const out={jeu:o.jeu,tk:TK.version,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
@@ -6364,9 +6374,9 @@ const SQ=.78; // aplatissement des hexagones (perspective)
 const SQP=.86; // portrait : le champ de bataille est tourné (attaquants en bas, défenseurs en haut)
 function redimCombat(){const cv=$('cvCombat');const d=Math.min(2,devicePixelRatio||1);cv.width=innerWidth*d;cv.height=innerHeight*d;CB.dpr=d;
  const bas=$('combat').querySelector('.barre-combat').offsetHeight||56;const W=innerWidth,H=innerHeight-bas;
- if(H>W*1.15){const top=Math.max(70,H*.09);let h=(W-12)/8.5;let w=h/1.1547;if(15.5*w*SQP>H-top-10){w=(H-top-10)/(15.5*SQP);h=w*1.1547;}
+ if(H>W*1.15){const top=Math.max(70,H*.09);let h=(W-12)/9.5;let w=h/1.1547;if(15.5*w*SQP>H-top-10){w=(H-top-10)/(15.5*SQP);h=w*1.1547;}
   CB.geo={w,h,ox:(W-8.5*h)/2,oy:top+Math.max(0,(H-top-15.5*w*SQP)/2),W,H,port:true};}
- else{const top=H*.25;const w=Math.min((W-16)/15.5,(H-top-8)/(8.5*1.1547*SQ));const h=w*1.1547;CB.geo={w,h,ox:(W-15.5*w)/2,oy:top+Math.max(0,(H-top-8.5*h*SQ)/2)-4,W,H,port:false};}
+ else{const top=H*.25;const w=Math.min((W-16)/(H<520?16.5:15.5),(H-top-8)/(8.5*1.1547*SQ));const h=w*1.1547;CB.geo={w,h,ox:(W-15.5*w)/2,oy:top+Math.max(0,(H-top-8.5*h*SQ)/2)-4,W,H,port:false};}
  CB.c3=null;if(V.m3&&R3.ok){try{CB.c3=R3.camCombat(CB.geo,CB.geo.H+60);}catch(e){console.error(e);}}
  CB.fond=null;for(const p of CB.C.piles)CB.aff.set(p.id,centreHex(p.h));}
 const PS0=.84; // perspective : la rangée du fond est plus petite que celle du premier plan
@@ -6462,22 +6472,31 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
   g.strokeText(s.heros.nom,tx,y+16);g.fillStyle='#f6d77a';g.fillText(s.heros.nom,tx,y+16);g.strokeText(`✨ ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);g.fillStyle='#9ad0ff';g.fillText(`✨ ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);}}
 function etat3D(q,now){const e=CB.anim3d&&CB.anim3d[q.id];if(q.n<=0||(e&&e.a==='die')){const t=e?Math.min(1,(now-e.t0)/500):1;return['die',Math.min(2,Math.floor(t*3))];}
  if(e&&now-e.t0<e.d){const t=(now-e.t0)/e.d;return[e.a,Math.floor(t*(e.a==='hit'?2:4))];}return['idle',Math.floor((now/260+q.id*1.7))%4];}
-function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(q.h).s||1;const S=G2.w*(G2.W<700?2.75:2.2)*ps;
- if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);const ppu=G2.w*(G2.W<700?1.25:1.05)*ps;const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
-  ombreSol(g,pos.x,by,G2.w*.5,G2.w*.14,.4);const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
+// largeur réellement peinte (fraction du cadre), mesurée une fois par créature : une pile ne déborde pas de 1,6 hexagone
+const LARG={};function largeurOpaque(cle,im,sx,sy,sw,sh){if(LARG[cle]!=null)return LARG[cle];if(!im||!im.width||!sw)return 1;
+ try{const c=document.createElement('canvas');const k=Math.min(1,128/Math.max(sw,sh));c.width=Math.max(1,Math.round(sw*k));c.height=Math.max(1,Math.round(sh*k));const g=c.getContext('2d');g.drawImage(im,sx,sy,sw,sh,0,0,c.width,c.height);
+  const d=g.getImageData(0,0,c.width,c.height).data;let x0=c.width,x1=-1;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++)if(d[(y*c.width+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x;}
+  if(x1<0)return 1;return LARG[cle]=(x1-x0+1)/c.width;}catch(e){return LARG[cle]=1;}}
+// ombre de contact : halo large et doux + noyau serré sous les pieds
+function ombreContact(g,x,y,hw,a){ombreSol(g,x,y,hw*.52,hw*.15,.38*a);ombreSol(g,x,y,hw*.3,hw*.075,.45*a);}
+function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(q.h).s||1;const hexL=(G2.port?G2.h:G2.w)*ps*1.6;let S=G2.w*(G2.W<700?2.75:2.2)*ps;
+ if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);let ppu=G2.w*(G2.W<700?1.25:1.05)*ps;const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
+  {const D=SPR3D[q.c];const [im,sx,sy,sw,sh]=cadre3D(q.c,'idle',0);const l=largeurOpaque('3'+q.c,im,sx,sy,sw,sh)*sw*ppu/D.pxu;if(l>hexL)ppu*=hexL/l;}
+  ombreContact(g,pos.x,by,G2.w*ps,q.n>0?1:.5);const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
   dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);if(fl){g.globalCompositeOperation='lighter';g.globalAlpha=.45*(1-(now-fl.t0)/fl.d);dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);g.globalCompositeOperation='source-over';}
-  g.restore();g.save();g.globalAlpha=al;badgePile(g,q,pos,G2);g.restore();return;}const spr=q.cote===0?spriteCreature(q.c,160):spriteMiroir(q.c,160);g.save();g.globalAlpha=al;
+  g.restore();g.save();g.globalAlpha=al;badgePile(g,q,pos,G2);g.restore();return;}const spr=q.cote===0?spriteCreature(q.c,160):spriteMiroir(q.c,160);{const l=largeurOpaque('2'+q.c+q.cote,spr,0,0,spr.width,spr.height)*S;if(l>hexL)S*=hexL/l;}g.save();g.globalAlpha=al;
  if(q.n<=0){const r=CB.mortT&&CB.mortT[q.id]!=null?CB.mortT[q.id]:1;const fy=pos.y+G2.h*.28*SQ*ps;g.translate(pos.x,fy);g.rotate((q.cote===0?-1:1)*r*Math.PI/2*.92);g.globalAlpha=1-.4*r;
   g.filter=r>.5?'grayscale(.55) brightness(.75)':'none';g.drawImage(spr,-S/2,-S*.87+G2.h*.28*SQ*0,S,S);g.filter='none';g.restore();return;}
  const actif=CB.C.actif===q;const b=actif?Math.sin(now/160)*2:0;const resp=1+Math.sin(now/520+q.id*1.3)*.012;
  const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
+ ombreContact(g,pos.x,pos.y+G2.h*.22*(G2.port?SQP:SQ)*ps,G2.w*ps,1);
  g.drawImage(spr,pos.x-S/2,pos.y-S*.87*resp+G2.h*.28*SQ+b,S,S*resp);
  if(fl){g.globalCompositeOperation='lighter';g.globalAlpha=.5*(1-(now-fl.t0)/fl.d);g.drawImage(spr,pos.x-S/2,pos.y-S*.87+G2.h*.28*SQ,S,S);g.globalCompositeOperation='source-over';g.globalAlpha=al;}
  badgePile(g,q,pos,G2);
  g.restore();}
 function badgePile(g,q,pos,G2){
  if(q.n>0){const txt=String(q.n);g.font=`bold ${Math.max(10,Math.round(G2.w*.27))}px Palatino,Georgia,serif`;const tw=g.measureText(txt).width+8;const bx=q.cote===0?pos.x+G2.w*.12:pos.x-G2.w*.12-tw,by=pos.y+G2.h*.12*SQ;
-  g.fillStyle=couleurCote(q.cote);g.strokeStyle='#1a0e04';g.lineWidth=1.5;g.beginPath();g.rect(bx,by,tw,G2.w*.34);g.fill();g.stroke();g.fillStyle='#fff';g.textAlign='left';g.fillText(txt,bx+4,by+G2.w*.27);
+  const bh=G2.w*.34,rr=Math.min(4,bh*.25);g.fillStyle='rgba(22,14,8,.86)';g.strokeStyle='#c9a24a';g.lineWidth=1.2;g.beginPath();g.roundRect?g.roundRect(bx,by,tw,bh,rr):g.rect(bx,by,tw,bh);g.fill();g.stroke();g.fillStyle=couleurCote(q.cote);g.fillRect(q.cote===0?bx+1.5:bx+tw-3.5,by+2,2,bh-4);g.fillStyle='#f3e3b8';g.textAlign='left';g.fillText(txt,bx+4,by+G2.w*.27);
   const ef=Object.keys(q.eff);if(ef.length||q.defend){g.font=`${Math.round(G2.w*.22)}px sans-serif`;g.fillText((q.defend?'🛡':'')+ef.map(e=>({beni:'✨',maudit:'💀',hate:'💨',lent:'🐌',bouclier:'🔰',pierre:'🪨',fureur:'🔥',priere:'🙏',poison:'☠',entrave:'🌿'})[e]||'').join(''),bx,by-3);}}}
 function majBarreCombat(){if(!CB)return;const C=CB.C;const p=C.actif;const mon=p&&CB.humain[p.cote]&&!CB.auto;
  $('cbSort').disabled=!mon||!C.peutLancer(p.cote);$('cbAttendre').disabled=!mon||p.attend;$('cbDefendre').disabled=!mon;$('cbFuir').disabled=!mon||!C.cotes[p.cote].heros||!!C.ville&&p.cote===1;$('cbAuto').disabled=!p||!(CB.humain[0]||CB.humain[1]);
@@ -6684,7 +6703,7 @@ function ouvrirConfig(){choixGroupe('cTaille','taille');choixGroupe('cEau','eau'
 
 // ---------- démarrage ----------
 function demarrer(opts){ecran('generation');$('genMsg').textContent='Le cartographe trace des terres inconnues…';
- setTimeout(()=>{try{const t0=performance.now();opts.joueurs=opts.joueurs.map(p=>Object.assign({},p,{fac:p.fac==='hasard'?FACS[Math.floor(Math.random()*3)]:p.fac}));
+ setTimeout(()=>{try{const t0=performance.now();opts.joueurs=opts.joueurs.map(p=>Object.assign({},p,{fac:p.fac==='hasard'?FACS[Math.floor(Math.random()*FACS.length)]:p.fac}));
   nouvellePartie(opts);$('genMsg').textContent='Les peintres colorent le monde…';
   setTimeout(()=>{initRendu();entrerAventure();V.tGen=Math.round(performance.now()-t0);debutTour(true);},30);}catch(e){console.error(e);alerte('Erreur',String(e));ecran('accueil');}},60);}
 function entrerAventure(){ecran('aventure');redim();majUI();SON.musique('carte');}
@@ -6706,13 +6725,32 @@ async function debutTour(premier){const p=G.joueurs[G.courant];V.chemin=null;ban
    setTimeout(()=>fenetre(`<h2>Premiers pas</h2><p>🐎 <b>Déplacer le héros :</b> touchez une case pour tracer le chemin (flèches vertes : aujourd’hui), touchez-la encore pour partir.</p><p>🏰 <b>Votre ville :</b> touchez-la (ou 🏰) pour construire un bâtiment par jour et recruter des créatures.</p><p>💰 <b>Ressources :</b> ramassez les tas, capturez les mines (drapeau) ; méfiez-vous des créatures qui gardent trésors et passages (appui long pour juger de leur force).</p><p>⌛ <b>Fin du tour</b> quand vos héros ont fini de bouger. Chaque lundi, les créatures se multiplient.</p><p style="font-size:13px">Aide complète : menu ☰ → 📖.</p>`,[{t:'C’est parti !',or:true}]),600);}}
   if((G.jour-1)%7===0&&G.jour>1&&G.courant===G.joueurs.findIndex(q=>q.humain&&!q.elim)){SON.jour();const sm=G.semaine?CRE[G.semaine.cre]:null;bandeau(`<b>Semaine ${Math.floor((G.jour-1)/7)+1}</b>${sm?` — semaine ${/^[AEIOUÉ]/.test(sm.nom)?'de l’':'du '}${sm.nom.toLowerCase()} : +${G.semaine.bonus} ${sm.pl.toLowerCase()} dans chaque habitation`:' — les créatures se multiplient'}`,3600);}
   else bandeau(dateTxt(),1800);
-  if(!villesDe(p.id).length&&p.sansVille>0)toast(`⚠ Vous n’avez plus de ville : il vous reste ${7-p.sansVille} jour(s) pour en reprendre une.`,4000);
+  majAlerte();approches(p);
   return;}
  // ordinateur
  V.occupe=true;bandeau(`Tour de <span style="color:${COULEURS[p.coul].c}">${p.nom}</span>…`);majUI();
  await new Promise(r=>setTimeout(r,30));
  try{await tourIA(G.courant);}catch(e){console.error(e);TK&&TK.erreurs.push('IA: '+e);}
  if(G.fini)return finPartie();finTour();}
+// ---------- le royaume prévient (alerte persistante + héros ennemis qui approchent) ----------
+function majAlerte(){const e=$('alerte');if(!e)return;const av=$('aventure');const cache=()=>{e.style.display='none';e.innerHTML='';av&&av.classList.remove('avec-alerte');};
+ if(!G||G.fini||ECRAN!=='aventure')return cache();const p=G.joueurs[vueJoueur()];if(!p||!p.humain||p.elim)return cache();
+ const vs=villesDe(p.id);let txt='',act=null;
+ if(!vs.length){const n=Math.max(1,7-(p.sansVille||0));txt=`⚠ Plus aucune ville : <b>${n} jour${n>1?'s':''} avant la chute</b>. Reprenez une ville !`;}
+ else if(!herosDe(p.id).length){const v=vs.find(v=>v.bat.taverne);const n=(p.taverne||[]).filter(Boolean).length;
+  if(v&&n){txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} en propose ${n} (2 500 or)`;act=v;}
+  else if(v)txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} n’en propose plus avant lundi`;
+  else txt='⚠ Aucun héros : construisez une taverne pour en engager';}
+ if(!txt)return cache();
+ const cle=txt+(act?act.id:'');if(e._cle!==cle||e.style.display==='none'){e._cle=cle;e.innerHTML=`<span>${txt}</span>`+(act?'<button class="btn petit or" id="alerteGo">🍺 Taverne</button>':'');
+  if(act)$('alerteGo').onclick=()=>{if(V.occupe||G.courant!==p.id)return;ouvrirVille(act);fenTaverne();};}
+ e.style.display='flex';av&&av.classList.add('avec-alerte');}
+function approches(p){const vs=villesDe(p.id);if(!vs.length)return;const sem=Math.floor((G.jour-1)/7);V.approche=V.approche||{};const msgs=[];
+ for(const h of G.heros){if(h.j===p.id||h.j<0||!G.joueurs[h.j]||G.joueurs[h.j].elim)continue;if(!p.vu||!p.vu[idx(h.x,h.y)])continue;
+  let v=null,dm=99;for(const w of vs){const d=Math.max(Math.abs(w.x-h.x),Math.abs(w.y-h.y));if(d<dm){dm=d;v=w;}}if(!v||dm>8)continue;
+  const k=G.graine+':'+h.id+':'+sem;if(V.approche[k])continue;V.approche[k]=1;const q=G.joueurs[h.j];
+  msgs.push(`⚔ Un héros <span style="color:${COULEURS[q.coul].c}">${FAC[q.fac].adj}</span> approche de ${esc(v.nom)} !`);}
+ if(msgs.length){V.approcheMsg=msgs;setTimeout(()=>{SON.clic&&SON.clic();toast(msgs.slice(0,2).join('<br>')+(msgs.length>2?`<br>et ${msgs.length-2} autre(s)…`:''),5000);},1900);}}
 function finTour(){if(V.occupe&&G.joueurs[G.courant].humain)return;V.chemin=null;const avant=G.jour;finTourJoueur();if(G.jour!==avant)V.nouveauJour=true;V.fogDirty=true;V.miniDirty=true;setTimeout(()=>debutTour(false),20);}
 async function finPartie(){V.occupe=true;bandeau(null);const g=G.fini;const p=G.joueurs[g.gagnant];const gagne=p&&p.humain&&!g.defaite;try{localStorage.removeItem(CLE_SAUVE);}catch(e){}
  gagne?SON.fanfare():SON.defaite();
@@ -6734,7 +6772,7 @@ function majUI(){if(!G||ECRAN!=='aventure')return;const j=vueJoueur();const p=G.
  else if(v){f.innerHTML=`<div class="ligne"><b>${esc(v.nom)}</b><span>+${revenuVille(v)} or</span></div>`+miniArmee(v.garn);}
  else f.innerHTML=`<div style="opacity:.7">${p.nom} — ${FAC[p.fac].nom}</div>`;
  peindreCanvasRes(f);
- const mon=G.joueurs[G.courant].humain&&!V.occupe;for(const id of ['bHeroSuiv','bFiche','bVille','bBouger','bFinTour'])$(id).disabled=!mon;$('bBouger').disabled=!mon||!V.chemin;}
+ const mon=G.joueurs[G.courant].humain&&!V.occupe;for(const id of ['bHeroSuiv','bFiche','bVille','bBouger','bFinTour'])$(id).disabled=!mon;$('bBouger').disabled=!mon||!V.chemin;majAlerte();}
 function miniArmee(a){return'<div class="mini-armee">'+a.map(s=>`<div class="s ${s?'':'vide'}">${s?`<canvas width="48" height="48" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')+'</div>';}
 
 // ---------- tapotements sur la carte ----------
@@ -6864,7 +6902,7 @@ window.addEventListener('keydown',e=>{V.activite=performance.now();if(e.target.t
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!TEST&&window.NUAGE)NUAGE.push(true);});
 function brancher(){V.mini=$('minicarte');for(const ev of ['pointerdown','pointermove','wheel'])addEventListener(ev,()=>{V.activite=performance.now();},{passive:true});
  $('bNouvelle').onclick=()=>{SON.debloquer();SON.clic();ouvrirConfig();};$('bContinuer').onclick=()=>{SON.debloquer();continuer();};$('bAide').onclick=()=>aide();$('bTest').onclick=()=>{SON.debloquer();modeTest();};
- $('cRetour').onclick=()=>ecran('accueil');$('cAjout').onclick=()=>{if(CFG.joueurs.length<4){CFG.joueurs.push({fac:FACS[CFG.joueurs.length%3],humain:false});majJoueursCfg();}};
+ $('cRetour').onclick=()=>ecran('accueil');$('cAjout').onclick=()=>{if(CFG.joueurs.length<4){CFG.joueurs.push({fac:FACS.find(f=>!CFG.joueurs.some(p=>p.fac===f))||FACS[CFG.joueurs.length%FACS.length],humain:false});majJoueursCfg();}};
  $('cDe').onclick=()=>{$('cGraine').value=Math.floor(Math.random()*999999);};
  $('cGo').onclick=()=>{SON.clic();TEST=false;const gr=parseInt($('cGraine').value);demarrer({graine:isNaN(gr)?Math.floor(Math.random()*999999)+1:gr,taille:CFG.taille,eau:CFG.eau,monstres:CFG.monstres,difficulte:CFG.difficulte,victoire:CFG.victoire,joueurs:CFG.joueurs.map(p=>Object.assign({},p))});};
  $('bHeroSuiv').onclick=()=>heroSuivant();$('bFiche').onclick=()=>{const h=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):herosDe(G.courant)[0];if(h)ouvrirFiche(h);};

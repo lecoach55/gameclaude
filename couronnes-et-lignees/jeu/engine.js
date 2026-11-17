@@ -1060,7 +1060,7 @@
     { id: 'rival_defi', w: 3, cond: s => s.rivalLord && !s.rivalDown && age(s, ruler(s)) >= 16 && age(s, ruler(s)) <= 55,
       text: s => `${s.rivalLord.name} ${s.rival} vous défie en combat singulier devant les barons assemblés. ${s.rivalLord.traits.includes('brave') ? 'On le dit redoutable à la lance.' : 'On le dit plus fort en paroles qu\'en armes.'}`,
       choices: [
-        { l: 'Relever le défi en personne', d: 'Selon vos qualités : +12 prestige, −12 menace ; sinon −8 prestige, −3 stabilité', f: s => { const r = ruler(s), L = s.rivalLord; let p = 0.5 + (r.traits.includes('brave') ? 0.15 : 0) + (r.traits.includes('robuste') ? 0.1 : 0) - (L.traits.includes('brave') ? 0.15 : 0) - (r.traits.includes('couard') ? 0.2 : 0) - (age(s, r) > 45 ? 0.1 : 0); if (rand(s) < p) { s.prestige += 12; s.menace = Math.max(0, s.menace - 12); if (rand(s) < 0.25) { const old = L; s.rivalLord = newRivalLord(s, true); s.menace = Math.max(0, s.menace - 10); return `${r.name} désarçonne ${old.name}, qui meurt de ses blessures. ${s.rivalLord.name} hérite d'une maison humiliée.`; } return `${r.name} désarçonne ${L.name} sous les vivats.`; } s.prestige -= 8; s.stab -= 3; if (rand(s) < 0.15) addTrait(r, 'maladif'); return `${r.name} mord la poussière. Les barons ricanent.`; } },
+        { l: 'Relever le défi en personne', d: 'Selon vos qualités : +12 prestige, −12 menace ; sinon −8 prestige, −3 stabilité', dd: s => `Environ ${Math.round(duelP(s) * 100)} % selon vos qualités : +12 prestige, −12 menace ; sinon −8 prestige, −3 stabilité`, f: s => { const r = ruler(s), L = s.rivalLord; let p = duelP(s); if (rand(s) < p) { s.prestige += 12; s.menace = Math.max(0, s.menace - 12); if (rand(s) < 0.25) { const old = L; s.rivalLord = newRivalLord(s, true); s.menace = Math.max(0, s.menace - 10); return `${r.name} désarçonne ${old.name}, qui meurt de ses blessures. ${s.rivalLord.name} hérite d'une maison humiliée.`; } return `${r.name} désarçonne ${L.name} sous les vivats.`; } s.prestige -= 8; s.stab -= 3; if (rand(s) < 0.15) addTrait(r, 'maladif'); return `${r.name} mord la poussière. Les barons ricanent.`; } },
         { l: 'Envoyer un champion', d: '−12 or, 55 % : +6 prestige ; sinon −3 prestige', f: s => { s.gold -= 12; if (rand(s) < 0.55) { s.prestige += 6; return 'Votre champion l\'emporte.'; } s.prestige -= 3; return 'Votre champion est vaincu.'; } },
         { l: 'Décliner avec mépris', d: '−4 prestige, +2 stabilité', f: s => { s.prestige -= 4; s.stab += 2; return 'Les sages approuvent ; les jeunes chevaliers murmurent.'; } },
       ] },
@@ -1354,6 +1354,8 @@
   function famRisk(s, p, cause) { p *= Math.pow(0.6, edif(s, 'hopital')); for (const x of livingDyn(s)) if (rand(s) < p * tmul(x, 'death')) kill(s, x, cause); const r = ruler(s); if (r.spouse) { const sp = s.people[r.spouse]; if (sp && rand(s) < p) kill(s, sp, cause); } }
   function fertileWoman(s, w) { return w && w.alive && age(s, w) >= 16 && age(s, w) <= 40; }
 
+  // chance du souverain en combat singulier contre le seigneur rival (affichée dans le choix, même calcul qu'à la résolution)
+  function duelP(s) { const r = ruler(s), L = s.rivalLord; return 0.5 + (r.traits.includes('brave') ? 0.15 : 0) + (r.traits.includes('robuste') ? 0.1 : 0) - (L.traits.includes('brave') ? 0.15 : 0) - (r.traits.includes('couard') ? 0.2 : 0) - (age(s, r) > 45 ? 0.1 : 0); }
   function drawEvent(s) {
     const era = eraOf(s);
     const hist = EVENTS.find(e => e.year && !s.done[e.id] && s.year >= e.year && s.year < e.year + 9);
@@ -1368,7 +1370,7 @@
     }
     s.done[e.id] = true; s.evLast[e.id] = s.turn;
     s.stats.events++;
-    return { id: e.id, hist: !!e.year, chain: !!e.chain, text: e.text(s), choices: e.choices.map(c => ({ l: c.l, d: c.d })) };
+    return { id: e.id, hist: !!e.year, chain: !!e.chain, text: e.text(s), choices: e.choices.map(c => ({ l: c.l, d: c.dd ? c.dd(s) : c.d })) };
   }
   function resolveEvent(s, i) {
     if (!s.event) return;

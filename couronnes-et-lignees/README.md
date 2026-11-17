@@ -22,6 +22,7 @@ Artefact publié : slug `c14b9bc8-e782-45aa-b06c-06126bd542d0` (https://claude.a
 - `mesure/review.py index.html [rm]` : revue écran par écran + temps de rendu.
 - `mesure/perf.py index.html sortie.json` : banc de performance (graine 1234, processeur ralenti ×4 comme un téléphone) : rendu de chaque onglet, fiches, tour, img/s pendant un zoom et un glissé. Référence : `mesures/perf_apres.json`.
 - `tests/geste.py index.html` : glisser, molette et toucher une terre sur la carte.
+- `tests/bulles.py index.html [sortie]` (`V3D=1` pour la 3D) : le conseil `.tipx` s'efface sous les fenêtres et onglets puis revient, la pastille d'alerte reste dans l'écran sans être couverte et ouvre les alertes (téléphone + ordinateur).
 
 ## Carte 3D (plan en cours, voir `PLAN_3D.md`)
 `jeu/rendu3d.js` (Three.js r160 en vue cavalière sous la couche SVG), `jeu/tex3d.js` (textures Poly Haven). `V3D=1` devant `captures.py`, `explore.py`, `geste.py` pour tester en 3D ; références dans `references/3d/`.

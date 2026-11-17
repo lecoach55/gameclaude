@@ -125,7 +125,7 @@ h1 span{color:#e8b850;font-style:italic}
  .boutons-av{grid-template-columns:repeat(7,1fr);width:100%}
  .boutons-av .ib{height:40px}
  .bandeau{top:36px;font-size:14px}
- .avec-alerte .bandeau{top:88px}
+ .avec-alerte .bandeau{top:calc(40px + var(--hAlerte,48px))}
  .alerte{left:6px;right:6px;top:34px;max-width:none;font-size:13px;padding:2px 4px 2px 8px}
  .barre-res{top:0;bottom:auto;right:0;height:28px;font-size:12px;gap:8px;border-top:none;border-bottom:2px solid #b8903e;overflow-x:auto}
  .barre-res canvas{width:16px;height:16px}

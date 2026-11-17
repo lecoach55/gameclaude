@@ -115,17 +115,17 @@ function majAlerte(){const e=$('alerte');if(!e)return;const av=$('aventure');con
  const vs=villesDe(p.id);let txt='',act=null;
  if(!vs.length){const n=Math.max(1,7-(p.sansVille||0));txt=`⚠ Plus aucune ville : <b>${n} jour${n>1?'s':''} avant la chute</b>. Reprenez une ville !`;}
  else if(!herosDe(p.id).length){const v=vs.find(v=>v.bat.taverne);const n=(p.taverne||[]).filter(Boolean).length;
-  if(v&&n){txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} en propose ${n} (2 500 or)`;act=v;}
+  if(v&&n){txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} en propose ${n} (2 500 or${p.res.or<2500?' — il vous en manque '+(2500-p.res.or):''})`;act=v;}
   else if(v)txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} n’en propose plus avant lundi`;
   else txt='⚠ Aucun héros : construisez une taverne pour en engager';}
  if(!txt)return cache();
- const cle=txt+(act?act.id:'');if(e._cle!==cle||e.style.display==='none'){e._cle=cle;e.innerHTML=`<span>${txt}</span>`+(act?'<button class="btn petit or" id="alerteGo">🍺 Taverne</button>':'');
+ const cle=p.id+':'+txt+(act?act.id:'');if(e._cle!==cle||e.style.display==='none'){e._cle=cle;e.innerHTML=`<span>${txt}</span>`+(act?'<button class="btn petit or" id="alerteGo">🍺 Taverne</button>':'');
   if(act)$('alerteGo').onclick=()=>{if(V.occupe||G.courant!==p.id)return;ouvrirVille(act);fenTaverne();};}
- e.style.display='flex';av&&av.classList.add('avec-alerte');}
+ e.style.display='flex';av&&av.classList.add('avec-alerte');av&&av.style.setProperty('--hAlerte',e.offsetHeight+'px');}
 function approches(p){const vs=villesDe(p.id);if(!vs.length)return;const sem=Math.floor((G.jour-1)/7);V.approche=V.approche||{};const msgs=[];
  for(const h of G.heros){if(h.j===p.id||h.j<0||!G.joueurs[h.j]||G.joueurs[h.j].elim)continue;if(!p.vu||!p.vu[idx(h.x,h.y)])continue;
   let v=null,dm=99;for(const w of vs){const d=Math.max(Math.abs(w.x-h.x),Math.abs(w.y-h.y));if(d<dm){dm=d;v=w;}}if(!v||dm>8)continue;
-  const k=G.graine+':'+h.id+':'+sem;if(V.approche[k])continue;V.approche[k]=1;const q=G.joueurs[h.j];
+  const k=G.graine+':'+p.id+':'+h.id+':'+sem;if(V.approche[k])continue;V.approche[k]=1;const q=G.joueurs[h.j];
   msgs.push(`⚔ Un héros <span style="color:${COULEURS[q.coul].c}">${FAC[q.fac].adj}</span> approche de ${esc(v.nom)} !`);}
  if(msgs.length){V.approcheMsg=msgs;setTimeout(()=>{SON.clic&&SON.clic();toast(msgs.slice(0,2).join('<br>')+(msgs.length>2?`<br>et ${msgs.length-2} autre(s)…`:''),5000);},1900);}}
 function finTour(){if(V.occupe&&G.joueurs[G.courant].humain)return;V.chemin=null;const avant=G.jour;finTourJoueur();if(G.jour!==avant)V.nouveauJour=true;V.fogDirty=true;V.miniDirty=true;setTimeout(()=>debutTour(false),20);}

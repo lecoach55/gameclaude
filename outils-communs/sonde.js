@@ -50,13 +50,50 @@
     return out;
   };
   const actif = e => !(e.disabled || e.getAttribute('aria-disabled') === 'true' || (e.closest('fieldset') || {}).disabled || getComputedStyle(e).pointerEvents === 'none');
+  // le doigt touche e : e lui-même, un de ses enfants, ou l'étiquette d'une case (pas un ancêtre : bordure ou fond de fenêtre)
+  const touche = (e, h) => !!h && (h === e || e.contains(h) || (h.tagName === 'LABEL' && (h.contains(e) || h.control === e)));
+  // vue(e) : {z: partie visible [gauche, haut, droite, bas] ou null, entier, cache}
+  //   coupée par l'écran et par les blocs overflow≠visible qui la contiennent vraiment (bloc conteneur : un élément fixed/absolute
+  //   n'est pas coupé par un ancêtre statique), à l'intérieur de leurs bordures et barres de défilement.
+  //   cache = entièrement caché par un bloc qui ne défile pas (accordéon ou tiroir fermé, overflow:hidden) : inatteignable en défilant.
+  const vue = e => {
+    const r = e.getBoundingClientRect();
+    let l = Math.max(r.left, 0), t = Math.max(r.top, 0), d = Math.min(r.right, innerWidth), b = Math.min(r.bottom, innerHeight), cache = false;
+    let pos = getComputedStyle(e).position;
+    for (let a = e.parentElement; a && a !== document.body && a !== document.documentElement; a = a.parentElement) {
+      const st = getComputedStyle(a);
+      const cree = st.transform !== 'none' || st.filter !== 'none' || /paint|layout|strict|content/.test(st.contain || '');
+      if (pos === 'fixed' && !cree) continue;                                // un élément fixe n'est coupé que par un ancêtre transformé
+      if (pos === 'absolute' && st.position === 'static' && !cree) continue;  // absolu : seuls les ancêtres positionnés le contiennent
+      pos = st.position;
+      if (st.overflowX === 'visible' && st.overflowY === 'visible') continue;
+      const q = a.getBoundingClientRect(), svg = a instanceof SVGElement;
+      const L = svg ? q.left : q.left + a.clientLeft, T = svg ? q.top : q.top + a.clientTop;
+      const R = svg ? q.right : L + a.clientWidth, B = svg ? q.bottom : T + a.clientHeight;
+      const defile = /auto|scroll/.test(st.overflowX + st.overflowY);
+      const avant = [l, t, d, b];
+      if (st.overflowX !== 'visible') { l = Math.max(l, L); d = Math.min(d, R); }
+      if (st.overflowY !== 'visible') { t = Math.max(t, T); b = Math.min(b, B); }
+      if (!defile && (d - l < 2 || b - t < 2) && avant[2] - avant[0] >= 2 && avant[3] - avant[1] >= 2) cache = true;
+    }
+    const z = d - l < 2 || b - t < 2 ? null : [l, t, d, b];
+    return { z, cache, entier: !!z && z[0] <= r.left + 1 && z[1] <= r.top + 1 && z[2] >= r.right - 1 && z[3] >= r.bottom - 1 };
+  };
+  const zone = e => vue(e).z;
+  // point(e) : point ENTIER où un vrai doigt toucherait e — centre de la partie visible, vérifié par elementFromPoint à ces
+  //   coordonnées exactes ; null si rien de visible ou recouvert.
+  //   (Avant : centre de la boîte entière, arrondi — un bouton à moitié sous le bord d'une fenêtre recevait le clic sur la fenêtre.)
+  const point = e => {
+    const z = zone(e); if (!z) return null;
+    const x = Math.floor((z[0] + z[2]) / 2), y = Math.floor((z[1] + z[3]) / 2);
+    return touche(e, document.elementFromPoint(x, y)) ? [x, y] : null;
+  };
   const atteignable = e => {
-    let r = e.getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;   // défile seulement si le centre est hors écran
-    if (cx < 0 || cy < 0 || cx >= innerWidth || cy >= innerHeight) { e.scrollIntoView({ block: 'center', inline: 'center' }); r = e.getBoundingClientRect(); }
-    const x = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), y = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2));
-    const h = document.elementFromPoint(x, y);
-    return !!h && (h === e || e.contains(h) || h.contains(e) || (e.tagName === 'INPUT' && h.tagName === 'LABEL' && h.control === e));
+    if (point(e)) return true;
+    const v = vue(e);
+    if (v.entier || v.cache) return false;          // visible mais recouvert (voile de chargement), ou replié : ne pas faire défiler
+    e.scrollIntoView({ block: 'center', inline: 'center' });   // hors écran ou coupé par un bloc qui défile
+    return !!point(e);
   };
   function cliquer(motif, o) {
     o = o || {};
@@ -67,7 +104,7 @@
     const l = (exact.length ? exact : c).sort((a, b) => texte(a).length - texte(b).length);
     for (const e of l) {
       if (!o.force && !atteignable(e)) continue;
-      if (o.viser) { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }   // vrai clic fait par Playwright
+      if (o.viser) return point(e) || (() => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })();   // vrai clic fait par Playwright
       if (typeof e.click === 'function') e.click(); else e.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));   // SVG : pas de click()
       return true;
     }
@@ -144,12 +181,7 @@
   // cibles({sel, eviter, max, loin}) : éléments cliquables visibles, actifs, NON recouverts, dont le centre est à l'écran (sans faire défiler).
   //   Chacun reçoit data-sonde-i ; renvoie [{i, t, x, y, tag, type, dialogue}] (dialogue = dans une fenêtre ouverte).
   const DLG = 'dialog[open],[role=dialog],[role=alertdialog],[aria-modal=true],.modal:not([hidden]):not(.cache):not(.hidden)';
-  const auCentre = e => {
-    const r = e.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return null;
-    const h = document.elementFromPoint(x, y);
-    return h && (h === e || e.contains(h) || h.contains(e) || (e.tagName === 'INPUT' && h.tagName === 'LABEL' && h.control === e)) ? [x, y] : null;
-  };
+  const auCentre = point;
   function cibles(o) {
     o = o || {};
     const ev = (o.eviter || []).map(norm), out = [];
@@ -163,8 +195,8 @@
       const c = auCentre(e);
       let loin = false;
       if (!c) {   // hors écran (plus bas dans une fenêtre ou un panneau qui défile) : proposé avec loin:true, viser(i) le fait venir
-        const r = e.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-        if (!o.loin || (x >= 0 && y >= 0 && x < innerWidth && y < innerHeight)) continue;   // à l'écran mais recouvert : pas une cible
+        const v = vue(e);
+        if (!o.loin || v.entier || v.cache) continue;   // recouvert, ou replié (accordéon fermé) : pas une cible ; hors écran ou coupé : loin
         loin = true;
       }
       e.setAttribute('data-sonde-i', out.length);
@@ -176,7 +208,7 @@
   function viser(i) {
     const e = document.querySelector('[data-sonde-i="' + i + '"]'); if (!e) return null;
     e.scrollIntoView({ block: 'center', inline: 'center' });
-    const c = auCentre(e); return c ? [Math.round(c[0]), Math.round(c[1])] : null;
+    return point(e);
   }
   // empreinte() : résumé court de ce que voit le joueur (texte affiché, cases cochées, valeurs saisies, étiquettes et états aria des boutons, fenêtres ouvertes, défilement).
   //   Deux empreintes égales avant/après un clic = le clic n'a rien changé à l'écran (bouton mort, ou clic intercepté par une fenêtre).

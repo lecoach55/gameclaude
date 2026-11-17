@@ -1,3 +1,3 @@
 # Retours outils du 2026-11-16 — couronnes-et-lignees
 
-- 2026-11-16 23:51 · sonde.py : asynchrone, inutilisable tel quel dans explore.py (Playwright synchrone) — une variante synchrone serait utile
+- 2026-11-16 23:51 · sonde.py : asynchrone, inutilisable tel quel dans explore.py (Playwright synchrone) — une variante synchrone serait utile → corrigé le 17/11 par l'équipe Outils : sonde.py est déjà synchrone ET async (même nom de fonction : `cliquer(pg,…)`, `debordements(pg)` dans un script `sync_playwright` ; essayé sur votre index.html : `cliquer(pg,'Fonder la maison')` → True, `debordements(pg)` → 0) ; plus simple encore : `python3 outils-communs/robots/singe.py couronnes-et-lignees/outils/singe.json --couvrir` relève les débordements à chaque nouvel écran, téléphone + ordinateur

@@ -2,7 +2,12 @@
 """Singe commun : touche au hasard les vrais boutons d'un jeu web (téléphone et ordinateur) et relève ce qui casse.
 
 usage : python3 outils-communs/robots/singe.py <jeu>/outils/singe.json [--secondes 60] [--graine 1]
-                [--appareils telephone,ordinateur] [--sortie dossier] [--fichier page.html]
+                [--appareils telephone,ordinateur] [--sortie dossier] [--fichier page.html] [--couvrir] [--actions N]
+--actions N : s'arrête après N actions (au plus --secondes) — essais reproductibles quelle que soit la vitesse de la machine.
+--couvrir (ou "couvrir": true) : mode EXPLORATEUR — touche d'abord les boutons jamais touchés sur l'écran affiché
+  (poids 1/(1+n)², n = fois déjà touché sur cet écran) pour parcourir le plus d'écrans et de boutons possible.
+Dans les deux modes : contenus coupés relevés à la première apparition de chaque écran, et couverture
+  (boutons vus / touchés par écran, liste des jamais touchés) dans le rapport.
 Rapport (écran + <sortie>/singe.json + captures) :
   erreurs JS (pageerror + console.error), avec les 5 dernières actions et une capture à la première occurrence ;
   blocages (plus rien de cliquable, ou écran figé alors qu'on clique) ; invariants du jeu violés ;
@@ -31,6 +36,8 @@ Réglages (JSON, chemins relatifs au fichier de réglages) — seul « fichier �
   "erreurs_ignorees": ["Failed to load resource"]
   "ignorer_debordements": [".tbl-wrap"]
   "blocage": 60                       actions d'affilée sans aucun changement → blocage (capture, Échap)
+  "ecran": "S.event?'événement':'onglet '+tab"   nom de l'écran affiché (défaut : __sonde.ecran(), fenêtre ouverte ou premier titre)
+  "couvrir": true                     mode explorateur par défaut pour ce jeu
 """
 import asyncio, json, os, random, re, sys, time
 from collections import Counter, defaultdict
@@ -48,15 +55,17 @@ def args():
     a = sys.argv[1:]
     if not a or a[0].startswith('-'):
         print(__doc__); sys.exit(2)
-    o = {'reglages': a[0], 'secondes': 60, 'graine': 1, 'appareils': 'telephone,ordinateur', 'sortie': None, 'fichier': None}
+    o = {'reglages': a[0], 'secondes': 60, 'graine': 1, 'appareils': 'telephone,ordinateur', 'sortie': None, 'fichier': None, 'couvrir': False, 'actions': 0}
     i = 1
     while i < len(a):
         k = a[i].lstrip('-')
-        if k in o and i + 1 < len(a):
+        if k == 'couvrir':
+            o['couvrir'] = True; i += 1
+        elif k in o and i + 1 < len(a):
             o[k] = a[i + 1]; i += 2
         else:
             print('option inconnue :', a[i]); sys.exit(2)
-    o['secondes'] = float(o['secondes']); o['graine'] = int(o['graine'])
+    o['secondes'] = float(o['secondes']); o['graine'] = int(o['graine']); o['actions'] = int(o['actions'])
     return o
 
 
@@ -112,7 +121,18 @@ async def val(pg, expr, defaut=None):
         return 'indisponible : ' + str(e)[:80]
 
 
-async def un_appareil(p, R, nom, secondes, graine, sortie):
+def _norme(t):
+    return re.sub(r'\d+', '#', str(t or '')).strip()[:40]
+
+
+def _choix_neuf(rng, l, deja, ec):
+    """Mode explorateur : tirage pondéré 1/(1+n)², n = fois où ce bouton a déjà été touché sur cet écran
+    (×3 dans une fenêtre ouverte, ×0,5 s'il faut faire défiler pour l'atteindre)."""
+    w = [(3 if x['dialogue'] else 1) * (0.5 if x['loin'] else 1) / (1 + deja[(ec, _norme(x['t']))]) ** 2 for x in l]
+    return rng.choices(l, weights=w, k=1)[0]
+
+
+async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_actions=0):
     rng = random.Random(f"{graine}-{nom}")
     nav = await p.chromium.launch(args=ARGS)
     ctx = await nav.new_context(**APPAREILS[nom], reduced_motion='reduce')
@@ -147,8 +167,11 @@ async def un_appareil(p, R, nom, secondes, graine, sortie):
     expr_emp = "()=>JSON.stringify([window.__sonde?__sonde.empreinte():''," + (f"(()=>{{try{{return {R['etat']}}}catch(e){{return null}}}})()" if R.get('etat') else 'null') + "])"
     n, sans_effet, touches_bouton, vides, figees, blocages, invar, deb = 0, Counter(), Counter(), 0, 0, [], Counter(), {}
     ecrans = set(); n_err = 0; relances = 0; rates = 0; sorties = []
+    expr_ec = f"()=>{{try{{return String({R['ecran']})}}catch(e){{return '?'}}}}" if R.get('ecran') else "()=>window.__sonde?__sonde.ecran():'?'"
+    offerts, deja, par_ecran = defaultdict(set), Counter(), Counter()   # couverture : boutons vus / touchés par écran
+    ec = '?'; lentes = []; inatteignables = set()
     t0 = time.time()
-    while time.time() - t0 < secondes:
+    while time.time() - t0 < secondes and (not max_actions or n < max_actions):
         try:
             if R.get('relance') and await val(pg, R['relance']['si'], False) is True:
                 relances += 1
@@ -159,6 +182,16 @@ async def un_appareil(p, R, nom, secondes, graine, sortie):
             av = await pg.evaluate(expr_emp)
             tout = await pg.evaluate("(o)=>__sonde.cibles(o)", {'sel': R.get('selecteur'), 'eviter': eviter, 'loin': True})
             c = [x for x in tout if not x['loin']]; loin = [x for x in tout if x['loin']]
+            ec = _norme(await pg.evaluate(expr_ec)) or '?'
+            par_ecran[ec] += 1
+            for x in tout: offerts[ec].add(_norme(x['t']))
+            if ec not in ecrans and len(ecrans) < 60:      # nouvel écran : contenus coupés relevés tout de suite
+                ecrans.add(ec)
+                try:
+                    d = await debordements(pg, ignorer=R.get('ignorer_debordements', []))
+                    if d: deb[ec] = resume(d, 3)
+                except Exception:
+                    pass
         except Exception as e:                          # page en train de se recharger, ou sortie du jeu (lien)
             journal.append('rechargement : ' + str(e)[:60]); await pg.wait_for_timeout(800); rates += 1
             if rates >= 5:                              # le jeu a été quitté : on y revient et on le note
@@ -171,9 +204,25 @@ async def un_appareil(p, R, nom, secondes, graine, sortie):
                 rates = 0
             continue
         rates = 0
+        t_a = time.time()                                # chrono de l'action seule (sans les relevés d'écran ni les débordements)
         r = rng.random(); action = None; bouton = None
         try:
-            if loin and (not [x for x in c if x['dialogue']] and [x for x in loin if x['dialogue']] or not c or rng.random() < 0.15):
+            passer = False
+            if couvrir:                                  # explorateur : un seul tirage sur tout l'écran, nouveautés d'abord
+                ch = None
+                if (c or loin) and (r >= p_hasard + p_glisser + 0.05 or not c):
+                    for motif, poids in prio:
+                        l = [x for x in c if motif.search(x['t'])]
+                        if l and rng.random() < poids: ch = rng.choice(l); break
+                    if ch is None:
+                        ch = _choix_neuf(rng, c + loin, deja, ec)
+                        if ch['loin']:
+                            xy = await pg.evaluate("(i)=>__sonde.viser(i)", ch['i'])
+                            if xy: ch['x'], ch['y'] = xy; c = c + [ch]
+                            else:                        # inatteignable : son poids baisse, et il ne compte plus dans la couverture
+                                k = (ec, _norme(ch['t'])); deja[k] += 1; inatteignables.add(k)
+                                passer = True            # le défilement a pu déplacer les autres boutons : on recommence
+            elif loin and (not [x for x in c if x['dialogue']] and [x for x in loin if x['dialogue']] or not c or rng.random() < 0.15):
                 dl = [x for x in loin if x['dialogue']]
                 ch = rng.choice(dl if dl and rng.random() < 0.8 else loin)
                 xy = await pg.evaluate("(i)=>__sonde.viser(i)", ch['i'])
@@ -181,14 +230,16 @@ async def un_appareil(p, R, nom, secondes, graine, sortie):
                 else: ch = None
             else:
                 ch = None
-            if ch is not None or (c and r >= p_hasard + p_glisser + 0.05):
+            if passer:
+                action = None
+            elif ch is not None or (c and r >= p_hasard + p_glisser + 0.05):
                 for motif, poids in (prio if ch is None else []):
                     l = [x for x in c if motif.search(x['t'])]
                     if l and rng.random() < poids: ch = rng.choice(l); break
                 if ch is None:
                     dl = [x for x in c if x['dialogue']]
                     ch = rng.choice(dl) if dl and rng.random() < 0.8 else rng.choice(c)
-                bouton = ch['t']; action = 'bouton ' + bouton; touches_bouton[bouton] += 1
+                bouton = ch['t']; action = 'bouton ' + bouton; touches_bouton[bouton] += 1; deja[(ec, _norme(bouton))] += 1
                 loc = pg.locator(f'[data-sonde-i="{ch["i"]}"]')
                 if ch['tag'] == 'SELECT':
                     opts = await loc.evaluate("e=>[...e.options].filter(o=>!o.disabled).map(o=>o.value)")
@@ -216,11 +267,14 @@ async def un_appareil(p, R, nom, secondes, graine, sortie):
             journal.append(f'{action} : {str(e)[:80]}')
         if c: vides = 0
         n += 1; journal.append(action); journal = journal[-6:]
-        await pg.wait_for_timeout(rng.randint(int(pause[0]), int(pause[1])))
+        attente = rng.randint(int(pause[0]), int(pause[1]))
+        await pg.wait_for_timeout(attente)
         try:
             ap = await pg.evaluate(expr_emp)
         except Exception:
             ap = None
+        dt = time.time() - t_a - attente / 1000       # durée de l'action + relevés, sans la pause voulue
+        if action and dt > 0.4: lentes.append((round(dt * 1000), f'{ec} › {action}'))
         if ap is not None and ap == av:
             figees += 1
             if bouton: sans_effet[bouton] += 1
@@ -254,24 +308,24 @@ async def un_appareil(p, R, nom, secondes, graine, sortie):
             iv = await val(pg, R.get('invariants'), [])
             for x in (iv if isinstance(iv, list) else [f'invariants illisibles : {iv}'] if iv else []):
                 invar[str(x)[:120]] += 1
-            try:
-                ec = await val(pg, '__sonde.ecran()', '?')
-                if ec not in ecrans and len(ecrans) < 40:
-                    ecrans.add(ec)
-                    d = await debordements(pg, ignorer=R.get('ignorer_debordements', []))
-                    if d: deb[ec] = resume(d, 3)
-            except Exception:
-                pass
     etat1 = await val(pg, R.get('etat'))
     try: await pg.screenshot(path=os.path.join(sortie, f'{nom}_fin.png'))
     except Exception: pass
     await nav.close()
     morts = [(b, k) for b, k in sans_effet.most_common() if touches_bouton[b] >= 3 and k == touches_bouton[b]]
+    for k in inatteignables: offerts[k[0]].discard(k[1])
+    vus_n = sum(len(v) for v in offerts.values())
+    touches_n = sum(1 for e, v in offerts.items() for b in v if deja[(e, b)])
+    jamais = [f'{e} › {b}' for e, v in sorted(offerts.items(), key=lambda kv: -par_ecran[kv[0]]) for b in sorted(v) if not deja[(e, b)]]
+    couverture = {'mode': 'explorateur' if couvrir else 'hasard', 'ecrans': len(offerts), 'boutons_vus': vus_n, 'boutons_touches': touches_n,
+                  'pct': round(100 * touches_n / max(1, vus_n)), 'inatteignables': len(inatteignables),
+                  'debordements_plafond': len(ecrans) >= 60, 'par_ecran': dict(par_ecran.most_common(30)), 'jamais_touches': jamais[:40]}
     return {'appareil': nom, 'secondes': round(time.time() - t0), 'chargement_s': chargement, 'actions': n, 'relances': relances,
             'etat_debut': etat0, 'etat_fin': etat1, 'boutons_distincts': len(touches_bouton), 'ecrans_vus': len(ecrans),
             'erreurs': list(vues.values()), 'blocages': blocages, 'sorties_du_jeu': sorties, 'invariants': dict(invar), 'debordements': deb,
             'sans_effet_pct': round(100 * sum(sans_effet.values()) / max(1, sum(touches_bouton.values()))),
-            'boutons_jamais_efficaces': [f'{b} ({k}×)' for b, k in morts[:10]],
+            'boutons_jamais_efficaces': [f'{b} ({k}×)' for b, k in morts[:10]], 'couverture': couverture,
+            'actions_lentes': [f'{ms} ms : {a}' for ms, a in sorted(lentes, reverse=True)[:8]],
             'plus_touches': touches_bouton.most_common(10)}
 
 
@@ -283,7 +337,7 @@ async def principal():
         for nom in o['appareils'].split(','):
             nom = nom.strip().replace('é', 'e')
             if nom not in APPAREILS: raise SystemExit(f'appareil inconnu : {nom} (telephone, ordinateur)')
-            res.append(await un_appareil(p, R, nom, o['secondes'], o['graine'], sortie))
+            res.append(await un_appareil(p, R, nom, o['secondes'], o['graine'], sortie, couvrir=bool(o['couvrir'] or R.get('couvrir')), max_actions=o['actions']))
     rap = {'jeu': R['jeu'], 'graine': o['graine'], 'appareils': res}
     json.dump(rap, open(os.path.join(sortie, 'singe.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     grave = 0
@@ -298,6 +352,9 @@ async def principal():
         for k, v in list(r['invariants'].items())[:3]: print(f'   invariant ×{v} : {k}')
         for k, v in list(r['debordements'].items())[:4]: print(f'   coupé sur « {k} » : {v}')
         if r['boutons_jamais_efficaces']: print('   jamais d\'effet : ' + ', '.join(r['boutons_jamais_efficaces'][:6]))
+        cv = r['couverture']
+        print(f"   couverture ({cv['mode']}) : {cv['boutons_touches']}/{cv['boutons_vus']} boutons touchés ({cv['pct']} %) sur {cv['ecrans']} écrans"
+              + (' ; jamais touchés : ' + ', '.join(cv['jamais_touches'][:6]) if cv['jamais_touches'] else ''))
     print('rapport :', os.path.join(sortie, 'singe.json'))
     return 1 if grave else 0
 

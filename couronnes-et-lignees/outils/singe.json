@@ -1,0 +1,14 @@
+{
+ "_note": "construire avant : cd couronnes-et-lignees/jeu && python3 build.py ; explorateur : ajouter --couvrir ; carte 3D : copier ce fichier avec \"cl_3d\": \"1\" dans « stockage »",
+ "jeu": "couronnes-et-lignees",
+ "fichier": "../jeu/index.html",
+ "stockage": {"cl_guide": "1", "cl_3d": "0", "cl_sound": {"sfx": false, "music": false}},
+ "entree": ["Fonder la maison", {"attendre": 600}],
+ "pret": "typeof S!=='undefined' && S && S.turn!=null",
+ "eviter": ["Nouvelle maison", "Tirer une autre maison", "Fonder une nouvelle", "Abandonner", "Effets sonores", "Musique", "Revoir le guide", "Passer en chronique libre", "Chronique libre", "Lancer les parties", "Carte en 3D"],
+ "selecteur": "#modal .choice,#board path[data-i]",
+ "etat": "S.year+' · tour '+S.turn",
+ "ecran": "(()=>{const m=document.getElementById('modal');if(m&&m.innerText.trim()){const h=m.querySelector('h2,h3,.histlab');return 'fenêtre '+(h?h.innerText:m.innerText).trim().split('\\n')[0].slice(0,28)}return 'onglet '+tab})()",
+ "relance": {"si": "S.over===true", "entree": [{"js": "closeM();newGame()"}, {"attendre": 400}, {"js": "const b=[...document.querySelectorAll('button')].find(b=>/Fonder la maison/.test(b.innerText));if(b)b.click()"}, {"attendre": 400}]},
+ "pause": [60, 250]
+}

@@ -62,3 +62,11 @@ Tests : evtest 32 événements + 8 spéciaux sans erreur ; parcours au doigt, vu
 - Banc swiftshader (Moyenne, paires alternées) : large 330 vs 310 ms, échanges 396 vs 363 (+9 %, variante proche), sol 328 vs 332 ; technicien au temps CPU : large −5/0 %, échanges +6/+8 %, sol −1/−3 %. Estimation Mac Intel : < 2 % en échanges (ALU de fragment sur ~6 % de l'écran), rien en large/sol.
 - Outils : studio.py avec horloge figée (captures identiques : compare 0,0 %), poses portrait0/1 et coin ; parcours.py ne se bloque plus sur un événement aléatoire.
 - Tests : combat3d, sauvegarde (identique, 147 ko), parcours 390×844, monkey 2×300 clics, 2 combats d'affilée en Moyenne et Haute, 3 qualités : 0 erreur. Équilibre et sauvegardes inchangés. Studio : relecteur ORANGE (barbe en vue proche, clignotement au seuil : corrigés), graphiste ROUGE→corrigé (frontières de régions en `flat`, bande latérale, cheveux, bandages), testeur VERT, technicien VERT.
+
+## v11.1 — 17/11/2026 — finitions (tâche n°2 du 16/11, reprise)
+- v11 vérifiée en ligne (identique au build) ; banc réel Mac Intel 17/11 en Moyenne (449x670) : 50 / 50,7 / 55,3 img/s, pire image 31 ms, aucune pause (v9 : 54,7 / gel / 49,3).
+- Présentation des combattants au téléphone : caméra à 2,25 m (au lieu de 1,55) → combattant en entier, tête comprise. Bouton « Soirée de combat » : police clamp(16px,5.2vw,22px) (débordait de 11 px à 390 px).
+- testkit.js commun v3 → v6 (tk:6, état joint au banc, rapport de secours non activé). Singe commun : outils/singe.json (2 × 90 s, 0 erreur, 0 blocage, clics sans effet 6 %).
+- Essayé et retiré : resserrement des cuisses dans regions() — ROUGE relecteur (os en mètres, sommets compressés ±0,01 : t bloqué à 1, aplatissement du bassin annulé, aine déchirée) et ROUGE graphiste (ligne blanche du liseré, short plus lobé).
+- Références refaites (headkick et sol ne correspondaient plus à la v11) + garde, coin, portrait1, ko. Banc swiftshader : appels et triangles identiques, ms dans le bruit.
+- Studio : relecteur ROUGE→VERT (après retrait), graphiste ROUGE→retiré, testeur ORANGE (perte de progression vue 1 fois sur 6 après reprise, non reproduite, probablement le script de test).

@@ -1,2 +1,2 @@
-objet: testkit versionné (feuille de route n°6) : numéro de version, bureau.py repère les copies périmées et ce qui leur manque (y compris les copies intégrées au code), maj_testkit.py pour mettre une copie à jour
-depuis: 2026-11-17 05:16
+objet: banc commun de fluidité outils-communs/banc.py (feuille de route n°1 + n°2 : mesure complète 1 % bas, pauses, avant/après entrelacé dans la même minute, réglages JSON par jeu) ; reprise du passage de 05 h 16 resté sans départ (demandes testkit)
+depuis: 2026-11-17 09:15

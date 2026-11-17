@@ -152,7 +152,7 @@ const nbOutils=j=>Object.values(j.outils).reduce((a,v)=>a+v.length,0);
 function postes(){
  if(!E){$('postes').innerHTML='<div class="vide" style="color:#fff">État du dépôt absent : refabriquer la page avec bureau.py page.</div>';return;}
  const tot=J.reduce((a,j)=>a+nbOutils(j),0);
- $('chiffres').innerHTML=[[J.length,'jeux'],[ouvert.size,'chantiers ouverts'],[tot,'outils de fabrication'],[E.alertes.outils_repetes.length+E.alertes.testkit_locaux.length,'mises en commun repérées']]
+ $('chiffres').innerHTML=[[J.length,'jeux'],[ouvert.size,'chantiers ouverts'],[tot,'outils de fabrication'],[E.alertes.outils_repetes.length+E.alertes.testkit_locaux.length+(E.alertes.testkit_perimes||[]).length,'mises en commun repérées']]
   .map(([n,l])=>`<div><strong>${n}</strong>${l}</div>`).join('');
  $('postes').innerHTML=J.map(j=>{const a=jours(j.dernier);const w=Math.max(4,100-a*14);
   return `<button class="poste${ouvert.has(j.dossier)?' actif':''}" data-d="${esc(j.dossier)}" aria-label="${esc(j.nom)}">
@@ -182,7 +182,9 @@ function matrice(){
 function alertes(){
  if(!E)return;
  const A=E.alertes,h=[];
- if(A.testkit_locaux.length)h.push(`<div class="alerte"><b>Trousse de test différente de la version commune</b><br>${A.testkit_locaux.map(nomDe).map(esc).join(', ')} : recopier la version commune (et y reporter d'abord leurs améliorations).</div>`);
+ if(A.testkit_locaux.length)h.push(`<div class="alerte"><b>Trousse de test modifiée localement</b><br>${A.testkit_locaux.map(nomDe).map(esc).join(', ')} : reporter leurs ajouts dans la version commune avant de la recopier.</div>`);
+ const tkP=A.testkit_perimes||[];
+ if(tkP.length)h.push(`<div class="alerte"><b>Trousse de test périmée (version commune v${esc(tkP[0].derniere)})</b><br>${tkP.map(x=>`${esc(nomDe(x.dossier))} : v${esc(x.version)}, manque ${esc(x.manque.join(', '))} — <code>${esc(x.commande)}</code>`).join('<br>')}</div>`);
  const sansTk=J.filter(j=>j.testkit==='absent');
  if(sansTk.length)h.push(`<div class="alerte"><b>Sans trousse de test</b><br>${sansTk.map(j=>esc(j.nom)).join(', ')} : pas de 🐞 ni de mesure sur vos appareils.</div>`);
  A.outils_repetes.slice(0,6).forEach(o=>h.push(`<div class="alerte"><b>${esc(o.outil)}</b> existe en ${o.jeux.length} versions : ${o.jeux.map(nomDe).map(esc).join(', ')}.</div>`));

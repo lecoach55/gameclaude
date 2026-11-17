@@ -124,6 +124,69 @@ def lire_journal(n=40):
     return lignes[:n]
 
 
+
+def _maj_testkit():
+    """Module outils-communs/maj_testkit.py (versions de la trousse), ou None s'il est absent ou cassé."""
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('maj_testkit', os.path.join(RAC, 'outils-communs', 'maj_testkit.py'))
+        m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+        return m
+    except Exception:
+        return None
+
+
+def etat_testkit(d, p):
+    """Statut de la trousse de test d'un jeu ; ne plante jamais (bureau.py est lancé à chaque arrivée)."""
+    try:
+        return _etat_testkit(d, p)
+    except Exception as e:
+        return f'inconnu (maj_testkit en erreur : {type(e).__name__})', None
+
+
+def _etat_testkit(d, p):
+    """Statut de la trousse de test d'un jeu (texte court) + détail : version, manques, ajouts locaux, commande."""
+    m = _maj_testkit()
+    cs = m.copies(d) if m else []
+    build = m.lu_au_build(d) if m else None
+    info = None
+    if cs:
+        pire = min(cs, key=lambda k: k['version'])
+        der = pire['derniere']
+        ajouts = sorted({a for k in cs for a in k['ajouts']})
+        manque = []
+        for k in cs:
+            for x in k['manques']:
+                if x['nom'] not in manque:
+                    manque.append(x['nom'])
+        perime = any(not k['a_jour'] for k in cs)
+        if build and all(k['genre'] == 'construite' for k in cs):
+            st = f'lu au build (v{der})' + (f', page construite en v{pire["version"]} : reconstruire' if perime else '')
+            perime = False
+            cmd = 'reconstruire le jeu'
+        elif not perime:
+            st = f'à jour (v{der})'
+            cmd = ''
+        else:
+            remplacable = all(k['remplacable'] or k['genre'] == 'construite' for k in cs)
+            st = f'périmé v{pire["version"]} → v{der}'
+            cmd = m.commande(d) if remplacable else f'python3 outils-communs/maj_testkit.py {d} (repères /*TESTKIT-DEBUT*/ … /*TESTKIT-FIN*/ à poser)'
+        if ajouts:
+            st += ' + ajouts locaux'
+        info = {'version': pire['version'], 'derniere': der, 'manque': manque, 'ajouts': ajouts, 'perime': perime,
+                'commande': cmd, 'copies': [{'fichier': k['fichier'], 'genre': k['genre'], 'version': k['version']} for k in cs]}
+        return st, info
+    if build:
+        return 'lu au build', None
+    # trousse propre au jeu (Valdragon, Wall Street…) : signalements sans la trousse commune
+    for q in glob.glob(os.path.join(p, 'jeu', '**', '*.*'), recursive=True):
+        if 'node_modules' in q or not q.endswith(('.js', '.html')): continue
+        try:
+            if re.search(r'Testkit|signalement_', open(q, encoding='utf-8', errors='ignore').read()):
+                return 'intégré au code', None
+        except OSError: pass
+    return 'absent', None
+
 def etat():
     noms = sections_claude()
     commun_tk = os.path.join(RAC, 'outils-communs', 'testkit.js')
@@ -134,27 +197,7 @@ def etat():
         if d.startswith('.') or d in IGNORE or not os.path.isdir(p):
             continue
         info = noms.get(d, {})
-        tk = sorted(glob.glob(os.path.join(p, '**', 'testkit*.js'), recursive=True))
-        tk = [x for x in tk if 'node_modules' not in x]
-        if not tk:
-            tkst = 'absent'
-        else:
-            tkst = 'à jour' if all(sans_export(x) == sans_export(commun_tk) for x in tk) else 'version locale'
-        # intégré au build (Hameau, Valdragon…) : le build lit outils-communs directement
-        if tkst == 'absent':
-            for b in glob.glob(os.path.join(p, '**', 'build*.py'), recursive=True) + glob.glob(os.path.join(p, '**', 'build*.mjs'), recursive=True):
-                if 'node_modules' in b: continue
-                try:
-                    if 'testkit' in open(b, encoding='utf-8', errors='ignore').read():
-                        tkst = 'lu au build'; break
-                except OSError: pass
-        if tkst == 'absent':  # trousse recopiée dans le code du jeu
-            for q in glob.glob(os.path.join(p, 'jeu', '**', '*.*'), recursive=True):
-                if 'node_modules' in q or not q.endswith(('.js', '.html')): continue
-                try:
-                    if re.search(r'Testkit|signalement_', open(q, encoding='utf-8', errors='ignore').read()):
-                        tkst = 'intégré au code'; break
-                except OSError: pass
+        tkst, tkinfo = etat_testkit(d, p)
         for r, ds, fs in os.walk(p):
             ds[:] = [x for x in ds if x != 'node_modules']
             for f in fs:
@@ -170,7 +213,7 @@ def etat():
             'dernier': dern, 'message': mess[:140],
             'commits': len([x for x in git('log', '--format=%h', '--', d).splitlines() if x]),
             'taille_mo': round(taille(p) / 1048576, 1),
-            'testkit': tkst, 'readme': os.path.exists(os.path.join(p, 'README.md')),
+            'testkit': tkst, 'testkit_info': tkinfo, 'readme': os.path.exists(os.path.join(p, 'README.md')),
             'outils': outils_du_jeu(d),
         })
     doublons = [v for v in gros.values() if len(v) > 1]
@@ -190,7 +233,9 @@ def etat():
         'alertes': {
             'doublons': doublons,
             'outils_repetes': [{'outil': n, 'jeux': s} for n, s in repetes],
-            'testkit_locaux': [j['dossier'] for j in jeux if j['testkit'] == 'version locale'],
+            'testkit_locaux': [j['dossier'] for j in jeux if (j.get('testkit_info') or {}).get('ajouts')],
+            'testkit_perimes': [dict(dossier=j['dossier'], **{k: j['testkit_info'][k] for k in ('version', 'derniere', 'manque', 'commande')})
+                                for j in jeux if (j.get('testkit_info') or {}).get('perime')],
             'sans_readme': [j['dossier'] for j in jeux if not j['readme']],
             'sans_slug': [j['dossier'] for j in jeux if not j['slug']],
         },
@@ -212,6 +257,8 @@ def afficher(e):
         print(f"  • {o['outil']} existe en {len(o['jeux'])} copies : {', '.join(o['jeux'])}")
     for d in a['doublons']:
         print(f"  • fichier identique en double : {', '.join(d)}")
+    for x in a.get('testkit_perimes', []):
+        print(f"  • testkit périmé : {x['dossier']} en v{x['version']} (commune v{x['derniere']}), manque {', '.join(x['manque'])} → {x['commande']}")
     if a['testkit_locaux']:
         print(f"  • testkit modifié localement (à reporter dans outils-communs ?) : {', '.join(a['testkit_locaux'])}")
     if a['sans_readme']:

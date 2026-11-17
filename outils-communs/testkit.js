@@ -1,4 +1,6 @@
-// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) =====
+// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) — version 6 =====
+// Version : TK.version (ligne « const TK={version:… »), envoyée dans chaque mesure et signalement (champ tk). À augmenter à chaque
+// changement, avec une ligne dans VERSIONS de outils-communs/maj_testkit.py. Mettre à jour la copie d'un jeu : python3 outils-communs/maj_testkit.py <jeu>
 // Ajoute : compteur d'images par seconde (mode test), bouton 🐞 « signaler un problème » (capture + état + erreurs),
 // banc de mesure scripté, et envoi des résultats dans la base de l'artefact (lisible par Claude avec db_list).
 // Usage dans le jeu :
@@ -12,7 +14,7 @@
 // option secours:true → 🐞 ouvre un rapport à copier (bouton « Enregistrer » seulement si la capacité downloads est accordée) (TK.rapport(obj,titre) réutilisable pour le banc).
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
 export function Testkit(o){
- const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
+ const TK={version:6,test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
  // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
  // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
@@ -42,9 +44,9 @@ export function Testkit(o){
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
   const st=stats(a);if(suspendu)st.masquee=true;return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
-  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
+  const out={jeu:o.jeu,tk:TK.version,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
-  const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
+  const st={jeu:o.jeu,tk:TK.version,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
   TK.dernier=st;return TK.envoyer('signalement_'+Date.now(),st);};
  // Secours quand la base est indisponible (capacité db non déclarée, hors ligne, app de bureau) : panneau avec le rapport
  // à copier (sans les gros champs), « Copier tout » (complet) ; « Enregistrer le fichier » seulement via claude.use('downloads') — jamais de lien de téléchargement direct (inopérant dans le visualiseur d'artefact). Option o.secours:true pour l'activer sur 🐞.

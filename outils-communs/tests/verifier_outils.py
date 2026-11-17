@@ -3,7 +3,7 @@
 usage : python3 outils-communs/tests/verifier_outils.py [--reseau]
 Chaque contrôle est rapide (quelques secondes) et dit OK / ÉCHEC avec la raison. Code de sortie 1 si un contrôle échoue.
 --reseau ajoute les contrôles qui appellent Poly Haven (phget, catalogue)."""
-import os, sys, subprocess, tempfile, time, json, shutil, importlib.util
+import os, re, sys, subprocess, tempfile, time, json, shutil, importlib.util
 
 RAC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OC = os.path.join(RAC, 'outils-communs')
@@ -321,12 +321,91 @@ def _():
             raise RuntimeError(f"mode {cv.get('mode')}, {a['actions']} actions, {a['boutons_distincts']} boutons distincts, le plus touché {haut}×, vus {cv.get('boutons_vus')}")
 
 
+@controle('maj_testkit.py : versions (v1 → commune), manques, ajouts locaux refusés, fichier / bloc / intégrée / construite, copie mise à jour qui marche dans Chromium (tk = version)')
+def _():
+    spec = importlib.util.spec_from_file_location('maj_t', os.path.join(OC, 'maj_testkit.py'))
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    c = m.commun(); der = max(v for v, *_ in m.VERSIONS)
+    if c['version'] != der or m.presentes(c['texte']) != {v for v, *_ in m.VERSIONS}:
+        raise RuntimeError(f"testkit.js v{c['version']} : la table VERSIONS de maj_testkit.py (v{der}) ou les marques ne correspondent plus — "
+                           f"marques présentes {sorted(m.presentes(c['texte']))}")
+    vieux = "function Testkit(o){const TK={test:false};TK.base='x';const s={bas1:1};/*masquee*/TK.envoyer=async()=>0;TK.signaler=()=>TK.envoyer('signalement_'+1);return TK;}\nwindow.Testkit=Testkit;\n"
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, 'outils-communs'))
+        for f in ('testkit.js', 'maj_testkit.py'):
+            shutil.copy(os.path.join(OC, f), os.path.join(d, 'outils-communs', f))
+        def ecrire(rel, txt):
+            q = os.path.join(d, rel); os.makedirs(os.path.dirname(q), exist_ok=True); open(q, 'w', encoding='utf-8').write(txt)
+        ecrire('a/jeu/testkit.js', vieux)                                                     # fichier v2 sans export
+        ecrire('b/jeu/testkit.js', vieux.replace('return TK;', 'TK.special=1;return TK;'))     # ajout local
+        ecrire('c/jeu/index.html', '<script>/*TESTKIT-DEBUT*/\n' + vieux.replace("TK.base='x';", '') + '/*TESTKIT-FIN*/</script>')
+        ecrire('d/jeu/app.js', 'let x=1;\n' + vieux + 'function jeu(){ const a={}; a.download=1; }\n')  # intégrée sans repères
+        ecrire('e/jeu/build.py', "tk=open(COMMUNS+'/testkit.js').read()\n"); ecrire('e/jeu/page.html', vieux)  # construite
+        ecrire('e/build/index.html', vieux); ecrire('a/build/x.html', vieux)                   # pages construites ignorées
+        mt = os.path.join(d, 'outils-communs', 'maj_testkit.py')
+        e = json.loads(run(sys.executable, mt, '--json'))
+        r = {j: [(k['genre'], k['version'], k['remplacable'], k['ajouts']) for k in cs] for j, cs in e.items()}
+        att = {'a': [('fichier', 2, True, [])], 'b': [('fichier', 2, True, ['TK.special'])], 'c': [('bloc', 1, True, [])],
+               'd': [('intégrée', 2, False, [])], 'e': [('construite', 2, False, [])]}
+        if r != att:
+            raise RuntimeError('analyse inattendue : ' + json.dumps(r, ensure_ascii=False))
+        if [x['nom'] for x in e['a'][0]['manques']][:1] != ['filtre des pauses']:
+            raise RuntimeError('manques : ' + json.dumps(e['a'][0]['manques'], ensure_ascii=False)[:200])
+        run(sys.executable, mt, 'a')                                  # sans --appliquer : rien ne change
+        if open(os.path.join(d, 'a/jeu/testkit.js')).read() != vieux:
+            raise RuntimeError('fichier modifié sans --appliquer')
+        for j in 'acde':
+            run(sys.executable, mt, j, '--appliquer', attendu=1 if j == 'd' else 0)
+        run(sys.executable, mt, 'b', '--appliquer', attendu=1)
+        if 'TK.special' not in open(os.path.join(d, 'b/jeu/testkit.js')).read():
+            raise RuntimeError('ajout local écrasé sans --forcer')
+        a2 = open(os.path.join(d, 'a/jeu/testkit.js')).read(); c2 = open(os.path.join(d, 'c/jeu/index.html')).read()
+        if re.search(r'^export ', a2, re.M) or f'version:{der}' not in a2 or f'version:{der}' not in c2 or not c2.endswith('/*TESTKIT-FIN*/</script>'):
+            raise RuntimeError('copie mise à jour incorrecte')
+        if open(os.path.join(d, 'd/jeu/app.js')).read().count('function Testkit') != 1 or 'a.download' not in open(os.path.join(d, 'd/jeu/app.js')).read():
+            raise RuntimeError('trousse intégrée modifiée')
+        e2 = json.loads(run(sys.executable, mt, '--json'))
+        if not (e2['a'][0]['a_jour'] and e2['c'][0]['a_jour']):
+            raise RuntimeError('toujours périmées après mise à jour')
+        page = '<body><canvas id=c></canvas><script src="testkit.js"></script><script>(async()=>{const TK=Testkit({jeu:"t",canvas:()=>c});' \
+               'const r=await TK.banc([{nom:"s",preparer:async()=>{}}],400);document.title="OK "+r.tk+" "+TK.version+" "+(r.res[0].fps>0)})().catch(e=>document.title="ERR "+e)</script>'
+        open(os.path.join(d, 'a/jeu/index.html'), 'w').write(page)
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            nav = p.chromium.launch(); pg = nav.new_page(); errs = []
+            pg.on('pageerror', lambda x: errs.append(str(x)))
+            pg.goto('file://' + os.path.join(d, 'a/jeu/index.html'))
+            pg.wait_for_function('document.title.length>0', timeout=20000)
+            ti = pg.title(); nav.close()
+        if ti != f'OK {der} {der} true' or errs:
+            raise RuntimeError(f'copie mise à jour dans Chromium : {ti} {errs[:2]}')
+        # retouche locale non commitée (corps d'une fonction modifié : invisible à la comparaison d'API) → refus sans --forcer
+        g = lambda *x: subprocess.run(['git', '-c', 'user.email=t@t', '-c', 'user.name=t', *x], cwd=d, capture_output=True, check=True)
+        open(os.path.join(d, 'a/jeu/testkit.js'), 'w').write(vieux); g('init', '-q'); g('add', '-A'); g('commit', '-qm', 'x')
+        open(os.path.join(d, 'a/jeu/testkit.js'), 'w').write(vieux.replace('bas1:1', 'bas1:2'))
+        run(sys.executable, mt, 'a', '--appliquer', attendu=1)
+        if 'bas1:2' not in open(os.path.join(d, 'a/jeu/testkit.js')).read():
+            raise RuntimeError('retouche non commitée écrasée sans --forcer')
+    # bureau.py ne doit jamais planter à cause de maj_testkit
+    spec = importlib.util.spec_from_file_location('bureau_tk', os.path.join(RAC, 'bureau', 'outils', 'bureau.py'))
+    b = importlib.util.module_from_spec(spec); spec.loader.exec_module(b)
+    class Casse:
+        def copies(self, d): raise FileNotFoundError('lien cassé')
+        def lu_au_build(self, d): return None
+    b._maj_testkit = lambda: Casse()
+    st, info = b.etat_testkit('bannieres', os.path.join(RAC, 'bannieres'))
+    if not st.startswith('inconnu') or info is not None:
+        raise RuntimeError('bureau.py avec maj_testkit en panne : ' + st)
+
+
 @controle('bureau.py : état, json, page')
 def _():
     run(sys.executable, 'bureau/outils/bureau.py')
     e = json.loads(run(sys.executable, 'bureau/outils/bureau.py', 'json'))
     if len(e['jeux']) < 5:
         raise RuntimeError('trop peu de jeux détectés')
+    if 'testkit_perimes' not in e['alertes'] or any(j['testkit'] == 'version locale' for j in e['jeux']):
+        raise RuntimeError('statut de la trousse non calculé par version (maj_testkit.py)')
     run(sys.executable, 'bureau/outils/bureau.py', 'page')
 
 

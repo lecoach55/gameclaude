@@ -22,6 +22,7 @@ Les alertes automatiques à jour sont dans `python3 bureau/outils/bureau.py`.
 - [ ] Couronnes & Complots, Couronnes & Lignées, Hameau, Président de Club, Sedes Petri, Une vie, Valdragon, Wall Street n'ont pas de `ARTEFACT.txt` : le slug n'est lisible que dans `CLAUDE.md` (le bureau le lit là).
 
 ## Fait
+- [x] 17/11 — trousse de test versionnée (v6) : `python3 outils-communs/maj_testkit.py` donne la version et les manques de chaque copie ; `… <jeu> --appliquer` la met à jour. Couronnes & Lignées et Une vie sont en v1 intégrée au code (sans l'attente de `window.claude`) : entourer leur bloc de `/*TESTKIT-DEBUT*/ … /*TESTKIT-FIN*/` puis lancer la commande.
 - [x] 16/11 — testkit commun : plus de lien de téléchargement direct (« Copier tout »), contrôle ajouté.
 - [x] 16/11 — horloge.js (captures reproductibles), compare.py --json/--strict, sonde.py, bureau.py chronos.
 - [x] 16/11 — filtre des pauses de `cage-et-gloire/jeu/testkit.js` reporté dans `outils-communs/testkit.js`.

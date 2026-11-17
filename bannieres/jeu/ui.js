@@ -115,7 +115,7 @@ function majAlerte(){const e=$('alerte');if(!e)return;const av=$('aventure');con
  const vs=villesDe(p.id);let txt='',act=null;
  if(!vs.length){const n=Math.max(1,7-(p.sansVille||0));txt=`⚠ Plus aucune ville : <b>${n} jour${n>1?'s':''} avant la chute</b>. Reprenez une ville !`;}
  else if(!herosDe(p.id).length){const v=vs.find(v=>v.bat.taverne);const n=(p.taverne||[]).filter(Boolean).length;
-  if(v&&n){txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} en propose ${n} (2 500 or${p.res.or<2500?' — il vous en manque '+(2500-p.res.or):''})`;act=v;}
+  if(v&&n){txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} en propose ${n} (2 500 or${p.res.or<2500?' — il vous en manque '+(2500-p.res.or).toLocaleString('fr-FR'):''})`;act=v;}
   else if(v)txt=`⚠ Aucun héros : la taverne de ${esc(v.nom)} n’en propose plus avant lundi`;
   else txt='⚠ Aucun héros : construisez une taverne pour en engager';}
  if(!txt)return cache();

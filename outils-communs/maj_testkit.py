@@ -42,6 +42,8 @@ VERSIONS = [
      [r"use\(\s*'downloads'\s*\)"], [r'\ba\.download\s*=']),
     (6, 'numérotée', 'numéro de version (TK.version) envoyé dans chaque mesure et signalement (champ tk)',
      [r'TK\s*=\s*\{\s*version\s*:\s*\d+'], []),
+    (7, 'appareil lent', 'images toutes > 1 s gardées (pause = > 1 s ET > 8× la médiane, lent:true) : plus de banc vide ni de « masquée » à tort sur l\'appareil le plus lent',
+     [r'seuil\s*=\s*Math\.max\(\s*1000\s*,\s*8\s*\*'], []),
 ]
 
 

@@ -1,15 +1,81 @@
 # ===== Atelier : fonctions communes pour tester n'importe quel jeu web (Playwright + Chromium sans écran) =====
 # from atelier import serveur, navigateur, page, mesurer, capturer
-import asyncio,os,subprocess,time,urllib.request
+import asyncio,os,subprocess,sys,time,urllib.error,urllib.parse,urllib.request
 from playwright.async_api import async_playwright
 HORLOGE=os.path.join(os.path.dirname(os.path.abspath(__file__)),'horloge.js')  # temps virtuel + hasard à graine (captures reproductibles)
 ARGS=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']
+# Serveur des outils : comme « python3 -m http.server » (listes de dossiers, types MIME), muet, et qui donne son dossier et son pid sur /__atelier_dossier.
+SERVEUR_PY = r"""import functools,http.server,os,sys
+class H(http.server.SimpleHTTPRequestHandler):
+    def log_message(self,*a):pass
+    def do_GET(self):
+        if self.path=='/__atelier_dossier':
+            b=(os.path.realpath(sys.argv[2])+'\n'+str(os.getpid())).encode();self.send_response(200);self.send_header('Content-Type','text/plain; charset=utf-8')
+            self.send_header('Content-Length',str(len(b)));self.end_headers();self.wfile.write(b);return
+        super().do_GET()
+http.server.ThreadingHTTPServer(('',int(sys.argv[1])),functools.partial(H,directory=sys.argv[2])).serve_forever()
+"""
+_SERVEURS=[]  # serveurs lancés par CE processus : fermer() les arrête ; ceux d'un dossier temporaire s'arrêtent seuls à la sortie
+def _refus(e):
+    r=getattr(e,'reason',e);return isinstance(r,ConnectionRefusedError)
+def _qui_sert(base,dossier):
+    """('libre'|'meme'|'autre'|'perime', pid). libre = rien n'écoute ; meme = sert CE dossier ; autre = un AUTRE dossier (copie « avant »,
+    autre jeu) ou un serveur muet/inconnu ; perime = serveur d'atelier dont le dossier n'existe plus (dossier temporaire effacé) : à remplacer."""
+    try:
+        r=urllib.request.urlopen(base+'__atelier_dossier',timeout=2).read().decode().split('\n')
+        d,pid=r[0],(int(r[1]) if len(r)>1 and r[1].isdigit() else None)
+        if d==os.path.realpath(dossier):return 'meme',pid
+        return ('perime' if pid and not os.path.isdir(d) else 'autre'),pid
+    except urllib.error.HTTPError:pass  # 404 : ancien serveur « python3 -m http.server » → on compare des fichiers témoins
+    except Exception as e:return ('libre' if _refus(e) else 'autre'),None  # délai dépassé, réponse bizarre : on n'y touche pas
+    racine=[f for f in sorted(os.listdir(dossier)) if os.path.isfile(os.path.join(dossier,f)) and not f.startswith('.') and os.path.getsize(os.path.join(dossier,f))<=2_000_000]
+    temoins=sorted(racine,key=lambda f:(f!='index.html',f))[:6]
+    if not temoins:return 'autre',None  # rien pour vérifier : on ne réutilise pas
+    for f in temoins:
+        try:
+            if urllib.request.urlopen(base+urllib.parse.quote(f),timeout=5).read()!=open(os.path.join(dossier,f),'rb').read():return 'autre',None
+        except Exception:return 'autre',None
+    return 'meme',None
 def serveur(dossier,port=8765):
-    """Sert un dossier en HTTP local (relance si besoin). Renvoie l'adresse de base."""
-    base=f'http://localhost:{port}/'
-    try:urllib.request.urlopen(base,timeout=1);return base
-    except Exception:pass
-    subprocess.Popen(['python3','-m','http.server',str(port)],cwd=dossier,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True);time.sleep(1);return base
+    """Sert un dossier en HTTP local et renvoie l'adresse de base À UTILISER (base+'index.html').
+    Réutilise un serveur déjà ouvert seulement s'il sert CE dossier (avant : n'importe lequel → mesures avant/après faites sur la même copie
+    sans le voir). Si le port sert un autre dossier, prend le port libre suivant et le dit sur la sortie d'erreur. Un serveur d'atelier
+    dont le dossier a été effacé est arrêté et son port repris. Les serveurs d'un dossier sous /tmp (copies temporaires, brouillon)
+    s'arrêtent à la fin du script qui les a lancés : un autre processus doit appeler serveur() lui-même."""
+    dossier=os.path.abspath(dossier)
+    for p in range(port,port+40):
+        base=f'http://localhost:{p}/';q,pid=_qui_sert(base,dossier)
+        if q=='meme':return base
+        if q=='perime':
+            try:os.kill(pid,15)
+            except Exception:pass
+            for _ in range(60):
+                time.sleep(0.03);q,_p=_qui_sert(base,dossier)
+                if q=='libre':break
+        if q!='libre':continue
+        pr=subprocess.Popen([sys.executable,'-c',SERVEUR_PY,str(p),dossier],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
+        for _ in range(150):
+            time.sleep(0.03);q,_p=_qui_sert(base,dossier)
+            if q!='libre' or pr.poll() is not None:break
+        if q=='meme':
+            _SERVEURS.append((pr,dossier))
+            if p!=port:print(f'atelier.serveur : le port {port} sert un autre dossier → {dossier} servi sur le port {p} (utiliser l\'adresse renvoyée)',file=sys.stderr)
+            return base
+        if pr.poll() is None:pr.kill()
+    raise RuntimeError(f'atelier.serveur : aucun port libre de {port} à {port+39} pour {dossier}')
+def fermer(dossier=None):
+    """Arrête les serveurs lancés par ce processus (tous, ou celui d'un dossier)."""
+    for pr,d in list(_SERVEURS):
+        if dossier is None or os.path.abspath(dossier)==d:
+            try:pr.terminate();pr.wait(3)
+            except Exception:pass
+            _SERVEURS.remove((pr,d))
+import atexit as _atexit,tempfile as _tempfile
+@_atexit.register
+def _fermer_temporaires():
+    tmp=os.path.realpath(_tempfile.gettempdir())+os.sep
+    for pr,d in list(_SERVEURS):
+        if os.path.realpath(d).startswith(tmp):fermer(d)
 async def navigateur(p,plafond=True):
     """plafond=False : images non plafonnées à 60/s (vsync coupée) — pour un banc qui compare des coûts."""
     return await p.chromium.launch(args=ARGS+([] if plafond else ARGS_SANS_PLAFOND))
@@ -25,14 +91,16 @@ async def page(nav,url,largeur=390,hauteur=780,stockage=None,acceleration=None,f
     if acceleration:await pg.add_init_script("(()=>{const r=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=cb=>r(t=>cb(t*%s));})()"%acceleration)
     await pg.goto(url,timeout=180000);return pg
 # Statistiques d'images au MÊME format que testkit.js (mesures réelles de Victor) : fps (moyenne hors pauses), bas1 (img/s du 1 % le plus lent),
-# pire (ms, hors pauses), n ; + pauses / pauseMax si des images > 1 s ont été écartées (onglet caché, chargement), + ms (ms/image moyen), med, p95.
+# pire (ms, hors pauses), n ; + pauses / pauseMax si des images > 1 s ET > 8× la médiane ont été écartées (onglet caché, chargement),
+# + lent:true si l'image médiane dépasse 125 ms (images > 1 s alors gardées : appareil très lent), + ms (ms/image moyen), med, p95.
 MESURE_JS="""async(ms)=>{const a0=[];let lt=0,on=true;const f=t=>{if(lt)a0.push(t-lt);lt=t;if(on)requestAnimationFrame(f);};requestAnimationFrame(f);await new Promise(r=>setTimeout(r,ms));on=false;
- const a=a0.filter(d=>d<1000),pz=a0.length-a.length;if(!a.length)return{fps:0,bas1:0,pire:0,n:0,pauses:pz,pauseMax:Math.round(Math.max(0,...a0))};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length,q=k=>s[Math.min(s.length-1,Math.floor(s.length*k))];
- const o={fps:+(1000/m).toFixed(1),bas1:+(1000/q(.99)).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,ms:+m.toFixed(2),med:+q(.5).toFixed(2),p95:+q(.95).toFixed(2)};if(pz){o.pauses=pz;o.pauseMax=Math.round(Math.max(...a0));}return o;}"""
+ if(!a0.length)return{fps:0,bas1:0,pire:0,n:0};const o0=a0.slice().sort((x,y)=>x-y),seuil=Math.max(1000,8*o0[(o0.length-1)>>1]);const a=a0.filter(d=>d<seuil),pz=a0.length-a.length;const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length,q=k=>s[Math.min(s.length-1,Math.floor(s.length*k))];
+ const o={fps:+(1000/m).toFixed(1),bas1:+(1000/q(.99)).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,ms:+m.toFixed(2),med:+q(.5).toFixed(2),p95:+q(.95).toFixed(2)};if(pz){o.pauses=pz;o.pauseMax=Math.round(Math.max(...a0));}if(seuil>1000)o.lent=true;return o;}"""
 ARGS_SANS_PLAFOND=['--disable-gpu-vsync','--disable-frame-rate-limit']  # requestAnimationFrame n'est plus bloqué à 60 img/s : on mesure le COÛT d'une image
 async def mesurer(pg,ms=5000):
     """Mesure les vraies images par seconde dans la page (rendu logiciel ici : valeur RELATIVE, utile pour comparer deux versions).
-    Renvoie {fps, bas1, pire, n, ms, med, p95[, pauses, pauseMax]} : mêmes clés que les mesures_* de testkit.js (fps, bas1, pire, n, pauses).
+    Renvoie {fps, bas1, pire, n, ms, med, p95[, pauses, pauseMax, lent]} : mêmes clés que les mesures_* de testkit.js (fps, bas1, pire, n, pauses).
+    lent:true = image médiane > 125 ms : les images > 1 s comptent alors (seules celles > 8× la médiane sont des pauses).
     Avec navigateur(p, plafond=False) les images ne sont plus plafonnées à 60/s : fps devient comparable même pour une scène légère."""
     return await pg.evaluate(MESURE_JS,ms)
 async def capturer(pg,chemin):

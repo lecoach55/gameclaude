@@ -115,13 +115,13 @@ from atelier import serveur,navigateur,page,avancer,capturer,attendre
 from playwright.async_api import async_playwright
 d=tempfile.mkdtemp();open(os.path.join(d,'index.html'),'w').write(sys.argv[2])
 async def m():
-    serveur(d,8798);h=[]
+    b0=serveur(d,18798);h=[]
     async with async_playwright() as p:
         nav=await navigateur(p)
         for i,g in enumerate((7,7,8)):
-            pg=await page(nav,'http://localhost:8798/index.html',200,200,figer=g);await pg.wait_for_timeout(200+600*i)
+            pg=await page(nav,b0+'index.html',200,200,figer=g);await pg.wait_for_timeout(200+600*i)
             r=await avancer(pg,40);f=os.path.join(d,f'{i}.png');await capturer(pg,f);h.append(hashlib.md5(open(f,'rb').read()).hexdigest());await pg.close()
-        pg=await page(nav,'http://localhost:8798/index.html',200,200,figer=1)
+        pg=await page(nav,b0+'index.html',200,200,figer=1)
         await pg.evaluate("window.k=0;requestAnimationFrame(function f(){k++;requestAnimationFrame(f);if(k===3)throw new Error('boum')})")
         await attendre(pg,'k>=12',delai=20);await pg.wait_for_timeout(100)
         dt=await pg.evaluate("typeof Date()==='string' && new Date() instanceof Date && Date.UTC(2020,0)>0")
@@ -146,9 +146,9 @@ from atelier import serveur,navigateur,page,mesurer
 from playwright.async_api import async_playwright
 d=tempfile.mkdtemp();open(os.path.join(d,'index.html'),'w').write('<canvas id=c></canvas><script>let n=0;(function f(){n++;requestAnimationFrame(f)})()</script>')
 async def m():
-    serveur(d,8799)
+    b0=serveur(d,18799)
     async with async_playwright() as p:
-        nav=await navigateur(p);pg=await page(nav,'http://localhost:8799/index.html')
+        nav=await navigateur(p);pg=await page(nav,b0+'index.html')
         r=await mesurer(pg,1500);print('MESURE',r);await nav.close()
 asyncio.run(m())
 '''
@@ -445,7 +445,7 @@ def _():
     # atelier.mesurer : mêmes clés que testkit.js
     spec = importlib.util.spec_from_file_location('atelier_b', os.path.join(OC, 'atelier.py'))
     a = importlib.util.module_from_spec(spec); spec.loader.exec_module(a)
-    for k in ('bas1', 'pauses', 'pauseMax', 'p95', 'a0.filter(d=>d<1000)'):
+    for k in ('bas1', 'pauses', 'pauseMax', 'p95', 'seuil=Math.max(1000,8*', 'lent'):
         if k not in a.MESURE_JS:
             raise RuntimeError('atelier.mesurer sans ' + k)
 
@@ -507,6 +507,65 @@ def _():
         if [(x['jeu'], x['etape'], x['fois'], x['total'], x['echecs']) for x in r] != [('a', 'studio', 2, 50.0, 1), ('b', 'verifier', 1, 5.0, 0)]:
             raise RuntimeError('regroupement inattendu : ' + json.dumps(r)[:300])
     run(sys.executable, 'bureau/outils/bureau.py', 'chronos')
+
+
+LENT_JEU = """<body><canvas id=c width=50 height=50></canvas><script src="testkit.js"></script><script>
+const att=ms=>{const t=performance.now();while(performance.now()-t<ms);};let mode='lent',k=0;
+(function f(){k++;if(mode==='lent')att(1150);else if(mode==='pause'&&k%40===0)att(1600);else att(2);requestAnimationFrame(f)})();
+(async()=>{const TK=Testkit({jeu:'t',canvas:()=>c});await new Promise(r=>setTimeout(r,300));
+ const r1=await TK.mesurer(4000);mode='pause';await new Promise(r=>setTimeout(r,300));const r2=await TK.mesurer(2500);
+ window.R={v:TK.version,lent:r1,pause:r2};})();</script>"""
+
+
+@controle('testkit.js v7 : appareil où toutes les images dépassent 1 s → fps mesuré et lent:true (pas de banc vide ni « masquée ») ; image normale + vraie pause de 1,6 s → pause écartée ; atelier.mesurer pareil')
+def _():
+    code = r"""
+import asyncio,sys,os,tempfile,shutil
+sys.path.insert(0,sys.argv[1])
+from atelier import serveur,navigateur,page,mesurer
+from playwright.async_api import async_playwright
+d=tempfile.mkdtemp();open(os.path.join(d,'index.html'),'w').write(sys.argv[2]);shutil.copy(os.path.join(sys.argv[1],'testkit.js'),d)
+s=open(os.path.join(d,'testkit.js')).read().replace('export function','function');open(os.path.join(d,'testkit.js'),'w').write(s)
+async def m():
+    async with async_playwright() as p:
+        nav=await navigateur(p);pg=await page(nav,serveur(d,18796)+'index.html',100,100)
+        await pg.wait_for_function('window.R',timeout=40000,polling=200);R=await pg.evaluate('R');l,z=R['lent'],R['pause']
+        print('V',R['v'],'LENT',bool(l.get('fps')) and l['fps']<1.2 and l.get('lent') is True and not l.get('masquee'),
+              'PAUSE',z.get('pauses',0)>=1 and z['fps']>50 and not z.get('lent') and z['pire']<200)
+        await pg.evaluate("mode='lent'");a=await mesurer(pg,2500);print('ATELIER',a['n']>=2 and 0<a['fps']<1.2 and a.get('lent') is True)
+        await nav.close()
+asyncio.run(m())
+"""
+    out = run(sys.executable, '-c', code, OC, LENT_JEU, timeout=120)
+    if 'V 7 LENT True PAUSE True' not in out or 'ATELIER True' not in out:
+        raise RuntimeError('images lentes mal comptées : ' + out[-300:])
+
+
+@controle("atelier.serveur : ne réutilise pas un serveur qui sert un AUTRE dossier (ancien http.server ou atelier), réutilise le sien, démarre en < 0,5 s, reprend le port d'un dossier effacé, aucun serveur orphelin")
+def _():
+    code = r"""
+import sys,os,tempfile,time,subprocess,urllib.request
+sys.path.insert(0,sys.argv[1])
+from atelier import serveur
+A,B=tempfile.mkdtemp(),tempfile.mkdtemp();open(os.path.join(A,'index.html'),'w').write('avant');open(os.path.join(B,'index.html'),'w').write('apres')
+lu=lambda b:urllib.request.urlopen(b+'index.html').read().decode()
+t=time.time();a=serveur(A,18761);ta=time.time()-t;b=serveur(B,18761);a2=serveur(A,18761);b2=serveur(B,18761)
+v=subprocess.Popen([sys.executable,'-m','http.server','18771'],cwd=A,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(0.8)
+try:c=serveur(B,18771);c2=serveur(A,18771)
+finally:v.kill()
+import atelier,shutil
+C=tempfile.mkdtemp();o=subprocess.Popen([sys.executable,'-c',atelier.SERVEUR_PY,'18781',C],start_new_session=True);time.sleep(0.8);shutil.rmtree(C)
+e=serveur(A,18781);o.wait(5)
+print('RES',lu(a),lu(b),a2==a,b2==b,b!=a,lu(c),c2.endswith(':18771/'),ta<0.5,'PERIME',e.endswith(':18781/') and lu(e)=='avant')
+"""
+    out = run(sys.executable, '-c', code, OC, timeout=60)
+    if 'RES avant apres True True True apres True True PERIME True' not in out:
+        raise RuntimeError('serveur : ' + out[-300:])
+    import socket
+    for p in (18761, 18762, 18772, 18781):  # serveurs des dossiers temporaires arrêtés à la sortie (pas d'orphelins qui glissent sur les ports des jeux)
+        with socket.socket() as s:
+            if s.connect_ex(('127.0.0.1', p)) == 0:
+                raise RuntimeError(f'serveur orphelin resté sur le port {p}')
 
 
 if '--reseau' in sys.argv:

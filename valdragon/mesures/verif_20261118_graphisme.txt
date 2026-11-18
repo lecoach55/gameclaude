@@ -1,0 +1,13 @@
+✔ Construction (local)
+✔ Captures
+✔ Comparaison aux références
+✔ Banc (explo F2, F6, combat)
+✔ Sauvegarde (cloud + reprise)
+✔ Scénarios (défaite, respawn, boss, étage 17)
+✔ Construction (page publiée)
+✔ Poids de la page : 15.55 Mio (limite 16)
+✔ Retour au mode local
+Images : 1 alerte(s)
+1|explo F2: 661.2 ms, 76 appels, 61727 tri
+1|explo F6: 533.2 ms, 72 appels, 69962 tri
+1|combat F6: 626.7 ms, 109 appels, 77194 tri

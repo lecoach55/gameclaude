@@ -21,7 +21,7 @@ button{font:600 15px var(--sans);border:0;border-radius:14px;padding:13px 15px;c
 button.c{text-align:center}
 button.ghost{background:var(--card2);color:var(--ink);border:1px solid var(--line)}
 button.ghost:hover{border-color:#3a3f4a}
-button.link{background:none;color:var(--mute);font-weight:500;font-size:13px;text-align:center;padding:8px}
+button.link{background:none;color:var(--mute);font-weight:500;font-size:13px;text-align:center;padding:8px;min-height:44px}
 button small{display:block;font-weight:400;font-size:12.5px;opacity:.72;margin-top:2px}
 button .pc{float:right;font-weight:700;font-size:12px;padding:2px 8px;border-radius:9px;margin-left:8px}
 .pc.hi{background:#7bc49a22;color:var(--good)}.pc.md{background:#e3c06a22;color:var(--warn)}.pc.lo{background:#e5786a22;color:var(--bad)}
@@ -152,6 +152,13 @@ body.night:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:
 .scene3d.has3d canvas{display:block;width:100%!important;height:100%!important;touch-action:none;cursor:grab}
 .scene3d.has3d .id{position:absolute;left:8px;right:8px;bottom:8px;top:auto;background:#11131acc;box-shadow:0 6px 20px #0008;padding:9px 11px}
 .scene3d.has3d .id .avw{display:none}
+/* carte d'identité repliable (téléphone : repliée par défaut, elle cachait un tiers de la scène) */
+.idch{display:none}
+.scene3d.has3d .top{cursor:pointer;min-height:40px}
+.scene3d.has3d .idch{display:block;font:13px var(--sans);color:var(--mute);padding:6px 2px 6px 8px;transition:transform .2s}
+.scene3d.has3d .id.mini .idch{transform:rotate(180deg)}
+.scene3d.has3d .id.mini .life,.scene3d.has3d .id.mini .chips,.scene3d.has3d .id.mini .fam{display:none}
+.scene3d.has3d .id.mini .stats{margin-top:6px}
 .scene3d.has3d .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 .scene3d.has3d .chips::-webkit-scrollbar{display:none}
 .scene3d.has3d .chip{white-space:nowrap}
@@ -165,6 +172,13 @@ body.night:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:
 .hint{position:absolute;top:14px;left:14px;font:600 11px var(--sans);color:#ffffffb0;background:#0006;padding:5px 9px;border-radius:20px;transition:opacity .6s;pointer-events:none}
 .has3d~.log .end{scroll-margin-top:calc(min(56vh,460px) + 10px)}
 .scene3d.has3d.off~.log .end{scroll-margin-top:190px}
+/* ordinateur : deux colonnes (scène à gauche, toujours visible ; récit et choix à droite). La résolution est plafonnée dans resize() (≈ 0,7 Mpx en HD, 0,4 en SD) : même coût qu'avant */
+@media (min-width:1000px){
+.wrap.duo{max-width:1240px;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(400px,1fr);column-gap:26px;align-items:start}
+.wrap.duo>.scene3d.has3d{margin:0;top:14px;height:calc(100vh - 28px);min-height:420px;max-height:880px;border:1px solid var(--line);border-radius:18px}
+.wrap.duo>.log{margin-top:0;min-width:0}
+.wrap.duo .has3d~.log .end{scroll-margin-top:14px}
+}
 /* arbre */
 .tree{position:fixed;inset:0;z-index:60;background:#0d0f13f8;overflow:auto;padding:16px 14px 40px;animation:in .3s ease}
 .trh{display:flex;justify-content:space-between;align-items:center;max-width:560px;margin:0 auto 8px;font:600 18px var(--serif)}
@@ -1078,14 +1092,17 @@ function hdr(delta){
   const st=[["Santé","h"],["Bonheur","b"],["Aisance","m"],["Savoir","e"],["Liens","l"]];
   const chips=(S.asp?`<span class="chip t" title="${ASP[S.asp].n}">🎯 ${S.f.aspDone?"✓":aspPct()+" %"}</span>`:"")+S.traits.map(t=>`<span class="chip t">${TRAITS[t][2]} ${g(TRAITS[t][0],TRAITS[t][1])}</span>`).join("")+
     (S.debt>0?`<span class="chip r">💳 Dettes ${S.debt}</span>`:"")+S.conds.map(k=>`<span class="chip r">${condName(k.n)}${k.tr?" · traité":""}</span>`).join("");
-  $("hd").innerHTML=`<div class="top">${avBox()}<div class="idt"><b>${S.name}</b><span>${job} · ${S.ab?S.ab[0]:S.c.city}</span></div><div class="age"><b>${S.age}</b>ans</div></div>
+  $("hd").innerHTML=`<div class="top" id="idtop" title="Replier / déplier">${avBox()}<div class="idt"><b>${S.name}</b><span>${job} · ${S.ab?S.ab[0]:S.c.city}</span></div><div class="age"><b>${S.age}</b>ans</div><span class="idch" aria-hidden="true">▾</span></div>
   <div class="stats">${st.map(([l,k])=>{const v=S[k],d=delta&&delta[k];return`<div class="st">${l}<span class="v">${v}${d?`<em class="dlt ${d>0?"up":"dn"}">${d>0?"+":""}${d}</em>`:""}</span><div class="bar"><i class="${v<25?"lo":v>=75?"hi":""}" style="width:${v}%"></i></div></div>`}).join("")}</div>
   <div class="life" title="Ta vie"><span style="left:${clamp(LE(),0,100)}%" title="Espérance de vie"></span><i style="left:${clamp(S.age,0,100)}%"></i></div>
   <div class="chips">${chips}<span class="chip btn" id="fb">👪 Famille${S.kids.length?" · "+alive().length:""}</span></div><div class="fam ${famOpen?"on":""}" id="fam">${famHtml()}</div>`;
   $("fb").onclick=openTree;
+  $("hd").classList.toggle("mini",idMini());$("idtop").onclick=()=>{const m=!idMini();try{localStorage.setItem("vie8m_idmini",m?"1":"0")}catch(e){}$("hd").classList.toggle("mini",m)};
   W3.sync();
 }
 let famOpen=false;
+/* carte repliée : choix mémorisé (clé à part, jamais la reprise vie8m_cur) ; par défaut repliée sur téléphone, dépliée sur ordinateur */
+function idMini(){let v=null;try{v=localStorage.getItem("vie8m_idmini")}catch(e){}return v?v=="1":window.innerWidth<1000}
 function famHtml(){
   const l=[];
   S.par.forEach(p=>l.push(`<div class="${p.alive?"":"dead"}">${p.role=="père"?"👨 Père":"👩 Mère"} : ${p.name}${p.alive?` (${S.age+p.off} ans)`:""}</div>`));
@@ -1244,6 +1261,8 @@ const NO={ok:false,mount:()=>false,sync(){},think(){},emote(){},death(){},unmoun
 if(typeof THREE==="undefined")return NO;
 try{const c=document.createElement("canvas");if(!(c.getContext("webgl")||c.getContext("experimental-webgl")))return NO}catch(e){return NO}
 const V=THREE;
+/* étalonnage « maquette d'architecte » (choix de Victor 17/11) : couleurs adoucies (saturation −30 %), léger ton chaud, hautes lumières arrondies. Quelques opérations par pixel, aucun appel de dessin. */
+try{V.ShaderChunk.tonemapping_pars_fragment=V.ShaderChunk.tonemapping_pars_fragment.replace("vec3 CustomToneMapping( vec3 color ) { return color; }","vec3 CustomToneMapping( vec3 color ) { color*=toneMappingExposure; float l=dot(color,vec3(.2126,.7152,.0722)); color=mix(vec3(l),color,.70)*vec3(1.025,1.0,.965); vec3 h=max(color-.82,0.); color=min(color,.82)+h/(1.+h*2.2); return clamp(color,0.,1.); }")}catch(e){}
 let R=null,SC,CAM,host,raf=0,theta=Math.PI/4,zoom=1,clock=new V.Clock(),paused=false,ro=null,io=null;
 let gHome=null,gPeople=null,gFx=null,walls=[],chars=[],player=null,orb=null,bubble=null,parts=[],anims=[],lampL,sunL,hemiL,grave=null,rects=[],acts=[],spots=[],yard=[],clouds=[],flies=null,steam=[];
 let kHome="",kPeople="",kTime="",bubbleT=0,cloud=null,cloudT=0,FR=0,camMoved=false;
@@ -1261,6 +1280,8 @@ const NWIN=new V.MeshLambertMaterial({color:"#7d98ad",emissive:"#ffb84a",emissiv
 const STREET=new V.MeshLambertMaterial({color:"#fff3d6",emissive:"#ffd27a",emissiveIntensity:0});
 const TVM=new V.MeshLambertMaterial({color:"#1b2a3a",emissive:"#2d6aa0",emissiveIntensity:.5});
 const WATER=new V.MeshLambertMaterial({color:"#4fb3d9",emissive:"#1f7fa8",emissiveIntensity:.25});
+/* matières photo de la maquette (Poly Haven, CC0 ; outils/prep_tex.py, intégrées par build.py) : remplacent le dessin dès que l'image est décodée */
+const PHOTO=/*PHOTO*/{};const PIMG={};for(const k in PHOTO){try{const i=new Image();i.src=PHOTO[k];PIMG[k]=i}catch(e){}}
 const TX={};
 function tex(kind,rep=[1,1]){
   const k=kind+rep.join("x");if(TX[k])return TX[k];
@@ -1291,6 +1312,7 @@ function tex(kind,rep=[1,1]){
   else if(kind=="soft"){x.fillStyle="#000";x.fillRect(0,0,256,256);x.fillStyle="#fff";x.filter="blur(22px)";x.fillRect(46,46,164,164);x.filter="none"}
   else if(kind=="ao"){const g=x.createLinearGradient(0,0,0,256);g.addColorStop(0,"rgba(255,255,255,1)");g.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g;x.fillRect(0,0,256,256)}
   const t=new V.CanvasTexture(cv);t.wrapS=t.wrapT=V.RepeatWrapping;t.repeat.set(rep[0],rep[1]);t.anisotropy=4;
+  const im=PIMG[kind];if(im){const dr=()=>{try{x.globalAlpha=1;x.filter="none";x.drawImage(im,0,0,256,256);t.needsUpdate=true}catch(e){}};if(im.complete&&im.naturalWidth)dr();else im.addEventListener("load",dr,{once:true})}
   return TX[k]=t;
 }
 const tmat=(kind,rep,tint="#ffffff")=>{const k="T|"+kind+rep.join("x")+tint;if(!MC[k])MC[k]=new V.MeshLambertMaterial({color:tint,map:tex(kind,rep)});return MC[k]};
@@ -1935,13 +1957,13 @@ function camUpdate(dt=0){
   const cx=Math.cos(th),cz=Math.sin(th);
   walls.forEach(w=>{const facing=w.n[0]*cx+w.n[1]*cz>.25;w.g.visible=!facing});
 }
-function resize(){if(!R||!host)return;const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;R.setSize(w,h,false)}
+function resize(){if(!R||!host)return;const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;const A=w*h,pr=Q=="hd"?Math.min(window.devicePixelRatio||1,MOB?1.4:1.6,Math.max(1,Math.sqrt(700000/A))):Math.min(1,Math.max(.8,Math.sqrt(400000/A)));if(R.getPixelRatio()!=pr)R.setPixelRatio(pr);R.setSize(w,h,false)}
 /* ---------- interface publique ---------- */
 function mount(el){
   try{
     unmount();host=el;
     R=new V.WebGLRenderer({antialias:Q=="hd",powerPreference:MOB?"default":"high-performance"});
-    R.setPixelRatio(Q=="hd"?Math.min(window.devicePixelRatio||1,MOB?1.4:1.6):1);R.shadowMap.enabled=Q=="hd";R.shadowMap.type=V.PCFSoftShadowMap;
+    R.setPixelRatio(Q=="hd"?Math.min(window.devicePixelRatio||1,MOB?1.4:1.6):1);R.shadowMap.enabled=Q=="hd";R.shadowMap.type=V.PCFSoftShadowMap;if(V.CustomToneMapping){R.toneMapping=V.CustomToneMapping;R.toneMappingExposure=1}
     host.appendChild(R.domElement);
     SC=new V.Scene();CAM=new V.OrthographicCamera(-1,1,1,-1,.1,120);CAM.userData={};
     hemiL=new V.HemisphereLight("#dfe9ff","#3a4462",.62);SC.add(hemiL);
@@ -1988,7 +2010,7 @@ function birth(H){
   W3.unmount();if(IV){clearInterval(IV);IV=null}
   newLife(H&&H.P?H:null);famOpen=false;theme(S.c.r);setSky(0);
   const [x,y]=proj(...GEO[S.c.n]);
-  $("app").innerHTML=`<div class="hero">${mapSVG({id:"bm",extra:`<g id="dots"></g><circle id="flc" cx="0" cy="0" r="4" fill="var(--acc)"/>`})}<div class="spinflag" id="sp">🌍</div></div>
+  $("app").classList.remove("duo");$("app").innerHTML=`<div class="hero">${mapSVG({id:"bm",extra:`<g id="dots"></g><circle id="flc" cx="0" cy="0" r="4" fill="var(--acc)"/>`})}<div class="spinflag" id="sp">🌍</div></div>
   <p class="sub" id="bt" style="text-align:center;margin-top:6px">Quelque part sur Terre, un bébé naît…</p><div id="rv"></div>`;
   let i=0;const LIM=S.gen>1?1:18;
   if(S.gen>1)$("bt").textContent=`La lignée continue… génération ${S.gen}`;
@@ -2022,11 +2044,11 @@ function reveal(){
 }
 function start(RS){
   $("app").innerHTML=`<div class="scene3d" id="stage"><div id="w3"></div><div class="tools" id="tools"></div><div class="hint" id="hint3d">Glisse pour tourner</div><div class="id" id="hd"></div></div><div class="log" id="log"></div>`;
-  if(W3.ok&&W3.mount($("w3"))){$("stage").classList.add("has3d");
+  if(W3.ok&&W3.mount($("w3"))){$("stage").classList.add("has3d");$("app").classList.add("duo");
     const tb=(t,ti,fn)=>{const b=document.createElement("button");b.textContent=t;b.title=ti;b.onclick=fn;b.style.fontSize=t.length>1&&/[A-Z]/.test(t)?"11px":"";b.style.fontWeight="700";$("tools").appendChild(b)};
     tb("⟲","Recentrer",()=>W3.reset());
     tb(W3.quality()=="hd"?"HD":"SD","Qualité graphique (HD / économie)",function(){this.textContent=W3.quality(true)=="hd"?"HD":"SD"});
-    tb("🎥","Masquer / afficher la 3D",()=>{const st=$("stage");const off=st.classList.toggle("off");W3.toggle(!off)});
+    tb("🎥","Masquer / afficher la 3D",()=>{const st=$("stage");const off=st.classList.toggle("off");$("app").classList.toggle("duo",!off);W3.toggle(!off)});
     setTimeout(()=>{const h=$("hint3d");if(h)h.style.opacity=0},6000);
   }else{const h=$("hint3d");if(h)h.remove()}
   if(RS&&RS.log){$("log").innerHTML=RS.log;cur=[...$("log").querySelectorAll(".turn")].pop();setSky(S.age);hdr();afterEvent(true);toast("▶ Vie reprise à "+S.age+" ans");return}
@@ -2042,7 +2064,7 @@ function intro(){
   let tw="";for(let i=0;i<46;i++){let r=R()*TOTAL,c=C[0];for(const k of C){r-=k.w;if(r<=0){c=k;break}}const[gx,gy]=proj(GEO[c.n][0]+(R()-.5)*7,GEO[c.n][1]+(R()-.5)*9);tw+=`<circle class="tw" cx="${gx.toFixed(1)}" cy="${gy.toFixed(1)}" r="2.6" fill="var(--acc)" style="animation-delay:${(R()*2.6).toFixed(2)}s"/>`}
   const past=SAVE.lives.slice(0,12).map(l=>{const c=C.find(k=>k.f==l.f);return c?proj(...GEO[c.n]):null}).filter(Boolean).map(([px,py])=>`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3" fill="#fff" opacity=".85"/>`).join("");
   const best=SAVE.lives.length?Math.max(...SAVE.lives.map(l=>l.s||0)):0;
-  $("app").innerHTML=`<div class="hero" style="margin-top:8px">${mapSVG({extra:tw+past})}</div><div class="counter">Depuis que tu as ouvert cette page, <b id="cnt">0</b> bébés sont nés.</div><h1 style="margin-top:22px">Une vie parmi<br><em>8 milliards</em></h1>
+  $("app").classList.remove("duo");$("app").innerHTML=`<div class="hero" style="margin-top:8px">${mapSVG({extra:tw+past})}</div><div class="counter">Depuis que tu as ouvert cette page, <b id="cnt">0</b> bébés sont nés.</div><h1 style="margin-top:22px">Une vie parmi<br><em>8 milliards</em></h1>
   <p class="lead">Chaque seconde, environ quatre bébés naissent sur Terre. L'un d'eux, c'est toi.</p>
   <p class="sub">Ton pays, ta famille et ton caractère sont tirés au sort selon la répartition réelle des naissances. À chaque étape, tu choisis ta priorité et tu affrontes les événements. Les choix risqués affichent leurs chances de réussite. Santé, argent, savoir et liens décident de la suite… jusqu'à la fin.</p>
   <div id="go"></div>
@@ -2073,7 +2095,7 @@ setInterval(()=>{try{if(TK.test||typeof W3=="undefined"||!W3.quality||localStora
 //   TK.modeTest();                       // affiche le compteur (à appeler depuis un bouton « Mode test »)
 //   await TK.banc([{nom:'scène 1', preparer:async()=>{...}}, ...], 5000);  // mesure chaque scène 5 s
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
-function Testkit(o){
+/*TESTKIT-DEBUT*/function Testkit(o){
  const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
  const cloud=()=>init||(init=(async()=>{try{if(!window.claude||!window.claude.use)return false;const [db,u]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);UID=await u.id();DB=db;return !!(db&&UID);}catch(e){return false;}})());
@@ -2100,7 +2122,7 @@ function Testkit(o){
   return TK.envoyer('signalement_'+Date.now(),st);};
  TK.bouton=(parent,style)=>{const b=document.createElement('button');b.textContent='🐞';b.title='Signaler un problème à Claude';b.style.cssText=style||'position:fixed;right:10px;bottom:10px;z-index:9999;width:38px;height:38px;border-radius:50%;opacity:.75';parent.appendChild(b);
   b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);};return b;};
- return TK;}
+ return TK;}/*TESTKIT-FIN*/
 
 const TK=Testkit({jeu:"une-vie",canvas:()=>document.querySelector("#w3 canvas")||document.createElement("canvas"),
   etat:()=>S?{age:S.age,pays:S.c.n,ab:S.ab?S.ab[0]:null,niveau:S.m,sante:S.h,bonheur:S.b,gen:S.gen,tour:S.turnNo,qualite:W3.quality&&W3.quality(),rendu:W3.info&&W3.info()}:null});

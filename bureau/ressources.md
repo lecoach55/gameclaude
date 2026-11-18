@@ -74,3 +74,9 @@ Une ligne ici (besoin, référence, où), et si l'outil sert à plusieurs jeux, 
 
 - **Piège three r160 `compileAsync`** : plante dans une minuterie (`reading 'isReady'`) si un matériau est jeté pendant la compilation, la promesse ne se résout jamais. Version sûre : `compA()` dans `valdragon/jeu/g3d.js` (à recopier dans tout jeu Three.js qui attend compileAsync).
 - **Qualité auto qui ne baisse pas pour rien** (écran bridé à 30 img/s par l'économie d'énergie) : `perfTick` de `valdragon/jeu/ui3.js` (annule une baisse qui ne gagne pas 12 %).
+
+## Blender sur le Mac de Victor (depuis le 18/11/2026)
+- Blender 4.5.16 LTS (dernière version pour Mac Intel ; Blender 5.x n'existe plus pour Intel) relié à Claude par le pont « MCP for Blender » (outils `mcp__remote-devices__blender__*` : execute_blender_code, look, get_scene_info…), statistiques coupées.
+- Accessible seulement depuis une conversation reliée au Mac, quand l'app Claude et Blender sont ouverts (une tâche planifiée dans le cloud ne le voit pas, sauf si elle exige l'ordinateur).
+- Lenteur : un rendu Eevee peut dépasser le délai de 80 s de l'outil (premier rendu = compilation des shaders) ; lancer le rendu, puis relire l'image avec `look(image=chemin)`.
+- Usages prévus : préparer des modèles et des rendus pour les jeux (personnage CC0 de Cage & Gloire, décors), exporter en GLB.

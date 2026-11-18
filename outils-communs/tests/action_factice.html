@@ -1,0 +1,15 @@
+<!doctype html><meta charset=utf-8><body style="margin:0;background:#eee">
+<div id=g style="display:grid;grid-template-columns:repeat(40,1fr);gap:2px"></div>
+<div id=flou style="position:fixed;inset:40px;filter:blur(30px) drop-shadow(0 0 40px #000);pointer-events:none"></div>
+<script>
+// Page factice du contrôle « scène action » du banc : rien ne bouge à chaque image (comme un jeu SVG/DOM) ;
+// travail() = JS seul (boucle de calcul), grille() = JS + styles + mise en page de 1 600 cases, peindre() = presque pas de JS,
+// beaucoup de dessin (flou plein écran).
+const g=document.getElementById('g');for(let i=0;i<1600;i++){const d=document.createElement('div');d.textContent=i;d.style.height='12px';g.appendChild(d);}
+let x=0;window.travail=n=>{for(let i=0;i<n;i++)x=(x*1103515245+12345+Math.sqrt(i))%2147483647;return x;};
+let k=0;window.grille=()=>{k++;for(const d of g.children)d.style.background=`hsl(${(k*37+d.textContent*3)%360},60%,70%)`;};
+const f=document.getElementById('flou');for(let i=0;i<120;i++){const d=document.createElement('div');d.style.cssText=`position:absolute;left:${(i*97)%90}%;top:${(i*53)%90}%;width:200px;height:200px;border-radius:50%`;f.appendChild(d);}
+let p=0;window.peindre=()=>{p++;for(const d of f.children)d.style.background=`hsl(${(p*61+d.offsetLeft)%360},80%,50%)`;};
+if(location.search.includes('boucle')){const b=()=>{travail(4e5);requestAnimationFrame(b);};requestAnimationFrame(b);}  // jeu à boucle d'animation
+window.pret=1;
+</script></body>

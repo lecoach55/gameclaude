@@ -41,6 +41,19 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; toutes les clés sa
   "scenes": [{"nom":"carte", "js":"…", "attente_ms":1500, "duree_ms":4000, "infos":"R3.info()", "seule":false}]
        js = instructions pour se placer dans la scène ; infos = expression JS dont le résultat est joint (appels, triangles…) ;
        seule = true : page neuve pour cette scène (sinon les scènes s'enchaînent dans la même page, dans l'ordre)
+  "scenes": [{"nom":"zoom_engage", "js":"…placement…", "action":"vb.w*=0.9;applyVB(true)", "repetitions":12}]
+       SCÈNE ACTION (jeux DOM/SVG qui redessinent sur un clic, pas à chaque image : ms/img ≈ 0 et les "chronos" ne voient que le JS) :
+       chaque répétition = action + 1 image du jeu + mise en page + attente de l'AFFICHAGE (2 vraies images : peinture ET
+       rastérisation comprises), page au repos entre deux. Un 1 px change à chaque mesure (sinon Chromium n'affiche rien et
+       attend 16 ms). Le même trajet SANS action (« vide ») est mesuré en alternance et déduit. Rend ms (affichage net, médiane ;
+       c'est lui qu'on compare), js_ms, principal_ms (temps du fil principal : JS + styles + mise en page + peinture, compteurs
+       Chromium), raster_ms ≈ ms − principal_ms (dessin hors fil principal : gros SVG, filtres), vide_ms, pire, p95.
+       Action ASYNCHRONE : l'écrire en fonction fléchée qui rend la promesse (« ()=>charger() ») : elle est attendue (attente_ms à part) ;
+       en instructions, une promesse n'est pas attendue. "delai_s": 60 = abandon d'une action sans fin (la page reste en attente :
+       "seule": true sur les scènes suivantes si besoin). Bruit plus fort qu'une image
+       figée : « plus lent » au-delà de 2×seuil ; viser --tours 3. Le navigateur prend alors --run-all-compositor-stages-before-draw
+       (noté dans la sortie : "drapeaux").
+       C&C 18/11 : render() = 5 ms de JS mais 14-25 ms jusqu'à l'affichage ; zoom engagé (applyVB(true)) 100-380 ms, invisible avant.
   "pret_max_s": 180              attente maximale de "pret" (s)
   "gels": [{"nom":"normale_haute", "avant":"G3.setLevel(1)", "avant_ms":1500, "js":"G3.setLevel(2)", "duree_ms":8000,
             "occupe":"G3.occupe", "stockage":{"cle":"valeur"}, "infos":"…"}]   (stockage du gel : ajouté à celui des réglages)
@@ -77,7 +90,7 @@ MESURE_FIGE_JS = """async([n,pas,budget])=>{const now=window.__vraiNow,px=new Ui
  const vis=window.__bancCtxAffiches?window.__bancCtxAffiches():[];const sync=()=>{for(const c of vis){try{if(c.readPixels){c.readPixels(0,0,1,1,c.RGBA,c.UNSIGNED_BYTE,px);}else if(c.getImageData){c.getImageData(0,0,1,1);}}catch(e){}}void document.body.offsetHeight;};
  sync();const a=[],debut=now();let tronque=false;for(let i=0;i<n;i++){const t0=now();window.__horloge.avancer(1,pas);sync();a.push(now()-t0);if(i%10==9)await new Promise(r=>setTimeout(r,0));if(now()-debut>budget&&i>=7){tronque=i+1<n;break;}}
  const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length,q=k=>s[Math.min(s.length-1,Math.floor(s.length*k))];
- return{fps:+(1000/m).toFixed(1),bas1:+(1000/q(.99)).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,ms:+m.toFixed(3),med:+q(.5).toFixed(3),p95:+q(.95).toFixed(3),canvas:vis.length,...(tronque?{tronque:true}:{})};}"""
+ return{fps:+(1000/Math.max(m,1e-3)).toFixed(1),bas1:+(1000/Math.max(q(.99),1e-3)).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,ms:+m.toFixed(3),med:+q(.5).toFixed(3),p95:+q(.95).toFixed(3),canvas:vis.length,...(tronque?{tronque:true}:{})};}"""
 
 APPAREILS_DEFAUT = {'telephone': {'largeur': 390, 'hauteur': 780, 'cpu': 1, 'dpr': 1}}
 GRAINE_JS = "(()=>{let a=%d;Math.random=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};})();"
@@ -121,6 +134,8 @@ def construire(cfg, racine):
     c = cfg.get('construire')
     if not c:
         return
+    if hors_depot(cfg):  # page construite à un chemin absolu (/home/claude/banc/…) : dossier créé d'office (retour Wall Street 18/11 :
+        os.makedirs(lieu(cfg, racine)[0], exist_ok=True)  # FileNotFoundError sur une machine neuve)
     t0 = time.time()
     r = subprocess.run(c, shell=True, cwd=racine, capture_output=True, text=True, timeout=900)
     if r.returncode:
@@ -359,6 +374,70 @@ async def patienter(pg, ms, fige):
         await pg.wait_for_timeout(ms)
 
 
+# Scène ACTION (18/11, retour Couronnes & Complots : « scènes sans requestAnimationFrame → 0,00 ms/img, seul render_ms compte ») :
+# une action (clic, redessin, zoom engagé) mesurée jusqu'à l'AFFICHAGE. 2 vraies images : la 1re peint, la 2e attend que la 1re soit
+# rastérisée et activée (vu sur C&C : avec 1 seule image, le dessin du SVG zoomé, ≈ 300 ms, passait dans l'action SUIVANTE).
+# Un pixel change à chacune des 2 images (sans dégât à l'écran, Chromium attend le rythme de l'écran : 16 ms de plus, et des
+# mesures en marches d'escalier).
+ACTION_JS = """async([js,vide,fige])=>{const now=window.__vraiNow||performance.now.bind(performance),raf=window.__vraiRaf||requestAnimationFrame;
+ let px=document.getElementById('__bancPx');if(!px){px=document.createElement('div');px.id='__bancPx';
+  px.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;pointer-events:none;z-index:2147483647;opacity:.01';document.documentElement.appendChild(px);}
+ const pixel=()=>{px.style.background=px.style.background==='rgb(0, 0, 1)'?'rgb(0, 0, 2)':'rgb(0, 0, 1)';};pixel();
+ const image=(p)=>new Promise(r=>raf(()=>{if(p)pixel();r();}));const apres=()=>new Promise(r=>{const c=new MessageChannel();c.port1.onmessage=()=>r();c.port2.postMessage(0);});
+ await image(1);let att=0;const t0=now();if(!vide){const f=(0,eval)('('+js+')');const r=f();if(r&&typeof r.then==='function'){const ta=now();await r;att=now()-ta;}}
+ if(fige&&window.__horloge)window.__horloge.avancer(1,1000/60);void document.documentElement.offsetHeight;const t1=now();
+ await image(1);await image();await apres();const t2=now();
+ await image();await image();return [t2-t0,t1-t0,att];}"""
+
+
+async def mesurer_action(ctx, pg, s, fige):
+    """Répétitions alternées vide / action (même trajet) ; renvoie une mesure au format du banc (ms = affichage net médian)."""
+    n = max(4, int(s.get('repetitions', 12)))
+    js = fn(s['action'])
+    cdp = await ctx.new_cdp_session(pg)
+    await cdp.send('Performance.enable')
+
+    async def tache():
+        m = await cdp.send('Performance.getMetrics')
+        return next((x['value'] for x in m['metrics'] if x['name'] == 'TaskDuration'), 0) * 1000
+    aff, jsm, fil, vaff, vfil, vjs, att = [], [], [], [], [], [], []
+    delai = float(s.get('delai_s', 60))
+    try:
+        await pg.evaluate(ACTION_JS, [js, True, fige])  # chauffe (pixel créé, page au repos)
+        for i in range(n):
+            for vide in (True, False) if i % 2 == 0 else (False, True):  # ordre alterné : la dérive ne favorise ni l'un ni l'autre
+                a = await tache()
+                try:
+                    r = await asyncio.wait_for(pg.evaluate(ACTION_JS, [js, vide, fige]), delai)
+                except asyncio.TimeoutError:
+                    raise RuntimeError(f'action sans fin après {delai:.0f} s ("delai_s") : attend-elle une image du jeu ? en temps figé les images'
+                                       ' ne viennent pas seules : essayer "preparation": "reelle" ou "mode": "reel"') from None
+                b = await tache()
+                if vide:
+                    vaff.append(r[0]); vfil.append(b - a); vjs.append(r[1])
+                else:
+                    aff.append(r[0]); jsm.append(r[1]); fil.append(b - a); att.append(r[2])
+    finally:
+        try:
+            await cdp.send('Performance.disable'); await cdp.detach()
+        except Exception:
+            pass
+    med = statistics.median
+    v, vf, vj = med(vaff), med(vfil), med(vjs)
+    # affichage net = attente d'affichage moins celle du trajet vide, jamais moins que le temps du JS + mise en page lui-même, moins
+    # celui du trajet vide (l'image du jeu jouée à chaque fois : un jeu à boucle d'animation de 8 ms ne doit pas lire 8 ms pour une
+    # action vide) ; sans ce plancher, une action longue « recouvre » l'attente de l'image : 102 ms de JS lus 90 ms (page factice)
+    net = sorted(max(0.0, x - v, j - vj) for x, j in zip(aff, jsm))
+    q = lambda k: net[min(len(net) - 1, int(len(net) * k))]
+    ms = med(net)
+    princ = max(0.0, med(fil) - vf)
+    attente = med(att)  # action asynchrone (« ()=>promesse ») : temps passé à attendre, ni JS ni dessin
+    return {'ms': round(ms, 3), 'med': round(ms, 3), 'p95': round(q(.95), 2), 'pire': round(net[-1], 1), 'n': len(net),
+            'fps': round(1000 / max(ms, 1e-3), 1), 'bas1': round(1000 / max(net[-1], 1e-3), 1), 'action': True,
+            'js_ms': round(max(0.0, med([j - w for j, w in zip(jsm, att)]) - vj), 2), 'principal_ms': round(princ, 2), 'raster_ms': round(max(0.0, ms - princ - attente), 2),
+            'vide_ms': round(v, 2), **({'attente_ms': round(attente, 2)} if attente > 0.05 else {})}
+
+
 async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, au_fil=None, profil=None):
     """Ouvre le jeu sur un appareil et mesure les scènes demandées. Renvoie {scenes, chronos, chargement_ms, erreurs}."""
     res = {'scenes': {}, 'chronos': {}, 'erreurs': []}
@@ -380,7 +459,7 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, 
                 cdp = await ctx.new_cdp_session(pg)
                 await cdp.send('Emulation.setCPUThrottlingRate', {'rate': float(cpu)})
             fige = cfg.get('mode', 'fige') == 'fige'
-            init = 'window.__banc=1;' + (AVANT_JEU_FIGE if fige else '')
+            init = 'window.__banc=1;window.__vraiRaf=window.requestAnimationFrame.bind(window);' + (AVANT_JEU_FIGE if fige else '')
             if cfg.get('stockage'):
                 init += 'try{localStorage.clear();' + ''.join(f'localStorage.setItem({json.dumps(k)},{json.dumps(v if isinstance(v, str) else json.dumps(v))});' for k, v in cfg['stockage'].items()) + '}catch(e){}'
             prep_reelle = fige and cfg.get('preparation') == 'reelle'  # chargement et mise en scène en temps réel, images mesurées figées
@@ -431,14 +510,22 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, 
                     if s.get('js'):
                         await pg.evaluate(fn(s['js']))
                     await attendre(s.get('attente_ms', 1500))
-                    if fige:
+                    if s.get('action'):
+                        if prep_reelle:
+                            await pg.evaluate('()=>{__horloge.reel(false);__horloge.coulant(true);__horloge.avancer(10,1000/60)}')
+                        try:
+                            m = await mesurer_action(ctx, pg, s, fige)
+                        finally:
+                            if prep_reelle:
+                                await pg.evaluate('()=>{__horloge.coulant(false);__horloge.reel(true)}')
+                    elif fige:
                         if prep_reelle:
                             await pg.evaluate('()=>{__horloge.reel(false);__horloge.coulant(true);__horloge.avancer(10,1000/60)}')  # refige + 10 images de chauffe
                         m = await pg.evaluate(MESURE_FIGE_JS, [s.get('images', cfg.get('images', 120)), 1000 / 60, s.get('budget_ms', cfg.get('budget_ms', 6000))])
                         if prep_reelle:
                             await pg.evaluate('()=>{__horloge.coulant(false);__horloge.reel(true)}')
                         if m.get('ms', 1) < 0.1:
-                            m['note'] = "presque rien à chaque image : la scène ne s'anime pas par requestAnimationFrame (setInterval, ou rien ne bouge) ; essayer \"mode\": \"reel\""
+                            m['note'] = "presque rien à chaque image : la scène ne s'anime pas par requestAnimationFrame (setInterval, ou rien ne bouge) ; jeu qui redessine sur un clic : scène \"action\" (coût jusqu'à l'affichage) ; boucle setInterval : \"mode\": \"reel\""
                             print('    note : ' + m['note'], flush=True)
                     else:
                         m = await pg.evaluate(MESURE_JS, s.get('duree_ms', 4000))
@@ -447,7 +534,7 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, 
                             m['infos'] = await pg.evaluate('()=>(' + s['infos'] + ')')
                         except Exception as e:
                             m['infos'] = 'erreur : ' + str(e)[:120]
-                    if profil is not None and 'ms' in m:
+                    if profil is not None and 'ms' in m and not s.get('action'):
                         if prep_reelle:
                             await pg.evaluate('()=>{__horloge.reel(false);__horloge.coulant(true)}')
                         try:
@@ -595,6 +682,9 @@ def charge():
 def resume_mesure(m):
     if 'erreur' in m:
         return 'ERREUR ' + m['erreur'][:80]
+    if m.get('action'):
+        return (f"{m.get('ms', 0):7.2f} ms par action jusqu'à l'affichage (JS {m.get('js_ms')} · fil principal {m.get('principal_ms')}"
+                f" · dessin hors fil ≈ {m.get('raster_ms')}{' · attente ' + str(m['attente_ms']) if m.get('attente_ms') else ''} · pire {m.get('pire')} · vide déduit {m.get('vide_ms')})")
     t = f"{m.get('ms', 0):7.2f} ms/img  {m.get('fps', 0):6.1f} img/s  1 % bas {m.get('bas1', 0):6.1f}  pire {m.get('pire', 0):6.1f} ms"
     if m.get('pauses'):
         t += f"  pauses {m['pauses']} (max {m['pauseMax']} ms)"
@@ -634,7 +724,10 @@ async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu
                 pass
         return f'   [{fait[0]}/{total}, reste ≈ {_duree(reste)}]' if fait[0] < total else f'   [{fait[0]}/{total}]'
     async with async_playwright() as p:
-        nav = await p.chromium.launch(args=ARGS + ([] if plafond else ARGS_SANS_PLAFOND))
+        # scènes action : le compositeur attend la rastérisation avant d'afficher (sinon le dessin d'une action passe dans la suivante,
+        # et chaque attente d'image coûte ≈ 15 ms au lieu de ≈ 5) ; drapeau mis SEULEMENT quand il y a des actions (mesures d'avant inchangées)
+        actions = ['--run-all-compositor-stages-before-draw'] if any(s.get('action') for s in scenes) else []
+        nav = await p.chromium.launch(args=ARGS + ([] if plafond else ARGS_SANS_PLAFOND) + actions)
         for t in range(tours):
             ordre = versions if t % 2 == 0 else list(reversed(versions))
             for nom, base, page in ordre:
@@ -691,13 +784,17 @@ def fusion(passes):
             if not ok:
                 sc[s] = vals[0]; continue
             m = {}
-            for k in ('fps', 'bas1', 'pire', 'ms', 'med', 'p95', 'n'):
+            for k in ('fps', 'bas1', 'pire', 'ms', 'med', 'p95', 'n', 'js_ms', 'principal_ms', 'raster_ms', 'vide_ms'):
                 xs = [v[k] for v in ok if k in v]
                 if xs:
                     m[k] = round(statistics.median(xs), 2)
             ms = [v['ms'] for v in ok]  # bruit = écart entre passes du temps moyen par image
             m['bruit'] = round((max(ms) - min(ms)) / max(1e-9, statistics.median(ms)) * 100, 1) if len(ms) > 1 else None
             m['valeurs'] = [round(v['ms'], 3) if 'ms' in v else None for v in vals]  # temps moyen de chaque passe, dans l'ordre des tours
+            if ok[0].get('action'):
+                m['action'] = True
+            if ok[-1].get('note'):
+                m['note'] = ok[-1]['note']  # avant le 18/11 la note (« presque rien à chaque image… ») n'était qu'à l'écran
             if any(v.get('pauses') for v in ok):
                 m['pauses'] = max(v.get('pauses', 0) for v in ok)
             if 'infos' in ok[-1]:
@@ -747,19 +844,24 @@ def ecarts(avant, apres, seuil):
                 if 'ms' not in b:
                     alertes.append(e)
                 continue
+            if b.get('action') and (max(a['ms'], b['ms']) < 1 or abs(b['ms'] - a['ms']) < 0.5):  # action presque vide : 0,00 ↔ 0,15 ms n'est pas +∞ %
+                L.append({'appareil': an, 'scene': s, 'avant_ms': a['ms'], 'apres_ms': b['ms'], 'ecart_pct': 0, 'bruit_pct': None, 'verdict': 'égal (négligeable)', 'action': True})
+                continue
             if max(a['ms'], b['ms']) < 0.1:  # presque rien par image (scène qui ne s'anime pas) : un écart de 0,02 ms n'est pas un ralentissement
                 L.append({'appareil': an, 'scene': s, 'avant_ms': a['ms'], 'apres_ms': b['ms'], 'ecart_pct': 0, 'bruit_pct': None, 'verdict': 'égal (négligeable)'})
                 continue
             d = (b['ms'] - a['ms']) / max(1e-9, a['ms']) * 100
             bruit = max(a.get('bruit') or 0, b.get('bruit') or 0)
-            lim = max(seuil, bruit)
+            # action (attente d'affichage, rastérisation sur des fils partagés) : bien plus bruitée qu'une image en temps figé ; même
+            # règle que les chronos : 2×seuil (C&C, même code, 3 tours : +19 % « plus lent » avec le seuil simple, 18/11)
+            lim = max(seuil * (2 if b.get('action') else 1), bruit)
             # chaque tour doit aller dans le même sens (tours appariés A/B dans la même minute) : un seul tour à contre-sens = bruit
             paires = [(x, y) for x, y in zip(a.get('valeurs') or [], b.get('valeurs') or []) if x is not None and y is not None]
             meme_sens_lent = all(y > x for x, y in paires) if paires else True
             meme_sens_rapide = all(y < x for x, y in paires) if paires else True
             verdict = 'plus lent' if d > lim and meme_sens_lent else 'plus rapide' if d < -lim and meme_sens_rapide else 'égal (bruit)'
             e = {'appareil': an, 'scene': s, 'avant_ms': a['ms'], 'apres_ms': b['ms'], 'ecart_pct': round(d, 1), 'bruit_pct': bruit,
-                 'avant_bas1': a.get('bas1'), 'apres_bas1': b.get('bas1'), 'verdict': verdict}
+                 'avant_bas1': a.get('bas1'), 'apres_bas1': b.get('bas1'), 'verdict': verdict, **({'action': True} if b.get('action') else {})}
             L.append(e)
             if verdict == 'plus lent':
                 alertes.append(e)
@@ -821,6 +923,8 @@ def tableau(L):
         br = f"{e['bruit_pct']:.0f} %" if e.get('bruit_pct') is not None else '  -'
         pe = f"   (programmes compilés en jeu {e['programmes_en_jeu'][0]} → {e['programmes_en_jeu'][1]})" if e.get('programmes_en_jeu') else ''
         t.append(f"{e['appareil']:10s} {e['scene'][:22]:22s} {e['avant_ms']:9.2f} {e['apres_ms']:9.2f} {e['ecart_pct']:+7.1f}% {br:>6s}  {e['verdict']}{pe}")
+    if any(e.get('action') for e in L):
+        t.append('(action = ms par action jusqu\'à l\'affichage, vide déduit)')
     if any(e['scene'].startswith('gel ') for e in L):
         t.append('(gel = pire image EN JEU après le changement, temps réel, préparation annoncée exclue)')
     return '\n'.join(t)
@@ -853,6 +957,8 @@ def charger_sortie(f):
 
 
 def main(argv):
+    if any(a in ('-h', '--help', '-?', '--aide') for a in argv):  # avant le 18/11 : « -h » lu comme fichier de réglages → FileNotFoundError
+        print(__doc__); return 0
     o = lire_args(argv)
     if o['comparer']:
         a, b = (charger_sortie(f) for f in o['comparer'])
@@ -862,7 +968,12 @@ def main(argv):
     if not o['pos']:
         print(__doc__); return 2
     reg = os.path.abspath(o['pos'][0]); sortie = o['pos'][1] if len(o['pos']) > 1 else None
-    cfg = json.load(open(reg))
+    if not os.path.isfile(reg):
+        print(f'banc : réglages introuvables : {o["pos"][0]} (attendu : <jeu>/outils/banc.json ; aide : banc.py -h)'); return 2
+    try:
+        cfg = json.load(open(reg))
+    except ValueError as e:
+        print(f'banc : réglages illisibles ({o["pos"][0]}) : {e}'); return 2
     seuil = float(o['seuil'] or cfg.get('seuil', 10))
     scenes = cfg.get('scenes') or []
     gels = cfg.get('gels') or []
@@ -953,7 +1064,7 @@ def main(argv):
             shutil.rmtree(tmp, ignore_errors=True)
     meta = {'jeu': jeu, 'date': datetime.datetime.now().isoformat(timespec='seconds'), 'plafond': o['plafond'], 'tours': tours,
             'cpu': o['cpu'], 'duree_s': round(time.time() - t0), 'charge': {'debut': ch0, 'fin': charge(), **({'heritee': True} if attente_verrou > 1 else {})},
-            'attente_verrou_s': round(attente_verrou)}
+            'attente_verrou_s': round(attente_verrou), **({'drapeaux': ['--run-all-compositor-stages-before-draw']} if any(x.get('action') for x in scenes) else {})}
     code = 0
     if avec_avant:
         av, ap = fusion(brut['avant']), fusion(brut['apres'])

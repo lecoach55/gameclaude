@@ -325,6 +325,8 @@ def stabilite(a, b):
 
 
 def main(argv):
+    if any(a in ('-h', '--help', '-?', '--aide') for a in argv):  # 18/11 : « -h » était lu comme un fichier de réglages
+        print(__doc__); return 0
     o = lire_args(argv)
     if not o['pos']:
         print(__doc__); return 2

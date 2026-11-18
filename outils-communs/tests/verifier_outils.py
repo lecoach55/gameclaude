@@ -1089,6 +1089,61 @@ def _():
     shutil.rmtree(env['BANC_VERROU'] + '.qui', ignore_errors=True)
 
 
+@controle('banc.py : scène « action » (jeux DOM/SVG : coût d\'un clic jusqu\'à l\'AFFICHAGE, dessin hors fil principal compris, vide déduit, plancher = JS), avant/après sensible au dessin, -h, réglages absents, dossier d\'une page à chemin absolu créé d\'office, pas d\'Infinity dans la sortie')
+def _():
+    sb = os.path.join(OC, 'banc.py')
+    for outil in ('banc.py', 'captures.py', 'verif.py'):  # avant le 18/11 : « -h » lu comme un fichier de réglages (FileNotFoundError)
+        if len(run(sys.executable, os.path.join(OC, outil), '-h')) < 200:
+            raise RuntimeError(f'{outil} -h : pas d\'aide')
+    out = run(sys.executable, sb, 'reglages_absents.json', attendu=2)
+    if 'introuvables' not in out:
+        raise RuntimeError('réglages absents : ' + out[-200:])
+    src = os.path.join(OC, 'tests', 'action_factice.html')
+    with tempfile.TemporaryDirectory() as d:
+        page = os.path.join(d, 'nouveau', 'sous', 'p.html')  # dossier inexistant : la construction doit pouvoir y écrire
+        cfg = {'jeu': 'factice', 'fichier': page, 'construire': f'cp {src} {page}', 'pret': 'window.pret', 'pret_ms': 100, 'images': 20,
+               'appareils': {'ordinateur': {'largeur': 1024, 'hauteur': 700}},
+               'scenes': [{'nom': 'repos', 'attente_ms': 100}, {'nom': 'rien', 'action': '0', 'attente_ms': 0, 'repetitions': 6},
+                          {'nom': 'travail', 'action': 'travail(2e6)', 'attente_ms': 0, 'repetitions': 6},
+                          {'nom': 'peindre', 'action': 'peindre()', 'attente_ms': 0, 'repetitions': 8}]}
+        reg = os.path.join(d, 'banc.json'); json.dump(cfg, open(reg, 'w'))
+        sortie = os.path.join(d, 'r.json')
+        out = run(sys.executable, sb, reg, sortie, '--construire', timeout=180)
+        def refus(x):
+            raise RuntimeError(f'valeur non JSON dans la sortie : {x}')
+        r = json.loads(open(sortie).read(), parse_constant=refus)['appareils']['ordinateur']['scenes']
+        if 'action' not in r['repos'].get('note', ''):
+            raise RuntimeError('scène sans image : la note ne propose pas « action » : ' + str(r['repos'])[:200])
+        ri, tr, pe = r['rien'], r['travail'], r['peindre']
+        if not all(x.get('action') for x in (ri, tr, pe)):
+            raise RuntimeError('mesures action absentes : ' + json.dumps(r)[:300])
+        if ri['ms'] > 3:
+            raise RuntimeError(f"action vide : {ri['ms']} ms (le trajet vide n'est pas déduit)")
+        if not (tr['js_ms'] > 5 and tr['ms'] >= 0.9 * tr['js_ms'] and tr['raster_ms'] < 0.5 * tr['ms']):
+            raise RuntimeError(f"action JS : {tr}")
+        if not (pe['ms'] > 6 and pe['ms'] > 4 * pe['js_ms'] and pe['js_ms'] < 5):  # presque pas de JS, beaucoup de dessin : compté
+            raise RuntimeError(f"action de dessin : le dessin n'est pas compté (ms ≈ JS) : {pe}")
+        # jeu à boucle d'animation (≈ 4e5 tours de calcul par image) : une action vide reste ≈ 0 (l'image du jeu est déduite) ;
+        # action qui attend une image du jeu en temps figé : abandon après "delai_s" avec un message, pas un banc bloqué
+        c2 = dict(cfg, parametres='?boucle=1', scenes=[{'nom': 'rien', 'action': '0', 'attente_ms': 0, 'repetitions': 6},
+                                                       {'nom': 'bloque', 'action': '()=>new Promise(r=>requestAnimationFrame(r))', 'delai_s': 3, 'attente_ms': 0}])
+        json.dump(c2, open(reg, 'w'))
+        run(sys.executable, sb, reg, sortie, timeout=120)
+        r = json.load(open(sortie))['appareils']['ordinateur']['scenes']
+        if r['rien'].get('ms', 99) > 3 or 'sans fin' not in r['bloque'].get('erreur', ''):
+            raise RuntimeError(f"boucle d'animation / action sans fin : {r}")
+        # avant/après : AVANT = même page sans flou, 4 disques au lieu de 120 (dessin léger) ; le dessin plus lourd doit être vu, l'action vide rester « égale »
+        av = os.path.join(d, 'avant'); os.makedirs(av)
+        open(os.path.join(av, 'p.html'), 'w').write(open(src).read().replace('filter:blur(30px) drop-shadow(0 0 40px #000)', '').replace('i<120', 'i<4'))
+        cfg['scenes'] = [x for x in cfg['scenes'] if x['nom'] in ('rien', 'peindre')]
+        json.dump(cfg, open(reg, 'w'))
+        r = subprocess.run([sys.executable, sb, reg, sortie, '--avant-page', os.path.join(av, 'p.html'), '--tours', '2', '--strict'],
+                           capture_output=True, text=True, timeout=240)
+        e = {x['scene']: x['verdict'] for x in json.load(open(sortie))['ecarts']}
+        if r.returncode != 1 or e.get('peindre') != 'plus lent' or e.get('rien', '').startswith('plus'):
+            raise RuntimeError(f'avant/après : code {r.returncode}, verdicts {e} ' + r.stdout[-300:])
+
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

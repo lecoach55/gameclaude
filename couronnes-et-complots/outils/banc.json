@@ -30,9 +30,21 @@
    "nom": "carte_zoom",
    "js": "vb.w=VB0.w/2.3;vb.x=VB0.x+200;vb.y=VB0.y+120;applyVB();",
    "attente_ms": 800
+  },
+  {
+   "nom": "rendu_clic",
+   "action": "render()",
+   "attente_ms": 300
+  },
+  {
+   "nom": "zoom_engage",
+   "js": "vb={...VB0};applyVB(true);",
+   "action": "window.__bk=(window.__bk||0)+1;vb.w=VB0.w/(window.__bk%2?2.3:1.8);vb.h=vb.w*VB0.h/VB0.w;vb.x=VB0.x+200;vb.y=VB0.y+120;applyVB(true);",
+   "attente_ms": 300
   }
  ],
  "chronos": {
   "render_ms": "render()"
- }
+ },
+ "_note_actions": "18/11 (équipe Outils) : carte et carte_zoom ne bougent pas à chaque image (0,00 ms) ; rendu_clic et zoom_engage = scènes « action » : coût jusqu'à l'AFFICHAGE (JS + styles + peinture + dessin du SVG). A/B : python3 outils-communs/banc.py couronnes-et-complots/outils/banc.json --avant HEAD --scenes rendu_clic,zoom_engage --tours 3"
 }

@@ -3,11 +3,11 @@
 const NT = TERR.length, MAX_ROUNDS = 30, DOMINATION = 21;
 const PCOL = [   // palette recalée pour le lavis (revue artistique du 16/11) : Azur en indigo, teintes moins saturées
   // w / o : couleur et densité du lavis sur la carte (le bleu sur papier beige vire au gris : lavis plus soutenu)
-  { c: "#b8463a", d: "#7a241c", l: "#e4a090", o: .42 },
-  { c: "#2f4f8a", d: "#172f5c", l: "#9fb2d8", w: "#2a55a6", o: .6 },
-  { c: "#3e7a4e", d: "#1f4a2c", l: "#9ccaa8", w: "#3a7d48", o: .48 },
-  { c: "#c49a2c", d: "#7f5d0e", l: "#ecd08a", o: .45 },
-  { c: "#6b3f86", d: "#3f2156", l: "#c1a6dc", o: .52 },
+  { c: "#b8463a", d: "#7a241c", l: "#e4a090", o: .34 },
+  { c: "#2f4f8a", d: "#172f5c", l: "#9fb2d8", w: "#2a55a6", o: .62 },
+  { c: "#3e7a4e", d: "#1f4a2c", l: "#9ccaa8", w: "#2f6b3e", o: .56 },
+  { c: "#c49a2c", d: "#7f5d0e", l: "#ecd08a", o: .42 },
+  { c: "#6b3f86", d: "#3f2156", l: "#c1a6dc", w: "#6a3a9a", o: .5 },
 ];
 // partitions héraldiques : distinguent les Maisons sans dépendre de la couleur
 const CHARGES = [

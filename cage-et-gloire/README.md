@@ -67,6 +67,15 @@ Construction : `npm i` à la racine du dossier (three 0.160, esbuild, @fontsourc
 - Coins : seau, bouteille, serviette et poche de glace (un seul objet). Flashs du public et étincelles : sprites ronds (plus de carrés), cadence en nombre par seconde (≈ 3/s au calme, ≈ 45/s après un gros coup) indépendante des img/s.
 - `outils/studio.py` : horloge figée (`outils-communs/horloge.js`), poses `portrait0`, `portrait1`, `coin` en plus.
 
+## Nouvelles mécaniques (v12, 18/11/2026, demande de Victor : « complexifier »)
+- **Le moral compte le soir du combat** (combattants du joueur seulement) : `bonusMoral` de −2 (moral ≤ 30) à +2 (100), neutre à 70. `bonusJour(c)` = camp + moral + semaine du combat, `bonusAdv(c)` = adversaire piqué ; appliqués dans `preparerSim` et `cote()` (try/finally). calib_combat inchangé (favori 75 %).
+- **Semaine du combat** (`SPECIAUX.semaine`, `c.sdc`) : une fenêtre par semaine, pour le plus gros combat de la semaine suivante. Faire le show (popularité +5, fixe +10 %, adversaire +0,3) / Rester concentré (moral +8, relation +3) / Couper le poids (+0,9 ; 25 % de rater : −0,8, amende 20 %, moral −10, relation −8). Écarts mesurés (opt.js du studio, 181 combats) : show −0,9 pt, concentré +1,7, couper +1,3 en espérance.
+- **Effet affiché sous chaque choix** (champ `e` des choix d'EVENTS/SPECIAUX, rendu dans `popup()`).
+- **Coûts** : `prixN` (×1 → ×3 avec la salle), camp `prixC` (×1 → ×2), allocations selon l'organisation (`ALLOC_T` : 60 € CFR → 840 € APEX par semaine). Choix sans argent : fatigue, risque de blessure, **relation avec l'organisation** (`G.orgs[o].rel`, sous 60 : bourses jusqu'à −20 %, `relF`), moral d'un coéquipier.
+- **Écurie rivale** `G.rival` (créée dans `nouvellePartie`, ou par `completer()` pour les anciennes parties) : `majRival` toutes les 4 semaines place un de ses combattants dans chaque organisation/catégorie où vous êtes ; 40 % des offres contre elle quand c'est possible (pas le même adversaire dans les 26 semaines, pas de prime ×1,3) ; `bilanRival`, événement `rival_espoir`, rachat signé ; carte sur l'écran Écurie, badges.
+- **Orientation du camp** (`ORI`, `c.ori`, `f.bonusAt` lu par `eff()` de combat.js) : Frappe / Lutte et sol / Cardio / Récupération, gratuit, un seul choix.
+- Outils : `outils/anciennes.py ancienne.html nouvelle.html` (ancienne sauvegarde reprise par la nouvelle page), `CAMP=10 node outils/sim_monde.js` (robot qui achète le camp), audit vérifie écurie rivale et relations.
+
 ## Outils de chasse aux bugs
 - `node outils/audit.js 4 12` : 4 parties de 12 ans avec un joueur au hasard ; vérifie NaN, bornes, combats en double, ceintures vacantes, champions partis, offres orphelines, taille de la sauvegarde.
 - `python3 outils/monkey.py build/index.html dossier 900 390 844 1` : robot qui clique au hasard (vrais clics) ; rapporte erreurs JS, écrans bloquants, boutons les plus cliqués.

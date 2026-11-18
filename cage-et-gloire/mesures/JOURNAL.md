@@ -78,3 +78,12 @@ Tests : evtest 32 événements + 8 spéciaux sans erreur ; parcours au doigt, vu
 - Trousse de test v6 → v7 (appareil lent : banc jamais vide, « (lent) » affiché).
 - Nouveau personnage Mixamo (dec1117-cage) : `outils/prep_perso.mjs` prêt et essayé ; aucun personnage Mixamo masculin torse nu joignable (mixamo.com bloqué, seuls Xbot/Ybot/Michelle publics) → question posée à Victor.
 - Outils : `outils/verif.json` pour la vérification commune.
+
+## v12 — nouvelles mécaniques (18/11/2026 soir, demande de Victor)
+- Moral le soir du combat (−2..+2, neutre 70), semaine du combat (3 choix), effets affichés sous chaque choix, coûts selon le niveau de la salle, choix payés en fatigue/blessure/relation/moral d'un coéquipier, allocations selon l'organisation, écurie rivale nommée, orientation du camp.
+- sim_monde 24 graines × 6 ans, robot « bon » (toujours le 1er choix) : victoires 56,4 % → 54,9 % ; trésorerie médiane an 6 : 690 → 684 k€ ; titres/partie 7,6 → 7,9 ; 0 erreur.
+- Robot attentif (semaine « concentré », orientation lutte, sm.js du studio) : 56,4 % (= v11).
+- Robot qui achète tout le camp (CAMP=10, 16 graines) : 61,3 % → 59,1 % ; trésorerie médiane an 4 / an 6 : 132 / 357 k€ → 63 / 174 k€ (la trésorerie ne s'emballe plus).
+- Écurie rivale : 142 saisons sur 144 avec au moins un combat contre elle ; le joueur la bat 60 % du temps.
+- Écarts d'options (opt.js, 181 combats) : semaine show −0,9 pt / concentré +1,7 / couper le poids +1,3 en espérance ; orientations −1,1 à +1,4 (le meilleur choix dépend de l'adversaire).
+- calib_combat favori 75 % (inchangé), evtest 54 + 11 spéciaux 0 erreur, audit 4 × 12 ans aucun problème, anciennes.py (v11 → v12) identique, perf.py : mêmes appels/triangles, ms dans le bruit (v11 198 ms moy., v12 193 ms).

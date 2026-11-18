@@ -1,12 +1,13 @@
 "use strict";
 // ===================== Données =====================
 const NT = TERR.length, MAX_ROUNDS = 30, DOMINATION = 21;
-const PCOL = [
-  { c: "#b8332c", d: "#7a1c17", l: "#e49a8c" },
-  { c: "#2e5f9c", d: "#173a68", l: "#9cb8de" },
-  { c: "#1f8468", d: "#0f4c3c", l: "#8fd0b8" },
-  { c: "#cf9418", d: "#83590a", l: "#efcb72" },
-  { c: "#6e4592", d: "#41245e", l: "#c1a6dc" },
+const PCOL = [   // palette recalée pour le lavis (revue artistique du 16/11) : Azur en indigo, teintes moins saturées
+  // w / o : couleur et densité du lavis sur la carte (le bleu sur papier beige vire au gris : lavis plus soutenu)
+  { c: "#b8463a", d: "#7a241c", l: "#e4a090", o: .42 },
+  { c: "#2f4f8a", d: "#172f5c", l: "#9fb2d8", w: "#2a55a6", o: .6 },
+  { c: "#3e7a4e", d: "#1f4a2c", l: "#9ccaa8", w: "#3a7d48", o: .48 },
+  { c: "#c49a2c", d: "#7f5d0e", l: "#ecd08a", o: .45 },
+  { c: "#6b3f86", d: "#3f2156", l: "#c1a6dc", o: .52 },
 ];
 // partitions héraldiques : distinguent les Maisons sans dépendre de la couleur
 const CHARGES = [
@@ -748,7 +749,8 @@ function renderMap() {
   TERR.forEach((_, i) => {
     const T = S.t[i], c = col(T.o);
     const L = landEls[i];
-    L.setAttribute("fill", T.o < 0 ? "url(#rebelHatch)" : c.c); L.setAttribute("stroke", T.o < 0 ? "#d9caa6" : c.c);
+    L.setAttribute("fill", T.o < 0 ? "url(#rebelHatch)" : c.w || c.c); L.setAttribute("stroke", T.o < 0 ? "#d9caa6" : c.w || c.c);
+    const lo = T.o < 0 ? .58 : c.o || .42; L.setAttribute("fill-opacity", lo); L.setAttribute("stroke-opacity", lo);
     edgeEls[i].setAttribute("stroke", c.d);
     hatchEls[i].setAttribute("fill", T.o < 0 ? "none" : `url(#tinct${P(T.o).color})`);
     olEls[i].setAttribute("class", "ol" + (i === S.tgt ? " tgt" : i === S.sel ? " sel" : vs.has(i) ? " valid" : ""));

@@ -326,6 +326,9 @@ table.rt th{font-family:var(--f-display);font-weight:400}
         <pattern id="rebelHatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <rect width="7" height="7" fill="#d9caa6"/><path d="M0,0 V7" stroke="#7d6c4c" stroke-width="1.3" opacity=".55"/>
         </pattern>
+        <!-- grain de papier ambientCG Paper006 (CC0), assombrissement précalculé en tuile 512 px (aucun mélange en direct) -->
+        <pattern id="grain" width="512" height="512" patternUnits="userSpaceOnUse"><image href="__GRAIN__" width="512" height="512"/></pattern>
+        <clipPath id="landClip"><use href="#landBase" clip-rule="evenodd"/></clipPath>
         <clipPath id="mapClip"><rect width="1000" height="660"/></clipPath>
         <g id="g-mont"><path d="M-8,4 L-2.5,-6 L1,-1 L3,-3.5 L8,4" fill="#efe2c2" stroke="#3a2a19" stroke-width="1.1" stroke-linejoin="round"/><path d="M-2.5,-6 L-1,4 M3,-3.5 L4.5,4" stroke="#3a2a19" stroke-width=".6" opacity=".7"/></g>
         <g id="g-pin"><path d="M0,-7 L4,0 L1.6,0 L4.8,4.4 L-4.8,4.4 L-1.6,0 L-4,0Z" fill="#4c5a35" stroke="#2c2414" stroke-width=".6" stroke-linejoin="round"/><path d="M0,4.4 V6.5" stroke="#2c2414" stroke-width="1"/></g>
@@ -347,8 +350,9 @@ table.rt th{font-family:var(--f-display);font-weight:400}
         <rect width="1000" height="660" fill="url(#waves)"/>
         <g id="ripples" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
         <path id="landBase" fill="#ead8ac"/>
-        <g id="tint" opacity=".58"></g>
-        <g id="hatch"></g>
+        <rect id="grainL" width="1000" height="660" fill="url(#grain)" clip-path="url(#landClip)" pointer-events="none"/>
+        <g id="tint"></g>
+        <g id="hatch" opacity=".25"></g>
         <g id="edges"></g>
         <g id="relief" opacity=".78" pointer-events="none"></g>
         <path id="bInner" fill="none" stroke="#3b2c1d" stroke-width=".9" stroke-dasharray="1.5 3" stroke-linecap="round" opacity=".8" pointer-events="none"/>

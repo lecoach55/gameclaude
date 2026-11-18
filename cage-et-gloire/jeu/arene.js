@@ -537,5 +537,7 @@ A.preparer=function(O,F){construire(O);etincelles.length=0;initEtinc();habiller(
 A.action=action;A.demarrer=()=>{A.actif=true;clock.getDelta();taille();};A.arreter=()=>{A.actif=false;};A.taille=taille;A.cam=cam;
 A.capture=()=>{R.render(S,C);return R.domElement.toDataURL('image/jpeg',.7);};
 A.infos=()=>R?{calls:R.info.render.calls,tri:R.info.render.triangles,qual:A.qual,rs:A.rs,px:R.getPixelRatio(),fps:A.fps}:{};
+// cadrage (outils) : hauteur à l'écran de chaque combattant et de l'arbitre (% de la hauteur de l'image, tête→pieds) et distance à la caméra
+A.cadre=()=>{const r=[];const v=new THREE.Vector3();for(const h of [...A.f,A.arb]){h.root.updateMatrixWorld(true);let y0=1e9,y1=-1e9;for(const n of ['Head','LeftFoot','RightFoot','LeftToeBase','RightToeBase','Hips']){const b=h.B[n];if(!b)continue;b.getWorldPosition(v);if(n==='Head')v.y+=.14;v.project(C);y0=Math.min(y0,v.y);y1=Math.max(y1,v.y);}const p=h.pos.clone();p.y=1;r.push({pct:Math.round((y1-y0)/2*1000)/10,dist:Math.round(C.position.distanceTo(p)*100)/100});}return {fov:C.fov,f:r.slice(0,2),arb:r[2]};};
 A.fixer=px=>{A.fige=true;R.setPixelRatio(px);taille();};A.POSES=POSES;Object.defineProperty(A,"qualite",{get:()=>A.qual});A.ST=ST;A.placer=placer;A.CAM=CAM;A.perso=()=>A.f;A.coinsVue=coins;
 window.Arene=A;

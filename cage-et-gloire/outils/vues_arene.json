@@ -1,0 +1,22 @@
+{
+ "_note": "Vues de l'arène telles que le joueur les voit (ordinateur 1280×800 + téléphone) : lumière, foule, cadrage (demandes art-cage-et-gloire-1/2). python3 outils-communs/captures.py cage-et-gloire/outils/vues_arene.json /tmp/cga --avant HEAD --construire ; infos = Arene.cadre() (hauteur des combattants en % de l'image).",
+ "jeu": "cage-et-gloire",
+ "fichier": "/home/claude/banc/cga.html",
+ "construire": "cd cage-et-gloire && npm i --silent >/dev/null 2>&1; python3 jeu/build.py /home/claude/banc/cga.html",
+ "stockage": {"cg-qual": "1"},
+ "appareils": {"ordinateur": {"largeur": 1280, "hauteur": 800, "dpr": 1}, "telephone": {"largeur": 390, "hauteur": 844, "dpr": 1, "tactile": true}},
+ "pret": "typeof Arene!=='undefined'&&typeof ORGS!=='undefined'&&Arene.ok",
+ "pret_ms": 5000,
+ "entree": "window.__v=(n,org)=>{const A=Arene,P=A.POSES;const O=ORGS[org??2];const mk=i=>({id:'s'+i,sexe:'H',div:'mm',app:{peau:[1,4][i],chev:[2,0][i],cc:0,short:['#c1121f','#1d4ed8'][i],gant:'#111'}});A.preparer(O,[mk(0),mk(1)]);A.demarrer();const F=A.perso();const st=A.ST;st.pos='S';st.dist=1.5;st.ang=.3;st.c.set(0,0,0);if(n==='intro'){A.intro(null);return;}if(n==='portrait0'){A.intro(0);return;}if(n==='sol'){st.pos='G';st.top=0;}A.placer(true);const po={large:['garde','garde'],moyen:['jab','coupTete'],serre:['hook','esquive'],sol:['hautFrappe','basProtege']}[n];F[0].idle=()=>P[po[0]](0);F[1].idle=()=>P[po[1]](0);F.forEach(h=>h.seq=[]);A.cam(n);};document.getElementById('accueil').classList.add('cache');",
+ "images": 90,
+ "pas": 45,
+ "vues": [
+  {"nom": "large", "js": "__v('large')", "seule": true, "infos": "Arene.cadre&&Arene.cadre()"},
+  {"nom": "moyen", "js": "__v('moyen')", "seule": true, "infos": "Arene.cadre&&Arene.cadre()"},
+  {"nom": "serre", "js": "__v('serre')", "seule": true, "infos": "Arene.cadre&&Arene.cadre()"},
+  {"nom": "sol", "js": "__v('sol')", "seule": true, "infos": "Arene.cadre&&Arene.cadre()"},
+  {"nom": "cfr", "js": "__v('large',0)", "seule": true, "infos": "Arene.cadre&&Arene.cadre()"},
+  {"nom": "intro", "js": "__v('intro',0)", "seule": true, "infos": "Arene.cadre&&Arene.cadre()"},
+  {"nom": "portrait0", "js": "__v('portrait0',4)", "seule": true, "infos": "Arene.cadre&&Arene.cadre()"}
+ ]
+}

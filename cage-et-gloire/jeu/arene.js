@@ -5,7 +5,7 @@ import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-const A={ok:false,actif:false,vitesse:1,qual:1,rs:1};
+const A={ok:false,actif:false,vitesse:1,qual:1,rs:1,fov0:32};
 // fusionne les objets statiques d'un groupe par matériau : quelques appels de dessin au lieu de dizaines
 function fusion(g,dest){g.updateMatrixWorld(true);const par=new Map();g.traverse(o=>{if(!o.isMesh||Array.isArray(o.material))return;let L=par.get(o.material);if(!L)par.set(o.material,L=[]);const ge=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone());ge.applyMatrix4(o.matrixWorld);for(const k of Object.keys(ge.attributes))if(!['position','normal','uv'].includes(k))ge.deleteAttribute(k);if(!ge.attributes.uv)return;L.push(ge);});
  for(const [m,L] of par){const ge=mergeGeometries(L,false);if(!ge)continue;const me=new THREE.Mesh(ge,m);me.matrixAutoUpdate=false;dest.add(me);}}
@@ -296,7 +296,7 @@ function perso(arbitre){const root=SkeletonUtils.clone(base.scene);const mat=mat
 function habiller(h,f,coinRouge){const u=h.mat.userData.u,a=f.app||{};u.uSkin.value.set(PEAUX[a.peau??1]);u.uShort.value.set(a.short||(coinRouge?'#c1121f':'#1d4ed8'));{const hs={};u.uShort.value.getHSL(hs);u.uShort.value.setHSL(hs.h,hs.s*.7,hs.l);}u.uGlove.value.set(a.gant||'#111');
  u.uHair.value.set(CHEV[a.cc??0]);u.uHairOn.value=(a.chev??1)===0?0:1;u.uChev.value=a.chev??2;u.uFem.value=f.sexe==='F'?1:0;u.uMus.value=({lo:.75,ml:.9})[f.div]??1;
  const sc=new THREE.Color(a.short||(coinRouge?'#c1121f':'#1d4ed8'));u.uAcc.value.set(sc.r*.3+sc.g*.55+sc.b*.15>.5?'#141414':'#f1efe9');u.uBarbe.value=f.sexe==='F'?0:[0,.35,.55,.92,.3,.7][a.barbe||0];const t=(f.sexe==='F')?.93:1;h.root.scale.setScalar(t*(({pl:.97,le:.98,mm:1,mo:1.01,ml:1.03,lo:1.05,fp:.95,fc:.97})[f.div]||1));
- if(f.sexe==='F'){u.uTop.value.set(a.short||'#111');u.uTopOn.value=1;}else u.uTopOn.value=0;}
+ if(f.sexe==='F'){if(a.short)u.uTop.value.copy(u.uShort.value);else u.uTop.value.set('#111');u.uTopOn.value=1;}else u.uTopOn.value=0;}
 
 /* ---------- poses ---------- */
 // directions dans le repère du personnage (il regarde +Z, sa gauche est +X)
@@ -397,8 +397,10 @@ function placer(force){const F=A.f;const a=ST.ang;const cx=ST.c.x,cz=ST.c.z;
  if(force)F.forEach(h=>{h.pos.copy(h.tpos);h.yaw=h.tyaw;h.tilt=h.ttilt||0;});}
 function arbitreSuit(dt){const h=A.arb;if(!h)return;const F=A.f;const m=F[0].pos.clone().add(F[1].pos).multiplyScalar(.5);
  const perp=new THREE.Vector3(-(F[1].pos.z-F[0].pos.z),0,F[1].pos.x-F[0].pos.x).normalize();if(perp.lengthSq()<.01)perp.set(1,0,0);
- const ax0=new THREE.Vector3(-Math.cos(CAM.ang),0,-Math.sin(CAM.ang));const dd=ST.pos==='G'?2.1:2.4;let tgt=null,best=-1e9;
- for(const s of [.95,-.95,.65,-.65]){const t=m.clone().addScaledVector(ax0.clone().applyAxisAngle(new THREE.Vector3(0,1,0),s),dd);if(t.length()>3.9)t.setLength(3.9);const dep=t.clone().sub(m).dot(ax0);const sc=dep-Math.abs(s)*.1;if(sc>best){best=sc;tgt=t;}}
+ const ax0=new THREE.Vector3(-Math.cos(CAM.ang),0,-Math.sin(CAM.ang));const dd=ST.pos==='G'?2.3:2.6;let tgt=null,best=-1e9,cb=0;
+ // côté gardé (hystérésis) : pas de va-et-vient d'une image à l'autre ; loin des deux combattants, derrière eux vu de la caméra
+ for(const s of [1.2,-1.2,.95,-.95]){const t=m.clone().addScaledVector(ax0.clone().applyAxisAngle(new THREE.Vector3(0,1,0),s),dd);if(t.length()>3.9)t.setLength(3.9);const dep=t.clone().sub(m).dot(ax0);const sc=dep*.5+Math.min(t.distanceTo(F[0].pos),t.distanceTo(F[1].pos))+(Math.sign(s)===h.cote?.6:0);if(sc>best){best=sc;tgt=t;cb=Math.sign(s);}}
+ h.cote=cb;
  if(!h.seq||!h.seq.length){if(h.lockT>0)h.lockT-=dt;else cible(h,tgt.x,tgt.z,Math.atan2(m.x-tgt.x,m.z-tgt.z),{tilt:0,y:0});}
  h.idle=POSES.arbitre;}
 /* ---------- traduction des événements du moteur en animations ---------- */
@@ -490,14 +492,18 @@ function majCam(dt){const F=A.f;const m=F[0].pos.clone().add(F[1].pos).multiplyS
  const d1=Math.abs(Math.atan2(Math.sin(want-CAM.ang),Math.cos(want-CAM.ang))),d2=Math.abs(Math.atan2(Math.sin(alt-CAM.ang),Math.cos(alt-CAM.ang)));if(d2<d1)want=alt;
  if(!CAM.repl){let da=Math.atan2(Math.sin(want-CAM.ang),Math.cos(want-CAM.ang));CAM.ang+=da*(1-Math.pow(.25,dt));}else CAM.ang+=dt*.25;
  if(CAM.mode&&CAM.mode.startsWith('coin')){const h=F[+CAM.mode.slice(4)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const sd=new THREE.Vector3(fw.z,0,-fw.x);const k=port?1.05:1.3;const p=h.pos.clone().addScaledVector(fw,3.3*k).addScaledVector(sd,1.7*k);p.y=2.1+(k-1)*.8;
-  CAM.cur.lerp(p,1-Math.pow(.05,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().addScaledVector(fw,.4).setY(.85),1-Math.pow(.03,dt));C.lookAt(CAM.look);return;}
+  fovBase();CAM.cur.lerp(p,1-Math.pow(.05,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().addScaledVector(fw,.4).setY(.85),1-Math.pow(.03,dt));C.lookAt(CAM.look);CAM.coupe=1;return;}
  if(CAM.mode&&CAM.mode.startsWith('portrait')){const h=F[+CAM.mode.slice(8)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const p=h.pos.clone().addScaledVector(fw,port?1.8:1.6);p.y=port?1.6:1.62;
-  const sd=new THREE.Vector3(fw.z,0,-fw.x).multiplyScalar(.35);p.add(sd);CAM.cur.lerp(p,1-Math.pow(.02,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().setY(port?1.5:1.55),1-Math.pow(.01,dt));C.lookAt(CAM.look);return;}
+  const sd=new THREE.Vector3(fw.z,0,-fw.x).multiplyScalar(.35);p.add(sd);fovBase();CAM.coupe=1;CAM.cur.lerp(p,1-Math.pow(.02,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().setY(port?1.5:1.55),1-Math.pow(.01,dt));C.lookAt(CAM.look);return;}
  const cfg={large:[7.2,3.8,.95],moyen:[6.4,3.3,.95],serre:[4.9,2.6,.9],sol:[6.0,3.9,.35]}[CAM.mode]||[7,3.7,1];
  let r=cfg[0]*(port?.72:1),hh=cfg[1]*(port?.88:1);
  const tgt=new THREE.Vector3(m.x+Math.cos(CAM.ang)*r,hh,m.z+Math.sin(CAM.ang)*r);
  // jamais dans les gradins (premier rang à 8,2 m du centre)
  {const L=Math.hypot(tgt.x,tgt.z);if(L>7.9){tgt.x*=7.9/L;tgt.z*=7.9/L;}}
+ // champ élargi quand les combattants sont loin l'un de l'autre (présentation, coins) : les deux restent dans l'image
+ {const sep=F[0].pos.distanceTo(F[1].pos);const fv=A.fov0+Math.min(14,Math.max(0,sep-2.5)*3.5);if(Math.abs(C.fov-fv)>.2){C.fov+=(fv-C.fov)*Math.min(1,dt*3);C.updateProjectionMatrix();}}
+ // au sortir d'un gros plan (coin, présentation) : coupe franche vers la vue générale, plutôt qu'un travelling depuis l'intérieur des combattants
+ if(CAM.coupe){CAM.coupe=0;CAM.cur.copy(tgt);CAM.look.set(m.x,cfg[2],m.z);}
  CAM.cur.lerp(tgt,1-Math.pow(.12,dt));C.position.copy(CAM.cur);
  CAM.look.lerp(new THREE.Vector3(m.x,cfg[2],m.z),1-Math.pow(.02,dt));
  if(A.shake>0){C.position.x+=rnd(-1,1)*A.shake*.15;C.position.y+=rnd(-1,1)*A.shake*.15;A.shake-=dt;}
@@ -516,14 +522,16 @@ function boucle(){raf=requestAnimationFrame(boucle);if(!A.actif)return;const dt=
 // niveau de détail des personnages selon leur distance à la caméra : visage < 2,9 m, muscles et matières < 4,3 m (invisibles de loin, coûteux en pixels)
 const _pp=new THREE.Vector3(),_PL=[];function proches(){const L=_PL;L.length=0;L.push(A.f[0],A.f[1],A.arb);if(A.coins&&A.coins[0].c.root.visible)A.coins.forEach(k=>L.push(k.c));for(const h of L){if(!h)continue;_pp.copy(h.pos);_pp.y+=1.1;const d=C.position.distanceTo(_pp),m0=h.niv;
   // marge de 0,2 m pour ne pas clignoter autour des seuils
-  const nv=d<(m0===2?3.1:2.8)?2:d<(m0>=1?4.5:4.1)?1:0;if(nv!==h.niv){h.niv=nv;const m=h.mats3[nv];h.m.traverse(o=>{if(o.isSkinnedMesh)o.material=m;});}}}
+  // seuils ×1,4 depuis le champ 44°→32° : même taille à l'écran qu'avant
+  const nv=d<(m0===2?4.4:4.0)?2:d<(m0>=1?6.3:5.8)?1:0;if(nv!==h.niv){h.niv=nv;const m=h.mats3[nv];h.m.traverse(o=>{if(o.isSkinnedMesh)o.material=m;});}}}
 // résolution adaptative : si l'arène descend sous 40 img/s, on rend moins de pixels (mémorisé d'une partie à l'autre)
 let AD={n:0,t:0,bas:0,haut:0};
 function adapte(){if(A.qual===2||A.fige)return;const t=performance.now();AD.n++;if(!AD.t){AD.t=t;return;}if(t-AD.t<2000)return;const fps=AD.n*1000/(t-AD.t);AD.n=0;AD.t=t;A.fps=fps;if(document.hidden)return;
  if(fps<40){AD.bas++;AD.haut=0;}else if(fps>57){AD.haut++;AD.bas=0;}else{AD.bas=0;AD.haut=0;}
  if(AD.bas>=1&&A.rs>.55){A.rs=Math.max(.55,A.rs-.15);R.setPixelRatio(Math.max(.5,A.dprBase*A.rs));taille();AD.bas=0;try{localStorage.setItem('cg-rs',A.rs);}catch(e){}}
  else if(AD.haut>=3&&A.rs<1){A.rs=Math.min(1,A.rs+.1);R.setPixelRatio(Math.max(.5,A.dprBase*A.rs));taille();AD.haut=0;try{localStorage.setItem('cg-rs',A.rs);}catch(e){}}}
-function taille(){if(!R)return;const w=canvas.clientWidth||innerWidth,h=canvas.clientHeight||innerHeight;R.setSize(w,h,false);C.aspect=w/h;C.fov=h>w*1.1?50:32;C.updateProjectionMatrix();}
+function taille(){if(!R)return;const w=canvas.clientWidth||innerWidth,h=canvas.clientHeight||innerHeight;R.setSize(w,h,false);C.aspect=w/h;A.fov0=h>w*1.1?50:32;C.fov=A.fov0;C.updateProjectionMatrix();}
+function fovBase(){if(A.fov0&&C.fov!==A.fov0){C.fov=A.fov0;C.updateProjectionMatrix();}}
 /* ---------- API ---------- */
 A.init=async function(cv,b64,qual){canvas=cv;A.qual=qual??1;
  R=new THREE.WebGLRenderer({canvas:cv,antialias:A.qual>=1,powerPreference:'high-performance'});try{A.rs=Math.min(1,Math.max(.55,+localStorage.getItem('cg-rs')||1));}catch(e){}A.dprBase=A.qual>=2?Math.min(devicePixelRatio,1.5):A.qual===1?Math.min(devicePixelRatio,1):.75;R.setPixelRatio(Math.max(A.qual===2?.5:.5,A.dprBase*(A.qual===2?1:A.rs)));R.outputColorSpace=THREE.SRGBColorSpace;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.05;
@@ -546,6 +554,6 @@ A.action=action;A.demarrer=()=>{A.actif=true;clock.getDelta();taille();};A.arret
 A.capture=()=>{R.render(S,C);return R.domElement.toDataURL('image/jpeg',.7);};
 A.infos=()=>R?{calls:R.info.render.calls,tri:R.info.render.triangles,qual:A.qual,rs:A.rs,px:R.getPixelRatio(),fps:A.fps}:{};
 // cadrage (outils) : hauteur à l'écran de chaque combattant et de l'arbitre (% de la hauteur de l'image, tête→pieds) et distance à la caméra
-A.cadre=()=>{const r=[];const v=new THREE.Vector3();for(const h of [...A.f,A.arb]){h.root.updateMatrixWorld(true);let y0=1e9,y1=-1e9;for(const n of ['Head','LeftFoot','RightFoot','LeftToeBase','RightToeBase','Hips']){const b=h.B[n];if(!b)continue;b.getWorldPosition(v);if(n==='Head')v.y+=.14;v.project(C);y0=Math.min(y0,v.y);y1=Math.max(y1,v.y);}const p=h.pos.clone();p.y=1;r.push({pct:Math.round((y1-y0)/2*1000)/10,dist:Math.round(C.position.distanceTo(p)*100)/100});}return {fov:C.fov,f:r.slice(0,2),arb:r[2]};};
+A.cadre=()=>{if(!A.f||!A.arb)return null;const r=[];const v=new THREE.Vector3();for(const h of [...A.f,A.arb]){h.root.updateMatrixWorld(true);let y0=1e9,y1=-1e9,x0=1e9,x1=-1e9;for(const n of ['Head','LeftFoot','RightFoot','LeftToeBase','RightToeBase','Hips']){const b=h.B[n];if(!b)continue;b.getWorldPosition(v);if(n==='Head')v.y+=.14;v.project(C);y0=Math.min(y0,v.y);y1=Math.max(y1,v.y);x0=Math.min(x0,v.x);x1=Math.max(x1,v.x);}const p=h.pos.clone();p.y=1;r.push({pct:Math.round((y1-y0)/2*1000)/10,dist:Math.round(C.position.distanceTo(p)*100)/100,dedans:x1>-1&&x0<1&&y1>-1&&y0<1});}return {fov:C.fov,f:r.slice(0,2),arb:r[2]};};
 A.fixer=px=>{A.fige=true;R.setPixelRatio(px);taille();};A.POSES=POSES;Object.defineProperty(A,"qualite",{get:()=>A.qual});A.ST=ST;A.placer=placer;A.CAM=CAM;A.perso=()=>A.f;A.coinsVue=coins;
 window.Arene=A;

@@ -548,11 +548,17 @@ function setDrawer(open) {
   const tp = $("tip"); if (tp) tp.style.display = "none";
 }
 // téléphone : le bouton de fin de phase est recopié dans la barre du tiroir (visible même tiroir replié)
+// (vote du Conseil en attente : bouton qui ouvre le tiroir ; cible choisie : « Lancer les dés » + « Assaut total »)
 function drawerGo() {
-  const g = $("drawerGo"); if (!g) return;
-  const src = ["occOk", "toReinf", "toAttack", "endT"].map(id => $(id)).find(Boolean);
-  if (!src || !S || S.over || cur().ai) { g.hidden = true; g.onclick = null; return; }
-  g.hidden = false; g.textContent = src.textContent; g.disabled = src.disabled; g.onclick = () => src.click();
+  const g = $("drawerGo"), g2 = $("drawerGo2"); if (!g || !g2) return;
+  const mirror = (b, src, label) => { b.hidden = !src; if (!src) { b.onclick = null; return; } b.textContent = label || src.textContent; b.disabled = src.disabled; b.onclick = () => src.click(); };
+  mirror(g2, null);
+  if (!S || S.over || cur().ai) return mirror(g, null);
+  const vote = $("pbody").querySelector("[data-vote]");
+  if (vote) { g.hidden = false; g.disabled = false; g.textContent = "Voter au Conseil ▴"; g.onclick = () => { setDrawer(true); vote.scrollIntoView({ block: "center" }); }; return; }
+  if ($("roll")) { mirror(g, $("roll"), "Dés"); mirror(g2, $("blitz"), "Assaut total"); return; }
+  if ($("movOk")) { mirror(g, $("movOk")); mirror(g2, $("endT"), "Terminer ✓"); return; }
+  mirror(g, ["occOk", "toReinf", "toAttack", "toMove", "endT"].map(id => $(id)).find(Boolean) || null);
 }
 // province la plus proche d'être complète pour la Maison o (aide aux renforts)
 function nearestRegion(o) {
@@ -791,9 +797,15 @@ function renderLegend() {
     return `<div class="lr"><span class="dot" title="${owner >= 0 ? esc(P(owner).name) : "Aucun maître"}">${owner >= 0 ? shieldSVG(owner, 11) : ""}</span>${r.name} <b>+${r.bonus}</b></div>`;
   }).join("");
 }
+let trayShown = null, trayHid = false, trayT = 0;
 function renderTray() {
   const tr = $("tray"), t = S.tray;
   if (!t) { tr.className = ""; return; }
+  // téléphone : le bandeau des dés se retire seul après 4 s (ou au toucher) pour rendre le bas de la carte
+  if (typeof window !== "undefined" && window.innerWidth <= 900) {
+    if (trayShown !== t) { trayShown = t; trayHid = false; clearTimeout(trayT); trayT = setTimeout(() => { trayHid = true; tr.className = ""; }, 4000); tr.onclick = () => { trayHid = true; tr.className = ""; }; }
+    if (trayHid) { tr.className = ""; return; }
+  }
   tr.className = "show";
   if (t.kind === "battle") {
     tr.innerHTML = `<div class="side"><span class="lab">Attaque</span>${t.A.map((v, k) => dieHTML(v, "att", k === 0 ? t.mA : 0, t.lostA.includes(k))).join("")}</div>
@@ -1326,16 +1338,20 @@ let vb = { ...VB0 }, drag = null, justDragged = false;
 let cvb = { ...VB0 }, geo = null, commitT = 0;
 // proportions du cadre de la carte : sur un écran en hauteur (téléphone), la vue zoomée remplit tout le cadre
 // au lieu de rester un bandeau aux proportions de la carte (vue d'ensemble : carte entière, centrée)
+let arCache = 0;   // remis à zéro au redimensionnement (évite de relire la mise en page à chaque image d'un geste)
 function mapAR() {
   const r0 = VB0.w / VB0.h;
   if (typeof window === "undefined" || window.innerWidth > 900) return r0;
+  if (arCache) return arCache;
   const m = $("map"), W = m && m.clientWidth, H = m && m.clientHeight;
-  return W > 0 && H > 0 ? Math.min(r0, W / H) : r0;
+  return W > 0 && H > 0 ? (arCache = Math.min(r0, W / H)) : r0;
 }
 function clampVB() {
   vb.w = clamp(vb.w, VB0.w / 3.2, VB0.w); vb.h = vb.w / mapAR();
   vb.x = clamp(vb.x, VB0.x, VB0.x + VB0.w - vb.w);
-  vb.y = vb.h > VB0.h ? VB0.y - (vb.h - VB0.h) / 2 : clamp(vb.y, VB0.y, VB0.y + VB0.h - vb.h);
+  // cadre plus haut que la carte : centrée en vue d'ensemble, libre dans le cadre une fois zoomée (le pincement reste sous les doigts)
+  if (vb.h > VB0.h) vb.y = vb.w >= VB0.w - 1 ? VB0.y - (vb.h - VB0.h) / 2 : clamp(vb.y, VB0.y + VB0.h - vb.h, VB0.y);
+  else vb.y = clamp(vb.y, VB0.y, VB0.y + VB0.h - vb.h);
 }
 // ombre portée : un calque séparé, calé sur la zone dessinée (bien moins coûteux qu'un filtre sur la carte)
 function placeShadow() {
@@ -1446,7 +1462,7 @@ function initZoom() {
     if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pinch && ptrs.size === 2) {
       const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-      vb.w = clamp(pinch.w0 * pinch.d0 / d, VB0.w / 3.2, VB0.w); vb.h = vb.w * VB0.h / VB0.w;
+      vb.w = clamp(pinch.w0 * pinch.d0 / d, VB0.w / 3.2, VB0.w); vb.h = vb.w / mapAR();
       if (!geo) measureGeo();
       const per = geo.s0 * cvb.w / vb.w;
       vb.x = pinch.p.x - (mx - geo.left - geo.ox) / per; vb.y = pinch.p.y - (my - geo.top - geo.oy) / per;
@@ -1475,14 +1491,19 @@ function initZoom() {
   m.addEventListener("click", e => { if (justDragged) { e.stopPropagation(); e.preventDefault(); } }, true);
   m.addEventListener("dblclick", e => { const p = svgPt(e.clientX, e.clientY); zoomAt(1 / 1.6, p.x, p.y); });
   $("zIn").onclick = () => zoomCenter(1 / 1.3); $("zOut").onclick = () => zoomCenter(1.3); $("zReset").onclick = () => { vb = { ...VB0 }; applyVB(true); $("zIn").focus(); };   // ⤢ disparaît en vue d'ensemble : le focus passe à +
-  window.addEventListener("resize", () => { geo = null; placeShadow(); const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2; clampVB(); vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2; applyVB(true); });
+  let rzT = 0;
+  window.addEventListener("resize", () => { geo = null; arCache = 0; placeShadow(); clearTimeout(rzT); rzT = setTimeout(() => {
+    const ar = mapAR(), cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+    if (Math.abs(vb.w / vb.h - ar) < 1e-3) return labelScale();   // proportions inchangées (ordinateur) : rien à redessiner
+    clampVB(); vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2; applyVB(true); }, 120); });
+  m.addEventListener("contextmenu", e => { if (tapType === "touch") e.preventDefault(); });
   // tiroir du panneau (téléphone)
   $("drawer").onclick = () => setDrawer(!$("aside").classList.contains("open"));
   // fiche de territoire au doigt : appui long n'importe quand, ou appui qui ne déclenche aucune action
   let lp = null;
   const hideTip = () => { $("tip").style.display = "none"; };
   m.addEventListener("pointerdown", e => {
-    hideTip(); tapType = e.pointerType;
+    hideTip(); tapType = e.pointerType; lpFired = false;
     clearTimeout(lp && lp.t); lp = null;
     if (e.pointerType !== "touch") return;
     const i = terrAt(e.target); if (i < 0) return;
@@ -1490,7 +1511,7 @@ function initZoom() {
     lp = { x, y, t: setTimeout(() => { lpFired = true; tip({ clientX: x, clientY: y }, i, true); }, 480) };
   });
   window.addEventListener("pointermove", e => { if (e.pointerType === "mouse") tapType = "mouse"; if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 8) { clearTimeout(lp.t); lp = null; } });
-  const lpEnd = () => { if (lp) clearTimeout(lp.t); lp = null; setTimeout(() => lpFired = false, 0); };
+  const lpEnd = () => { if (lp) clearTimeout(lp.t); lp = null; if (lpFired) setTimeout(() => lpFired = false, 400); };
   window.addEventListener("pointerup", lpEnd); window.addEventListener("pointercancel", lpEnd);
   m.addEventListener("click", e => { if (lpFired) { e.stopPropagation(); e.preventDefault(); } }, true);
   placeShadow(); setTimeout(placeShadow, 300);

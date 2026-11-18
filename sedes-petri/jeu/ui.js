@@ -570,7 +570,7 @@ function onClick(e) {
  if (d.export) { const code = exportCode(); modal(`<div class="rep"><h2>Code de partie</h2><p class="mut">Copiez ce texte et collez-le dans « Importer un code » sur un autre appareil.</p><textarea rows="7" readonly onclick="this.select()">${code}</textarea><button class="big" data-copy="1">Copier</button><button class="ghost" data-close="1">Fermer</button></div>`, 'repm'); return; }
  if (d.copy) { const ta = $('#modalBox textarea'); try { navigator.clipboard.writeText(ta.value).then(() => toast('Code copié.'), () => { ta.select(); toast('Sélectionnez puis copiez le texte.'); }); } catch (er) { ta.select(); } return; }
  if (d.new) { if (S && S.test) { location.reload(); return; } closeModal(); START.name = null; startScreen(); return; }
- if (d.amb) { if (!ambOuverte(d.amb)) { toast('Ce vœu n’a plus d’objet : l’objectif est déjà atteint.'); renderAll(); return; } if (ambChoose(d.amb)) { sfx('gold'); toast(`Vœu prononcé : <b>${AMB[d.amb].n}</b>`, 'gold'); UI.keepScroll = true; renderAll(); } return; }
+ if (d.amb) { if (!ambOuverte(d.amb)) { toast('Ce vœu n’a plus d’objet.'); renderAll(); return; } if (ambChoose(d.amb)) { sfx('gold'); toast(`Vœu prononcé : <b>${AMB[d.amb].n}</b>`, 'gold'); UI.keepScroll = true; renderAll(); } return; }
  if (d.tab) { UI.tab = d.tab; if (d.tab !== 'royaume') { } sfx('click'); renderPanel(); if (d.amb0 && $('.ambsec')) $('.ambsec').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
  if (d.realm !== undefined && !t.closest('#modal')) { selectRealm(d.realm); return; }
  if (d.realm !== undefined && t.classList.contains('lgr')) { closeModal(); selectRealm(d.realm); return; }

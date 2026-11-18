@@ -60,12 +60,14 @@ const BLZ = {
  ifriqiya: () => F(VE) + crescent(46, 58, 24, AR, VE),
  andalus: () => F(GU) + `<path d="M0 10L10 0L100 92L100 110L90 120L0 28Z" fill="${OR}" stroke="#2a1a0c"/>`
 };
+/* Encodage léger (v18) : guillemets simples, seuls % # < > et espaces doublés échappés — chaîne ~40 % plus courte à analyser qu'avec encodeURIComponent. */
+function svgURI(s) { return s.indexOf("'") >= 0 ? encodeURIComponent(s) : s.replace(/"/g, "'").replace(/%/g, '%25').replace(/#/g, '%23').replace(/</g, '%3C').replace(/>/g, '%3E').replace(/\s+/g, ' '); }
 /* Les SVG répétés (blasons, portraits) deviennent des images : le navigateur les met en cache et les décode hors du DOM. */
 function svgImg(svg, cls) {
  if (typeof document === 'undefined') return svg;
  const w = /width="([\d.]+)"/.exec(svg), h = /height="([\d.]+)"/.exec(svg);
  const s = svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
- return `<img class="${cls}" alt="" width="${w ? w[1] : ''}" height="${h ? h[1] : ''}" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(s)}">`;
+ return `<img class="${cls}" alt="" width="${w ? w[1] : ''}" height="${h ? h[1] : ''}" src="data:image/svg+xml;charset=utf-8,${svgURI(s)}">`;
 }
 const _SHC = new Map();
 function shieldSVG(r, w) {

@@ -38,7 +38,7 @@ const RECIPES={
  Rock_3_A:[['rock_07#lo',[0,0,0],[0,90,0],[1,1.6,1]]],Rock_3_E:[['rock_07#lo',[0,0,0],[0,300,0],[.9,1.4,1.1]]],Rock_3_Q:[['rock_07#lo',[0,0,0],[0,180,0],[1.1,1.5,.9]]],
  rubble_large:[['moon_rock_02',[0,0,0],[0,0,0],2.4],['moon_rock_02',[.45,0,.2],[0,120,10],1.5],['moon_rock_02',[-.35,0,.35],[0,220,0],1.2],['moon_rock_02',[.1,0,-.4],[0,60,0],1.0]],
 };
-const SIMP={treasure_chest:.03,brass_candleholders:.06,'rock_07#lo':.014,gothic_statue:.12,'moon_rock_02#lo':.03,wine_barrel_01:.13,wooden_bookshelf_worn:.3,kite_shield:.25,moon_rock_02:.35,wooden_crate_01:.4,wooden_crate_02:.45,wooden_bucket_01:.45,wooden_stool_02:.25,ceramic_pot:.4,brass_pot_01:.4,wooden_axe:.5,WoodenTable_01:1};
+const SIMP={treasure_chest:.03,brass_candleholders:.03,'rock_07#lo':.014,gothic_statue:.12,'moon_rock_02#lo':.03,wine_barrel_01:.13,wooden_bookshelf_worn:.3,kite_shield:.25,moon_rock_02:.35,wooden_crate_01:.4,wooden_crate_02:.45,wooden_bucket_01:.45,wooden_stool_02:.25,ceramic_pot:.4,brass_pot_01:.4,wooden_axe:.5,WoodenTable_01:1};
 const TINT={rock_07:[.62,.6,.58],gothic_statue:[.6,.6,.62],moon_rock_02:[.42,.4,.38],wooden_bookshelf_worn:[.5,.42,.36]};
 const out=new Document();const scene=out.createScene('phprops');const cache={};
 async function src(name){if(cache[name])return cache[name];const base=name.split('#')[0];const d=await io.read(`${SRC}/${base}/${base}.gltf`);

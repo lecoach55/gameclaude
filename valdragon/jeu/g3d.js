@@ -4,6 +4,7 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {mat,makeHero,makeMonster,makeMerchant,animate} from './models.js';
 import {elTex,GRADE,gradePass,groundFog,lightRay,blob,smokeSys,smoke,smokeClear,updSmoke,lavaDecal} from './vfx.js';
 import {grime,aoTexture,CUT} from './grime.js';
@@ -108,7 +109,10 @@ function shroomCluster(n,sc,seed){const G=shroomGeo(),g=new THREE.Group();
   const st=new THREE.Mesh(G.stem,mS);st.scale.set(cs*.9,h,cs*.9);u.add(st);const cap=new THREE.Group();cap.position.y=.2*h-.004;cap.scale.setScalar(cs);cap.rotation.set((hr(seed,m,5)-.5)*.35,0,(hr(seed,m,6)-.5)*.35);
   const t=new THREE.Mesh(G.top,mT),gl=new THREE.Mesh(G.gill,mG);t.castShadow=true;cap.add(t,gl);u.add(cap);
   u.position.set(Math.cos(a)*r,0,Math.sin(a)*r);u.rotation.set((hr(seed,m,7)-.5)*.3,a,(hr(seed,m,8)-.5)*.3);g.add(u);}
- g.scale.setScalar(sc);return g;}
+ /* une touffe = 3 maillages fusionnés (un par matière) au lieu de 3 par champignon : moins d'appels de dessin */
+ g.updateMatrixWorld(true);const parts=new Map();g.traverse(o=>{if(o.isMesh){const q=o.geometry.clone().applyMatrix4(o.matrixWorld);(parts.get(o.material)||parts.set(o.material,[]).get(o.material)).push(q);}});
+ const out=new THREE.Group();for(const[mm,gs]of parts){const me=new THREE.Mesh(mergeGeometries(gs),mm);me.castShadow=mm===mT;out.add(me);gs.forEach(x=>x.dispose());}
+ out.scale.setScalar(sc);return out;}
 function crystalCluster(n,sc,seed){const geo=bgeo('cry',()=>{const g=new THREE.LatheGeometry([V2(.001,-.05),V2(.06,-.05),V2(.06,.62),V2(.001,.8)],6).toNonIndexed();g.computeVertexNormals();return g;});
  const m=bmat('cry',{color:0x9db6c8,roughness:.14,metalness:.08,emissive:0x23405e,emissiveIntensity:.45,envMapIntensity:1.6,flatShading:true});const g=new THREE.Group();
  for(let i=0;i<n;i++){const c=new THREE.Mesh(geo,m),h=.5+hr(seed,i,1)*1.1,w=1+hr(seed,i,2)*.9;c.scale.set(w,h,w);const a=hr(seed,i,3)*TAU,tl=i?.25+hr(seed,i,4)*.45:hr(seed,i,4)*.15;c.rotation.set(Math.sin(a)*tl,hr(seed,i,5)*TAU,Math.cos(a)*tl);c.position.set(Math.cos(a)*(i?.07:0),0,Math.sin(a)*(i?.07:0));c.castShadow=i===0;g.add(c);}

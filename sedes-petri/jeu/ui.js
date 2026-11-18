@@ -154,6 +154,7 @@ function showWelcome() {
 }
 function renderAll() { renderTop(); renderMap(); renderPanel(); renderEnd(); achWatch(); }
 function achWatch() {
+ if (S.ambNew && typeof AMB !== 'undefined' && AMB[S.ambNew]) { toast(`✦ Ambition accomplie : <b>${AMB[S.ambNew].n}</b> (+${AMB[S.ambNew].g} gloire)`, 'gold'); sfx('gold'); delete S.ambNew; }
  const ks = Object.keys(S.ach); if (UI.achN == null || UI.achScen !== S) { UI.achN = ks.length; UI.achScen = S; return; }
  if (ks.length > UI.achN) { ks.slice(UI.achN).forEach(k => { toast(`✦ Haut fait : <b>${ACH[k].n}</b> — ${ACH[k].d}`, 'gold'); }); sfx('gold'); }
  UI.achN = ks.length;
@@ -166,7 +167,7 @@ function renderTop() {
  const cur = { t: S.treasury, a: Math.round(S.authority), f: Math.round(af), c: Math.round(avgLoyal()), k: Math.round(S.corruption), r: Math.round(S.rome.stab) }; const prev = UI.prevTop || cur; UI.prevTop = cur;
  const fl = (k, inv) => cur[k] === prev[k] ? '' : ((cur[k] > prev[k]) !== !!inv ? ' flup' : ' fldn');
  const lvl = (v, inv) => { const x = inv ? 100 - v : v; return x < 25 ? 'crit' : x < 45 ? 'warn' : x > 75 ? 'good' : ''; };
- $('#top').innerHTML = `<div class="tb-l"><div class="tb-arms">${papalArms(40)}</div><div class="tb-date"><b>${S.year}</b><span>${SEASONS[S.season]}</span></div></div>
+ setHTML($('#top'), `<div class="tb-l"><div class="tb-arms">${papalArms(40)}</div><div class="tb-date"><b>${S.year}</b><span>${SEASONS[S.season]}</span></div></div>
  <div class="tb-s">${chip('coin', 'Trésor', fmt(S.treasury), (b.total >= 0 ? '+' : '') + Math.round(b.total) + '/saison', 'tresor', (S.treasury < 50 ? 'crit' : '') + fl('t'), 'Marcs d’argent dans les coffres de la Chambre apostolique')}
  ${chip('auth', 'Autorité', Math.round(S.authority), '', 'pontife', lvl(S.authority) + fl('a'), 'Autorité pontificale : le poids de la parole du pape. À zéro durablement, la papauté s’effondre.')}
  ${chip('fervor', 'Ferveur', Math.round(af), '', 'eglise', lvl(af) + fl('f'), 'Ferveur moyenne de la Chrétienté latine')}
@@ -174,7 +175,7 @@ function renderTop() {
  ${chip('corr', 'Corruption', Math.round(S.corruption), '', 'tresor', lvl(S.corruption, 1) + fl('k', 1), 'Simonie, népotisme et vénalité : ronge les revenus, l’autorité et nourrit l’hérésie')}
  ${chip('rome', 'Rome', Math.round(S.rome.stab), S.curia === 'rome' ? '' : (S.curia === 'avignon' ? 'Avignon' : 'Exil'), 'rome', lvl(S.rome.stab) + fl('r'), 'Stabilité de la Ville')}
  ${chip('army', 'Milice', fmt(S.army), '', 'rome', '', 'Troupes du pape')}</div>
- <div class="tb-r"><button class="ib ${MUS ? 'on' : ''}" data-music="1" title="Musique">♪</button><button class="ib" data-sound="1" title="Son">${UI.sound ? '🔔' : '🔕'}</button><button class="ib" data-bug="1" title="Signaler un problème à Claude (capture et état du jeu)">🐞</button><button class="ib" data-guide="1" title="Guide">?</button><button class="ib" data-menu="1" title="Menu">☰</button></div>`;
+ <div class="tb-r"><button class="ib ${MUS ? 'on' : ''}" data-music="1" title="Musique">♪</button><button class="ib" data-sound="1" title="Son">${UI.sound ? '🔔' : '🔕'}</button><button class="ib" data-bug="1" title="Signaler un problème à Claude (capture et état du jeu)">🐞</button><button class="ib" data-guide="1" title="Guide">?</button><button class="ib" data-menu="1" title="Menu">☰</button></div>`);
 }
 function renderEnd() {
  const dots = [...Array(sealsMax())].map((_, i) => `<i class="${i < S.seals ? 'on' : ''}">${i < S.seals ? ICON.seal : ICON.sealE}</i>`).join('');
@@ -185,13 +186,15 @@ function renderEnd() {
  const mm = $('#mapModes'); mm.innerHTML = MODES.map(([k, n]) => `<button class="${MAP.mode === k ? 'on' : ''}" data-mode="${k}">${n}</button>`).join('');
 }
 
+/* v18 : ne remplace le contenu que s'il a changé (évite de reconstruire le DOM et de redécoder les portraits à chaque clic). */
+function setHTML(el, html) { if (el._h === html && el.childNodes.length) return false; el.innerHTML = html; el._h = html; return true; }
 /* ---------- Panneau ---------- */
 const TABS = [['pontife', 'Pontife', 'auth'], ['royaume', 'Royaumes', 'crown'], ['rome', 'Rome', 'rome'], ['curie', 'Curie', 'curia'], ['eglise', 'Église', 'fervor'], ['croisade', 'Croisade', 'army'], ['tresor', 'Trésor', 'coin'], ['chronique', 'Chronique', 'seal', 'Annales']];
 function renderPanel() {
  const agn = agenda().filter(x => x.l !== 'info').length;
- $('#tabs').innerHTML = TABS.map(([k, n, ic, sh]) => `<button class="${UI.tab === k ? 'on' : ''}" data-tab="${k}"><span>${ICON[ic]}</span>${sh ? `<i class="tl">${n}</i><i class="ts">${sh}</i>` : n}${k === 'pontife' && agn ? `<em class="num">${agn}</em>` : ''}${k === 'croisade' && S.crusade ? '<em>●</em>' : ''}${k === 'eglise' && S.council ? '<em>●</em>' : ''}</button>`).join('');
+ setHTML($('#tabs'), TABS.map(([k, n, ic, sh]) => `<button class="${UI.tab === k ? 'on' : ''}" data-tab="${k}"><span>${ICON[ic]}</span>${sh ? `<i class="tl">${n}</i><i class="ts">${sh}</i>` : n}${k === 'pontife' && agn ? `<em class="num">${agn}</em>` : ''}${k === 'croisade' && S.crusade ? '<em>●</em>' : ''}${k === 'eglise' && S.council ? '<em>●</em>' : ''}</button>`).join(''));
  const f = { pontife: tabPontife, royaume: tabRoyaume, rome: tabRome, curie: tabCurie, eglise: tabEglise, croisade: tabCroisade, tresor: tabTresor, chronique: tabChronique }[UI.tab];
- const body = $('#tabBody'); const sc = body.scrollTop; body.innerHTML = f(); if (UI.keepScroll) body.scrollTop = sc; UI.keepScroll = false;
+ const body = $('#tabBody'); const sc = body.scrollTop; if (setHTML(body, f()) && UI.keepScroll) body.scrollTop = sc; UI.keepScroll = false;
 }
 function sealCost(n) { return n ? `<span class="sc">${[...Array(n)].map(() => ICON.seal).join('')}</span>` : ''; }
 function actBtn(id, a, label, extraCls) {
@@ -205,16 +208,27 @@ function tabPontife() {
  const p = S.pope; const reign = S.year - p.start;
  const achs = Object.keys(ACH).map(k => `<div class="ach ${S.ach[k] ? 'on' : ''}" title="${esc(ACH[k].d)}${S.ach[k] ? ' — ' + S.ach[k].y + ', ' + S.ach[k].p : ''}"><span>✦</span><b>${ACH[k].n}</b></div>`).join('');
  const lin = S.popes.slice(-12).reverse().map(x => `<div class="lin"><div>${portraitSVG({ seed: x.seed, kind: 'pope', age: 65, w: 38, bg: '#4a1010' })}</div><div><b>${x.name}${x.sum ? ' ' + x.sum.ep : ''}</b><small>${x.from}–${x.to} · ${x.how === 'abdication' ? 'abdiqua' : 'mort'} · autorité ${x.auth}${x.sum && x.sum.ach.length ? ' · ' + x.sum.ach.join(', ') : ''}</small></div></div>`).join('') || '<p class="mut">Vous êtes le premier pontife de cette lignée.</p>';
- const ag = agenda();
+ const ag = agenda(); if (typeof ambEnsure === 'function' && ambEnsure() && !p.amb) ag.push({ l: 'info', t: 'Choisissez l’ambition de votre pontificat (plus bas).', go: { tab: 'pontife' } });
  const agH = ag.length ? ag.map(x => `<button class="agi ${x.l}" ${x.go.realm ? `data-realm="${x.go.realm}"` : `data-tab="${x.go.tab}"`}><i>${x.l === 'crit' ? '‼' : x.l === 'warn' ? '!' : '•'}</i><span>${x.t}</span></button>`).join('') : '<p class="mut">Aucune affaire pressante : la barque de Pierre vogue en eaux calmes.</p>';
  return `${sec('Affaires pressantes', `<div class="agenda">${agH}</div>`)}<div class="hero"><div class="hero-p">${popePortrait(p, 132)}</div><div class="hero-i"><div class="eyebrow">Servus servorum Dei</div><h2>${popeName()}</h2><div class="mut">${p.fn ? p.fn + ' ' : ''}${p.fam} · ${NAT_LABEL[p.nat] ? { italien: 'Romain', francais: 'Français', allemand: 'Allemand', espagnol: 'Ibérique', anglais: 'Anglais' }[p.nat] : ''}</div>
  <div class="mut">${p.age} ans · pontife depuis ${reign ? reign + ' an' + (reign > 1 ? 's' : '') : 'cette année'}</div>
  ${stat('Santé', p.health, p.health < 35 ? 'red' : 'green')}${stat('Autorité', S.authority, 'gold')}
  <div class="traits">${p.traits.map(t => `<span class="tr ${POPE_TRAITS[t].v ? '' : 'bad'}" title="${esc(POPE_TRAITS[t].d)}">${POPE_TRAITS[t].n}</span>`).join('')}</div></div></div>
+ ${ambSec()}
  ${sec('Ce que vous inspirez', `<div class="tdesc">${p.traits.map(t => `<p><b>${POPE_TRAITS[t].n}.</b> ${POPE_TRAITS[t].d}</p>`).join('')}</div>`)}
  ${sec('Gouverner l’Église', `<p class="mut">Chaque saison, vous disposez de <b>${sealsMax()} sceaux</b> pour expédier vos bulles. Les sceaux non utilisés sont perdus.</p><div class="acts">${actBtn('repos')}${actBtn('bulle')}${actBtn('abdiquer')}</div>`)}
  ${sec('Gloire de la lignée', `<div class="glory"><b>${fmt(glory())}</b><span>points de gloire</span></div><div class="achs">${achs}</div>`)}
  ${sec('Les prédécesseurs', lin)}`;
+}
+/* v18 : ambition du pontificat (ambitions.js) — gloire seulement */
+function ambSec() {
+ if (typeof ambEnsure !== 'function' || !ambEnsure()) return '';
+ const p = S.pope;
+ if (!p.amb) return sec('Ambition du pontificat', `<p class="mut">Un vœu pour marquer votre règne : s’il s’accomplit, votre nom s’inscrit en lettres d’or dans les annales (gloire seulement). Une fois choisi, il ne se change plus.</p><div class="ambs">${p.ambO.ids.map(k => { const A = AMB[k]; return `<button class="amb" data-amb="${k}"><b>${A.n}</b><span>${A.d}</span><small>${A.yrs ? A.yrs + ' ans' : 'avant votre mort'} · +${A.g} gloire</small></button>`; }).join('')}</div>`, 'ambsec');
+ const st = ambState(); if (!st) return '';
+ const pc = Math.max(0, Math.min(100, st.v / st.max * 100));
+ const etat = st.a.st === 'ok' ? `<b class="pos">Accomplie en ${st.a.fin}</b> · +${st.A.g} gloire` : st.a.st === 'rate' ? `<b class="neg">Vœu resté pieux</b> (${st.a.fin})` : (st.left != null ? `encore ${Math.max(0, st.left)} an${st.left > 1 ? 's' : ''}` : 'avant votre mort') + ` · +${st.A.g} gloire`;
+ return sec('Ambition du pontificat', `<div class="ambc ${st.a.st}"><b>${st.A.n}</b><span>${st.A.d}</span>${st.a.st === 'ok' ? '' : `<div class="bar gold"><i style="width:${pc}%"></i></div>`}<small>${st.a.st === 'ok' ? '' : esc(st.lbl) + ' · '}${etat}</small></div>`, 'ambsec');
 }
 function relWord(v) { return v > 60 ? 'Dévoué' : v > 25 ? 'Amical' : v > -10 ? 'Réservé' : v > -45 ? 'Méfiant' : 'Hostile'; }
 function tabRoyaume() {
@@ -405,7 +419,7 @@ async function runConclave() {
  if (last && last.sum) { const m = last.sum; const it = (v, n, inv) => v ? `<span class="${(inv ? -v : v) > 0 ? 'pos' : 'neg'}">${n} ${sgn(v)}</span>` : '';
   modal(`<div class="rep bilan"><div class="bl-h"><div>${portraitSVG({ seed: last.seed, kind: 'pope', age: last.age || 70, w: 110, bg: '#2a0a0a' })}</div><div><div class="eyebrow">${reason === 'abdication' ? 'Renonciation' : 'Requiescat in pace'}</div><h2>${last.name} ${m.ep}</h2><p class="mut">${last.from}–${last.to} · ${m.yrs ? m.yrs + ' an' + (m.yrs > 1 ? 's' : '') + ' de pontificat' : 'moins d’un an de pontificat'}${last.age ? ' · mort à ' + last.age + ' ans' : ''}</p></div></div>
   <div class="deltas">${it(Math.round(m.a), 'Autorité')}${it(Math.round(m.f), 'Ferveur')}${it(Math.round(m.c), 'Corruption', 1)}${it(Math.round(m.t), 'Trésor')}${it(m.prov, 'Provinces catholiques')}</div>
-  <ul class="bl-l">${m.cw ? `<li>${m.cw} croisade${m.cw > 1 ? 's' : ''} victorieuse${m.cw > 1 ? 's' : ''}</li>` : ''}${m.cf ? `<li>${m.cf} croisade${m.cf > 1 ? 's' : ''} manquée${m.cf > 1 ? 's' : ''}</li>` : ''}${m.dec ? `<li>${m.dec} décret${m.dec > 1 ? 's' : ''} conciliaire${m.dec > 1 ? 's' : ''}</li>` : ''}${m.b ? `<li>${m.b} chantier${m.b > 1 ? 's' : ''} achevé${m.b > 1 ? 's' : ''} à Rome</li>` : ''}${m.ord ? `<li>${m.ord} ordre${m.ord > 1 ? 's' : ''} approuvé${m.ord > 1 ? 's' : ''}</li>` : ''}${m.ach.map(a => `<li class="g">Haut fait : ${a}</li>`).join('')}</ul>
+  <ul class="bl-l">${last.amb ? `<li class="${last.amb.st === 'ok' ? 'blamb' : ''}">${last.amb.st === 'ok' ? '✦ Ambition accomplie' : 'Ambition inachevée'} : ${last.amb.n}${last.amb.g ? ' (+' + last.amb.g + ' gloire)' : ''}</li>` : ''}${m.cw ? `<li>${m.cw} croisade${m.cw > 1 ? 's' : ''} victorieuse${m.cw > 1 ? 's' : ''}</li>` : ''}${m.cf ? `<li>${m.cf} croisade${m.cf > 1 ? 's' : ''} manquée${m.cf > 1 ? 's' : ''}</li>` : ''}${m.dec ? `<li>${m.dec} décret${m.dec > 1 ? 's' : ''} conciliaire${m.dec > 1 ? 's' : ''}</li>` : ''}${m.b ? `<li>${m.b} chantier${m.b > 1 ? 's' : ''} achevé${m.b > 1 ? 's' : ''} à Rome</li>` : ''}${m.ord ? `<li>${m.ord} ordre${m.ord > 1 ? 's' : ''} approuvé${m.ord > 1 ? 's' : ''}</li>` : ''}${m.ach.map(a => `<li class="g">Haut fait : ${a}</li>`).join('')}</ul>
   <p class="ev-t">${m.yrs < 2 ? 'Un règne trop bref pour marquer l’histoire.' : m.a > 10 ? 'Il laisse une Église plus forte qu’il ne l’avait trouvée.' : m.a < -10 ? 'Il laisse à son successeur une tiare alourdie de périls.' : 'Il a tenu la barque de Pierre à flot.'}</p><button class="big" data-cont="1">Ouvrir le conclave</button></div>`, 'repm');
   await waitClick('[data-cont]'); }
  const cv = conclaveSetup();
@@ -556,6 +570,7 @@ function onClick(e) {
  if (d.export) { const code = exportCode(); modal(`<div class="rep"><h2>Code de partie</h2><p class="mut">Copiez ce texte et collez-le dans « Importer un code » sur un autre appareil.</p><textarea rows="7" readonly onclick="this.select()">${code}</textarea><button class="big" data-copy="1">Copier</button><button class="ghost" data-close="1">Fermer</button></div>`, 'repm'); return; }
  if (d.copy) { const ta = $('#modalBox textarea'); try { navigator.clipboard.writeText(ta.value).then(() => toast('Code copié.'), () => { ta.select(); toast('Sélectionnez puis copiez le texte.'); }); } catch (er) { ta.select(); } return; }
  if (d.new) { if (S && S.test) { location.reload(); return; } closeModal(); START.name = null; startScreen(); return; }
+ if (d.amb) { if (ambChoose(d.amb)) { sfx('gold'); toast(`Vœu prononcé : <b>${AMB[d.amb].n}</b>`, 'gold'); UI.keepScroll = true; renderAll(); } return; }
  if (d.tab) { UI.tab = d.tab; if (d.tab !== 'royaume') { } sfx('click'); renderPanel(); return; }
  if (d.realm !== undefined && !t.closest('#modal')) { selectRealm(d.realm); return; }
  if (d.realm !== undefined && t.classList.contains('lgr')) { closeModal(); selectRealm(d.realm); return; }

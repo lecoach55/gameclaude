@@ -521,3 +521,18 @@ h4{font-size:12px;letter-spacing:.12em;color:var(--ink2);margin:10px 0 6px;text-
 .tzb{min-width:44px;height:36px;border-radius:8px;border:1px solid #6a4a22;background:rgba(255,250,235,.7);font-family:Cinzel;font-weight:700;color:var(--ink);cursor:pointer}
 .tzb.on{background:#8a1c14;color:#fbe9c8;border-color:#8a1c14}
 .anf{display:flex;gap:5px;flex-wrap:wrap;margin:2px 0 8px}.anf .tzb{min-width:0;padding:0 10px;height:32px;font-size:12px}
+/* v18 : ambitions de pontificat */
+.ambs{display:grid;gap:8px}
+.amb{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;min-height:44px;padding:9px 12px;border:1px solid #9a7a42;border-radius:9px;background:linear-gradient(#fbf3dc,#efdfb6);color:var(--ink);font:inherit;cursor:pointer}
+.amb:hover,.amb:focus-visible{border-color:var(--gold);box-shadow:0 0 0 2px rgba(184,137,45,.45)}
+.amb b{font-family:Cinzel,serif;font-size:15px;color:var(--red)}
+.amb span{font-size:15px;line-height:1.25}
+.amb small,.ambc small{color:var(--mut);font-size:13px}
+.ambc{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:9px;border:1px solid #c9a860;background:#fbf3dc}
+.ambc b{font-family:Cinzel,serif;color:var(--red)}
+.ambc .bar{margin:2px 0}
+.ambc.ok{border-color:var(--gold);background:linear-gradient(#fff3cf,#f3dc9c)}
+.ambc.ok b{color:#7a5410}
+.ambc.rate{opacity:.75}
+.ambc .pos{color:var(--green)}.ambc .neg{color:var(--red)}
+.bl-l li.blamb{color:#7a5410;font-weight:600}

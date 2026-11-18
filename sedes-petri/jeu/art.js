@@ -75,7 +75,9 @@ function shieldSVG0(r, w) {
  w = w || 40; const id = 'sh' + (++_uid); const inner = (BLZ[r] || BLZ.genes)();
  return `<svg class="shield" viewBox="0 0 100 120" width="${w}" height="${w * 1.2}" aria-hidden="true"><defs><clipPath id="${id}"><path d="${SHP}"/></clipPath><linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient></defs><g clip-path="url(#${id})">${inner}<rect width="100" height="120" fill="url(#${id}g)"/></g><path d="${SHP}" fill="none" stroke="#2a1a0c" stroke-width="4"/><path d="${SHP}" fill="none" stroke="#d9b45a" stroke-width="1.3" transform="translate(50 60) scale(.93) translate(-50 -60)"/></svg>`;
 }
-function papalArms(w) {
+const _PAC = {};
+function papalArms(w) { return _PAC[w] || (_PAC[w] = papalArms0(w)); }
+function papalArms0(w) {
  const id = 'pa' + (++_uid);
  return `<svg viewBox="0 0 120 120" width="${w}" height="${w}" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6d8"/><stop offset="1" stop-color="#d9c99e"/></linearGradient></defs>
  <g transform="translate(10 34) scale(.82)">${key(-38, OR)}${key(38, '#e8e6e0')}</g>
@@ -94,22 +96,51 @@ function portraitSVG(o) {
  const out = svgImg(portraitSVG0(o), 'pimg'); if (_PTC.size > 600) _PTC.clear(); _PTC.set(ck, out); return out;
 }
 function portraitSVG0(o) {
+ /* Portrait « panneau gothique » : buste de trois quarts sur fond d'or poinçonné (Simone Martini, Melozzo da Forlì).
+    Visage construit point par point (largeurs, mâchoire, pommettes, nez, lèvres tirés de la graine) ; l'âge pilote
+    cheveux, rides, cernes, bajoues et joues creuses : 41, 51 et 64 ans se distinguent sans lire le texte. */
  const rng = mulberry(o.seed || 1); const R = () => rng(); const P = a => a[Math.floor(R() * a.length)];
  const kind = o.kind || 'king', age = o.age || 40, w = o.w || 80, female = !!o.female;
  const south = ['sultan', 'khan'].includes(kind);
- const skin = south ? P(['#d9a47c', '#c88f68', '#b97f57', '#e1b28a']) : P(SKINS.slice(0, 6));
- const skinD = shade(skin, -0.22);
- let hair = P(['#2a1a10', '#4a3020', '#6b4a2a', '#8a6236', '#b08850', '#3a2a1e']);
- if (age > 66) hair = '#e6e2da'; else if (age > 54) hair = '#a9a399'; else if (age > 46 && R() < .5) hair = shade(hair, 0.25);
- const cx = 50, cy = 62, rx = 16 + R() * 3.5, ry = 20 + R() * 3;
- const id = 'pt' + (++_uid);
- const bg = o.bg || '#5a1a1a';
+ let skin = south ? P(['#d9a47c', '#c88f68', '#b97f57', '#e1b28a']) : P(SKINS.slice(0, 6));
+ if (age > 55) skin = mixHex(skin, '#c9b49c', Math.min(0.35, (age - 55) / 40));
+ const skinD = shade(skin, -0.25), skinL = shade(skin, 0.18);
+ let hair0 = P(['#2a1a10', '#4a3020', '#6b4a2a', '#8a6236', '#b08850', '#3a2a1e']), hair = hair0;
+ if (age >= 62) hair = '#e8e4dc'; else if (age >= 55) hair = '#aaa49b'; else if (age >= 45) hair = mixHex(hair0, '#b8b2a8', 0.5); else if (age >= 40) hair = mixHex(hair0, '#b8b2a8', 0.12);
+ const id = 'pt' + (++_uid), bg = o.bg || '#5a1a1a';
  const robe = { pope: '#f4efe2', cardinal: '#a3171c', king: o.robe || '#5b2a6e', emperor: '#3a2a6e', basileus: '#5a1c62', sultan: o.robe || '#2f6b44', khan: '#284f86', doge: '#c9a13a', master: '#efeee8', queen: o.robe || '#7a2240' }[kind] || '#555';
- let s = `<svg viewBox="0 0 100 110" width="${w}" height="${w * 1.1}" aria-hidden="true"><defs><clipPath id="${id}"><rect x="2" y="2" width="96" height="106" rx="10"/></clipPath><radialGradient id="${id}b" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="${shade(bg, 0.35)}"/><stop offset="1" stop-color="${shade(bg, -0.35)}"/></radialGradient><radialGradient id="${id}s" cx=".42" cy=".38" r=".7"><stop offset="0" stop-color="${shade(skin, 0.12)}"/><stop offset="1" stop-color="${skinD}"/></radialGradient></defs><g clip-path="url(#${id})"><rect width="100" height="110" fill="url(#${id}b)"/>`;
- s += `<g opacity=".18">${[0, 1, 2, 3, 4, 5].map(i => `<path d="M${i * 20 - 10} 0L${i * 20 + 30} 110" stroke="#fff" stroke-width="5"/>`).join('')}</g>`;
- // épaules
+ const flip = R() < 0.5; // regard vers la gauche ou vers la droite
+ // --- géométrie du visage (repère « regard à gauche ») ---
+ const cy = 61, ry = 20 + R() * 2.5, top = cy - ry;
+ const fwF = 9.5 + R() * 2.5, fwN = 14 + R() * 3, cb = 0.6 + R() * 1.8; // demi-largeurs côté fuyant / proche, pommettes
+ const jw = 0.62 + R() * 0.36, chinL = R() * 3.5, ax = 47 + R() * 1.5;
+ const cx = ax + (fwN - fwF) / 2, rx = (fwF + fwN) / 2 + 0.5;
+ const browY = cy - 7 + R() * 1.5, eyeY = browY + 4.2, cheekY = cy + 3, jawY = cy + 11 + R() * 2, chinY = cy + ry + chinL;
+ const sag = age >= 58 ? 1.6 + (age - 58) * 0.08 : age >= 48 ? 0.6 : 0; // bajoues
+ const FT = [ax - fwF, browY - 5], FC = [ax - fwF - cb, cheekY], FJ = [ax - fwF * jw * 0.85, jawY + sag * 0.5], C = [ax - 1.5, chinY], NJ = [ax + fwN * jw, jawY + sag], NC = [ax + fwN + cb * 0.6, cheekY - 1], NT = [ax + fwN + 2.5, browY - 5];
+ const f = v => v.toFixed(1), pt = p => f(p[0]) + ' ' + f(p[1]);
+ const head = `M${f(ax - 1)} ${f(top)}C${f(ax - fwF - 1)} ${f(top)} ${f(ax - fwF - 2)} ${f(browY - 11)} ${pt(FT)}Q${f(FC[0] - 1)} ${f(cheekY - 5)} ${pt(FC)}Q${f(FC[0] + 1)} ${f(jawY - 2)} ${pt(FJ)}Q${f(C[0] - 5)} ${f(chinY + 0.5)} ${pt(C)}Q${f(C[0] + 7 + sag)} ${f(chinY + 0.8 + sag * 0.6)} ${pt(NJ)}Q${f(NC[0] + 1)} ${f(jawY - 4)} ${pt(NC)}Q${f(NT[0] + 1.5)} ${f(cheekY - 8)} ${pt(NT)}C${f(NT[0] + 1)} ${f(top + 3)} ${f(ax + 5)} ${f(top)} ${f(ax - 1)} ${f(top)}Z`;
+ const gold = kind === 'pope' || kind === 'cardinal' || o.gold;
+ // --- panneau : cadre de la couleur d'origine, arc brisé doré, poinçons ---
+ const arch = 'M9 112V44Q9 14 50 5Q91 14 91 44V112Z';
+ let s = `<svg viewBox="0 0 100 110" width="${w}" height="${w * 1.1}" aria-hidden="true"><defs><clipPath id="${id}"><rect x="2" y="2" width="96" height="106" rx="7"/></clipPath>`
+  + `<linearGradient id="${id}o" x1="0" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#f3d98a"/><stop offset=".35" stop-color="#d6a845"/><stop offset=".7" stop-color="#b8862c"/><stop offset="1" stop-color="#8d6420"/></linearGradient>`
+  + `<radialGradient id="${id}b" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="${shade(bg, 0.25)}"/><stop offset="1" stop-color="${shade(bg, -0.45)}"/></radialGradient>`
+  + `<linearGradient id="${id}m" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset=".72" stop-color="#3a1a08" stop-opacity=".12"/><stop offset="1" stop-color="#2a1004" stop-opacity=".5"/></linearGradient>`
+  + `<radialGradient id="${id}c" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#c0504a" stop-opacity=".32"/><stop offset="1" stop-color="#c0504a" stop-opacity="0"/></radialGradient>`
+  + `<radialGradient id="${id}e" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3a1a0a" stop-opacity="${age >= 55 ? .34 : .22}"/><stop offset="1" stop-color="#3a1a0a" stop-opacity="0"/></radialGradient>`
+  + `<linearGradient id="${id}r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>`
+  + `</defs><g clip-path="url(#${id})"><rect width="100" height="110" fill="url(#${id}b)"/>`;
+ s += `<path d="${arch}" fill="${gold ? `url(#${id}o)` : shade(bg, -0.15)}"/>`;
+ if (gold) {
+  let dots = ''; for (let i = 0; i <= 26; i++) { const t = i / 26, a = Math.PI * (1 - t); const x = 50 + Math.cos(a) * 36, y = 44 - Math.sin(a) * 34 * (t < .5 ? 1 : 1); dots += `<circle cx="${f(x)}" cy="${f(y)}" r=".9"/>`; }
+  s += `<g fill="#7a5418" opacity=".55">${dots}</g><path d="M14 112V45Q14 19 50 10Q86 19 86 45V112" fill="none" stroke="#8a6220" stroke-width=".6" opacity=".6"/>`;
+  s += `<g stroke="#fff3c4" stroke-width=".3" opacity=".16">${[0, 1, 2, 3, 4, 5, 6].map(i => `<path d="M${10 + i * 13} 112L${30 + i * 13} 20M${-10 + i * 13} 20L${10 + i * 13} 112"/>`).join('')}</g>`;
+ } else s += `<path d="M14 112V45Q14 19 50 10Q86 19 86 45V112" fill="none" stroke="${OR}" stroke-width=".7" opacity=".5"/>`;
+ s += `<path d="${arch}" fill="none" stroke="#2a1a0c" stroke-width="1.2" opacity=".7"/>`;
+ // --- vêtements (symétriques) + plis ---
  s += `<path d="M6 112C8 92 24 84 50 82C76 84 92 92 94 112Z" fill="${robe}" stroke="#1a0f08" stroke-width="1"/>`;
- if (kind === 'pope') s += `<path d="M14 112C16 94 30 86 50 85C70 86 84 94 86 112L74 112L50 92L26 112Z" fill="#a3171c" stroke="#1a0f08" stroke-width=".8"/><path d="M44 90L40 112H46L50 96L54 112H60L56 90" fill="${OR}"/><circle cx="50" cy="100" r="2.5" fill="${OR}"/>`;
+ if (kind === 'pope') s += `<path d="M14 112C16 94 30 86 50 85C70 86 84 94 86 112L74 112L50 92L26 112Z" fill="#a3171c" stroke="#1a0f08" stroke-width=".8"/><path d="M26 112L50 92L74 112" fill="none" stroke="${OR}" stroke-width="3.2"/><path d="M26 112L50 92L74 112" fill="none" stroke="#7a1015" stroke-width=".6" stroke-dasharray="1.5 2.5"/><path d="M44 90L40 112H46L50 96L54 112H60L56 90" fill="${OR}"/><circle cx="50" cy="94" r="3.4" fill="${OR}" stroke="#6b4a10" stroke-width=".6"/><circle cx="50" cy="94" r="1.4" fill="${GU}"/>`;
  if (kind === 'cardinal') s += `<path d="M18 112C20 96 32 88 50 87C68 88 80 96 82 112Z" fill="#c21f26" stroke="#1a0f08" stroke-width=".7"/><path d="M50 88V112" stroke="#f4efe2" stroke-width="1.2" stroke-dasharray="2 3"/><path d="M46 100L50 96L54 100L50 112Z" fill="${OR}"/>`;
  if (kind === 'king' || kind === 'emperor' || kind === 'queen') s += `<path d="M12 112C14 94 28 86 50 85C72 86 86 94 88 112L80 112C78 98 66 92 50 92C34 92 22 98 20 112Z" fill="#f8f5ee" stroke="#1a0f08" stroke-width=".7"/>${[22, 32, 42, 58, 68, 78].map((x, i) => `<path d="M${x} ${100 - (i % 2) * 4}l1.2 3 -1.2 2 -1.2 -2z" fill="#111"/>`).join('')}<circle cx="50" cy="96" r="3" fill="${OR}"/>`;
  if (kind === 'basileus') s += `<path d="M30 112L36 88H64L70 112Z" fill="${OR}" opacity=".9"/>${[40, 50, 60].map(x => `<circle cx="${x}" cy="98" r="2.4" fill="${GU}"/><circle cx="${x - 3}" cy="106" r="1.6" fill="#2b6fb0"/>`).join('')}`;
@@ -117,68 +148,105 @@ function portraitSVG0(o) {
  if (kind === 'master') s += `<path d="M44 90H56V112H44ZM34 96H66V104H34Z" fill="${SA}"/>`;
  if (kind === 'doge') s += `<path d="M10 112C12 96 28 88 50 87C72 88 88 96 90 112Z" fill="#c9a13a" stroke="#1a0f08" stroke-width=".7"/>${[0, 1, 2, 3, 4].map(i => `<circle cx="${22 + i * 14}" cy="${100 + (i % 2) * 4}" r="2" fill="#7a1a1a"/>`).join('')}`;
  if (kind === 'khan') s += `<path d="M30 86L50 112L70 86" fill="none" stroke="#c9a13a" stroke-width="3"/><path d="M8 112C10 96 20 90 30 88L36 112Z M92 112C90 96 80 90 70 88L64 112Z" fill="#7a5a32"/>`;
- // cou
- s += `<path d="M42 ${cy + ry - 6}L42 86Q50 90 58 86L58 ${cy + ry - 6}Z" fill="${skinD}"/>`;
- // cheveux arrière
- const showHair = !['pope', 'sultan', 'queen'].includes(kind);
- if (showHair && !female) s += `<path d="M${cx - rx - 2} ${cy}C${cx - rx - 4} ${cy - ry - 4} ${cx + rx + 4} ${cy - ry - 4} ${cx + rx + 2} ${cy}L${cx + rx + 3} ${cy + 10}L${cx + rx - 2} ${cy + 2}L${cx - rx + 2} ${cy + 2}L${cx - rx - 3} ${cy + 10}Z" fill="${hair}"/>`;
- if (female) s += `<path d="M${cx - rx - 6} ${cy - 6}C${cx - rx - 8} ${cy - ry - 10} ${cx + rx + 8} ${cy - ry - 10} ${cx + rx + 6} ${cy - 6}L${cx + rx + 10} 92L${cx - rx - 10} 92Z" fill="${kind === 'queen' ? '#f4f0e6' : hair}" stroke="#1a0f08" stroke-width=".5"/>`;
- // oreilles + tête
- s += `<ellipse cx="${cx - rx + 0.5}" cy="${cy + 1}" rx="3.2" ry="5" fill="${skinD}"/><ellipse cx="${cx + rx - 0.5}" cy="${cy + 1}" rx="3.2" ry="5" fill="${skinD}"/>`;
- s += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#${id}s)" stroke="#3a2210" stroke-width=".8"/>`;
- if (female && kind === 'queen') s += `<path d="M${cx - rx - 1} ${cy + 6}Q${cx} ${cy + ry + 10} ${cx + rx + 1} ${cy + 6}L${cx + rx + 2} ${cy + ry + 8}L${cx - rx - 2} ${cy + ry + 8}Z" fill="#f4f0e6" stroke="#bdb6a4" stroke-width=".5"/>`;
- // yeux
- const ey = cy - 3 + R() * 2, ex = 6.2 + R() * 1.2, iris = P(['#3b2414', '#5a3b1f', '#2f4e6e', '#3e5a34', '#1d1410', '#6d5a3a']);
- for (const sx of [-1, 1]) {
-  const x = cx + sx * ex;
-  s += `<path d="M${x - 3.6} ${ey}Q${x} ${ey - 2.6} ${x + 3.6} ${ey}Q${x} ${ey + 2.2} ${x - 3.6} ${ey}Z" fill="#f6f1e6" stroke="#2a1a0c" stroke-width=".6"/><circle cx="${x + R() * 0.6 - 0.3}" cy="${ey}" r="1.5" fill="${iris}"/><circle cx="${x + 0.4}" cy="${ey - 0.5}" r=".45" fill="#fff"/>`;
-  const bt = (R() - 0.5) * 2.6;
-  s += `<path d="M${x - 4.4} ${ey - 4 + bt * sx * 0.4}Q${x} ${ey - 6.2} ${x + 4.4} ${ey - 4 - bt * sx * 0.4}" stroke="${age > 60 ? '#cfc8bc' : shade(hair, -0.1)}" stroke-width="${1.4 + R() * 0.8}" fill="none" stroke-linecap="round"/>`;
-  if (age > 52) s += `<path d="M${x + sx * 4.6} ${ey - 0.5}l${sx * 2} -1M${x + sx * 4.6} ${ey + 0.8}l${sx * 2} 0.8" stroke="${skinD}" stroke-width=".5"/>`;
-  if (age > 60) s += `<path d="M${x - 3} ${ey + 3.2}Q${x} ${ey + 4.6} ${x + 3} ${ey + 3.2}" stroke="${skinD}" stroke-width=".6" fill="none"/>`;
+ const fo = (R() - 0.5) * 4;
+ s += `<path d="M6 112C8 92 24 84 50 82C76 84 92 92 94 112Z" fill="url(#${id}r)"/><g fill="none" stroke-linecap="round"><path d="M${f(20 + fo)} 112Q${f(22 + fo)} 100 ${f(30 + fo)} 92M${f(33 + fo)} 112Q${f(34 + fo)} 102 ${f(39 + fo)} 95M${f(80 - fo)} 112Q${f(78 - fo)} 100 ${f(70 - fo)} 92M${f(67 - fo)} 112Q${f(66 - fo)} 103 ${f(62 - fo)} 96" stroke="#000" stroke-opacity=".28" stroke-width="1.3"/><path d="M${f(23 + fo)} 112Q${f(25 + fo)} 101 ${f(32 + fo)} 93M${f(77 - fo)} 112Q${f(75 - fo)} 102 ${f(68 - fo)} 94" stroke="#fff" stroke-opacity=".22" stroke-width=".9"/></g>`;
+ // --- tête (miroir selon le regard) ---
+ let h = '';
+ const clergy = kind === 'pope' || kind === 'cardinal';
+ // cou (+ fanons avec l'âge)
+ h += `<path d="M${f(ax - 5)} ${f(jawY + 4)}L${f(ax - 6)} 87Q${f(ax + 3)} 91 ${f(ax + 10)} 86L${f(ax + 9)} ${f(jawY)}Z" fill="${skinD}"/>`;
+ if (age >= 58) h += `<path d="M${f(ax - 3)} ${f(chinY + 2)}Q${f(ax + 1)} ${f(chinY + 6)} ${f(ax + 2)} 87M${f(ax + 1)} ${f(chinY + 1.5)}Q${f(ax + 4)} ${f(chinY + 5)} ${f(ax + 5)} 86" stroke="${shade(skin, -0.42)}" stroke-width=".6" fill="none" opacity=".8"/>`;
+ // chevelure arrière / couronne de cheveux (tonsure sous la calotte pour le clergé)
+ const bald = !clergy && !female && age >= 50 && R() < 0.35;
+ if (!female && kind !== 'sultan' && kind !== 'queen') {
+  if (clergy) h += `<path d="M${f(NT[0] - 3)} ${f(browY - 9)}Q${f(NT[0] + 5)} ${f(browY - 4)} ${f(NT[0] + 3)} ${f(cheekY + 3)}Q${f(NT[0] - 1)} ${f(jawY - 1)} ${f(NT[0] - 6)} ${f(jawY - 3)}Q${f(NT[0] - 2)} ${f(cheekY)} ${f(NT[0] - 3)} ${f(browY - 9)}Z" fill="${hair}" stroke="#1a0f08" stroke-width=".3"/><path d="M${f(FT[0] + 0.5)} ${f(browY - 7)}Q${f(FT[0] - 2.5)} ${f(browY - 1)} ${f(FT[0] - 0.5)} ${f(eyeY + 3)}L${f(FT[0] + 1.5)} ${f(browY - 2)}Z" fill="${hair}"/>`;
+  else if (!bald) { const hl = R() * 6; h += `<path d="M${f(ax - fwF - 3)} ${f(browY - 2)}C${f(ax - fwF - 6)} ${f(top - 7)} ${f(ax + fwN + 8)} ${f(top - 7)} ${f(NT[0] + 4)} ${f(browY)}Q${f(NT[0] + 6)} ${f(cheekY + 6 + hl)} ${f(NT[0] - 2)} ${f(jawY + hl)}L${f(NT[0] - 4)} ${f(cheekY)}L${f(ax - fwF + 1)} ${f(browY - 1)}L${f(ax - fwF - 2)} ${f(eyeY + 4)}Z" fill="${hair}" stroke="#1a0f08" stroke-width=".35"/>`; }
+  else h += `<path d="M${f(NT[0] - 2)} ${f(browY - 3)}Q${f(NT[0] + 5)} ${f(browY)} ${f(NT[0] + 3)} ${f(cheekY + 4)}L${f(NT[0] - 4)} ${f(cheekY)}Z" fill="${hair}"/>`;
  }
- // nez
- const nl = 8 + R() * 4, nw = 2.6 + R() * 1.8, ny = ey + 2;
- s += P([`<path d="M${cx - 0.5} ${ny}L${cx - nw} ${ny + nl}Q${cx} ${ny + nl + 2.2} ${cx + nw} ${ny + nl}" stroke="${skinD}" stroke-width="1" fill="none"/>`,
-  `<path d="M${cx} ${ny}Q${cx + nw + 1} ${ny + nl * 0.6} ${cx + nw * 0.5} ${ny + nl}Q${cx} ${ny + nl + 1.5} ${cx - nw} ${ny + nl - 0.5}" stroke="${skinD}" stroke-width="1" fill="none"/>`,
-  `<path d="M${cx - 1} ${ny}Q${cx - 2} ${ny + nl * 0.7} ${cx - nw} ${ny + nl}Q${cx} ${ny + nl + 2} ${cx + nw} ${ny + nl}Q${cx + 1.5} ${ny + nl * 0.6} ${cx + 1} ${ny}" stroke="${skinD}" stroke-width=".9" fill="${shade(skin, -0.05)}"/>`]);
+ if (female) h += `<path d="M${f(ax - fwF - 6)} ${f(cy - 6)}C${f(ax - fwF - 8)} ${f(top - 10)} ${f(ax + fwN + 8)} ${f(top - 10)} ${f(ax + fwN + 6)} ${f(cy - 6)}L${f(ax + fwN + 10)} 92L${f(ax - fwF - 10)} 92Z" fill="${kind === 'queen' ? '#f4f0e6' : hair}" stroke="#1a0f08" stroke-width=".5"/>`;
+ // oreille (côté proche)
+ const er = age >= 58 ? 6.6 : 5.6;
+ h += `<ellipse cx="${f(NT[0] - 2.5)}" cy="${f(eyeY + 3.5)}" rx="3.3" ry="${er}" fill="${skin}" stroke="#3a2210" stroke-width=".6"/><path d="M${f(NT[0] - 2)} ${f(eyeY)}q1.6 3 0 6.5" stroke="${skinD}" stroke-width=".8" fill="none"/>`;
+ // visage + modelé
+ h += `<path d="${head}" fill="${skin}" stroke="#3a2210" stroke-width=".8"/><path d="${head}" fill="url(#${id}m)"/>`;
+ h += `<ellipse cx="${f(ax - 2)}" cy="${f(browY - 7)}" rx="${f(fwF * 0.8)}" ry="5" fill="#fff" opacity=".13"/>`;
+ h += `<ellipse cx="${f(ax + fwN * 0.55)}" cy="${f(cheekY + 2)}" rx="6" ry="4.5" fill="url(#${id}c)"/>`;
+ if (age >= 55) h += `<path d="M${f(ax + fwN * 0.45)} ${f(cheekY + 1.5)}Q${f(ax + fwN * 0.75)} ${f(cheekY + 7)} ${f(ax + fwN * 0.55)} ${f(jawY - 1)}Q${f(ax + fwN * 0.95)} ${f(cheekY + 6)} ${f(ax + fwN * 0.85)} ${f(cheekY)}Z" fill="#3a1a08" opacity="${age >= 62 ? .2 : .12}"/>`;
+ // yeux (orbites ombrées)
+ const es = 5.6 + R() * 1.4, iris = P(['#3b2414', '#5a3b1f', '#2f4e6e', '#3e5a34', '#1d1410', '#6d5a3a']), heavy = age >= 55 || R() < 0.3;
+ const brow = age >= 62 ? '#d8d2c6' : age >= 50 ? mixHex(hair0, '#b8b2a8', 0.45) : shade(hair0, -0.1), bw = 1.1 + R() * 1.1 + (age >= 58 && R() < .5 ? 0.6 : 0);
+ for (const [x, sc] of [[ax + es, 1], [ax - es * 0.72, 0.78]]) {
+  const hw = 3.5 * sc;
+  h += `<ellipse cx="${f(x)}" cy="${f(eyeY - 0.5)}" rx="${f(hw + 2.2)}" ry="3.4" fill="url(#${id}e)"/>`;
+  h += `<path d="M${f(x - hw)} ${f(eyeY)}Q${f(x - 0.4)} ${f(eyeY - 2.3)} ${f(x + hw)} ${f(eyeY - 0.2)}Q${f(x)} ${f(eyeY + 1.9)} ${f(x - hw)} ${f(eyeY)}Z" fill="#efe6d4"/><circle cx="${f(x - hw * 0.28)}" cy="${f(eyeY - 0.1)}" r="${f(1.35 * Math.max(sc, .85))}" fill="${iris}"/><circle cx="${f(x - hw * 0.28)}" cy="${f(eyeY - 0.1)}" r=".55" fill="#120a06"/><circle cx="${f(x - hw * 0.12)}" cy="${f(eyeY - 0.6)}" r=".38" fill="#fff" opacity=".85"/>`;
+  h += `<path d="M${f(x - hw - 0.3)} ${f(eyeY + 0.1)}Q${f(x - 0.4)} ${f(eyeY - (heavy ? 1.7 : 2.6))} ${f(x + hw + 0.3)} ${f(eyeY - 0.2)}" stroke="#2a160a" stroke-width="${heavy ? 1.1 : 0.8}" fill="none" stroke-linecap="round"/>`;
+  if (heavy) h += `<path d="M${f(x - hw)} ${f(eyeY - 1.6)}Q${f(x)} ${f(eyeY - 3.4)} ${f(x + hw + 0.5)} ${f(eyeY - 1.2)}" stroke="${skinD}" stroke-width=".6" fill="none"/>`;
+  const bt = (R() - 0.5) * 1.6;
+  h += `<path d="M${f(x - hw - 1)} ${f(eyeY - 3.6 + bt)}Q${f(x)} ${f(eyeY - 5.8)} ${f(x + hw + 1.2)} ${f(eyeY - 3.8 - bt * 0.5)}" stroke="${brow}" stroke-width="${f(bw * sc)}" fill="none" stroke-linecap="round"/>`;
+  if (age >= 45) h += `<path d="M${f(x - hw + 0.5)} ${f(eyeY + 2)}Q${f(x)} ${f(eyeY + (age >= 58 ? 3.8 : 3))} ${f(x + hw)} ${f(eyeY + 1.6)}" stroke="${skinD}" stroke-width="${age >= 58 ? .75 : .5}" fill="none" opacity=".85"/>`;
+  if (age >= 52 && sc === 1) h += `<path d="M${f(x + hw + 1)} ${f(eyeY - 0.8)}l2.4 -1.2M${f(x + hw + 1.2)} ${f(eyeY + 0.4)}l2.6 .2M${f(x + hw + 1)} ${f(eyeY + 1.5)}l2.2 1.3" stroke="${skinD}" stroke-width=".5" opacity=".9"/>`;
+ }
+ // nez (profil côté fuyant, aile côté proche)
+ const nl = 9 + R() * 4, np = 2.4 + R() * 2.6, ny = eyeY + 1, nt = P(['droit', 'aquilin', 'aquilin', 'fort', 'retrousse']);
+ const tipX = ax - np, tipY = ny + nl, bump = nt === 'aquilin' ? 2.2 : nt === 'retrousse' ? -1.2 : 0.6;
+ h += `<path d="M${f(ax + 0.5)} ${f(ny - 1)}L${f(ax + 2.8)} ${f(tipY - 1)}Q${f(ax + 4.5)} ${f(tipY + 2.5)} ${f(ax)} ${f(tipY + 1.8)}L${f(tipX + 1)} ${f(tipY + 1)}Z" fill="#3a1a08" opacity=".12"/>`;
+ h += `<path d="M${f(ax - 0.5)} ${f(ny - 1)}Q${f(ax - np * 0.5 - bump)} ${f(ny + nl * 0.45)} ${f(tipX)} ${f(tipY - 0.5)}Q${f(tipX - (nt === 'fort' ? 1.4 : 0.6))} ${f(tipY + 1.4)} ${f(tipX + 1.6)} ${f(tipY + 1.8)}" stroke="${shade(skin, -0.38)}" stroke-width=".95" fill="none" stroke-linecap="round"/>`;
+ h += `<path d="M${f(ax + 1.4)} ${f(tipY + 0.4)}Q${f(ax + 3.6)} ${f(tipY + 0.2)} ${f(ax + 3)} ${f(tipY - 1.8)}" stroke="${shade(skin, -0.35)}" stroke-width=".8" fill="none"/><path d="M${f(tipX + 1.6)} ${f(tipY + 1.8)}Q${f(ax)} ${f(tipY + 2.6)} ${f(ax + 2)} ${f(tipY + 1.2)}" stroke="#2a1006" stroke-width=".7" fill="none" opacity=".7"/>`;
+ h += `<ellipse cx="${f(tipX + 0.8)}" cy="${f(tipY - 1)}" rx="1.1" ry=".7" fill="#fff" opacity=".25"/>`;
+ // sillons nasogéniens
+ if (age >= 44) { const d = age >= 58 ? 1 : 0.6; h += `<path d="M${f(ax + 4.2)} ${f(tipY - 0.5)}Q${f(ax + 6.5)} ${f(tipY + 4)} ${f(ax + 5.2)} ${f(tipY + 8 + sag)}" stroke="${shade(skin, -0.35)}" stroke-width="${f(0.5 + d * 0.4)}" fill="none" opacity="${f(0.5 + d * 0.4)}"/><path d="M${f(tipX - 0.5)} ${f(tipY + 1.5)}Q${f(tipX - 2.4)} ${f(tipY + 5)} ${f(tipX - 1.2)} ${f(tipY + 8)}" stroke="${shade(skin, -0.32)}" stroke-width=".5" fill="none" opacity="${f(0.35 + d * 0.3)}"/>`; }
  // bouche
- const my = ny + nl + 5 + R() * 1.5, mw = 4.5 + R() * 2.5, mc = (R() - 0.55) * 2.5;
- s += `<path d="M${cx - mw} ${my}Q${cx} ${my + mc + 1.6} ${cx + mw} ${my}" stroke="#7a3a2a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
- if (female) s += `<path d="M${cx - mw + 1} ${my + 0.4}Q${cx} ${my + 2.8} ${cx + mw - 1} ${my + 0.4}" fill="#b5524a" opacity=".6"/>`;
- if (age > 45) s += `<path d="M${cx - rx + 5} ${cy - ry + 9}Q${cx} ${cy - ry + 7} ${cx + rx - 5} ${cy - ry + 9}" stroke="${skinD}" stroke-width=".5" fill="none" opacity=".7"/>`;
- if (age > 58) s += `<path d="M${cx - nw - 3} ${ny + nl - 1}Q${cx - mw - 3} ${my + 1} ${cx - mw - 1} ${my + 4}M${cx + nw + 3} ${ny + nl - 1}Q${cx + mw + 3} ${my + 1} ${cx + mw + 1} ${my + 4}" stroke="${skinD}" stroke-width=".6" fill="none"/>`;
+ const my = tipY + 4.5 + R() * 1.2, mwN = 4.2 + R() * 1.6, mwF = mwN * 0.62, mx = ax - 1.2, lip = Math.max(0.5, 1.9 + R() * 0.8 - Math.max(0, age - 45) * 0.04), mc = (R() - 0.6) * 1.6 - (age >= 58 ? 0.8 : 0);
+ const lipC = female ? '#a8483f' : mixHex(skin, '#8a3a30', 0.55);
+ h += `<path d="M${f(mx - mwF)} ${f(my - mc * 0.5)}Q${f(mx)} ${f(my + lip * 1.6)} ${f(mx + mwN)} ${f(my - mc * 0.5)}Q${f(mx)} ${f(my + 0.4)} ${f(mx - mwF)} ${f(my - mc * 0.5)}Z" fill="${lipC}" opacity=".75"/>`;
+ h += `<path d="M${f(mx - mwF)} ${f(my - mc * 0.5)}Q${f(mx - 0.5)} ${f(my - 1.1)} ${f(mx + 0.5)} ${f(my - 0.3)}Q${f(mx + 1.5)} ${f(my - 1.1)} ${f(mx + mwN)} ${f(my - mc * 0.5)}" stroke="#4a1a10" stroke-width=".9" fill="none" stroke-linecap="round"/>`;
+ h += `<path d="M${f(mx - 1.5)} ${f(my + lip * 1.6 + 1.2)}Q${f(mx + 1)} ${f(my + lip * 1.6 + 2)} ${f(mx + 3)} ${f(my + lip * 1.6 + 1.1)}" stroke="#3a1a08" stroke-width=".9" fill="none" opacity=".25"/>`;
+ if (age >= 58) h += `<path d="M${f(mx + mwN + 0.4)} ${f(my)}Q${f(mx + mwN + 1.5)} ${f(my + 3)} ${f(mx + mwN + 0.8)} ${f(my + 5 + sag)}M${f(mx - mwF - 0.3)} ${f(my)}q-.8 2.4 -.2 4.2" stroke="${shade(skin, -0.35)}" stroke-width=".55" fill="none" opacity=".8"/>`;
+ h += `<ellipse cx="${f(C[0] + 1)}" cy="${f(chinY - 2.6)}" rx="2.6" ry="1.5" fill="#fff" opacity=".14"/>`;
+ // front : rides selon l'âge
+ const nf = age >= 60 ? 3 : age >= 50 ? 2 : age >= 44 ? 1 : 0;
+ for (let i = 0; i < nf; i++) { const y = browY - 4.5 - i * 2.4, wv = (R() - 0.5) * 1.2; h += `<path d="M${f(ax - fwF * 0.55)} ${f(y + 0.5)}Q${f(ax + 2)} ${f(y - 1 + wv)} ${f(ax + fwN * 0.6)} ${f(y + 0.4)}" stroke="${shade(skin, -0.3)}" stroke-width="${age >= 60 ? .6 : .45}" fill="none" opacity=".8"/>`; }
+ if (age >= 50 && R() < 0.6) h += `<path d="M${f(ax + 1)} ${f(eyeY - 4.5)}l.3 2.6M${f(ax + 2.5)} ${f(eyeY - 4.8)}l.1 2.4" stroke="${shade(skin, -0.32)}" stroke-width=".5"/>`;
+ if (age >= 62) for (let i = 0; i < 3; i++) h += `<circle cx="${f(ax + fwN * (0.2 + R() * 0.6))}" cy="${f(browY - 2 - R() * 6)}" r="${f(0.5 + R() * 0.5)}" fill="#8a6040" opacity=".22"/>`;
  // barbe
  const beardP = { pope: 0.05, cardinal: 0.1, king: 0.6, emperor: 0.65, basileus: 0.97, sultan: 0.9, khan: 0.4, doge: 0.5, master: 0.75 }[kind] || 0;
  if (!female && R() < beardP) {
-  const bc = age > 60 ? '#ddd8ce' : hair; const bl = 6 + R() * 12;
-  s += `<path d="M${cx - rx + 1} ${cy + 2}Q${cx - rx + 2} ${cy + ry + bl * 0.6} ${cx} ${cy + ry + bl}Q${cx + rx - 2} ${cy + ry + bl * 0.6} ${cx + rx - 1} ${cy + 2}Q${cx + rx - 4} ${my + 3} ${cx} ${my + 2.5}Q${cx - rx + 4} ${my + 3} ${cx - rx + 1} ${cy + 2}Z" fill="${bc}" stroke="#1a0f08" stroke-width=".4"/>`;
-  s += `<path d="M${cx - mw - 1.5} ${my - 1.5}Q${cx} ${my - 4} ${cx + mw + 1.5} ${my - 1.5}Q${cx} ${my - 0.5} ${cx - mw - 1.5} ${my - 1.5}Z" fill="${bc}"/>`;
- } else if (kind === 'khan') s += `<path d="M${cx - mw - 2} ${my + 3}Q${cx - mw} ${my - 3} ${cx} ${my - 2}Q${cx + mw} ${my - 3} ${cx + mw + 2} ${my + 3}" stroke="${hair}" stroke-width="1.6" fill="none"/>`;
+  const bc = age >= 62 ? '#ddd8ce' : age >= 50 ? mixHex(hair0, '#c8c2b8', 0.5) : hair0, bl = 5 + R() * 12;
+  h += `<path d="M${f(FC[0] + 0.5)} ${f(cheekY + 1)}Q${f(FJ[0] - 1)} ${f(chinY + bl * 0.5)} ${f(C[0])} ${f(chinY + bl)}Q${f(NJ[0] + 1)} ${f(chinY + bl * 0.4)} ${f(NC[0] - 1.5)} ${f(cheekY)}Q${f(NC[0] - 5)} ${f(my + 1)} ${f(mx + mwN + 1)} ${f(my + 1)}Q${f(mx)} ${f(my + 3.5)} ${f(mx - mwF - 1)} ${f(my + 1)}Q${f(FC[0] + 3)} ${f(my)} ${f(FC[0] + 0.5)} ${f(cheekY + 1)}Z" fill="${bc}" stroke="#1a0f08" stroke-width=".4"/>`;
+  h += `<path d="M${f(mx - mwF - 1.5)} ${f(my - 0.8)}Q${f(mx)} ${f(my - 3.8)} ${f(mx + mwN + 1.5)} ${f(my - 0.8)}Q${f(mx)} ${f(my - 0.2)} ${f(mx - mwF - 1.5)} ${f(my - 0.8)}Z" fill="${bc}"/>`;
+  h += `<g stroke="#000" stroke-opacity=".2" stroke-width=".4" fill="none">${[0, 1, 2, 3].map(i => `<path d="M${f(ax - 4 + i * 3)} ${f(my + 4)}q${f(R() - 0.5)} ${f(bl * 0.5)} ${f(R() * 2 - 1)} ${f(bl * 0.8)}"/>`).join('')}</g>`;
+ } else if (kind === 'khan') h += `<path d="M${f(mx - mwF - 2)} ${f(my + 3)}Q${f(mx - mwF)} ${f(my - 3)} ${f(mx)} ${f(my - 2)}Q${f(mx + mwN)} ${f(my - 3)} ${f(mx + mwN + 2)} ${f(my + 3)}" stroke="${hair}" stroke-width="1.6" fill="none"/>`;
+ if (female && kind === 'queen') h += `<path d="M${f(ax - fwF - 1)} ${f(cy + 6)}Q${f(ax)} ${f(chinY + 8)} ${f(ax + fwN + 1)} ${f(cy + 6)}L${f(ax + fwN + 2)} ${f(chinY + 6)}L${f(ax - fwF - 2)} ${f(chinY + 6)}Z" fill="#f4f0e6" stroke="#bdb6a4" stroke-width=".5"/>`;
  // coiffes
- const top = cy - ry;
  if (kind === 'pope') {
-  s += `<path d="M${cx - rx + 1} ${top + 7}Q${cx} ${top + 2} ${cx + rx - 1} ${top + 7}" stroke="#ece8de" stroke-width="3" fill="none"/>`;
-  s += `<path d="M${cx - 15} ${top + 8}C${cx - 16} ${top - 18} ${cx - 7} ${top - 30} ${cx} ${top - 32}C${cx + 7} ${top - 30} ${cx + 16} ${top - 18} ${cx + 15} ${top + 8}Z" fill="#f6f1e2" stroke="#8a6a20" stroke-width="1"/>`;
-  [top + 3, top - 7, top - 17].forEach((y, i) => { const hw = 15 - i * 2.4; s += `<path d="M${cx - hw} ${y}Q${cx} ${y + 2.5} ${cx + hw} ${y}" stroke="${OR}" stroke-width="2.6" fill="none"/>`; for (let k = -2; k <= 2; k++) s += `<path d="M${cx + k * hw / 2.6 - 1.4} ${y}l1.4 -3 1.4 3z" fill="${OR}"/>`; s += `<circle cx="${cx}" cy="${y + 1}" r="1.2" fill="${GU}"/>`; });
-  s += `<circle cx="${cx}" cy="${top - 33}" r="2.2" fill="${OR}"/><path d="M${cx - 0.9} ${top - 41}h1.8v7h-1.8zM${cx - 3} ${top - 38.5}h6v1.8h-6z" fill="${OR}"/>`;
+  h += `<path d="M${f(cx - rx + 1)} ${f(top + 7)}Q${f(cx)} ${f(top + 2)} ${f(cx + rx - 1)} ${f(top + 7)}" stroke="#ece8de" stroke-width="3" fill="none"/>`;
+  h += `<path d="M${f(cx - 15)} ${f(top + 8)}C${f(cx - 16)} ${f(top - 18)} ${f(cx - 7)} ${f(top - 30)} ${f(cx)} ${f(top - 32)}C${f(cx + 7)} ${f(top - 30)} ${f(cx + 16)} ${f(top - 18)} ${f(cx + 15)} ${f(top + 8)}Z" fill="#f6f1e2" stroke="#8a6a20" stroke-width="1"/><path d="M${f(cx - 15)} ${f(top + 8)}C${f(cx - 16)} ${f(top - 18)} ${f(cx - 7)} ${f(top - 30)} ${f(cx)} ${f(top - 32)}C${f(cx + 7)} ${f(top - 30)} ${f(cx + 16)} ${f(top - 18)} ${f(cx + 15)} ${f(top + 8)}Z" fill="url(#${id}r)"/>`;
+  [top + 3, top - 7, top - 17].forEach((y, i) => { const hw = 15 - i * 2.4; h += `<path d="M${f(cx - hw)} ${f(y)}Q${f(cx)} ${f(y + 2.5)} ${f(cx + hw)} ${f(y)}" stroke="${OR}" stroke-width="2.6" fill="none"/>`; for (let k = -2; k <= 2; k++) h += `<path d="M${f(cx + k * hw / 2.6 - 1.4)} ${f(y)}l1.4 -3 1.4 3z" fill="${OR}"/>`; h += `<circle cx="${f(cx)}" cy="${f(y + 1)}" r="1.2" fill="${GU}"/>`; });
+  h += `<circle cx="${f(cx)}" cy="${f(top - 33)}" r="2.2" fill="${OR}"/><path d="M${f(cx - 0.9)} ${f(top - 41)}h1.8v7h-1.8zM${f(cx - 3)} ${f(top - 38.5)}h6v1.8h-6z" fill="${OR}"/>`;
  } else if (kind === 'cardinal') {
-  s += `<path d="M${cx - rx - 1} ${top + 9}C${cx - rx} ${top - 3} ${cx + rx} ${top - 3} ${cx + rx + 1} ${top + 9}Z" fill="#b51d24" stroke="#4a0a0a" stroke-width=".8"/><path d="M${cx} ${top - 2}V${top + 8}M${cx - 8} ${top}V${top + 8}M${cx + 8} ${top}V${top + 8}" stroke="#7a1015" stroke-width="1"/><circle cx="${cx}" cy="${top - 3}" r="2" fill="#7a1015"/>`;
+  h += `<path d="M${f(cx - rx - 1.5)} ${f(top + 10)}C${f(cx - rx - 1)} ${f(top - 4)} ${f(cx + rx + 1)} ${f(top - 4)} ${f(cx + rx + 1.5)} ${f(top + 10)}Q${f(cx)} ${f(top + 6.5)} ${f(cx - rx - 1.5)} ${f(top + 10)}Z" fill="#b51d24" stroke="#4a0a0a" stroke-width=".8"/><path d="M${f(cx - rx - 1.5)} ${f(top + 10)}C${f(cx - rx - 1)} ${f(top - 4)} ${f(cx + rx + 1)} ${f(top - 4)} ${f(cx + rx + 1.5)} ${f(top + 10)}Z" fill="url(#${id}r)"/><path d="M${f(cx - 4)} ${f(top - 1)}Q${f(cx - 7)} ${f(top + 3)} ${f(cx - 9)} ${f(top + 8)}" stroke="#fff" stroke-opacity=".25" stroke-width="1.2" fill="none"/><circle cx="${f(cx)}" cy="${f(top - 2.8)}" r="1.8" fill="#7a1015"/>`;
  } else if (kind === 'king' || kind === 'emperor' || kind === 'queen') {
   const cw = rx + 1, cyb = top + 9;
-  s += `<path d="M${cx - cw} ${cyb}L${cx - cw} ${cyb - 9}L${cx - cw / 2} ${cyb - 4}L${cx} ${cyb - 13}L${cx + cw / 2} ${cyb - 4}L${cx + cw} ${cyb - 9}L${cx + cw} ${cyb}Z" fill="${OR}" stroke="#6b4a10" stroke-width=".8"/><rect x="${cx - cw}" y="${cyb - 3}" width="${cw * 2}" height="4" fill="${shade(OR, -0.15)}"/>${[-2, -1, 0, 1, 2].map(k => `<circle cx="${cx + k * cw / 2.4}" cy="${cyb - 1}" r="1.3" fill="${k % 2 ? '#2b6fb0' : GU}"/>`).join('')}`;
-  if (kind === 'emperor') s += `<path d="M${cx - cw + 2} ${cyb - 6}Q${cx} ${cyb - 30} ${cx + cw - 2} ${cyb - 6}" fill="none" stroke="${OR}" stroke-width="2.4"/><path d="M${cx - 1} ${cyb - 30}h2v-6h-2zM${cx - 3} ${cyb - 34}h6v2h-6z" fill="${OR}"/>`;
+  h += `<path d="M${f(cx - cw)} ${f(cyb)}L${f(cx - cw)} ${f(cyb - 9)}L${f(cx - cw / 2)} ${f(cyb - 4)}L${f(cx)} ${f(cyb - 13)}L${f(cx + cw / 2)} ${f(cyb - 4)}L${f(cx + cw)} ${f(cyb - 9)}L${f(cx + cw)} ${f(cyb)}Z" fill="${OR}" stroke="#6b4a10" stroke-width=".8"/><rect x="${f(cx - cw)}" y="${f(cyb - 3)}" width="${f(cw * 2)}" height="4" fill="${shade(OR, -0.15)}"/>${[-2, -1, 0, 1, 2].map(k => `<circle cx="${f(cx + k * cw / 2.4)}" cy="${f(cyb - 1)}" r="1.3" fill="${k % 2 ? '#2b6fb0' : GU}"/>`).join('')}`;
+  if (kind === 'emperor') h += `<path d="M${f(cx - cw + 2)} ${f(cyb - 6)}Q${f(cx)} ${f(cyb - 30)} ${f(cx + cw - 2)} ${f(cyb - 6)}" fill="none" stroke="${OR}" stroke-width="2.4"/><path d="M${f(cx - 1)} ${f(cyb - 30)}h2v-6h-2zM${f(cx - 3)} ${f(cyb - 34)}h6v2h-6z" fill="${OR}"/>`;
  } else if (kind === 'basileus') {
-  s += `<path d="M${cx - rx - 1} ${top + 9}C${cx - rx - 1} ${top - 10} ${cx + rx + 1} ${top - 10} ${cx + rx + 1} ${top + 9}Z" fill="${OR}" stroke="#6b4a10"/>${[-1, 0, 1].map(k => `<circle cx="${cx + k * 8}" cy="${top + 2}" r="1.8" fill="${k ? '#2b6fb0' : GU}"/>`).join('')}<path d="M${cx - rx} ${top + 9}V${top + 26}M${cx - rx - 2} ${top + 9}V${top + 22}M${cx + rx} ${top + 9}V${top + 26}M${cx + rx + 2} ${top + 9}V${top + 22}" stroke="#f4efe2" stroke-width="1.6" stroke-dasharray="1.6 1.4"/><path d="M${cx - 1} ${top - 14}h2v-5h-2zM${cx - 2.6} ${top - 17}h5.2v1.6h-5.2z" fill="${OR}"/>`;
+  h += `<path d="M${f(cx - rx - 1)} ${f(top + 9)}C${f(cx - rx - 1)} ${f(top - 10)} ${f(cx + rx + 1)} ${f(top - 10)} ${f(cx + rx + 1)} ${f(top + 9)}Z" fill="${OR}" stroke="#6b4a10"/>${[-1, 0, 1].map(k => `<circle cx="${f(cx + k * 8)}" cy="${f(top + 2)}" r="1.8" fill="${k ? '#2b6fb0' : GU}"/>`).join('')}<path d="M${f(cx - rx)} ${f(top + 9)}V${f(top + 26)}M${f(cx - rx - 2)} ${f(top + 9)}V${f(top + 22)}M${f(cx + rx)} ${f(top + 9)}V${f(top + 26)}M${f(cx + rx + 2)} ${f(top + 9)}V${f(top + 22)}" stroke="#f4efe2" stroke-width="1.6" stroke-dasharray="1.6 1.4"/><path d="M${f(cx - 1)} ${f(top - 14)}h2v-5h-2zM${f(cx - 2.6)} ${f(top - 17)}h5.2v1.6h-5.2z" fill="${OR}"/>`;
  } else if (kind === 'sultan') {
-  s += `<ellipse cx="${cx}" cy="${top + 2}" rx="${rx + 6}" ry="12" fill="#f4f0e4" stroke="#8a826e"/><path d="M${cx - rx - 5} ${top + 2}Q${cx} ${top + 12} ${cx + rx + 5} ${top - 2}M${cx - rx - 4} ${top - 4}Q${cx} ${top + 6} ${cx + rx + 4} ${top - 7}" stroke="#bdb5a0" stroke-width="1.2" fill="none"/><path d="M${cx - 6} ${top - 8}Q${cx} ${top - 18} ${cx + 6} ${top - 8}Z" fill="#2f6b44"/><circle cx="${cx}" cy="${top + 2}" r="2.6" fill="${GU}" stroke="${OR}"/><path d="M${cx} ${top}Q${cx + 4} ${top - 14} ${cx + 1} ${top - 22}" stroke="#f4efe2" stroke-width="2.2" fill="none"/>`;
+  h += `<ellipse cx="${f(cx)}" cy="${f(top + 2)}" rx="${f(rx + 6)}" ry="12" fill="#f4f0e4" stroke="#8a826e"/><path d="M${f(cx - rx - 5)} ${f(top + 2)}Q${f(cx)} ${f(top + 12)} ${f(cx + rx + 5)} ${f(top - 2)}M${f(cx - rx - 4)} ${f(top - 4)}Q${f(cx)} ${f(top + 6)} ${f(cx + rx + 4)} ${f(top - 7)}" stroke="#bdb5a0" stroke-width="1.2" fill="none"/><path d="M${f(cx - 6)} ${f(top - 8)}Q${f(cx)} ${f(top - 18)} ${f(cx + 6)} ${f(top - 8)}Z" fill="#2f6b44"/><circle cx="${f(cx)}" cy="${f(top + 2)}" r="2.6" fill="${GU}" stroke="${OR}"/><path d="M${f(cx)} ${f(top)}Q${f(cx + 4)} ${f(top - 14)} ${f(cx + 1)} ${f(top - 22)}" stroke="#f4efe2" stroke-width="2.2" fill="none"/>`;
  } else if (kind === 'khan') {
-  s += `<path d="M${cx - rx - 2} ${top + 8}L${cx} ${top - 22}L${cx + rx + 2} ${top + 8}Z" fill="#284f86" stroke="#13284a"/><rect x="${cx - rx - 4}" y="${top + 3}" width="${(rx + 4) * 2}" height="8" rx="4" fill="#8a6a3a"/><circle cx="${cx}" cy="${top - 22}" r="2.5" fill="${GU}"/>`;
+  h += `<path d="M${f(cx - rx - 2)} ${f(top + 8)}L${f(cx)} ${f(top - 22)}L${f(cx + rx + 2)} ${f(top + 8)}Z" fill="#284f86" stroke="#13284a"/><rect x="${f(cx - rx - 4)}" y="${f(top + 3)}" width="${f((rx + 4) * 2)}" height="8" rx="4" fill="#8a6a3a"/><circle cx="${f(cx)}" cy="${f(top - 22)}" r="2.5" fill="${GU}"/>`;
  } else if (kind === 'doge') {
-  s += `<path d="M${cx - rx - 1} ${top + 9}C${cx - rx - 1} ${top - 6} ${cx - 2} ${top - 18} ${cx + rx - 2} ${top - 12}C${cx + rx + 2} ${top - 6} ${cx + rx + 1} ${top + 2} ${cx + rx + 1} ${top + 9}Z" fill="#c9a13a" stroke="#6b4a10"/><path d="M${cx - rx} ${top + 8}H${cx + rx}" stroke="#f4efe2" stroke-width="2"/>${[0, 1, 2].map(k => `<circle cx="${cx - 6 + k * 6}" cy="${top - 2 - k * 2}" r="1.4" fill="#7a1a1a"/>`).join('')}`;
+  h += `<path d="M${f(cx - rx - 1)} ${f(top + 9)}C${f(cx - rx - 1)} ${f(top - 6)} ${f(cx - 2)} ${f(top - 18)} ${f(cx + rx - 2)} ${f(top - 12)}C${f(cx + rx + 2)} ${f(top - 6)} ${f(cx + rx + 1)} ${f(top + 2)} ${f(cx + rx + 1)} ${f(top + 9)}Z" fill="#c9a13a" stroke="#6b4a10"/><path d="M${f(cx - rx)} ${f(top + 8)}H${f(cx + rx)}" stroke="#f4efe2" stroke-width="2"/>${[0, 1, 2].map(k => `<circle cx="${f(cx - 6 + k * 6)}" cy="${f(top - 2 - k * 2)}" r="1.4" fill="#7a1a1a"/>`).join('')}`;
+ } else if (kind === 'master' && R() < 0.5) {
+  h += `<path d="M${f(ax - fwF - 3)} ${f(top + 12)}C${f(ax - fwF - 4)} ${f(top - 3)} ${f(ax + fwN + 5)} ${f(top - 3)} ${f(ax + fwN + 4)} ${f(top + 12)}L${f(ax + fwN + 6)} ${f(jawY + 6)}L${f(NT[0] - 2)} ${f(cheekY)}L${f(NT[0] - 3)} ${f(browY - 4)}L${f(ax - fwF + 1)} ${f(browY - 4)}Z" fill="#8a8c90" stroke="#2a2a2a" stroke-width=".6"/><path d="M${f(ax - fwF - 3)} ${f(top + 12)}C${f(ax - fwF - 4)} ${f(top - 3)} ${f(ax + fwN + 5)} ${f(top - 3)} ${f(ax + fwN + 4)} ${f(top + 12)}" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1" stroke-dasharray="1 1"/>`;
  }
- s += `</g><rect x="2" y="2" width="96" height="106" rx="10" fill="none" stroke="${OR}" stroke-width="2.5"/><rect x="5" y="5" width="90" height="100" rx="8" fill="none" stroke="#2a1a0c" stroke-width=".8" opacity=".6"/></svg>`;
+ s += flip ? `<g transform="matrix(-1 0 0 1 100 0)">${h}</g>` : h;
+ s += `</g><rect x="2" y="2" width="96" height="106" rx="7" fill="none" stroke="${gold ? '#b8892e' : OR}" stroke-width="2.5"/><rect x="5" y="5" width="90" height="100" rx="5" fill="none" stroke="#2a1a0c" stroke-width=".8" opacity=".6"/></svg>`;
  return s;
+}
+function mixHex(a, b, t) {
+ const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
+ return '#' + [16, 8, 0].map(k => Math.round(((A >> k) & 255) * (1 - t) + ((B >> k) & 255) * t).toString(16).padStart(2, '0')).join('');
 }
 function shade(hex, p) {
  const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255;

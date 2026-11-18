@@ -19,13 +19,13 @@ VUES=[ # nom, largeur, hauteur, scénario, script de préparation
  ('mac_carte',1440,860,'1378',"MAP.mode='royaumes';renderAll()"),
 ]
 async def main():
-    serveur(JEU,int(os.environ.get('PORT','8771'))); os.makedirs(OUT,exist_ok=True)
+    base=serveur(JEU,int(os.environ.get('PORT','8771'))); os.makedirs(OUT,exist_ok=True)
     async with async_playwright() as p:
         nav=await p.chromium.launch(executable_path='/usr/bin/google-chrome' if os.path.exists('/usr/bin/google-chrome') else None,args=['--no-sandbox'])
         for nom,w,h,sc,js in VUES:
             pg=await nav.new_page(viewport={'width':w,'height':h}); err=[]; pg.on('pageerror',lambda e:err.append(str(e)))
             await pg.add_init_script("try{localStorage.clear();localStorage.setItem('sp_welcome','1')}catch(e){}")
-            await pg.goto('http://localhost:'+os.environ.get('PORT','8771')+'/index.html?graine=7'); await pg.wait_for_function("!document.getElementById('start').hidden",timeout=120000)
+            await pg.goto(base+'index.html?graine=7'); await pg.wait_for_function("!document.getElementById('start').hidden",timeout=120000)
             await pg.add_style_tag(content='*{animation:none!important;transition:none!important}#toast{display:none!important}')
             if sc:
                 await pg.click(f'[data-scen="{sc}"]'); await pg.click('#stStart'); await pg.wait_for_timeout(700)

@@ -204,7 +204,7 @@ function newGame(o) {
   fisc: 1, indulg: false, debt: 0, curia: 'rome', seals: 0, nextId: 1, own: {}, ctrl: {}, realms: {}, cardinals: [],
   offices: { camerlingue: null, chancelier: null, penitencier: null, inquisiteur: null },
   rome: { fam: sc.fam.map(([n, p, l]) => ({ n, power: p, loyal: l })), people: 50, stab: 56 },
-  army: sc.army, build: {}, decrees: [], orders: [], crusade: null, crusades: [], tsNo: 0, wars: [], schism: null, council: null, lastCouncil: sc.year - 6,
+  army: sc.army, build: {}, decrees: [], orders: [], crusade: null, crusades: [], tsNo: { '1073': 0, '1198': 3, '1294': 9, '1378': 9 }[o.scen] || 0, wars: [], schism: null, council: null, lastCouncil: sc.year - 6,
   relics: 0, jubilee: 0, plague: 0, flags: Object.assign({}, sc.flags || {}), used: {}, log: [], hist: [], ach: {}, popes: [], pnames: Object.assign({}, sc.pn),
   mediations: 0, crusadeWins: 0, created: 0, cands: null, events: [], pendingConclave: null, over: null, evc: {}, evDone: {}, zeroA: 0, rep: null,
   scenNums: sc.nums || {}, councils: 0, lastBulle: -9, difficulty: o.diff == null ? 1 : o.diff };
@@ -444,6 +444,7 @@ function agenda() {
  if (S.schism) add('crit', `Schisme : l’antipape ${S.schism.anti} divise la Chrétienté.`, { tab: 'eglise' });
  if (S.authority < 25) add('crit', `Votre autorité vacille (${Math.round(S.authority)}). À zéro, la papauté s’effondre.`, { tab: 'pontife' });
  const b = budget(); if (b.total < 0 && S.treasury < -b.total * 4) add('crit', `Le trésor sera vide dans ${Math.max(0, Math.floor(S.treasury / -b.total))} saison(s).`, { tab: 'tresor' });
+ else if (S.treasury < 60) add('warn', `Coffres presque vides : ${Math.max(0, Math.round(S.treasury))} marcs. Leviers : fiscalité, indulgences ou emprunt (onglet Trésor).`, { tab: 'tresor' });
  if (S.debt > 700) add('warn', `Dette de ${Math.round(S.debt)} marcs : la banqueroute guette au-delà de 1 200.`, { tab: 'tresor' });
  if (S.curia === 'rome' && S.rome.stab < 30) add(S.rome.stab < 22 ? 'crit' : 'warn', `Rome gronde (stabilité ${Math.round(S.rome.stab)}) : risque de soulèvement.`, { tab: 'rome' });
  if (S.curia === 'exil' && S.rome.stab >= 35) add('info', 'Rome s’est apaisée : vous pouvez quitter l’exil.', { tab: 'rome' });
@@ -474,7 +475,7 @@ function crusadeTargets() {
 }
 function startCrusade(t) {
  let name = t.n;
- if (t.k === 'terre_sainte') { S.tsNo++; name = `${ordFem(S.tsNo)} croisade`; }
+ if (t.k === 'terre_sainte') { S.tsNo++; name = S.tsNo <= 9 ? `${ordFem(S.tsNo)} croisade` : `Croisade de ${S.year}`; }
  S.crusade = { k: t.k, key: t.key, p: t.p, depth: t.depth || 0, r: t.r || null, enemy: t.k === 'heretiques' ? t.r : S.own[t.p], phase: 'predication', t: 0, members: [], str: 1, progress: 0, defeats: 0, papal: 0, dime: false, name, battles: [] };
  modA(popeHas('croise') ? 5 : 2);
  log(`${popeName()} appelle à la ${name.toLowerCase().startsWith('croisade') ? '' : ''}${name}.`, 'gold');
@@ -920,7 +921,7 @@ function reignSummary() {
  else if (d.c <= -12) ep = 'le Réformateur'; else if (d.ord >= 2) ep = 'le Père des moines'; else if (d.prov >= 4) ep = 'le Conquérant'; else if (d.a <= -15) ep = 'l’Infortuné'; else if (d.c >= 12) ep = 'le Simoniaque'; else if (d.f >= 8) ep = 'le Pieux'; else if (yrs >= 20) ep = 'le Patriarche'; else ep = pick(['le Sage', 'le Prudent', 'le Juste', 'le Pasteur', 'l’Humble']);
  d.ep = ep; return d;
 }
-function popeRecord(how) { return { name: popeName(), from: S.pope.start, to: S.year, fam: S.pope.fam, how, seed: S.pope.seed, nat: S.pope.nat, auth: Math.round(S.authority), traits: S.pope.traits.slice(), age: S.pope.age, sum: reignSummary() }; }
+function popeRecord(how) { return { name: popeName(), from: S.pope.start, to: S.year, fam: S.pope.fam, how, seed: S.pope.seed, nat: S.pope.nat, auth: Math.round(S.authority), traits: S.pope.traits.slice(), age: S.pope.age, sum: reignSummary(), amb: typeof ambRecord === 'function' ? ambRecord() : undefined }; }
 
 /* ---------- Conclave ---------- */
 function conclaveSetup() {
@@ -1023,7 +1024,7 @@ function endSeason() {
  S.jubilee = Math.max(0, S.jubilee - 1); S.plague = Math.max(0, S.plague - 1); S.weary = Math.max(0, (S.weary || 0) - 0.015);
  genEvents();
  S.seals = sealsMax();
- snapshot(); checkAch(); checkEnd();
+ snapshot(); checkAch(); if (typeof ambTick === 'function' && !S.pendingConclave) ambTick(); checkEnd();
  const rep = { lines: S.rep, budget: b, d: { t: S.treasury - before.t, a: S.authority - before.a, c: S.corruption - before.c, f: avgFervor() - before.f } };
  S.rep = null; return rep;
 }
@@ -1080,7 +1081,7 @@ function checkAch() {
 }
 function glory() {
  const builds = Object.values(S.build).filter(v => v === true).length;
- return Math.round(S.authority * 3 + avgFervor() * 2 + catholicProvCount() * 2 + builds * 15 + Object.keys(S.ach).length * 60 + S.decrees.length * 10 + S.orders.length * 8 - S.corruption * 2 + S.treasury / 20 - S.debt / 10 + S.crusadeWins * 25);
+ return Math.round(S.authority * 3 + avgFervor() * 2 + catholicProvCount() * 2 + builds * 15 + Object.keys(S.ach).length * 60 + S.decrees.length * 10 + S.orders.length * 8 - S.corruption * 2 + S.treasury / 20 - S.debt / 10 + S.crusadeWins * 25 + (S.ambGlory || 0));
 }
 function checkEnd() {
  if (S.authority <= 0) S.zeroA++; else S.zeroA = 0;

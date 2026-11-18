@@ -17,6 +17,8 @@
  ],
  "chronos": {
   "renderAll_ms": "MAP.lastKey=null;renderAll()",
+  "renderAll_clic_ms": "renderAll()",
+  "curie_ms": "UI.tab=UI.tab==='curie'?'pontife':'curie';renderPanel()",
   "saison_ms": "endSeason();S.events=[];"
  }
 }

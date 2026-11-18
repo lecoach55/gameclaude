@@ -22,7 +22,7 @@ async def main():
         errs=[]
         pg.on('console', lambda m: errs.append(m.text) if m.type=='error' and 'Failed to load' not in m.text else None)
         pg.on('pageerror', lambda e: errs.append('PAGEERR '+str(e)))
-        serveur(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../jeu'), 8771); await pg.goto('http://localhost:8771/index.html'); await pg.wait_for_timeout(2500)
+        base = serveur(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../jeu'), 8771); await pg.goto(base + 'index.html'); await pg.wait_for_timeout(2500)
         await pg.click(f'[data-scen="{random.choice(["1073","1198","1294","1378"])}"]'); await pg.wait_for_timeout(200)
         await pg.click('#stStart'); await pg.wait_for_timeout(800)
         for t in range(N):

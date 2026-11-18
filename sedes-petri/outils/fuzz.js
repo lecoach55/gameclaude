@@ -1,7 +1,7 @@
 const fs = require('fs'), vm = require('vm');
 const ctx = { console, Math, JSON, btoa: s => Buffer.from(s, 'binary').toString('base64'), atob: s => Buffer.from(s, 'base64').toString('binary') };
 vm.createContext(ctx);
-for (const f of ['data.js', 'engine.js', 'events.js']) vm.runInContext(fs.readFileSync(require('path').join(__dirname,'../jeu/',f), 'utf8'), ctx, { filename: f });
+for (const f of ['data.js', 'engine.js', 'events.js', 'ambitions.js']) vm.runInContext(fs.readFileSync(require('path').join(__dirname,'../jeu/',f), 'utf8'), ctx, { filename: f });
 vm.runInContext(`
 var ERR={}; var GENTLE=false;
 function bad(k,info){ ERR[k]=(ERR[k]||0)+1; if(ERR[k]<=2) console.log('!!',k,info||''); }
@@ -53,6 +53,7 @@ function conclave(){ const cv=conclaveSetup(); cv.backed=pick(cv.cands); cv.brib
 function fuzz(scen){
  newGame({scen,name:pick(PNAMES_LIST),fam:'Test',nat:pick(Object.keys(NAT_LABEL)),voc:pick(['reformateur','juriste','diplomate','ascete','batisseur','croise','theologien']),flaw:chance(.5),diff:ri(0,2)});
  for(let i=0;i<1800 && !S.over;i++){
+  try{ const o=ambEnsure(); if(o&&!S.pope.amb&&chance(0.3)) ambChoose(pick(o.ids)); const st=ambState(); if(st&&(!isFinite(st.v)||!isFinite(st.max)||/undefined|NaN/.test(st.lbl))) bad('amb_etat_'+st.a.id,st.lbl); }catch(e){ bad('amb_throw', e.stack.split('\\n').slice(0,3).join(' | ')); }
   fuzzActs(); resolve();
   try{ endSeason(); }catch(e){ bad('endSeason_throw', e.stack.split('\\n').slice(0,4).join(' | ')); break; }
   resolve();

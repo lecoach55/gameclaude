@@ -1,14 +1,14 @@
 # Test : sauvegarde locale puis reprise après rechargement (même date, même trésor).
-import asyncio,sys
+import asyncio,sys,os
 sys.path.insert(0,'/home/claude/gameclaude/outils-communs')
 from atelier import serveur
 from playwright.async_api import async_playwright
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(executable_path='/usr/bin/google-chrome', args=['--no-sandbox'])
-        serveur('/home/claude/gameclaude/sedes-petri/jeu',8771); pg = await b.new_page(viewport={'width':1400,'height':860})
+        base = serveur(os.environ.get('JEU','/home/claude/gameclaude/sedes-petri/jeu'),8771); pg = await b.new_page(viewport={'width':1400,'height':860})
         errs=[]; pg.on('pageerror', lambda e: errs.append(str(e)))
-        await pg.goto('http://localhost:8771/index.html'); await pg.wait_for_timeout(2500)
+        await pg.goto(base+'index.html'); await pg.wait_for_timeout(2500)
         await pg.evaluate("localStorage.setItem('sp_welcome','1')")
         await pg.click('[data-scen="1198"]'); await pg.click('#stStart'); await pg.wait_for_timeout(900)
         for i in range(3):

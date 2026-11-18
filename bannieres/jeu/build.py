@@ -6,7 +6,10 @@ html=open(os.path.join(d,'index.html'),encoding='utf-8').read()
 import base64 as _b
 css=open(os.path.join(d,'style.css'),encoding='utf-8').read()
 for _n in ('bois','fond_cre'):css=css.replace('url(tex/'+_n+'.jpg)','url(data:image/jpeg;base64,'+_b.b64encode(open(os.path.join(d,'tex',_n+'.jpg'),'rb').read()).decode()+')')
-html=html.replace('<link rel="stylesheet" href="style.css">','<style>\n'+css+'\n</style>')
+import subprocess as _sp
+# polices du studio intégrées (Cinzel, Alegreya : SIL OFL) — page hors ligne
+_pol=_sp.run([sys.executable,os.path.join(d,'..','..','studio','ressources','polices','polices.py'),'cinzel,alegreya'],capture_output=True,text=True,check=True).stdout
+html=html.replace('<link rel="stylesheet" href="style.css">','<style>\n'+_pol+css+'\n</style>')
 def inl(m):
     typ,src=m.group(1) or "",m.group(2)
     code=open(os.path.join(d,src),encoding='utf-8').read().replace('</script','<\\/script')

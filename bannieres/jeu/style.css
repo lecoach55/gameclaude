@@ -1,5 +1,5 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;overflow:hidden;background:#140d08;color:#f0e2c0;font-family:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;user-select:none;-webkit-user-select:none;touch-action:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#140d08;color:#f0e2c0;font-family:"Alegreya","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;user-select:none;-webkit-user-select:none;touch-action:none}
 button{font-family:inherit}
 .ecran{position:fixed;inset:0;display:none}
 .ecran.on{display:block}
@@ -16,7 +16,7 @@ button{font-family:inherit}
 /* accueil */
 #fondAccueil{position:absolute;inset:0;width:100%;height:100%}
 .titre-bloc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(92vw,640px);padding:28px 20px;background:radial-gradient(ellipse at center,rgba(20,10,4,.82),rgba(20,10,4,.35) 70%,transparent);border-radius:30px}
-h1{font-size:clamp(34px,7vw,64px);margin:0;color:#f6d77a;letter-spacing:1px;text-shadow:0 2px 0 #6a3e10,0 4px 14px #000,0 0 30px rgba(255,190,80,.35);font-variant:small-caps}
+h1{font-family:"Cinzel","Palatino Linotype",Georgia,serif;font-weight:700;font-size:clamp(30px,6.2vw,58px);margin:0;color:#f6d77a;letter-spacing:1px;text-shadow:0 2px 0 #6a3e10,0 4px 14px #000,0 0 30px rgba(255,190,80,.35);font-variant:small-caps}
 h1 span{color:#e8b850;font-style:italic}
 .sous{margin:10px 0 24px;color:#e8dcc0;font-style:italic;text-shadow:0 1px 3px #000}
 .menu-acc{display:flex;flex-direction:column;gap:10px;align-items:center}.menu-acc .btn{min-width:250px;font-size:18px}
@@ -74,7 +74,7 @@ h1 span{color:#e8b850;font-style:italic}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}
 .modal.on{display:flex}
 .fen{max-width:min(96vw,860px);min-width:min(92vw,360px);max-height:92vh;overflow:auto;padding:16px 18px;touch-action:pan-y;background:linear-gradient(180deg,#e8d6aa,#d2b884);color:#2a1a08;border-color:#8a6420}
-.fen h2{margin:0 0 8px;font-variant:small-caps;color:#5a2a08;text-align:center;font-size:22px}
+.fen h2{font-family:"Cinzel","Palatino Linotype",Georgia,serif;font-weight:700;margin:0 0 8px;font-variant:small-caps;color:#5a2a08;text-align:center;font-size:22px}
 .fen p{margin:.4em 0;line-height:1.4}
 .fen .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
 .fen .btn{color:#f6e6bc}
@@ -138,3 +138,8 @@ h1 span{color:#e8b850;font-style:italic}
 @media (min-width:861px){#bCarte{display:none}}
 .fen:has(.grille){width:min(96vw,820px)}
 .slot.vide,.mini-armee .s.vide{background:radial-gradient(#3a2814,#1a0f06)}
+
+/* icônes au trait (Lucide, ISC) à la place des emoji — 19/11 */
+.ico{width:24px;height:24px;stroke:#f2d48a;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7));pointer-events:none}
+.ib:disabled .ico{stroke:#9a8a6a}
+.ib.fin .ico{stroke:#fff4d8}

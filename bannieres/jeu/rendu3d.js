@@ -92,9 +92,9 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
  {float d=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).r;// hauts-fonds #3c6e6a → large #12303f
   diffuseColor.rgb=mix(vec3(.045,.155,.144),vec3(.006,.03,.05),smoothstep(.0,.75,d));diffuseColor.a=mix(.42,.93,smoothstep(.0,.4,d));
 #ifndef BS_LEGER
-  float nz=texture2D(bsBr,vBsW*.9+vec2(bsT*.03,bsT*.02)).r,nz2=texture2D(bsBr,vBsW*2.3-vec2(bsT*.05,0.)).r;
+  if(d<.12){float nz=texture2D(bsBr,vBsW*.9+vec2(bsT*.03,bsT*.02)).r,nz2=texture2D(bsBr,vBsW*2.3-vec2(bsT*.05,0.)).r;
   float ec=(1.-smoothstep(.0,.06+.05*nz,d))*smoothstep(.35,.7,nz2*.6+nz*.4+.15*sin(bsT*1.3+d*40.));
-  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.8,.78),ec*.75);diffuseColor.a=max(diffuseColor.a,ec*.85);
+  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.8,.78),ec*.75);diffuseColor.a=max(diffuseColor.a,ec*.85);}
 #endif
  }`);}});eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
@@ -135,7 +135,7 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
  col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,.76);// grandes surfaces moins saturées (revue artistique : S ≤ 0,45)
- {float sa=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).g;sa=smoothstep(.2,.7,sa+(nz-.5)*.55);col=mix(col,couche(p,4.,nz)*vec3(.74,.72,.68),sa*(t0==6.?0.:1.));col*=1.-.22*smoothstep(.75,1.,sa);}// sable mouillé (19/11)
+ {float sa=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).g;if(sa>.002){sa=smoothstep(.2,.7,sa+(nz-.5)*.55);col=mix(col,couche(p,4.,nz)*vec3(.74,.72,.68),sa*(t0==6.?0.:1.));col*=1.-.22*smoothstep(.75,1.,sa);}}// sable mouillé (19/11) : calculé seulement près de l'eau
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);

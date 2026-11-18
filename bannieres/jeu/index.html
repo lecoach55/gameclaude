@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none"><!-- Icônes Lucide (https://lucide.dev), licence ISC --><symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /> <path d="M16 3.128a4 4 0 0 1 0 7.744" /> <path d="M22 21v-2a4 4 0 0 0-3-3.87" /> <circle cx="9" cy="7" r="4" /></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /></symbol><symbol id="i-castle" viewBox="0 0 24 24"><path d="M10 5V3" /> <path d="M14 5V3" /> <path d="M15 21v-3a3 3 0 0 0-6 0v3" /> <path d="M18 3v8" /> <path d="M18 5H6" /> <path d="M22 11H2" /> <path d="M22 9v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9" /> <path d="M6 3v8" /></symbol><symbol id="i-footprints" viewBox="0 0 24 24"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z" /> <path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z" /> <path d="M16 17h4" /> <path d="M4 13h4" /></symbol><symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z" /> <path d="M15 5.764v15" /> <path d="M9 3.236v15" /></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16" /> <path d="M4 12h16" /> <path d="M4 19h16" /></symbol><symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14" /> <path d="M5 2h14" /> <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" /> <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" /></symbol><symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 5v16" /> <path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z" /></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /> <path d="M12 6v6l4 2" /></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" /> <circle cx="12" cy="12" r="3" /></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528" /></symbol></svg>
 <!-- accueil -->
 <section id="accueil" class="ecran on">
  <canvas id="fondAccueil"></canvas>
@@ -21,7 +22,7 @@
   </div>
   <div id="nuageInfo" class="nuage-info"></div>
  </div>
- <div class="credits">Un jeu créé pour Victor · cartes générées à chaque partie · textures, arbres et rochers Poly Haven (CC0) · personnages Mixamo · dragon « Drago » d’Oscar Creativo (CC BY 4.0) · bruitages Kenney (CC0) · aucune connexion nécessaire</div>
+ <div class="credits">Un jeu créé pour Victor · cartes générées à chaque partie · textures, arbres et rochers Poly Haven (CC0) · personnages Mixamo · dragon « Drago » d’Oscar Creativo (CC BY 4.0) · bruitages Kenney (CC0) · icônes Lucide (ISC) · polices Cinzel et Alegreya (SIL OFL) · aucune connexion nécessaire</div>
 </section>
 <!-- nouvelle partie -->
 <section id="config" class="ecran">
@@ -53,13 +54,13 @@
   <div id="listes" class="listes"><div id="listeHeros" class="liste"></div><div id="listeVilles" class="liste"></div></div>
   <div id="ficheSel" class="fiche-sel"></div>
   <div class="boutons-av">
-   <button class="ib" id="bHeroSuiv" title="Héros suivant (H)">🐎</button>
-   <button class="ib" id="bFiche" title="Fiche du héros">🛡</button>
-   <button class="ib" id="bVille" title="Ville (V)">🏰</button>
-   <button class="ib" id="bBouger" title="Avancer (espace)">➜</button>
-   <button class="ib" id="bCarte" title="Mini-carte">🗺</button>
-   <button class="ib" id="bMenu" title="Menu (Échap)">☰</button>
-   <button class="ib fin" id="bFinTour" title="Fin du tour (E)">⌛</button>
+   <button class="ib" id="bHeroSuiv" title="Héros suivant (H)"><svg class="ico"><use href="#i-users"/></svg></button>
+   <button class="ib" id="bFiche" title="Fiche du héros"><svg class="ico"><use href="#i-shield"/></svg></button>
+   <button class="ib" id="bVille" title="Ville (V)"><svg class="ico"><use href="#i-castle"/></svg></button>
+   <button class="ib" id="bBouger" title="Avancer (espace)"><svg class="ico"><use href="#i-footprints"/></svg></button>
+   <button class="ib" id="bCarte" title="Mini-carte"><svg class="ico"><use href="#i-map"/></svg></button>
+   <button class="ib" id="bMenu" title="Menu (Échap)"><svg class="ico"><use href="#i-menu"/></svg></button>
+   <button class="ib fin" id="bFinTour" title="Fin du tour (E)"><svg class="ico"><use href="#i-hourglass"/></svg></button>
   </div>
  </aside>
  <div id="infoBulle" class="info-bulle"></div>
@@ -73,11 +74,11 @@
   <div id="cbFile" class="cb-file"></div>
   <div id="cbLog" class="cb-log"></div>
   <div class="cb-btns">
-   <button class="ib" id="cbSort" title="Livre de sorts">📖</button>
-   <button class="ib" id="cbAttendre" title="Attendre">⏳</button>
-   <button class="ib" id="cbDefendre" title="Se défendre">🛡</button>
-   <button class="ib" id="cbAuto" title="Combat automatique">⚙</button>
-   <button class="ib" id="cbFuir" title="Fuir">🏳</button>
+   <button class="ib" id="cbSort" title="Livre de sorts"><svg class="ico"><use href="#i-book-open"/></svg></button>
+   <button class="ib" id="cbAttendre" title="Attendre"><svg class="ico"><use href="#i-clock"/></svg></button>
+   <button class="ib" id="cbDefendre" title="Se défendre"><svg class="ico"><use href="#i-shield"/></svg></button>
+   <button class="ib" id="cbAuto" title="Combat automatique"><svg class="ico"><use href="#i-settings"/></svg></button>
+   <button class="ib" id="cbFuir" title="Fuir"><svg class="ico"><use href="#i-flag"/></svg></button>
   </div>
  </div>
  <div id="cbInfo" class="info-bulle"></div>

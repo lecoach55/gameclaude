@@ -286,10 +286,9 @@ const DILEMMAS=[
  {id:'vacation',w:1,ok:()=>G.day-G.start>120,mk:()=>{const a=Math.round(Math.max(2000,value()*0.01));return{a,art:'sun',kick:'Repos',title:'Des vacances aux Maldives ?',text:'Vous n\'avez pas pris un jour depuis des mois. Une semaine au soleil coûte '+money0(a)+', et vous ne pourrez pas trader pendant 5 séances.',ch:[{l:'Partir (+ énergie)',s:'Le marché continuera sans vous.',dis:()=>G.cash<a,f:d=>{G.cash-=d.a;GM().lock=G.day+5;addXP(70,'batteries rechargées');}},{l:'Rester connecté',s:'Le travail avant tout.',f:()=>{}}]};}},
  {id:'book',w:1,ok:()=>GM().rank>=3,mk:()=>({art:'book',kick:'Édition',title:'Un éditeur veut publier vos mémoires',text:'« De stagiaire à requin de Wall Street ». Il propose une avance de 25 000 $, mais il faudra raconter vos pires erreurs.',ch:[{l:'Signer le contrat',s:'Avance versée à la publication.',f:()=>{GM().pend.push({day:G.day+90,k:'payout',amt:25000+(rnd()<0.2?100000:0),title:'Votre livre sort en librairie',text:'Avance encaissée. Si le livre est un succès, des droits suivront.'});addXP(60);}},{l:'Garder vos secrets',s:'',f:()=>{}}]})}
 ];
-/* Dilemmes avec mémoire (design-wallstreet-1, 18/11) : une scène ne revient pas avant 3 ans (756 séances) ; à sa place, des suites qui se
-   souviennent de votre choix. Une suite reprend EXACTEMENT les choix, montants et chances de la scène d'origine (aucun effet sur l'équilibre) :
-   seuls le titre et le texte changent. */
-const DCOOL=756;
+/* Dilemmes avec mémoire (design-wallstreet-1, 18/11) : quand une scène déjà vue revient (tirage et délai de 260 séances INCHANGÉS),
+   c'est sa suite qui s'affiche, une fois, et elle se souvient de votre choix. Une suite reprend EXACTEMENT les choix, montants, chances et
+   tirages au hasard de la scène d'origine : seuls le titre et le texte changent (vérifié par gsim : parties identiques à graine égale). */
 const dmem=()=>GM().dmem||(GM().dmem={});
 const SEQ=[
  {of:'taxi',title:'Le même chauffeur de taxi !',text:(d,c)=>c===0?'« Alors, mon tuyau, il a marché ? Peu importe : cette fois c\'est du sûr, '+ST[d.t].n+' va s\'envoler. Mon cousin a changé de boîte. »':'« Vous ne m\'aviez pas écouté la dernière fois… Cette fois, c\'est '+ST[d.t].n+'. Croyez-moi. » Il ajuste son rétroviseur.'},
@@ -302,10 +301,10 @@ const SEQ=[
  {of:'tv',title:'La chaîne financière vous réinvite',text:(d,c)=>c===0?'Votre première interview a fait parler. Ils veulent faire le point en direct, chiffres à l\'écran, face au marché.':'Vous aviez décliné la première fois. Ils insistent : votre performance face au marché sera affichée en direct.'},
  {of:'davos',title:'Davos vous réinvite',text:(d,c)=>c===0?'Les organisateurs se souviennent de vous. Trois jours dans les Alpes, inscription '+money0(d.a)+'.':'L\'an dernier, vous étiez resté au bureau. L\'invitation revient : trois jours dans les Alpes pour '+money0(d.a)+'.'}
 ];
-SEQ.forEach(q=>{const B=DILEMMAS.find(x=>x.id===q.of);DILEMMAS.push({id:q.of+'2',base:q.of,once:1,w:B.w,ok:()=>{const m=dmem()[q.of];return !!m&&m.id===q.of&&G.day-m.day>150&&B.ok();},mk:()=>{const d=B.mk(),m=dmem()[q.of];d.title=q.title;d.text=q.text(d,m.c);return d;}});});
+SEQ.forEach(q=>{const B=DILEMMAS.find(x=>x.id===q.of);DILEMMAS.push({id:q.of+'2',base:q.of,w:B.w,ok:()=>{const m=dmem()[q.of];return !!m&&m.id===q.of&&G.day-m.day>150&&B.ok();},mk:()=>{const d=B.mk(),m=dmem()[q.of];d.title=q.title;d.text=q.text(d,m.c);return d;}});});
 function schedWhistle(t){const ok=rnd()<0.6;GM().pend.push({day:G.day+4+Math.floor(rnd()*8),k:'drift',t,v:ok?-0.28:0.03,n:4,news:ok?'Scandale chez '+ST[t].n+' : les comptes étaient maquillés':'Fausse alerte chez '+ST[t].n+' : les comptes sont validés',big:ok});}
 function quickBuy(t,amt){const p=P(t);const q=Math.floor(amt/(p*(1+FEE_RATE)));if(q>=1){sel=t;doTrade('A',q,true);}}
-function pickDilemma(){const g=GM();let L=DILEMMAS.filter(d=>d.ok()&&!(d.once&&g.cool[d.id]!=null)&&G.day-(g.cool[d.id]??-9999)>DCOOL);if(!L.length){L=DILEMMAS.filter(d=>d.ok()&&!(d.once&&g.cool[d.id]!=null));if(!L.length)L=DILEMMAS.filter(d=>d.ok());L=L.slice().sort((a,b)=>(g.cool[a.id]??-9999)-(g.cool[b.id]??-9999)).slice(0,Math.max(5,Math.ceil(L.length/3)));}/* repli : tirage selon les poids parmi les moins récentes */let tot=L.reduce((a,d)=>a+d.w,0),r=rnd()*tot;for(const d of L){r-=d.w;if(r<=0)return d;}return L[0];}
+function pickDilemma(){const g=GM(),B=DILEMMAS.filter(d=>!d.base);let L=B.filter(d=>d.ok()&&G.day-(g.cool[d.id]??-9999)>260);if(!L.length)L=B.filter(d=>d.ok());let tot=L.reduce((a,d)=>a+d.w,0),r=rnd()*tot,p=L[0];for(const d of L){r-=d.w;if(r<=0){p=d;break;}}const q=DILEMMAS.find(x=>x.base===p.id);return q&&g.cool[q.id]==null&&q.ok()?q:p;}
 /* Dépêche d'agence (art-wallstreet-2, 18/11) : bandeau encre, filet or, catégorie, heure, valeurs touchées, pictogramme au trait or (Lucide, ISC). */
 const ICO={coin:'coins',glasses:'glasses',book:'book-open',sun:'sun',taxi:'car-taxi-front',truck:'truck',bank:'landmark',rocket:'rocket',mountain:'mountain-snow',tv:'tv',doc:'file-lock',heart:'heart',duel:'swords',plug:'plug-zap'};
 function depHead(art,kick,extra,tks){
@@ -314,7 +313,7 @@ function depHead(art,kick,extra,tks){
 }
 let curEvent=null;
 function showDilemma(){
-  const D=pickDilemma(),d=D.mk();curEvent={D,d};GM().stats.dil++;GM().cool[D.id]=G.day;GM().stats.last=D.id;
+  const D=pickDilemma(),d=D.mk();curEvent={D,d};GM().stats.dil++;GM().cool[D.id]=G.day;if(D.base)GM().cool[D.base]=G.day;GM().stats.last=D.id;
   $('#evDlg').innerHTML=depHead(d.art,d.kick,'',d.t?[d.t]:[])+'<div class="dlg-body"><h2 id="evTitle" class="dep-h">'+esc(d.title)+'</h2><p style="margin:8px 0 0;color:var(--muted)">'+esc(d.text)+'</p><div class="choices">'+d.ch.map((c,k)=>'<button class="choice" data-c="'+k+'"'+(c.dis&&c.dis()?' disabled':'')+'><b>'+esc(c.l)+'</b>'+(c.s?'<small>'+esc(c.s)+'</small>':'')+'</button>').join('')+'</div></div>';
   $('#mEvent').hidden=false;SND.bell();
   const first=$('#evDlg .choice:not([disabled])');if(first)first.focus();

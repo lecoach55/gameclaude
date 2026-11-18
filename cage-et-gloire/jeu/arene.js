@@ -23,7 +23,7 @@ const TXI={};function texImg(nom,rep){if(A.qual<1)return null;const el=document.
 /* ---------- textures dessinées ---------- */
 function cvTex(w,h,f){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');f(g,w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;}
 function texSol(O){return cvTex(1024,1024,(g,w,h)=>{
- const cx=w/2,cy=h/2;const gr=g.createRadialGradient(cx,cy,40,cx,cy,490);gr.addColorStop(0,'#efeee9');gr.addColorStop(.45,'#e2e0d9');gr.addColorStop(.8,'#b6b3a9');gr.addColorStop(1,'#98948a');g.fillStyle=gr;g.fillRect(0,0,w,h);
+ const cx=w/2,cy=h/2;const gr=g.createRadialGradient(cx,cy,40,cx,cy,490);gr.addColorStop(0,'#f3f2ee');gr.addColorStop(.45,'#e6e4dd');gr.addColorStop(.8,'#b6b3a9');gr.addColorStop(1,'#98948a');g.fillStyle=gr;g.fillRect(0,0,w,h);
  // grain de toile
  g.globalAlpha=.05;for(let i=0;i<9000;i++){g.fillStyle=Math.random()<.5?'#000':'#fff';g.fillRect(Math.random()*w,Math.random()*h,2,2);}g.globalAlpha=1;
  // lés de bâche (coutures) et traces de pas / glissades (usure de la toile)
@@ -398,7 +398,7 @@ function placer(force){const F=A.f;const a=ST.ang;const cx=ST.c.x,cz=ST.c.z;
 function arbitreSuit(dt){const h=A.arb;if(!h)return;const F=A.f;const m=F[0].pos.clone().add(F[1].pos).multiplyScalar(.5);
  const perp=new THREE.Vector3(-(F[1].pos.z-F[0].pos.z),0,F[1].pos.x-F[0].pos.x).normalize();if(perp.lengthSq()<.01)perp.set(1,0,0);
  const ax0=new THREE.Vector3(-Math.cos(CAM.ang),0,-Math.sin(CAM.ang));const dd=ST.pos==='G'?2.1:2.4;let tgt=null,best=-1e9;
- for(const s of [.55,-.55,.3,-.3]){const t=m.clone().addScaledVector(ax0.clone().applyAxisAngle(new THREE.Vector3(0,1,0),s),dd);if(t.length()>3.9)t.setLength(3.9);const dep=t.clone().sub(m).dot(ax0);const sc=dep-Math.abs(s)*.3;if(sc>best){best=sc;tgt=t;}}
+ for(const s of [.95,-.95,.65,-.65]){const t=m.clone().addScaledVector(ax0.clone().applyAxisAngle(new THREE.Vector3(0,1,0),s),dd);if(t.length()>3.9)t.setLength(3.9);const dep=t.clone().sub(m).dot(ax0);const sc=dep-Math.abs(s)*.1;if(sc>best){best=sc;tgt=t;}}
  if(!h.seq||!h.seq.length){if(h.lockT>0)h.lockT-=dt;else cible(h,tgt.x,tgt.z,Math.atan2(m.x-tgt.x,m.z-tgt.z),{tilt:0,y:0});}
  h.idle=POSES.arbitre;}
 /* ---------- traduction des événements du moteur en animations ---------- */
@@ -491,10 +491,10 @@ function majCam(dt){const F=A.f;const m=F[0].pos.clone().add(F[1].pos).multiplyS
  if(!CAM.repl){let da=Math.atan2(Math.sin(want-CAM.ang),Math.cos(want-CAM.ang));CAM.ang+=da*(1-Math.pow(.25,dt));}else CAM.ang+=dt*.25;
  if(CAM.mode&&CAM.mode.startsWith('coin')){const h=F[+CAM.mode.slice(4)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const sd=new THREE.Vector3(fw.z,0,-fw.x);const k=port?1.05:1.3;const p=h.pos.clone().addScaledVector(fw,3.3*k).addScaledVector(sd,1.7*k);p.y=2.1+(k-1)*.8;
   CAM.cur.lerp(p,1-Math.pow(.05,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().addScaledVector(fw,.4).setY(.85),1-Math.pow(.03,dt));C.lookAt(CAM.look);return;}
- if(CAM.mode&&CAM.mode.startsWith('portrait')){const h=F[+CAM.mode.slice(8)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const p=h.pos.clone().addScaledVector(fw,port?2.1:1.6);p.y=port?1.55:1.62;
-  const sd=new THREE.Vector3(fw.z,0,-fw.x).multiplyScalar(.35);p.add(sd);CAM.cur.lerp(p,1-Math.pow(.02,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().setY(port?1.42:1.55),1-Math.pow(.01,dt));C.lookAt(CAM.look);return;}
- const cfg={large:[8.0,4.0,.95],moyen:[6.4,3.3,.95],serre:[4.9,2.6,.9],sol:[6.0,3.9,.35]}[CAM.mode]||[7,3.7,1];
- let r=cfg[0]*(port?.8:1),hh=cfg[1]*(port?.9:1);
+ if(CAM.mode&&CAM.mode.startsWith('portrait')){const h=F[+CAM.mode.slice(8)];const fw=new THREE.Vector3(Math.sin(h.yaw),0,Math.cos(h.yaw));const p=h.pos.clone().addScaledVector(fw,port?1.8:1.6);p.y=port?1.6:1.62;
+  const sd=new THREE.Vector3(fw.z,0,-fw.x).multiplyScalar(.35);p.add(sd);CAM.cur.lerp(p,1-Math.pow(.02,dt));C.position.copy(CAM.cur);CAM.look.lerp(h.pos.clone().setY(port?1.5:1.55),1-Math.pow(.01,dt));C.lookAt(CAM.look);return;}
+ const cfg={large:[7.2,3.8,.95],moyen:[6.4,3.3,.95],serre:[4.9,2.6,.9],sol:[6.0,3.9,.35]}[CAM.mode]||[7,3.7,1];
+ let r=cfg[0]*(port?.72:1),hh=cfg[1]*(port?.88:1);
  const tgt=new THREE.Vector3(m.x+Math.cos(CAM.ang)*r,hh,m.z+Math.sin(CAM.ang)*r);
  // jamais dans les gradins (premier rang à 8,2 m du centre)
  {const L=Math.hypot(tgt.x,tgt.z);if(L>7.9){tgt.x*=7.9/L;tgt.z*=7.9/L;}}

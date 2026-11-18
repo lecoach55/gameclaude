@@ -108,3 +108,5 @@
 {"quand": "2026-11-18 13:27", "jeu": "outils", "etape": "verifier_outils (après)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 231.7, "code": 0}
 {"quand": "2026-11-18 13:48", "jeu": "outils", "etape": "verifier_outils (après corrections)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 229.7, "code": 0}
 {"quand": "2026-11-18 14:14", "jeu": "couronnes-et-complots", "etape": "banc --avant HEAD", "commande": "python3 outils-communs/banc.py couronnes-et-complots/outils/banc.json --avant HEAD", "secondes": 54.0, "code": 0}
+{"quand": "2026-11-18 14:10", "jeu": "wallstreet", "etape": "banc avant/après", "commande": "python3 outils-communs/banc.py wallstreet/outils/banc.json --avant HEAD --construire --cpu 4", "secondes": 0.3, "code": 1}
+{"quand": "2026-11-18 14:11", "jeu": "wallstreet", "etape": "banc avant/après", "commande": "python3 outils-communs/banc.py wallstreet/outils/banc.json --avant HEAD --construire --cpu 4", "secondes": 31.7, "code": 0}

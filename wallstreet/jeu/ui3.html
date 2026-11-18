@@ -82,9 +82,6 @@
 .item.locked{opacity:.55}
 
 /* événements */
-.ev-art{height:150px;border-radius:18px 18px 0 0;display:grid;place-items:center;position:relative;overflow:hidden}
-.ev-art svg{width:120px;height:120px}
-.ev-kicker{position:absolute;left:20px;top:16px;font-weight:700;font-size:13px;background:rgba(0,0,0,.35);color:#fff;padding:3px 10px;border-radius:999px}
 .choices{display:grid;gap:10px;margin-top:16px}
 .choice{display:grid;gap:3px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 16px;cursor:pointer}
 .choice:hover{border-color:var(--ink);background:var(--sunk)}
@@ -214,9 +211,66 @@ body.has-recap .toasts{bottom:var(--recap-h,300px)}
 .kitrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:12px 0 0;font-size:13px}
 .lnk{background:none;border:0;padding:0;color:var(--muted,#667);text-decoration:underline;cursor:pointer;font:inherit}
 .kitov{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;background:rgba(15,23,42,.88);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.25);pointer-events:none}.kitov small{opacity:.8}
+/* liens des cartes : 44 px au doigt sans changer la mise en page (j1116c) */
+.klab .linkb{min-height:44px;margin:-12px -6px;padding:0 6px}
+/* dépêche d'agence (événements) */
+.dep{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;background:#16233a;color:#eef0e8;border-radius:18px 18px 0 0;padding:16px 22px 14px;border-bottom:3px solid #c9a24f}
+.dep-ico{width:40px;height:40px;stroke:#d6b15f;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.dep-k{font:700 12.5px/1.2 var(--body);letter-spacing:.14em;text-transform:uppercase;color:#d6b15f}
+.dep-k span{letter-spacing:.02em;text-transform:none;color:#c8ccd4;font-weight:500}
+.dep-t{font:500 12px/1.3 var(--flap);color:#a9b1bf;margin-top:3px}
+.dep-v{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.dep-v span{font:600 12px/1 var(--flap);border:1px solid rgba(214,177,95,.45);border-radius:4px;padding:4px 6px;color:#eef0e8}
+.dep-v b.up{color:#6fd3a0}.dep-v b.down{color:#ff8a7f}
+.dep-h{font-size:26px;line-height:1.15;padding-bottom:10px;border-bottom:1px solid var(--line)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .dep{background:#0a1120}}
+:root[data-theme="dark"] .dep{background:#0a1120}
+@media (max-width:720px){.dep{padding:12px 16px;gap:10px}.dep-ico{width:30px;height:30px}.dep-h{font-size:22px}}
+/* ---------- téléphone : l'écran au jeu (art-wallstreet-1, 18/11) ---------- */
+@media (max-width:720px){
+  .top-in{padding:5px 10px;gap:8px;flex-wrap:nowrap}
+  .mark div{display:none}
+  .mark svg{width:30px;height:30px}
+  .board{padding:4px 6px;gap:0;min-width:0}
+  .flaps{gap:1px}
+  .fl{width:13px;height:24px;font-size:14px}
+  .fl.sp{width:6px}
+  .ctrl{margin-left:auto;gap:4px;flex-wrap:nowrap}
+  .ctrl .iconbtn{width:44px;height:44px}
+  .hero{height:260px}
+  .hero-ui{flex-direction:row;align-items:flex-start;justify-content:space-between;padding:10px 12px;gap:10px}
+  .fortune .l{font-size:12.5px}
+  .fortune .v{font-size:36px}.fortune .v small{font-size:18px}
+  .fortune .s{gap:4px;font-size:12.5px;margin-top:4px}
+  .rankbox{min-width:0;width:148px;flex:none;padding:8px 10px;gap:5px;border-radius:12px}
+  .rankbox .medal{width:30px;height:30px;font-size:14px}
+  .rankbox b{font-size:15px}
+  .rankbox small,.rankbox .podium{display:none}
+  .mbar .btn{min-height:44px}
+  /* une seule notification, sur une ligne, juste au-dessus de la barre */
+  .toasts{left:10px;right:10px;bottom:76px;max-width:none;pointer-events:none}
+  .toast{padding:7px 12px;font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;border-radius:10px}
+  .toasts .toast:not(:last-child){display:none}
+  /* bilan replié en pastille (toucher pour déplier) */
+  .recap-card{left:auto;right:10px;bottom:76px;width:auto;max-width:calc(100% - 20px);border-radius:999px;padding:4px 6px 4px 14px;gap:0;cursor:pointer;display:flex;align-items:center;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .recap-card>:not(.rc-nums):not(.rc-x){display:none!important}
+  .recap-card .rc-nums{display:flex;gap:10px;align-items:baseline}
+  .recap-card .rc-nums>div{display:flex;gap:4px;align-items:baseline}
+  .recap-card .rc-nums span{font-size:0}.recap-card .rc-nums span::before{content:attr(data-c);font-size:12px}
+  .recap-card .rc-nums b{font-size:15px}
+  .recap-card .rc-x{position:static;order:2;width:44px;height:44px;margin:-4px -6px -4px 0;font-size:18px}
+  .recap-card.open{left:10px;border-radius:16px;padding:10px 14px;display:grid;gap:4px}
+  .recap-card.open>:not(.rc-nums,.rc-x,.rbars,.rc-leg,ul){display:block!important}
+  .recap-card.open .rc-nums{display:grid}.recap-card.open .rc-nums>div{display:block}.recap-card.open .rc-nums span{display:block;font-size:12px}.recap-card.open .rc-nums span::before{content:none}
+  .recap-card.open .rc-x{position:absolute;right:4px;top:2px;width:44px;height:44px}
+  body.has-recap .toasts{bottom:128px}
+  body.has-recap{padding-bottom:130px}
+}
+@media (max-width:380px){.fl{width:11.5px;font-size:13px}.fl.sp{width:4px}.top-in{gap:6px}}
 </style>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><!-- Icônes Lucide (https://lucide.dev), licence ISC, planche commune studio/ressources/icones --><symbol id="i-swords" viewBox="0 0 24 24"><path d="m13 19 6-6" /> <path d="M14.5 17.5 3.586 6.586A2 2 0 013 5.172V3h2.172a2 2 0 011.414.586L17.5 14.5" /> <path d="m14.828 6.172 2.586-2.586A2 2 0 0118.828 3H21v2.172a2 2 0 01-.586 1.414l-2.586 2.586" /> <path d="m16 16 4 4" /> <path d="m19 21 2-2" /> <path d="m5 14 4 4" /> <path d="m5 21-2-2" /> <path d="M7.5 16.5 4 20" /></symbol><symbol id="i-coins" viewBox="0 0 24 24"><path d="M13.744 17.736a6 6 0 1 1-7.48-7.48" /> <path d="M15 6h1v4" /> <path d="m6.134 14.768.866-.5 2 3.464" /> <circle cx="16" cy="8" r="6" /></symbol><symbol id="i-heart" viewBox="0 0 24 24"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" /></symbol><symbol id="i-landmark" viewBox="0 0 24 24"><path d="M10 18v-7" /> <path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z" /> <path d="M14 18v-7" /> <path d="M18 18v-7" /> <path d="M3 22h18" /> <path d="M6 18v-7" /></symbol><symbol id="i-truck" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /> <path d="M15 18H9" /> <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /> <circle cx="17" cy="18" r="2" /> <circle cx="7" cy="18" r="2" /></symbol><symbol id="i-car-taxi-front" viewBox="0 0 24 24"><path d="M10 2h4" /> <path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8" /> <path d="M7 14h.01" /> <path d="M17 14h.01" /> <rect width="18" height="8" x="3" y="10" rx="2" /> <path d="M5 18v2" /> <path d="M19 18v2" /></symbol><symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /> <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /> <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /> <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></symbol><symbol id="i-tv" viewBox="0 0 24 24"><rect width="20" height="15" x="2" y="7" rx="2" ry="2" /> <polyline points="17 2 12 7 7 2" /></symbol><symbol id="i-plug-zap" viewBox="0 0 24 24"><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z" /> <path d="m2 22 3-3" /> <path d="M7.5 13.5 10 11" /> <path d="M10.5 16.5 13 14" /> <path d="m18 3-4 4h6l-4 4" /></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /> <path d="M12 2v2" /> <path d="M12 20v2" /> <path d="m4.93 4.93 1.41 1.41" /> <path d="m17.66 17.66 1.41 1.41" /> <path d="M2 12h2" /> <path d="M20 12h2" /> <path d="m6.34 17.66-1.41 1.41" /> <path d="m19.07 4.93-1.41 1.41" /></symbol><symbol id="i-glasses" viewBox="0 0 24 24"><circle cx="6" cy="15" r="4" /> <circle cx="18" cy="15" r="4" /> <path d="M14 15a2 2 0 0 0-2-2 2 2 0 0 0-2 2" /> <path d="M2.5 13 5 7c.7-1.3 1.4-2 3-2" /> <path d="M21.5 13 19 7c-.7-1.3-1.5-2-3-2" /></symbol><symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14" /> <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" /></symbol><symbol id="i-file-lock" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /> <rect width="8" height="6" x="8" y="12" rx="1" /> <path d="M10 12v-2a2 2 0 1 1 4 0v2" /></symbol><symbol id="i-newspaper" viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" /> <path d="M18 14h-8" /> <path d="M15 18h-5" /> <path d="M10 6h8v4h-8V6Z" /></symbol><symbol id="i-mountain-snow" viewBox="0 0 24 24"><path d="m8 3 4 8 5-5 5 15H2L8 3z" /> <path d="M4.14 15.08c2.62-1.57 5.24-1.43 7.86.42 2.74 1.94 5.49 2 8.23.19" /></symbol></svg>
 <header class="top">
   <div class="top-in">
     <div class="mark">
@@ -338,7 +392,7 @@ body.has-recap .toasts{bottom:var(--recap-h,300px)}
 
 <div class="mbar"><button class="btn go" id="mNext">Séance suivante</button><button class="btn" id="mMonth">+1 mois</button></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<div class="recap-card" id="recapCard" hidden role="status"></div>
+<div class="recap-card" id="recapCard" hidden role="status" tabindex="0"></div>
 <div class="breaking" id="breaking"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 <div class="coach" id="coach" hidden><div class="hole" id="coachHole"></div><div class="tipc" id="coachTip" role="dialog" aria-modal="true" aria-labelledby="coachT"></div></div>
@@ -370,6 +424,7 @@ body.has-recap .toasts{bottom:var(--recap-h,300px)}
         <li>Votre fortune fait grandir votre tour. Dépassez celles de Max, Margaux et Kevin.</li>
       </ul>
       <p class="note" style="margin:12px 0 0">Le marché est simulé mais réglé sur le réel : volatilité et comportement de chaque action mesurés sur cinq ans de vrais cours, cycles économiques calqués sur ceux observés depuis 1945.</p>
+      <p class="note" style="margin:4px 0 0;font-size:12px">Pictogrammes : icônes Lucide (licence ISC).</p>
       <div class="dlg-act"><button class="btn" id="sResume" hidden>Reprendre ma partie</button><button class="btn go" id="sGo">Commencer une partie</button></div>
       <div id="sCloud" class="cloudbox" hidden></div>
       <div class="kitrow"><button class="lnk" id="kBug" type="button">🐞 Signaler un problème</button><button class="lnk" id="kBench" type="button">🧪 Mesurer la fluidité</button><span id="kMsg" class="muted" aria-live="polite"></span></div>

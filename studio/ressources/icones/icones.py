@@ -13,7 +13,8 @@ import sys, os, re
 NOMS = """menu settings volume-2 volume-x bug flask-conical play pause fast-forward save x circle-help info map
 swords sword shield crown castle scroll-text coins users heart trophy calendar chart-line trending-up trending-down
 wallet house hammer wheat church skull gem backpack flag camera gauge zoom-in zoom-out maximize undo-2
-chevron-right handshake landmark eye hourglass""".split()
+chevron-right handshake landmark eye hourglass
+truck car-taxi-front rocket tv mountain-snow plug-zap sun glasses book-open file-lock newspaper factory flame gavel""".split()
 
 def trouver():
     for d in [sys.argv[1] if len(sys.argv) > 1 else '', 'node_modules/lucide-static/icons', '/tmp/node_modules/lucide-static/icons']:

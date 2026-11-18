@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import * as SU from 'three/addons/utils/SkeletonUtils.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
-import {grime} from './grime.js';
+import {grime,regrime} from './grime.js';
 import {elTex} from './vfx.js';
 import {mxClips,MXSET,drClips,DRSET} from './mxanim.js';
 
@@ -23,21 +23,21 @@ export const ready=(async()=>{
   const PT=(()=>{const t=['wood_d','wood_n','crypt_w_d','crypt_w_n'].map(n=>elTex(n));if(t.some(x=>!x))return null;t.forEach(x=>{x.wrapS=x.wrapT=THREE.RepeatWrapping;x.anisotropy=4;});return{wd:t[0],wn:t[1],sd:t[2],sn:t[3]};})();
   const MC={};for(const s of [K.g.dungeon.scene,K.g.weapons.scene,K.g.forest.scene])s.children.forEach(c=>{K.piece[c.name]=c;const cat=/banner/.test(c.name)?'b':/candle/.test(c.name)?'c':/pillar|wall|column|stair|arch|floor_tile/.test(c.name)?'s':'p';c.traverse(m=>{if(!m.isMesh||!m.material||Array.isArray(m.material))return;const ck=m.material.uuid+cat;if(!MC[ck]){MC[ck]=m.material.clone();MC[ck].userData={};if(cat==='b'){/* 18/11 : tentures teintes d'une seule couleur sourde (l'atlas KayKit les rendait « arc-en-ciel ») */MC[ck].map=null;MC[ck].color.setHex(BDYE[c.name]||0x4e1a16);MC[ck].roughness=.92;MC[ck].metalness=0;}}m.material=MC[ck];if(!m.material.userData.grime)grime(m.material,/banner/.test(c.name)?{cut:1,sc:2.2,amt:.45,sat:.8,dk:.8,base:.35,rough:.3,met:0}:/candle/.test(c.name)?{sc:1.5,amt:.3,sat:.6,dk:.56,base:0,rough:.5,met:0}:{prop:PT,pstone:cat==='s',cut:cat==='s',nowax:s!==K.g.forest.scene,sc:1.5,amt:.3,sat:.75,dk:.84,base:.45,rough:.4,met:.0});});});
   // décors photoréalistes Poly Haven : remplacent les pièces KayKit de même nom (matières PBR d'origine, légère usure)
-  if(K.g.phprops)K.g.phprops.scene.children.slice().forEach(c=>{K.piece[c.name]=c;c.traverse(m=>{if(m.isMesh&&m.material&&!m.material.userData.grime){m.material.userData.ph=1;grime(m.material,{sc:1.5,amt:.18,sat:.85,dk:.9,base:.25,rough:0,met:0});}});});
-  if(K.piece.chest_gold&&K.g.phprops){K.piece.chest_gold.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.color.multiply(new THREE.Color(1.3,1.02,.6));m.material.metalness=Math.max(m.material.metalness,.35);}});}
+  if(K.g.phprops)K.g.phprops.scene.children.slice().forEach(c=>{K.piece[c.name]=c;const rk=/^(Rock_|rubble|rock_)/.test(c.name);c.traverse(m=>{if(m.isMesh&&m.material&&rk){/* pierre mate : la rugosité empaquetée la faisait briller comme du plastique */m.material.roughnessMap=null;m.material.roughness=.9;m.material.metalnessMap=null;m.material.metalness=0;}if(m.isMesh&&m.material&&!m.material.userData.grime){m.material.userData.ph=1;grime(m.material,{sc:1.5,amt:.18,sat:.85,dk:.9,base:.25,rough:0,met:0});}});});
+  if(K.piece.chest_gold&&K.g.phprops){K.piece.chest_gold.traverse(m=>{if(m.isMesh){const src=m.material;m.material=src.clone();if(src.userData.grime)regrime(src,m.material);m.material.color.multiply(new THREE.Color(1.3,1.02,.6));m.material.metalness=Math.max(m.material.metalness,.35);}});}
   coinPiles();
   K.ok=true;}catch(e){console.warn('Modèles 3D indisponibles, rendu procédural',e);K.ok=false;K.err=String(e&&e.message||e);}
  return K.ok;})();
 
 const BDYE={banner_patternA_red:0x5a1c18,banner_shield_green:0x2e3a2a,banner_triple_yellow:0x5e4320,banner_patternB_blue:0x283245};
 /* 18/11 : tas de pièces d'or en vrai métal (remplacent les « crêpes orange » KayKit coin_stack_*) : pièces fines inclinées, une seule géométrie fusionnée */
-function coinPiles(){const M=new THREE.MeshStandardMaterial({color:0xe2ac4a,metalness:.72,roughness:.36,emissive:0x3a2406,emissiveIntensity:.6});M.userData.ph=1;/* or lisible même sous un éclairage froid (le reflet seul virait au vert dans les cavernes) */
+function coinPiles(){const M=new THREE.MeshStandardMaterial({color:0xe2ac4a,metalness:.72,roughness:.36,emissive:0x3a2406,emissiveIntensity:.4});M.userData.ph=1;M.userData.keep=1;/* or lisible même sous un éclairage froid (le reflet seul virait au vert dans les cavernes) */
  let sd=7;const rnd=()=>{sd=(sd*16807)%2147483647;return(sd-1)/2147483646;};
- const mk=(name,n,R,H)=>{const base=new THREE.CylinderGeometry(.075,.075,.016,7).toNonIndexed(),bp=base.attributes.position,bn=base.attributes.normal;const P=new Float32Array(bp.count*3*n),N=new Float32Array(bp.count*3*n);
+ const mk=(name,n,R,H)=>{const base=new THREE.CylinderGeometry(.075,.075,.016,16).toNonIndexed(),bp=base.attributes.position,bn=base.attributes.normal;const P=new Float32Array(bp.count*3*n),N=new Float32Array(bp.count*3*n);
   const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler(),v=new THREE.Vector3(),nm=new THREE.Matrix3();let o=0;
   for(let i=0;i<n;i++){const a=rnd()*Math.PI*2,r=R*Math.sqrt(rnd()),h=Math.max(0,H*(1-r/R)*(.55+.45*rnd()));e.set((rnd()-.5)*.9*(r/R+.2),rnd()*6.3,(rnd()-.5)*.9*(r/R+.2));q.setFromEuler(e);m4.compose(new THREE.Vector3(Math.cos(a)*r,h+.008,Math.sin(a)*r),q,new THREE.Vector3(1,1,1));nm.getNormalMatrix(m4);
    for(let k=0;k<bp.count;k++){v.fromBufferAttribute(bp,k).applyMatrix4(m4);P[o]=v.x;P[o+1]=v.y;P[o+2]=v.z;v.fromBufferAttribute(bn,k).applyMatrix3(nm).normalize();N[o]=v.x;N[o+1]=v.y;N[o+2]=v.z;o+=3;}}
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('normal',new THREE.BufferAttribute(N,3));g.computeBoundingBox();g.computeBoundingSphere();
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('normal',new THREE.BufferAttribute(N,3));g.computeBoundingBox();g.computeBoundingSphere();g.userData.keep=1;/* hors scène K.g : keepAll ne la protège pas */
   const mesh=new THREE.Mesh(g,M);mesh.name=name+'_tas';mesh.castShadow=true;const G=new THREE.Group();G.name=name;G.add(mesh);K.piece[name]=G;};
  mk('coin_stack_large',110,.62,.75);mk('coin_stack_medium',50,.42,.42);}
 /* ---------- pièces de décor ---------- */
@@ -47,7 +47,7 @@ export function pieceGeo(name){if(K.geo[name])return K.geo[name];const p=K.piece
  const inv=new THREE.Matrix4().copy(p.parent?p.parent.matrixWorld:new THREE.Matrix4()).invert();let geo=null,mat=null;
  p.traverse(o=>{if(o.isMesh&&!geo){geo=deq(o.geometry.clone());geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld));mat=o.material;}});
  return K.geo[name]={geo,mat};}
-export function tintObj(o,c){o.traverse(m=>{if(m.isMesh){m.material=m.material.clone();m.material.color.multiply(new THREE.Color(c));}});return o;}
+export function tintObj(o,c){o.traverse(m=>{if(m.isMesh){const src=m.material;m.material=src.clone();if(src.userData.grime)regrime(src,m.material);/* clone() perd le shader d'usure */if(src.userData.ph)m.material.color.lerp(new THREE.Color(c),.3);/* matières Poly Haven : teinte douce, sinon presque noires */else m.material.color.multiply(new THREE.Color(c));}});return o;}
 export function piece(name,s=1,shadow=true){const p=K.piece[name];if(!p)return new THREE.Group();const o=p.clone(true);
  const g=new THREE.Group();g.add(o);g.scale.setScalar(s);g.traverse(m=>{if(m.isMesh){m.castShadow=shadow;m.receiveShadow=true;}});return g;}
 

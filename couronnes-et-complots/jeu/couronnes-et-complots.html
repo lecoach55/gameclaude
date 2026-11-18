@@ -207,29 +207,63 @@ table.rt th{font-family:var(--f-display);font-weight:400}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:1350px){aside{width:330px}#tray .res{max-width:220px}#players{flex-wrap:nowrap}#players .chip{flex:1 1 0;min-width:0}.chip .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}.chip .st{display:none}.chip .stn{display:inline}}
 .chip .stn{display:none}
+#drawerBar{display:none}
 @media (max-width:900px){
-  body{overflow:auto}
-  header{flex-wrap:wrap;gap:8px}
-  .brand{font-size:19px}.brand small{display:none}
-  .hbtn{gap:5px}.hbtn button,.hbtn select{padding:5px 8px;font-size:13px}
+  /* téléphone / volet étroit : carte en grand, panneau du tour en tiroir bas (comme Couronnes & Lignées), dés par-dessus la carte */
+  :root{--peek:clamp(170px,30dvh,300px)}
+  body{overflow:hidden;height:100vh;height:100dvh}
+  header{flex-wrap:nowrap;gap:6px;padding:5px 8px 4px}
+  .brand{font-size:17px;gap:6px;min-width:0}.brand small{display:none}
+  .hbtn{gap:4px;flex-wrap:nowrap}
+  .hbtn button,.hbtn select{min-height:44px;min-width:44px;padding:4px 8px;font-size:13px}
+  #modal .btns button,#modal .seg button{min-height:44px}
   .hbtn label[for="speed"]{display:none}
-  #players{flex-wrap:nowrap}
-  #players .chip{flex:none}
-  main{flex-direction:column}
-  #board{display:block;height:auto;padding:6px;flex:none}
-  #map{width:100%;height:auto;touch-action:none}
-  #tray{position:sticky;left:8px;bottom:auto;margin-top:8px;flex-wrap:wrap}
+  #pbar{padding:0 8px 5px;overflow:hidden}
+  #players{flex-wrap:nowrap;gap:5px}
+  #players .chip{flex:1 1 0;min-width:0;padding:4px 6px 4px 7px;gap:5px}
+  main{flex-direction:column;flex:1 1 auto;min-height:0}
+  #board{display:block;flex:1 1 auto;min-height:0;padding:4px 4px 0;margin-bottom:var(--peek)}
+  #map{width:100%;height:100%;touch-action:none}
+  #tray{position:absolute;left:8px;right:8px;bottom:8px;margin:0;flex-wrap:wrap;max-width:none;z-index:4;padding:7px 10px;gap:8px 12px}
   #tray .res{max-width:none;flex-basis:100%}
-  aside{width:100%;border-left:0;border-top:1px solid var(--line)}
-  #log{max-height:none}
-  #legend,#legBtn,#legend.closed ~ #legBtn{display:none}
-  #zoom{top:10px;right:10px;gap:3px}#zoom button{width:30px;height:30px;font-size:16px}
+  .die{width:30px;height:30px}
+  aside{position:fixed;left:0;right:0;bottom:0;width:auto;height:var(--peek);z-index:6;border:1px solid var(--gold-d);border-bottom:0;border-radius:12px 12px 0 0;
+    overflow-y:auto;overscroll-behavior:contain;display:block;box-shadow:0 -10px 24px rgba(0,0,0,.55);transition:height .25s ease-out}
+  aside.open{height:86dvh}
+  #drawerBar{display:flex;position:sticky;top:0;z-index:2;align-items:stretch;gap:6px;padding:0 8px 0 0;border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;background:linear-gradient(#2e2219,#241a13)}
+  #drawer{display:flex;position:relative;flex:1;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:12px 12px 0 0;background:none;box-shadow:none;
+    font-family:var(--f-display);font-size:13px;color:var(--muted);letter-spacing:.04em}
+  #drawer::before{content:"";width:38px;height:4px;border-radius:2px;background:#6a5338;position:absolute;top:5px;left:calc(50% - 19px)}
+  #drawer span{margin-top:6px}
+  #drawerGo{align-self:center;min-height:36px;padding:4px 10px;font-size:13px;white-space:nowrap}
+  #drawerGo[hidden]{display:none}
+  #pbody button.primary{min-height:44px}
+  #pbody{overflow:visible;padding:10px 12px}
+  #log{max-height:none;min-height:0}
+  #legend{left:8px;right:8px;bottom:8px;max-height:calc(100% - 70px);overflow-y:auto;z-index:4}
+  #legBtn,#legend.closed ~ #legBtn{display:block;right:8px;bottom:8px;min-height:40px;padding:4px 12px}
+  #legend:not(.closed) ~ #legBtn{display:none}
+  #zoom{top:8px;right:8px;gap:6px}#zoom button{width:40px;height:40px;font-size:18px}
+  #tip{pointer-events:none;max-width:250px}
+}
+@media (max-width:900px) and (orientation:landscape){
+  /* téléphone couché : panneau à droite, sans tiroir */
+  main{position:relative}
+  #board{margin-bottom:0;margin-right:min(330px,42vw)}
+  aside,aside.open{position:absolute;top:0;right:0;bottom:0;left:auto;width:min(330px,42vw);height:auto;border-radius:0;border-bottom:1px solid var(--gold-d)}
+  #drawer{visibility:hidden}
+  #drawerBar{border-radius:0}
+}
+@media (max-width:600px){
+  .brand .bt{display:none}
+  #players .chip .tag,#players .chip .ph,#players .chip .cT,#players .chip .cA,#players .chip .cI,#players .chip .stn,#players .chip .pc{display:none}
+  .chip .nm{font-size:13.5px}
 }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><svg viewBox="0 0 26 22" aria-hidden="true"><path d="M2,19 L2,6 L7.5,12 L13,2 L18.5,12 L24,6 L24,19Z" fill="#d4a548" stroke="#6b4a14" stroke-width="1.2" stroke-linejoin="round"/><circle cx="13" cy="15" r="2" fill="#a8382f"/></svg>Couronnes &amp; Complots <small>chronique des guerres de Valdorre</small></div>
+  <div class="brand"><svg viewBox="0 0 26 22" aria-hidden="true"><path d="M2,19 L2,6 L7.5,12 L13,2 L18.5,12 L24,6 L24,19Z" fill="#d4a548" stroke="#6b4a14" stroke-width="1.2" stroke-linejoin="round"/><circle cx="13" cy="15" r="2" fill="#a8382f"/></svg><span class="bt">Couronnes &amp; Complots</span> <small>chronique des guerres de Valdorre</small></div>
   <div class="spacer"></div>
   <div class="hbtn">
     <label class="small muted" for="speed">IA</label>
@@ -329,7 +363,8 @@ table.rt th{font-family:var(--f-display);font-weight:400}
     <button id="legBtn" aria-controls="legend" aria-expanded="true">Provinces</button>
     <div id="tip"></div>
   </section>
-  <aside>
+  <aside id="aside">
+    <div id="drawerBar"><button id="drawer" aria-expanded="false" aria-controls="pbody"><span>▴ Panneau du tour</span></button><button id="drawerGo" class="primary" hidden></button></div>
     <div id="pbody"></div>
     <div id="log" aria-live="polite"></div>
   </aside>
@@ -342,7 +377,9 @@ const MAP={"paths":["M215,109.6L202.2,111.2L206.8,123.1L203,129.2L189.8,123.9L18
 const ADJ=MAP.adj;
 </script>
 <script>
-// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) =====
+// ===== Trousse de test à intégrer dans n'importe quel jeu (artefact Claude) — version 7 =====
+// Version : TK.version (ligne « const TK={version:… »), envoyée dans chaque mesure et signalement (champ tk). À augmenter à chaque
+// changement, avec une ligne dans VERSIONS de outils-communs/maj_testkit.py. Mettre à jour la copie d'un jeu : python3 outils-communs/maj_testkit.py <jeu>
 // Ajoute : compteur d'images par seconde (mode test), bouton 🐞 « signaler un problème » (capture + état + erreurs),
 // banc de mesure scripté, et envoi des résultats dans la base de l'artefact (lisible par Claude avec db_list).
 // Usage dans le jeu :
@@ -353,10 +390,10 @@ const ADJ=MAP.adj;
 //   await TK.banc([{nom:'scène 1', preparer:async()=>{...}}, ...], 5000);  // mesure chaque scène 5 s
 // Jeux sans canvas (SVG/DOM) : fournir capture:async()=>dataURL (voir svgCapture ci-dessous) et canvas:()=>document.createElement('canvas') pour le nom du GPU.
 // Jeux en HTML/DOM : capture:()=>domCapture(document.body). Sans base (capacité db absente, hors ligne, app Electron) :
-// option secours:true → 🐞 ouvre un rapport à copier / enregistrer (TK.rapport(obj,titre) réutilisable pour le banc).
+// option secours:true → 🐞 ouvre un rapport à copier (bouton « Enregistrer » seulement si la capacité downloads est accordée) (TK.rapport(obj,titre) réutilisable pour le banc).
 // Le mode test ne doit jamais écrire dans la vraie sauvegarde : c'est au jeu de couper sa sauvegarde quand TK.test est vrai.
 function Testkit(o){
- const TK={test:false,ft:[],rec:null,lt:0,erreurs:[]};
+ const TK={version:7,test:false,ft:[],rec:null,lt:0,erreurs:[]};
  let DB=null,UID=null,init=null;
  // Base de l'artefact : window.claude peut arriver après le premier passage du script → on l'attend (10 s max),
  // on ne retient que le succès (un échec sera retenté au prochain envoi) et on garde la raison dans TK.base.
@@ -374,7 +411,9 @@ function Testkit(o){
  addEventListener('unhandledrejection',e=>TK.erreurs.push('promesse: '+String(e.reason).slice(0,300)));
  const gpu=()=>{try{const c0=o.canvas&&o.canvas();let gl=c0&&(c0.getContext('webgl2')||c0.getContext('webgl'));if(!gl){const c=document.createElement('canvas');gl=c.getContext('webgl');} // jeux 2D : canvas WebGL temporaire
   const x=gl.getExtension('WEBGL_debug_renderer_info');return x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);}catch(e){return '?';}};
- const stats=a0=>{const a=a0.filter(d=>d<1000),pz=a0.length-a.length;if(!a.length)return{};const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{})};};
+ // Pause = image > 1 s ET > 8× l'image médiane : sur un appareil où TOUTES les images dépassent 1 s (rendu logiciel, vieux Mac en Haute),
+ // elles comptent (v7 ; avant : tout écarté → fps vide justement sur l'appareil le plus lent). lent:true = image médiane > 125 ms.
+ const stats=a0=>{if(!a0.length)return{n:0};const o0=a0.slice().sort((x,y)=>x-y),seuil=Math.max(1000,8*o0[(o0.length-1)>>1]);const a=a0.filter(d=>d<seuil),pz=a0.length-a.length;const s=a.slice().sort((x,y)=>x-y),m=a.reduce((x,y)=>x+y,0)/a.length;return{fps:+(1000/m).toFixed(1),bas1:+(1000/s[Math.floor(s.length*.99)]).toFixed(1),pire:+s[s.length-1].toFixed(1),n:a.length,...(pz?{pauses:pz,pauseMax:Math.round(Math.max(...a0))}:{}),...(seuil>1000?{lent:true}:{})};};
  const tick=t=>{if(TK.lt){const d=t-TK.lt;TK.ft.push(d);if(TK.ft.length>240)TK.ft.shift();if(TK.rec)TK.rec.push(d);}TK.lt=t;if(TK.ov&&t-(TK.tt||0)>500){TK.tt=t;const s=stats(TK.ft.slice(-60));TK.ov.firstChild.textContent=`🧪 ${s.fps||'-'} img/s · pire ${s.pire||'-'} ms`;}requestAnimationFrame(tick);};requestAnimationFrame(tick);
  TK.modeTest=()=>{TK.test=true;if(TK.ov)return;const d=document.createElement('div');d.style.cssText='position:fixed;top:4px;left:50%;transform:translateX(-50%);z-index:9999;background:rgba(0,0,0,.72);color:#9fe0a0;font:12px monospace;padding:4px 8px;border-radius:6px';d.innerHTML='<span>🧪</span>';document.body.appendChild(d);TK.ov=d;};
  // Mesure fiable : on attend que la page soit visible ; si le navigateur a suspendu l'affichage pendant la mesure
@@ -384,21 +423,25 @@ function Testkit(o){
   await new Promise(r=>setTimeout(r,ms));document.removeEventListener('visibilitychange',vf);const a=TK.rec;TK.rec=null;
   const suspendu=masq||a.length<ms/1000*3; // moins de 3 images/s mesurées : affichage suspendu par le navigateur
   if(suspendu&&essai<1){if(TK.surSuspension)TK.surSuspension();return TK.mesurer(ms,essai+1);}
-  const st=stats(a);if(suspendu)st.masquee=true;return st;};
+  // Après la 2e mesure : masquee si la page a été cachée, a affiché < 3 images, a eu une pause ou des images qui ne couvrent pas 60 % de la durée ; sinon ce sont de vraies
+  // images lentes (appareil très lent) : chiffre gardé, marqué lent (v7 ; avant : « masquée » à tort sous 3 img/s).
+  const st=stats(a);if(suspendu){const tot=a.reduce((x,y)=>x+y,0);if(masq||a.length<3||st.pauses||tot<ms*.6)st.masquee=true;else st.lent=true;}return st;};
  TK.banc=async(scenes,ms=5000)=>{const res=[];for(const s of scenes){try{await s.preparer();await new Promise(r=>setTimeout(r,1500));res.push(Object.assign({scene:s.nom},await TK.mesurer(ms)));}catch(e){res.push({scene:s.nom,erreur:String(e)});}}
-  const out={jeu:o.jeu,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
+  const out={jeu:o.jeu,tk:TK.version,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,ecran:innerWidth+'x'+innerHeight+' @'+devicePixelRatio,res};try{if(o.etat)out.etat=o.etat();}catch(_){}out.enregistre=await TK.envoyer('mesures_'+Date.now(),out);out.base=TK.base;return out;};
  TK.signaler=async()=>{let img='';try{if(o.capture)img=await o.capture();else{if(o.rendu)o.rendu();const src=o.canvas(),k=Math.min(1,480/src.width),c=document.createElement('canvas');c.width=src.width*k|0;c.height=src.height*k|0;c.getContext('2d').drawImage(src,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);}}catch(e){}
-  const st={jeu:o.jeu,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
+  const st={jeu:o.jeu,tk:TK.version,test:TK.test,date:new Date().toISOString(),gpu:gpu(),ua:navigator.userAgent,img_s:stats(TK.ft.slice(-60)).fps,etat:(()=>{try{return o.etat?o.etat():null;}catch(e){return String(e);}})(),erreurs:TK.erreurs.slice(),capture:img};
   TK.dernier=st;return TK.envoyer('signalement_'+Date.now(),st);};
  // Secours quand la base est indisponible (capacité db non déclarée, hors ligne, app de bureau) : panneau avec le rapport
- // à copier (sans les gros champs) et bouton pour l'enregistrer en fichier. Option o.secours:true pour l'activer sur 🐞.
- TK.rapport=(obj,titre)=>{try{const gros=new Set(['capture','sauvegarde']);const court=JSON.stringify(obj,(k,v)=>gros.has(k)?(v?'['+String(v).length+' car. — voir le fichier]':v):v,1);
+ // à copier (sans les gros champs), « Copier tout » (complet) ; « Enregistrer le fichier » seulement via claude.use('downloads') — jamais de lien de téléchargement direct (inopérant dans le visualiseur d'artefact). Option o.secours:true pour l'activer sur 🐞.
+ TK.rapport=(obj,titre)=>{try{const gros=new Set(['capture','sauvegarde']);const court=JSON.stringify(obj,(k,v)=>gros.has(k)?(v?'['+String(v).length+' car. — voir « Copier tout »]':v):v,1);
   const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:grid;place-items:center;padding:12px';
-  f.innerHTML='<div style="background:#14201a;color:#e8efe9;border:1px solid #3c5a48;border-radius:12px;padding:14px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:8px;font:14px system-ui,sans-serif"><b></b><div style="font-size:12.5px;opacity:.8">La base de l’artefact n’est pas joignable ('+(TK.base||'?').replace(/</g,'&lt;')+'). Copiez ce rapport dans la conversation avec Claude, ou enregistrez le fichier complet.</div><textarea readonly style="flex:1;min-height:200px;font:11px monospace;background:#0b130e;color:#cfe;border:1px solid #2c4436;border-radius:6px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap"><button data-k="c">Copier</button><button data-k="t">Enregistrer le fichier</button><button data-k="f">Fermer</button></div></div>';
+  f.innerHTML='<div style="background:#14201a;color:#e8efe9;border:1px solid #3c5a48;border-radius:12px;padding:14px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:8px;font:14px system-ui,sans-serif"><b></b><div style="font-size:12.5px;opacity:.8">La base de l’artefact n’est pas joignable : '+(TK.base||'?').replace(/</g,'&lt;')+'. Copiez ce rapport dans la conversation avec Claude, ou « Copier tout » pour le rapport complet.</div><textarea readonly style="flex:1;min-height:200px;font:11px monospace;background:#0b130e;color:#cfe;border:1px solid #2c4436;border-radius:6px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap" class="tk-bts"><style>.tk-bts button{min-height:40px;padding:0 14px;font:inherit}</style><button data-k="c">Copier</button><button data-k="t">Copier tout (complet)</button><button data-k="s" hidden>Enregistrer le fichier</button><button data-k="f">Fermer</button></div></div>';
   f.querySelector('b').textContent=titre||'Rapport';const ta=f.querySelector('textarea');ta.value=court;
   f.onclick=async e=>{const k=e.target.dataset&&e.target.dataset.k;if(e.target===f||k==='f')f.remove();
    else if(k==='c'){ta.select();let ok=false;try{await navigator.clipboard.writeText(court);ok=true;}catch(_){try{ok=document.execCommand('copy');}catch(__){}}e.target.textContent=ok?'Copié ✓':'Sélectionné : copiez à la main';}
-   else if(k==='t'){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(obj)],{type:'application/json'}));a.download=(o.jeu||'jeu')+'_'+(obj.date||Date.now()).toString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);}catch(_){e.target.textContent='Impossible ici';}}};
+   else if(k==='t'){const tout=JSON.stringify(obj);let ok=false;try{await navigator.clipboard.writeText(tout);ok=true;}catch(_){try{ta.value=tout;ta.select();ok=document.execCommand('copy');}catch(__){}ta.value=court;}e.target.textContent=ok?'Copié ✓ ('+Math.round(tout.length/1024)+' Ko)':'Sélectionné : copiez à la main';}
+   else if(k==='s'&&dl){try{await dl.save({filename:(o.jeu||'jeu')+'_'+String(obj.date||Date.now()).replace(/[:.]/g,'-')+'.json',data:JSON.stringify(obj)});e.target.textContent='Enregistré ✓';}catch(x){e.target.textContent=x&&x.code==='declined'?'Annulé':'Impossible ici';}}};
+  let dl=null;try{if(window.claude&&window.claude.use)window.claude.use('downloads').then(d=>{dl=d;if(d)f.querySelector('[data-k="s"]').hidden=false;},()=>{});}catch(_){}
   document.body.appendChild(f);return f;}catch(e){return null;}};
  TK.bouton=(parent,style)=>{const b=document.createElement('button');b.textContent='🐞';b.title='Signaler un problème à Claude';b.style.cssText=style||'position:fixed;right:10px;bottom:10px;z-index:9999;width:38px;height:38px;border-radius:50%;opacity:.75';parent.appendChild(b);
   b.onclick=async()=>{b.disabled=true;const ok=await TK.signaler();b.disabled=false;b.textContent=ok?'✓':'🐞';setTimeout(()=>b.textContent='🐞',1500);if(!ok&&o.secours&&TK.dernier)TK.rapport(TK.dernier,'Signalement (non envoyé)');};return b;};
@@ -967,6 +1010,40 @@ function clickTerr(i) {
   render();
 }
 
+// au doigt, un appui qui ne change rien (tour de l'IA, territoire non valide) ouvre la fiche du territoire
+let tapType = "mouse", lpFired = false;
+function terrAt(el) { const g = el && el.closest && el.closest("[data-i]"); return g ? +g.dataset.i : -1; }
+function tapTerr(e, i) {
+  const sig = () => S ? [S.sel, S.tgt, S.reinf, S.mode, S.moveN, S.pending ? 1 : 0, S.t[i].a].join() : "";
+  const before = sig();
+  clickTerr(i);
+  if (tapType === "touch" && sig() === before) tip(e, i, true);
+}
+function setDrawer(open) {
+  const a = $("aside"), b = $("drawer"); if (!a || !b) return;
+  a.classList.toggle("open", open); b.setAttribute("aria-expanded", open);
+  b.firstElementChild.textContent = open ? "▾ Réduire le panneau" : "▴ Panneau du tour";
+  if (!open) a.scrollTop = 0;
+  const tp = $("tip"); if (tp) tp.style.display = "none";
+}
+// téléphone : le bouton de fin de phase est recopié dans la barre du tiroir (visible même tiroir replié)
+function drawerGo() {
+  const g = $("drawerGo"); if (!g) return;
+  const src = ["occOk", "toReinf", "toAttack", "endT"].map(id => $(id)).find(Boolean);
+  if (!src || !S || S.over || cur().ai) { g.hidden = true; g.onclick = null; return; }
+  g.hidden = false; g.textContent = src.textContent; g.disabled = src.disabled; g.onclick = () => src.click();
+}
+// province la plus proche d'être complète pour la Maison o (aide aux renforts)
+function nearestRegion(o) {
+  let best = null;
+  REGIONS.forEach((r, ri) => {
+    const ts = TERR.map((t, i) => i).filter(i => TERR[i].r === ri), miss = ts.filter(i => S.t[i].o !== o).length;
+    if (!miss || miss === ts.length) return;
+    if (!best || miss < best.miss || (miss === best.miss && r.bonus > best.bonus)) best = { ri, miss, bonus: r.bonus, name: r.name };
+  });
+  return best;
+}
+
 // ===================== Rendu =====================
 let landEls = [], tokEls = [], olEls = [];
 function flash(t) {
@@ -1054,8 +1131,8 @@ function buildBoard() {
   const defs = document.querySelector("#map defs");
   TERR.forEach((t, i) => {
     const L = mk("path", { d: MAP.paths[i], class: "land tint", "stroke-width": ".8", "fill-rule": "evenodd" }, $("tint"));
-    L.addEventListener("click", () => clickTerr(i));
-    L.addEventListener("mousemove", e => tip(e, i)); L.addEventListener("mouseleave", () => $("tip").style.display = "none");
+    L.addEventListener("click", e => tapTerr(e, i)); L.dataset.i = i;
+    L.addEventListener("mousemove", e => { if (tapType !== "touch") tip(e, i); }); L.addEventListener("mouseleave", () => { if (tapType !== "touch") $("tip").style.display = "none"; });
     landEls.push(L);
     mk("clipPath", { id: "c" + i }, defs, `<path d="${MAP.paths[i]}" clip-rule="evenodd"/>`);
     hatchEls.push(mk("path", { d: MAP.paths[i], "pointer-events": "none", stroke: "none", "fill-rule": "evenodd" }, $("hatch")));
@@ -1105,24 +1182,36 @@ function buildBoard() {
       <g class="body" filter="url(#tokShadow)"><path class="shield" d="${SH}" stroke="#e9cf8a" stroke-width="1.5" stroke-linejoin="round"/><path class="charge" d="" fill="none" stroke-width="4.2" clip-path="url(#shieldClip)" opacity=".55" pointer-events="none"/><path d="${SH}" fill="url(#shieldGloss)" pointer-events="none"/></g>
       <path class="cap" transform="translate(0,-20) scale(1.15)" d="M-8,5 V-3 H-5.5 V-0.5 H-2.7 V-3 H-0.9 V-0.5 H0.9 V-3 H2.7 V-0.5 H5.5 V-3 H8 V5Z M-1.8,5 V2 Q0,0 1.8,2 V5" stroke="#24180c" stroke-width="1.1" stroke-linejoin="round" fill-rule="evenodd" style="display:none;paint-order:stroke;filter:drop-shadow(0 0 1.5px #f3e6c4)"/>
       <text class="n" y="0.5"></text><text class="lbl" y="31">${t.n}</text>`);
-    tg.addEventListener("click", () => clickTerr(i));
-    tg.addEventListener("mousemove", e => tip(e, i)); tg.addEventListener("mouseleave", () => $("tip").style.display = "none");
+    tg.addEventListener("click", e => tapTerr(e, i)); tg.dataset.i = i;
+    tg.addEventListener("mousemove", e => { if (tapType !== "touch") tip(e, i); }); tg.addEventListener("mouseleave", () => { if (tapType !== "touch") $("tip").style.display = "none"; });
     tokEls.push(tg);
   });
 }
-function tip(e, i) {
+function tip(e, i, touch) {
   if (!S) return;
   const T = S.t[i], tp = $("tip"), r = REGIONS[TERR[i].r], cap = capitalOf(i);
   let extra = "";
   if (S.mode === "soudoyer" && validBribe(i)) extra = `<br><b style="color:var(--gold)">Corruption : ${Math.round(Math.max(0, 7 - bribeNeed(i)) / 6 * 100)} % de réussite</b>`;
   if (S.phase === "attaque" && S.sel >= 0 && canAttack(S.sel, i)) extra = `<br><b style="color:var(--gold)">Assaut total : ${Math.round(conquestOdds(S.sel, i).p * 100)} %</b>`;
   tp.innerHTML = `<b>${TERR[i].n}</b>${cap >= 0 ? " 👑" : ""}<br><span class="muted">${r.name} (+${r.bonus})</span><br>${esc(pname(T.o))} · ${T.a} armée${T.a > 1 ? "s" : ""}${cap >= 0 ? `<br><span class="muted">Capitale de ${esc(P(cap).name)}${T.o === cap ? " : +1 au meilleur dé en défense" : ""}</span>` : ""}`;
+  if (touch) {
+    const me = S.players.findIndex(q => !q.ai && q.alive), ts = TERR.map((t, k) => k).filter(k => TERR[k].r === TERR[i].r);
+    if (me >= 0) tp.innerHTML += `<br><span class="muted">${r.name} : ${ts.filter(k => S.t[k].o === me).length}/${ts.length} à ${esc(P(me).name)}</span>`;
+  }
   tp.innerHTML += extra;
   const b = $("board").getBoundingClientRect();
   tp.style.display = "block";
+  if (touch) {   // au-dessus du doigt (sinon en dessous s'il n'y a pas la place), jamais hors du cadre
+    const w = tp.offsetWidth, h = tp.offsetHeight, x = e.clientX - b.left, y = e.clientY - b.top;
+    tp.style.left = clamp(x - w / 2, 6, b.width - w - 6) + "px";
+    tp.style.top = (y - h - 28 >= 4 ? y - h - 28 : Math.min(y + 28, b.height - h - 4)) + "px";
+    clearTimeout(tipT); tipT = setTimeout(() => tp.style.display = "none", 6000);
+    return;
+  }
   tp.style.left = Math.min(e.clientX - b.left + 14, b.width - 230) + "px";
   tp.style.top = (e.clientY - b.top + 14) + "px";
 }
+let tipT = 0;
 function dieHTML(v, cls, mod, lost) {
   const pip = { 1: [[2, 2]], 2: [[1, 1], [3, 3]], 3: [[1, 1], [2, 2], [3, 3]], 4: [[1, 1], [3, 1], [1, 3], [3, 3]], 5: [[1, 1], [3, 1], [2, 2], [1, 3], [3, 3]], 6: [[1, 1], [3, 1], [1, 2], [3, 2], [1, 3], [3, 3]] }[v];
   return `<div class="die ${cls}${lost ? " lost" : ""}" title="${v}"><svg viewBox="0 0 40 40">${pip.map(([x, y]) => `<circle cx="${x * 10}" cy="${y * 10}" r="3.6"/>`).join("")}</svg>${mod ? `<span class="mod">+${mod}</span>` : ""}</div>`;
@@ -1171,8 +1260,8 @@ function renderPlayers() {
     const pacts = pactsOf(i).map(x => P(x.a === i ? x.b : x.a)).map(q => `<span title="Pacte avec ${esc(q.name)}">${shieldCol(q.color, 9)}</span>`).join("");
     return `<div class="chip ${i === S.cur && !S.over ? "cur" : ""} ${p.alive ? "" : "dead"}" title="${esc(p.name)}" style="--hc:${PCOL[p.color].c}">
       ${shieldSVG(i, 14)}<b class="nm">${esc(p.name.replace(/^Maison (d')?/i, ""))}</b>${p.ai ? `<span class="tag" title="IA ${p.lvl === "ruse" ? "rusée" : p.lvl === "facile" ? "facile" : "normale"}">IA${p.lvl === "ruse" ? " ★" : p.lvl === "facile" ? " ·" : ""}</span>` : ""}${i === S.cur && !S.over ? `<span class="ph">${PHASE_LBL[S.phase]}</span>` : ""}
-      <span title="Territoires">▦ ${ownedBy(i).length}</span><span title="Armées">⚔ ${armiesOf(i)}</span><span title="Influence">⚜ ${p.inf}</span>${S.t[p.capital].o === i ? "" : `<span title="Capitale perdue" class="ko">♛̸</span>`}${S.claim && S.claim.o === i ? `<span title="Sacre en cours" class="claimTag">♛</span>` : ""}${isOathbreaker(i) ? `<span class="ko" title="Parjure : a trahi un pacte à la manche ${p.betrayed}">✗</span>` : ""}
-      <span class="st" title="Stabilité ${p.stab}/10">${st}</span><span class="stn ${p.stab <= 3 ? "ko" : p.stab >= 8 ? "ok" : ""}" title="Stabilité">☗ ${p.stab}</span>${pacts ? `<span title="Pactes" style="display:inline-flex;gap:2px">🤝${pacts}</span>` : ""}</div>`;
+      <span class="cT" title="Territoires">▦ ${ownedBy(i).length}</span><span class="cA" title="Armées">⚔ ${armiesOf(i)}</span><span class="cI" title="Influence">⚜ ${p.inf}</span>${S.t[p.capital].o === i ? "" : `<span title="Capitale perdue" class="ko">♛̸</span>`}${S.claim && S.claim.o === i ? `<span title="Sacre en cours" class="claimTag">♛</span>` : ""}${isOathbreaker(i) ? `<span class="ko" title="Parjure : a trahi un pacte à la manche ${p.betrayed}">✗</span>` : ""}
+      <span class="st" title="Stabilité ${p.stab}/10">${st}</span><span class="stn ${p.stab <= 3 ? "ko" : p.stab >= 8 ? "ok" : ""}" title="Stabilité">☗ ${p.stab}</span>${pacts ? `<span class="pc" title="Pactes" style="display:inline-flex;gap:2px">🤝${pacts}</span>` : ""}</div>`;
   }).join("");
 }
 function renderLegend() {
@@ -1212,16 +1301,17 @@ function renderPanel() {
     <div class="phases">${PHASES.map((x, k) => `<span class="${k === ph ? "on" : k < ph ? "done" : ""}">${PHASE_LBL[x]}</span>`).join("")}</div>`;
   if (S.claim) { const c2 = P(S.claim.o); h += `<div class="card claimCard"><p class="small"><b>♛ ${esc(c2.name)} réclame la Couronne.</b> ${S.claim.o === o ? `Tiens ${TERR[c2.capital].n} avec au moins ${CROWN_HOLD} de stabilité jusqu'à ton prochain tour.` : `Elle sera sacrée au début de son prochain tour si elle tient ${TERR[c2.capital].n} avec ${CROWN_HOLD}+ de stabilité (actuellement ${c2.stab}).`}</p></div>`; }
   if (S.active && S.active.round === S.round) h += `<div class="card edict"><p class="small"><span class="muted">Édit en vigueur :</span> <b>${S.active.name}</b>${S.active.target !== undefined ? ` (${esc(P(S.active.target).name)})` : ""}</p></div>`;
-  if (S.over) { $("pbody").innerHTML = h + `<div class="card"><h3>Partie terminée</h3><p>Lance une nouvelle partie depuis l'en-tête.</p></div>`; return; }
+  if (S.over) { $("pbody").innerHTML = h + `<div class="card"><h3>Partie terminée</h3><p>Lance une nouvelle partie depuis l'en-tête.</p></div>`; drawerGo(); return; }
   if (p.ai) {
     const feed = S.log.filter(l => (l.n || 0) >= (S.turnStart || 0)).slice(-9).map(l => `<div>${l.html}</div>`).join("") || `<div class="muted">Délibérations en cours…</div>`;
     h += `<div class="card"><h3>${esc(p.name)} joue</h3><div class="feed">${feed}</div><p class="small muted">Change la vitesse de l'IA en haut à droite.</p></div>`;
-    $("pbody").innerHTML = h + crownCard(o); return;
+    $("pbody").innerHTML = h + crownCard(o); drawerGo(); return;
   }
   if (S.phase === "politique") h += politicsPanel(o);
   else if (S.phase === "renforts") {
     h += `<div class="card"><h3>Renforts</h3>
       <div class="row"><span class="big">${S.reinf}</span><span class="muted small">armées à placer<br>(${Math.max(3, Math.floor(ownedBy(o).length / 3))} de base${regionsOf(o).length ? " + régions " + regionsOf(o).map(r => REGIONS[r].name).join(", ") : ""})</span></div>
+      ${(nr => nr ? `<p class="small">Il te manque <b>${nr.miss}</b> territoire${nr.miss > 1 ? "s" : ""} pour tenir ${nr.name} (<b>+${nr.bonus}</b> par tour).</p>` : "")(nearestRegion(o))}
       <p class="small muted">Clique sur tes territoires pour y poser des armées.</p>
       <div class="row"><span class="small">Par clic :</span><div class="seg">${[[1, "1"], [3, "3"], [0, "Tout"]].map(([v, l]) => `<button data-step="${v}" class="${S.step === v ? "on" : ""}">${l}</button>`).join("")}</div>
       <button id="autoPlace" ${S.reinf ? "" : "disabled"}>Placement auto</button>
@@ -1267,7 +1357,12 @@ function renderPanel() {
   }
   $("pbody").innerHTML = h + crownCard(o);
   bindPanel();
+  // téléphone : le choix des armées à faire entrer ouvre le tiroir, qui se referme ensuite
+  drawerGo();
+  const pend = !!S.pending;
+  if (pend !== drawerAuto && typeof window !== "undefined" && window.innerWidth <= 900) { drawerAuto = pend; setDrawer(pend); }
 }
+let drawerAuto = false;
 function crownCard(o) {
   const p = P(o), capOk = S.t[p.capital].o === o;
   return `<div class="card"><h3>Voie de la Couronne</h3>
@@ -1708,9 +1803,18 @@ let vb = { ...VB0 }, drag = null, justDragged = false;
 // par une transformation CSS (composée par la carte graphique, sans redessiner la carte), puis on engage
 // le nouveau viewBox 140 ms après le dernier mouvement.
 let cvb = { ...VB0 }, geo = null, commitT = 0;
+// proportions du cadre de la carte : sur un écran en hauteur (téléphone), la vue zoomée remplit tout le cadre
+// au lieu de rester un bandeau aux proportions de la carte (vue d'ensemble : carte entière, centrée)
+function mapAR() {
+  const r0 = VB0.w / VB0.h;
+  if (typeof window === "undefined" || window.innerWidth > 900) return r0;
+  const m = $("map"), W = m && m.clientWidth, H = m && m.clientHeight;
+  return W > 0 && H > 0 ? Math.min(r0, W / H) : r0;
+}
 function clampVB() {
-  vb.w = clamp(vb.w, VB0.w / 3.2, VB0.w); vb.h = vb.w * VB0.h / VB0.w;
-  vb.x = clamp(vb.x, VB0.x, VB0.x + VB0.w - vb.w); vb.y = clamp(vb.y, VB0.y, VB0.y + VB0.h - vb.h);
+  vb.w = clamp(vb.w, VB0.w / 3.2, VB0.w); vb.h = vb.w / mapAR();
+  vb.x = clamp(vb.x, VB0.x, VB0.x + VB0.w - vb.w);
+  vb.y = vb.h > VB0.h ? VB0.y - (vb.h - VB0.h) / 2 : clamp(vb.y, VB0.y, VB0.y + VB0.h - vb.h);
 }
 // ombre portée : un calque séparé, calé sur la zone dessinée (bien moins coûteux qu'un filtre sur la carte)
 function placeShadow() {
@@ -1723,9 +1827,12 @@ function placeShadow() {
 function focusStart() {
   if (typeof window === "undefined" || window.innerWidth > 900) { vb = { ...VB0 }; return applyVB(true); }
   const h = S.players.findIndex(p => !p.ai), o = h >= 0 ? h : 0, [cx, cy] = MAP.centers[P(o).capital];
-  vb = { w: VB0.w / 1.8, h: 0, x: 0, y: 0 }; vb.h = vb.w * VB0.h / VB0.w; vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2;
+  const ar = mapAR();   // cadre en hauteur : zoom juste assez pour que la carte remplisse le cadre
+  vb = { w: Math.min(VB0.w / 1.8, VB0.h * ar), h: 0, x: 0, y: 0 }; vb.h = vb.w / ar; vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2;
   applyVB(true);
 }
+// l'ombre portée suit la carte entière : masquée quand la vue zoomée remplit un cadre en hauteur (téléphone)
+function shadowVis() { const sh = $("mapShadow"); if (sh) sh.style.visibility = vb.w < VB0.w - 1 && mapAR() < VB0.w / VB0.h - .01 ? "hidden" : ""; }
 function measureGeo() {
   const m = $("map"), W = m.clientWidth, H = m.clientHeight, r = m.getBoundingClientRect();
   const s0 = Math.min(W / cvb.w, H / cvb.h);
@@ -1744,6 +1851,7 @@ function commitVB() {
   labelScale();
   m.style.transform = ""; m.classList.remove("gesture");
   m.classList.toggle("zoomed", vb.w < VB0.w - 1);
+  shadowVis();
   geo = null;
 }
 function applyVB(immediate) {
@@ -1756,6 +1864,7 @@ function applyVB(immediate) {
   m.style.transformOrigin = `${geo.ox}px ${geo.oy}px`;
   m.style.transform = `translate(${tx}px,${ty}px) scale(${k})`;
   m.classList.toggle("zoomed", vb.w < VB0.w - 1);
+  shadowVis();
   clearTimeout(commitT); commitT = setTimeout(commitVB, 140);
 }
 // coordonnées carte d'un point écran, d'après le viewBox visé (indépendant de la transformation en cours)
@@ -1845,7 +1954,24 @@ function initZoom() {
   m.addEventListener("click", e => { if (justDragged) { e.stopPropagation(); e.preventDefault(); } }, true);
   m.addEventListener("dblclick", e => { const p = svgPt(e.clientX, e.clientY); zoomAt(1 / 1.6, p.x, p.y); });
   $("zIn").onclick = () => zoomCenter(1 / 1.3); $("zOut").onclick = () => zoomCenter(1.3); $("zReset").onclick = () => { vb = { ...VB0 }; applyVB(true); $("zIn").focus(); };   // ⤢ disparaît en vue d'ensemble : le focus passe à +
-  window.addEventListener("resize", () => { geo = null; placeShadow(); labelScale(); });
+  window.addEventListener("resize", () => { geo = null; placeShadow(); const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2; clampVB(); vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2; applyVB(true); });
+  // tiroir du panneau (téléphone)
+  $("drawer").onclick = () => setDrawer(!$("aside").classList.contains("open"));
+  // fiche de territoire au doigt : appui long n'importe quand, ou appui qui ne déclenche aucune action
+  let lp = null;
+  const hideTip = () => { $("tip").style.display = "none"; };
+  m.addEventListener("pointerdown", e => {
+    hideTip(); tapType = e.pointerType;
+    clearTimeout(lp && lp.t); lp = null;
+    if (e.pointerType !== "touch") return;
+    const i = terrAt(e.target); if (i < 0) return;
+    const x = e.clientX, y = e.clientY;
+    lp = { x, y, t: setTimeout(() => { lpFired = true; tip({ clientX: x, clientY: y }, i, true); }, 480) };
+  });
+  window.addEventListener("pointermove", e => { if (e.pointerType === "mouse") tapType = "mouse"; if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 8) { clearTimeout(lp.t); lp = null; } });
+  const lpEnd = () => { if (lp) clearTimeout(lp.t); lp = null; setTimeout(() => lpFired = false, 0); };
+  window.addEventListener("pointerup", lpEnd); window.addEventListener("pointercancel", lpEnd);
+  m.addEventListener("click", e => { if (lpFired) { e.stopPropagation(); e.preventDefault(); } }, true);
   placeShadow(); setTimeout(placeShadow, 300);
   $("legBtn").onclick = () => { const L = $("legend"); L.classList.toggle("closed"); $("legBtn").setAttribute("aria-expanded", !L.classList.contains("closed")); };
   $("legend").onclick = () => $("legBtn").click();
@@ -1858,7 +1984,7 @@ let TK = null;
 function initTestkit() {
   if (typeof Testkit === "undefined") return;
   TK = Testkit({
-    jeu: "couronnes", canvas: () => document.createElement("canvas"), capture: () => svgCapture($("map")),
+    jeu: "couronnes", secours: true, canvas: () => document.createElement("canvas"), capture: () => svgCapture($("map")),
     etat: () => S && { manche: S.round, phase: S.phase, joueur: S.cur, fin: S.over, zoom: +(VB0.w / vb.w).toFixed(2),
       maisons: S.players.map((p, i) => ({ nom: p.name, ia: p.ai, niveau: p.lvl, terr: ownedBy(i).length, armees: armiesOf(i), inf: p.inf, stab: p.stab, vivante: p.alive })) },
   });

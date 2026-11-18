@@ -531,6 +531,40 @@ function clickTerr(i) {
   render();
 }
 
+// au doigt, un appui qui ne change rien (tour de l'IA, territoire non valide) ouvre la fiche du territoire
+let tapType = "mouse", lpFired = false;
+function terrAt(el) { const g = el && el.closest && el.closest("[data-i]"); return g ? +g.dataset.i : -1; }
+function tapTerr(e, i) {
+  const sig = () => S ? [S.sel, S.tgt, S.reinf, S.mode, S.moveN, S.pending ? 1 : 0, S.t[i].a].join() : "";
+  const before = sig();
+  clickTerr(i);
+  if (tapType === "touch" && sig() === before) tip(e, i, true);
+}
+function setDrawer(open) {
+  const a = $("aside"), b = $("drawer"); if (!a || !b) return;
+  a.classList.toggle("open", open); b.setAttribute("aria-expanded", open);
+  b.firstElementChild.textContent = open ? "▾ Réduire le panneau" : "▴ Panneau du tour";
+  if (!open) a.scrollTop = 0;
+  const tp = $("tip"); if (tp) tp.style.display = "none";
+}
+// téléphone : le bouton de fin de phase est recopié dans la barre du tiroir (visible même tiroir replié)
+function drawerGo() {
+  const g = $("drawerGo"); if (!g) return;
+  const src = ["occOk", "toReinf", "toAttack", "endT"].map(id => $(id)).find(Boolean);
+  if (!src || !S || S.over || cur().ai) { g.hidden = true; g.onclick = null; return; }
+  g.hidden = false; g.textContent = src.textContent; g.disabled = src.disabled; g.onclick = () => src.click();
+}
+// province la plus proche d'être complète pour la Maison o (aide aux renforts)
+function nearestRegion(o) {
+  let best = null;
+  REGIONS.forEach((r, ri) => {
+    const ts = TERR.map((t, i) => i).filter(i => TERR[i].r === ri), miss = ts.filter(i => S.t[i].o !== o).length;
+    if (!miss || miss === ts.length) return;
+    if (!best || miss < best.miss || (miss === best.miss && r.bonus > best.bonus)) best = { ri, miss, bonus: r.bonus, name: r.name };
+  });
+  return best;
+}
+
 // ===================== Rendu =====================
 let landEls = [], tokEls = [], olEls = [];
 function flash(t) {
@@ -618,8 +652,8 @@ function buildBoard() {
   const defs = document.querySelector("#map defs");
   TERR.forEach((t, i) => {
     const L = mk("path", { d: MAP.paths[i], class: "land tint", "stroke-width": ".8", "fill-rule": "evenodd" }, $("tint"));
-    L.addEventListener("click", () => clickTerr(i));
-    L.addEventListener("mousemove", e => tip(e, i)); L.addEventListener("mouseleave", () => $("tip").style.display = "none");
+    L.addEventListener("click", e => tapTerr(e, i)); L.dataset.i = i;
+    L.addEventListener("mousemove", e => { if (tapType !== "touch") tip(e, i); }); L.addEventListener("mouseleave", () => { if (tapType !== "touch") $("tip").style.display = "none"; });
     landEls.push(L);
     mk("clipPath", { id: "c" + i }, defs, `<path d="${MAP.paths[i]}" clip-rule="evenodd"/>`);
     hatchEls.push(mk("path", { d: MAP.paths[i], "pointer-events": "none", stroke: "none", "fill-rule": "evenodd" }, $("hatch")));
@@ -669,24 +703,36 @@ function buildBoard() {
       <g class="body" filter="url(#tokShadow)"><path class="shield" d="${SH}" stroke="#e9cf8a" stroke-width="1.5" stroke-linejoin="round"/><path class="charge" d="" fill="none" stroke-width="4.2" clip-path="url(#shieldClip)" opacity=".55" pointer-events="none"/><path d="${SH}" fill="url(#shieldGloss)" pointer-events="none"/></g>
       <path class="cap" transform="translate(0,-20) scale(1.15)" d="M-8,5 V-3 H-5.5 V-0.5 H-2.7 V-3 H-0.9 V-0.5 H0.9 V-3 H2.7 V-0.5 H5.5 V-3 H8 V5Z M-1.8,5 V2 Q0,0 1.8,2 V5" stroke="#24180c" stroke-width="1.1" stroke-linejoin="round" fill-rule="evenodd" style="display:none;paint-order:stroke;filter:drop-shadow(0 0 1.5px #f3e6c4)"/>
       <text class="n" y="0.5"></text><text class="lbl" y="31">${t.n}</text>`);
-    tg.addEventListener("click", () => clickTerr(i));
-    tg.addEventListener("mousemove", e => tip(e, i)); tg.addEventListener("mouseleave", () => $("tip").style.display = "none");
+    tg.addEventListener("click", e => tapTerr(e, i)); tg.dataset.i = i;
+    tg.addEventListener("mousemove", e => { if (tapType !== "touch") tip(e, i); }); tg.addEventListener("mouseleave", () => { if (tapType !== "touch") $("tip").style.display = "none"; });
     tokEls.push(tg);
   });
 }
-function tip(e, i) {
+function tip(e, i, touch) {
   if (!S) return;
   const T = S.t[i], tp = $("tip"), r = REGIONS[TERR[i].r], cap = capitalOf(i);
   let extra = "";
   if (S.mode === "soudoyer" && validBribe(i)) extra = `<br><b style="color:var(--gold)">Corruption : ${Math.round(Math.max(0, 7 - bribeNeed(i)) / 6 * 100)} % de réussite</b>`;
   if (S.phase === "attaque" && S.sel >= 0 && canAttack(S.sel, i)) extra = `<br><b style="color:var(--gold)">Assaut total : ${Math.round(conquestOdds(S.sel, i).p * 100)} %</b>`;
   tp.innerHTML = `<b>${TERR[i].n}</b>${cap >= 0 ? " 👑" : ""}<br><span class="muted">${r.name} (+${r.bonus})</span><br>${esc(pname(T.o))} · ${T.a} armée${T.a > 1 ? "s" : ""}${cap >= 0 ? `<br><span class="muted">Capitale de ${esc(P(cap).name)}${T.o === cap ? " : +1 au meilleur dé en défense" : ""}</span>` : ""}`;
+  if (touch) {
+    const me = S.players.findIndex(q => !q.ai && q.alive), ts = TERR.map((t, k) => k).filter(k => TERR[k].r === TERR[i].r);
+    if (me >= 0) tp.innerHTML += `<br><span class="muted">${r.name} : ${ts.filter(k => S.t[k].o === me).length}/${ts.length} à ${esc(P(me).name)}</span>`;
+  }
   tp.innerHTML += extra;
   const b = $("board").getBoundingClientRect();
   tp.style.display = "block";
+  if (touch) {   // au-dessus du doigt (sinon en dessous s'il n'y a pas la place), jamais hors du cadre
+    const w = tp.offsetWidth, h = tp.offsetHeight, x = e.clientX - b.left, y = e.clientY - b.top;
+    tp.style.left = clamp(x - w / 2, 6, b.width - w - 6) + "px";
+    tp.style.top = (y - h - 28 >= 4 ? y - h - 28 : Math.min(y + 28, b.height - h - 4)) + "px";
+    clearTimeout(tipT); tipT = setTimeout(() => tp.style.display = "none", 6000);
+    return;
+  }
   tp.style.left = Math.min(e.clientX - b.left + 14, b.width - 230) + "px";
   tp.style.top = (e.clientY - b.top + 14) + "px";
 }
+let tipT = 0;
 function dieHTML(v, cls, mod, lost) {
   const pip = { 1: [[2, 2]], 2: [[1, 1], [3, 3]], 3: [[1, 1], [2, 2], [3, 3]], 4: [[1, 1], [3, 1], [1, 3], [3, 3]], 5: [[1, 1], [3, 1], [2, 2], [1, 3], [3, 3]], 6: [[1, 1], [3, 1], [1, 2], [3, 2], [1, 3], [3, 3]] }[v];
   return `<div class="die ${cls}${lost ? " lost" : ""}" title="${v}"><svg viewBox="0 0 40 40">${pip.map(([x, y]) => `<circle cx="${x * 10}" cy="${y * 10}" r="3.6"/>`).join("")}</svg>${mod ? `<span class="mod">+${mod}</span>` : ""}</div>`;
@@ -735,8 +781,8 @@ function renderPlayers() {
     const pacts = pactsOf(i).map(x => P(x.a === i ? x.b : x.a)).map(q => `<span title="Pacte avec ${esc(q.name)}">${shieldCol(q.color, 9)}</span>`).join("");
     return `<div class="chip ${i === S.cur && !S.over ? "cur" : ""} ${p.alive ? "" : "dead"}" title="${esc(p.name)}" style="--hc:${PCOL[p.color].c}">
       ${shieldSVG(i, 14)}<b class="nm">${esc(p.name.replace(/^Maison (d')?/i, ""))}</b>${p.ai ? `<span class="tag" title="IA ${p.lvl === "ruse" ? "rusée" : p.lvl === "facile" ? "facile" : "normale"}">IA${p.lvl === "ruse" ? " ★" : p.lvl === "facile" ? " ·" : ""}</span>` : ""}${i === S.cur && !S.over ? `<span class="ph">${PHASE_LBL[S.phase]}</span>` : ""}
-      <span title="Territoires">▦ ${ownedBy(i).length}</span><span title="Armées">⚔ ${armiesOf(i)}</span><span title="Influence">⚜ ${p.inf}</span>${S.t[p.capital].o === i ? "" : `<span title="Capitale perdue" class="ko">♛̸</span>`}${S.claim && S.claim.o === i ? `<span title="Sacre en cours" class="claimTag">♛</span>` : ""}${isOathbreaker(i) ? `<span class="ko" title="Parjure : a trahi un pacte à la manche ${p.betrayed}">✗</span>` : ""}
-      <span class="st" title="Stabilité ${p.stab}/10">${st}</span><span class="stn ${p.stab <= 3 ? "ko" : p.stab >= 8 ? "ok" : ""}" title="Stabilité">☗ ${p.stab}</span>${pacts ? `<span title="Pactes" style="display:inline-flex;gap:2px">🤝${pacts}</span>` : ""}</div>`;
+      <span class="cT" title="Territoires">▦ ${ownedBy(i).length}</span><span class="cA" title="Armées">⚔ ${armiesOf(i)}</span><span class="cI" title="Influence">⚜ ${p.inf}</span>${S.t[p.capital].o === i ? "" : `<span title="Capitale perdue" class="ko">♛̸</span>`}${S.claim && S.claim.o === i ? `<span title="Sacre en cours" class="claimTag">♛</span>` : ""}${isOathbreaker(i) ? `<span class="ko" title="Parjure : a trahi un pacte à la manche ${p.betrayed}">✗</span>` : ""}
+      <span class="st" title="Stabilité ${p.stab}/10">${st}</span><span class="stn ${p.stab <= 3 ? "ko" : p.stab >= 8 ? "ok" : ""}" title="Stabilité">☗ ${p.stab}</span>${pacts ? `<span class="pc" title="Pactes" style="display:inline-flex;gap:2px">🤝${pacts}</span>` : ""}</div>`;
   }).join("");
 }
 function renderLegend() {
@@ -776,16 +822,17 @@ function renderPanel() {
     <div class="phases">${PHASES.map((x, k) => `<span class="${k === ph ? "on" : k < ph ? "done" : ""}">${PHASE_LBL[x]}</span>`).join("")}</div>`;
   if (S.claim) { const c2 = P(S.claim.o); h += `<div class="card claimCard"><p class="small"><b>♛ ${esc(c2.name)} réclame la Couronne.</b> ${S.claim.o === o ? `Tiens ${TERR[c2.capital].n} avec au moins ${CROWN_HOLD} de stabilité jusqu'à ton prochain tour.` : `Elle sera sacrée au début de son prochain tour si elle tient ${TERR[c2.capital].n} avec ${CROWN_HOLD}+ de stabilité (actuellement ${c2.stab}).`}</p></div>`; }
   if (S.active && S.active.round === S.round) h += `<div class="card edict"><p class="small"><span class="muted">Édit en vigueur :</span> <b>${S.active.name}</b>${S.active.target !== undefined ? ` (${esc(P(S.active.target).name)})` : ""}</p></div>`;
-  if (S.over) { $("pbody").innerHTML = h + `<div class="card"><h3>Partie terminée</h3><p>Lance une nouvelle partie depuis l'en-tête.</p></div>`; return; }
+  if (S.over) { $("pbody").innerHTML = h + `<div class="card"><h3>Partie terminée</h3><p>Lance une nouvelle partie depuis l'en-tête.</p></div>`; drawerGo(); return; }
   if (p.ai) {
     const feed = S.log.filter(l => (l.n || 0) >= (S.turnStart || 0)).slice(-9).map(l => `<div>${l.html}</div>`).join("") || `<div class="muted">Délibérations en cours…</div>`;
     h += `<div class="card"><h3>${esc(p.name)} joue</h3><div class="feed">${feed}</div><p class="small muted">Change la vitesse de l'IA en haut à droite.</p></div>`;
-    $("pbody").innerHTML = h + crownCard(o); return;
+    $("pbody").innerHTML = h + crownCard(o); drawerGo(); return;
   }
   if (S.phase === "politique") h += politicsPanel(o);
   else if (S.phase === "renforts") {
     h += `<div class="card"><h3>Renforts</h3>
       <div class="row"><span class="big">${S.reinf}</span><span class="muted small">armées à placer<br>(${Math.max(3, Math.floor(ownedBy(o).length / 3))} de base${regionsOf(o).length ? " + régions " + regionsOf(o).map(r => REGIONS[r].name).join(", ") : ""})</span></div>
+      ${(nr => nr ? `<p class="small">Il te manque <b>${nr.miss}</b> territoire${nr.miss > 1 ? "s" : ""} pour tenir ${nr.name} (<b>+${nr.bonus}</b> par tour).</p>` : "")(nearestRegion(o))}
       <p class="small muted">Clique sur tes territoires pour y poser des armées.</p>
       <div class="row"><span class="small">Par clic :</span><div class="seg">${[[1, "1"], [3, "3"], [0, "Tout"]].map(([v, l]) => `<button data-step="${v}" class="${S.step === v ? "on" : ""}">${l}</button>`).join("")}</div>
       <button id="autoPlace" ${S.reinf ? "" : "disabled"}>Placement auto</button>
@@ -831,7 +878,12 @@ function renderPanel() {
   }
   $("pbody").innerHTML = h + crownCard(o);
   bindPanel();
+  // téléphone : le choix des armées à faire entrer ouvre le tiroir, qui se referme ensuite
+  drawerGo();
+  const pend = !!S.pending;
+  if (pend !== drawerAuto && typeof window !== "undefined" && window.innerWidth <= 900) { drawerAuto = pend; setDrawer(pend); }
 }
+let drawerAuto = false;
 function crownCard(o) {
   const p = P(o), capOk = S.t[p.capital].o === o;
   return `<div class="card"><h3>Voie de la Couronne</h3>
@@ -1272,9 +1324,18 @@ let vb = { ...VB0 }, drag = null, justDragged = false;
 // par une transformation CSS (composée par la carte graphique, sans redessiner la carte), puis on engage
 // le nouveau viewBox 140 ms après le dernier mouvement.
 let cvb = { ...VB0 }, geo = null, commitT = 0;
+// proportions du cadre de la carte : sur un écran en hauteur (téléphone), la vue zoomée remplit tout le cadre
+// au lieu de rester un bandeau aux proportions de la carte (vue d'ensemble : carte entière, centrée)
+function mapAR() {
+  const r0 = VB0.w / VB0.h;
+  if (typeof window === "undefined" || window.innerWidth > 900) return r0;
+  const m = $("map"), W = m && m.clientWidth, H = m && m.clientHeight;
+  return W > 0 && H > 0 ? Math.min(r0, W / H) : r0;
+}
 function clampVB() {
-  vb.w = clamp(vb.w, VB0.w / 3.2, VB0.w); vb.h = vb.w * VB0.h / VB0.w;
-  vb.x = clamp(vb.x, VB0.x, VB0.x + VB0.w - vb.w); vb.y = clamp(vb.y, VB0.y, VB0.y + VB0.h - vb.h);
+  vb.w = clamp(vb.w, VB0.w / 3.2, VB0.w); vb.h = vb.w / mapAR();
+  vb.x = clamp(vb.x, VB0.x, VB0.x + VB0.w - vb.w);
+  vb.y = vb.h > VB0.h ? VB0.y - (vb.h - VB0.h) / 2 : clamp(vb.y, VB0.y, VB0.y + VB0.h - vb.h);
 }
 // ombre portée : un calque séparé, calé sur la zone dessinée (bien moins coûteux qu'un filtre sur la carte)
 function placeShadow() {
@@ -1287,9 +1348,12 @@ function placeShadow() {
 function focusStart() {
   if (typeof window === "undefined" || window.innerWidth > 900) { vb = { ...VB0 }; return applyVB(true); }
   const h = S.players.findIndex(p => !p.ai), o = h >= 0 ? h : 0, [cx, cy] = MAP.centers[P(o).capital];
-  vb = { w: VB0.w / 1.8, h: 0, x: 0, y: 0 }; vb.h = vb.w * VB0.h / VB0.w; vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2;
+  const ar = mapAR();   // cadre en hauteur : zoom juste assez pour que la carte remplisse le cadre
+  vb = { w: Math.min(VB0.w / 1.8, VB0.h * ar), h: 0, x: 0, y: 0 }; vb.h = vb.w / ar; vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2;
   applyVB(true);
 }
+// l'ombre portée suit la carte entière : masquée quand la vue zoomée remplit un cadre en hauteur (téléphone)
+function shadowVis() { const sh = $("mapShadow"); if (sh) sh.style.visibility = vb.w < VB0.w - 1 && mapAR() < VB0.w / VB0.h - .01 ? "hidden" : ""; }
 function measureGeo() {
   const m = $("map"), W = m.clientWidth, H = m.clientHeight, r = m.getBoundingClientRect();
   const s0 = Math.min(W / cvb.w, H / cvb.h);
@@ -1308,6 +1372,7 @@ function commitVB() {
   labelScale();
   m.style.transform = ""; m.classList.remove("gesture");
   m.classList.toggle("zoomed", vb.w < VB0.w - 1);
+  shadowVis();
   geo = null;
 }
 function applyVB(immediate) {
@@ -1320,6 +1385,7 @@ function applyVB(immediate) {
   m.style.transformOrigin = `${geo.ox}px ${geo.oy}px`;
   m.style.transform = `translate(${tx}px,${ty}px) scale(${k})`;
   m.classList.toggle("zoomed", vb.w < VB0.w - 1);
+  shadowVis();
   clearTimeout(commitT); commitT = setTimeout(commitVB, 140);
 }
 // coordonnées carte d'un point écran, d'après le viewBox visé (indépendant de la transformation en cours)
@@ -1409,7 +1475,24 @@ function initZoom() {
   m.addEventListener("click", e => { if (justDragged) { e.stopPropagation(); e.preventDefault(); } }, true);
   m.addEventListener("dblclick", e => { const p = svgPt(e.clientX, e.clientY); zoomAt(1 / 1.6, p.x, p.y); });
   $("zIn").onclick = () => zoomCenter(1 / 1.3); $("zOut").onclick = () => zoomCenter(1.3); $("zReset").onclick = () => { vb = { ...VB0 }; applyVB(true); $("zIn").focus(); };   // ⤢ disparaît en vue d'ensemble : le focus passe à +
-  window.addEventListener("resize", () => { geo = null; placeShadow(); labelScale(); });
+  window.addEventListener("resize", () => { geo = null; placeShadow(); const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2; clampVB(); vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2; applyVB(true); });
+  // tiroir du panneau (téléphone)
+  $("drawer").onclick = () => setDrawer(!$("aside").classList.contains("open"));
+  // fiche de territoire au doigt : appui long n'importe quand, ou appui qui ne déclenche aucune action
+  let lp = null;
+  const hideTip = () => { $("tip").style.display = "none"; };
+  m.addEventListener("pointerdown", e => {
+    hideTip(); tapType = e.pointerType;
+    clearTimeout(lp && lp.t); lp = null;
+    if (e.pointerType !== "touch") return;
+    const i = terrAt(e.target); if (i < 0) return;
+    const x = e.clientX, y = e.clientY;
+    lp = { x, y, t: setTimeout(() => { lpFired = true; tip({ clientX: x, clientY: y }, i, true); }, 480) };
+  });
+  window.addEventListener("pointermove", e => { if (e.pointerType === "mouse") tapType = "mouse"; if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 8) { clearTimeout(lp.t); lp = null; } });
+  const lpEnd = () => { if (lp) clearTimeout(lp.t); lp = null; setTimeout(() => lpFired = false, 0); };
+  window.addEventListener("pointerup", lpEnd); window.addEventListener("pointercancel", lpEnd);
+  m.addEventListener("click", e => { if (lpFired) { e.stopPropagation(); e.preventDefault(); } }, true);
   placeShadow(); setTimeout(placeShadow, 300);
   $("legBtn").onclick = () => { const L = $("legend"); L.classList.toggle("closed"); $("legBtn").setAttribute("aria-expanded", !L.classList.contains("closed")); };
   $("legend").onclick = () => $("legBtn").click();
@@ -1422,7 +1505,7 @@ let TK = null;
 function initTestkit() {
   if (typeof Testkit === "undefined") return;
   TK = Testkit({
-    jeu: "couronnes", canvas: () => document.createElement("canvas"), capture: () => svgCapture($("map")),
+    jeu: "couronnes", secours: true, canvas: () => document.createElement("canvas"), capture: () => svgCapture($("map")),
     etat: () => S && { manche: S.round, phase: S.phase, joueur: S.cur, fin: S.over, zoom: +(VB0.w / vb.w).toFixed(2),
       maisons: S.players.map((p, i) => ({ nom: p.name, ia: p.ai, niveau: p.lvl, terr: ownedBy(i).length, armees: armiesOf(i), inf: p.inf, stab: p.stab, vivante: p.alive })) },
   });

@@ -207,29 +207,63 @@ table.rt th{font-family:var(--f-display);font-weight:400}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (max-width:1350px){aside{width:330px}#tray .res{max-width:220px}#players{flex-wrap:nowrap}#players .chip{flex:1 1 0;min-width:0}.chip .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}.chip .st{display:none}.chip .stn{display:inline}}
 .chip .stn{display:none}
+#drawerBar{display:none}
 @media (max-width:900px){
-  body{overflow:auto}
-  header{flex-wrap:wrap;gap:8px}
-  .brand{font-size:19px}.brand small{display:none}
-  .hbtn{gap:5px}.hbtn button,.hbtn select{padding:5px 8px;font-size:13px}
+  /* téléphone / volet étroit : carte en grand, panneau du tour en tiroir bas (comme Couronnes & Lignées), dés par-dessus la carte */
+  :root{--peek:clamp(170px,30dvh,300px)}
+  body{overflow:hidden;height:100vh;height:100dvh}
+  header{flex-wrap:nowrap;gap:6px;padding:5px 8px 4px}
+  .brand{font-size:17px;gap:6px;min-width:0}.brand small{display:none}
+  .hbtn{gap:4px;flex-wrap:nowrap}
+  .hbtn button,.hbtn select{min-height:44px;min-width:44px;padding:4px 8px;font-size:13px}
+  #modal .btns button,#modal .seg button{min-height:44px}
   .hbtn label[for="speed"]{display:none}
-  #players{flex-wrap:nowrap}
-  #players .chip{flex:none}
-  main{flex-direction:column}
-  #board{display:block;height:auto;padding:6px;flex:none}
-  #map{width:100%;height:auto;touch-action:none}
-  #tray{position:sticky;left:8px;bottom:auto;margin-top:8px;flex-wrap:wrap}
+  #pbar{padding:0 8px 5px;overflow:hidden}
+  #players{flex-wrap:nowrap;gap:5px}
+  #players .chip{flex:1 1 0;min-width:0;padding:4px 6px 4px 7px;gap:5px}
+  main{flex-direction:column;flex:1 1 auto;min-height:0}
+  #board{display:block;flex:1 1 auto;min-height:0;padding:4px 4px 0;margin-bottom:var(--peek)}
+  #map{width:100%;height:100%;touch-action:none}
+  #tray{position:absolute;left:8px;right:8px;bottom:8px;margin:0;flex-wrap:wrap;max-width:none;z-index:4;padding:7px 10px;gap:8px 12px}
   #tray .res{max-width:none;flex-basis:100%}
-  aside{width:100%;border-left:0;border-top:1px solid var(--line)}
-  #log{max-height:none}
-  #legend,#legBtn,#legend.closed ~ #legBtn{display:none}
-  #zoom{top:10px;right:10px;gap:3px}#zoom button{width:30px;height:30px;font-size:16px}
+  .die{width:30px;height:30px}
+  aside{position:fixed;left:0;right:0;bottom:0;width:auto;height:var(--peek);z-index:6;border:1px solid var(--gold-d);border-bottom:0;border-radius:12px 12px 0 0;
+    overflow-y:auto;overscroll-behavior:contain;display:block;box-shadow:0 -10px 24px rgba(0,0,0,.55);transition:height .25s ease-out}
+  aside.open{height:86dvh}
+  #drawerBar{display:flex;position:sticky;top:0;z-index:2;align-items:stretch;gap:6px;padding:0 8px 0 0;border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;background:linear-gradient(#2e2219,#241a13)}
+  #drawer{display:flex;position:relative;flex:1;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:12px 12px 0 0;background:none;box-shadow:none;
+    font-family:var(--f-display);font-size:13px;color:var(--muted);letter-spacing:.04em}
+  #drawer::before{content:"";width:38px;height:4px;border-radius:2px;background:#6a5338;position:absolute;top:5px;left:calc(50% - 19px)}
+  #drawer span{margin-top:6px}
+  #drawerGo{align-self:center;min-height:36px;padding:4px 10px;font-size:13px;white-space:nowrap}
+  #drawerGo[hidden]{display:none}
+  #pbody button.primary{min-height:44px}
+  #pbody{overflow:visible;padding:10px 12px}
+  #log{max-height:none;min-height:0}
+  #legend{left:8px;right:8px;bottom:8px;max-height:calc(100% - 70px);overflow-y:auto;z-index:4}
+  #legBtn,#legend.closed ~ #legBtn{display:block;right:8px;bottom:8px;min-height:40px;padding:4px 12px}
+  #legend:not(.closed) ~ #legBtn{display:none}
+  #zoom{top:8px;right:8px;gap:6px}#zoom button{width:40px;height:40px;font-size:18px}
+  #tip{pointer-events:none;max-width:250px}
+}
+@media (max-width:900px) and (orientation:landscape){
+  /* téléphone couché : panneau à droite, sans tiroir */
+  main{position:relative}
+  #board{margin-bottom:0;margin-right:min(330px,42vw)}
+  aside,aside.open{position:absolute;top:0;right:0;bottom:0;left:auto;width:min(330px,42vw);height:auto;border-radius:0;border-bottom:1px solid var(--gold-d)}
+  #drawer{visibility:hidden}
+  #drawerBar{border-radius:0}
+}
+@media (max-width:600px){
+  .brand .bt{display:none}
+  #players .chip .tag,#players .chip .ph,#players .chip .cT,#players .chip .cA,#players .chip .cI,#players .chip .stn,#players .chip .pc{display:none}
+  .chip .nm{font-size:13.5px}
 }
 </style>
 </head>
 <body>
 <header>
-  <div class="brand"><svg viewBox="0 0 26 22" aria-hidden="true"><path d="M2,19 L2,6 L7.5,12 L13,2 L18.5,12 L24,6 L24,19Z" fill="#d4a548" stroke="#6b4a14" stroke-width="1.2" stroke-linejoin="round"/><circle cx="13" cy="15" r="2" fill="#a8382f"/></svg>Couronnes &amp; Complots <small>chronique des guerres de Valdorre</small></div>
+  <div class="brand"><svg viewBox="0 0 26 22" aria-hidden="true"><path d="M2,19 L2,6 L7.5,12 L13,2 L18.5,12 L24,6 L24,19Z" fill="#d4a548" stroke="#6b4a14" stroke-width="1.2" stroke-linejoin="round"/><circle cx="13" cy="15" r="2" fill="#a8382f"/></svg><span class="bt">Couronnes &amp; Complots</span> <small>chronique des guerres de Valdorre</small></div>
   <div class="spacer"></div>
   <div class="hbtn">
     <label class="small muted" for="speed">IA</label>
@@ -329,7 +363,8 @@ table.rt th{font-family:var(--f-display);font-weight:400}
     <button id="legBtn" aria-controls="legend" aria-expanded="true">Provinces</button>
     <div id="tip"></div>
   </section>
-  <aside>
+  <aside id="aside">
+    <div id="drawerBar"><button id="drawer" aria-expanded="false" aria-controls="pbody"><span>▴ Panneau du tour</span></button><button id="drawerGo" class="primary" hidden></button></div>
     <div id="pbody"></div>
     <div id="log" aria-live="polite"></div>
   </aside>

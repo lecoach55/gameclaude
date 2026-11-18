@@ -3,10 +3,13 @@
 var Portrait=(function(){
 const PEAU=[['#f6d5bb','#e2b394','#b9846a'],['#ecbf9b','#d39e78','#a5704f'],['#d29a72','#b67b55','#87553a'],['#b37a53','#94603e','#6a4029'],['#86573a','#6c4329','#47291a'],['#5c3a25','#462a1a','#2c190f']];
 const CH=['#18120e','#2a1c13','#4b3220','#7a5630','#b8935a','#d6c39b'];
-const cache={};
+const cache={};let NUM=0;
+// identifiants de dégradés uniques par portrait inséré : le même combattant apparaît plusieurs fois dans la page (bandeau, plaque, résultat),
+// des id répétés faisaient viser à url(#…) un dégradé caché ou retiré → visage noir
+function uniq(t){const n='q'+(++NUM).toString(36)+'_';return t.replace(/@P@/g,n);}
 function rng(s){let a=s>>>0||1;return()=>{a=(a*1664525+1013904223)>>>0;return a/4294967296;};}
-function svg(f,o={}){const key=f.id+'|'+(o.bg||'')+'|'+(o.mini?1:0)+'|'+(f.bless>0?1:0)+'|'+(o.nobg?1:0)+'|'+(o.rim||'');if(cache[key])return cache[key];
- const a=f.app||{},r=rng(a.seed||7),F=f.sexe==='F';const P=PEAU[a.peau??1],hc=CH[a.cc??0];const id='p'+(a.seed||1)+(o.mini?'m':'');
+function svg(f,o={}){const key=f.id+'|'+(o.bg||'')+'|'+(o.mini?1:0)+'|'+(f.bless>0?1:0)+'|'+(o.nobg?1:0)+'|'+(o.rim||'');if(cache[key])return uniq(cache[key]);
+ const a=f.app||{},r=rng(a.seed||7),F=f.sexe==='F';const P=PEAU[a.peau??1],hc=CH[a.cc??0];const id='@P@';
  const jw=F?46+r()*5:51+r()*9,fl=F?62+r()*5:64+r()*8,cy=104,brow=r()*5,eyeY=cy-4+r()*3,nw=r()*4,tr=(a.ta||0);
  const neck=F?24:30+r()*8;const bg=o.bg||'#22242c';
  let s=`<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" class="portrait"><defs>
@@ -72,7 +75,7 @@ function svg(f,o={}){const key=f.id+'|'+(o.bg||'')+'|'+(o.mini?1:0)+'|'+(f.bless
  else if(ch===7)s+=`<path d="M${100-jw*.7} ${ht+6} Q${100-jw*.6} ${ht-14} 100 ${ht-16} Q${100+jw*.8} ${ht-12} ${100+jw*.75} ${ht+10} Q100 ${ht+2} ${100-jw*.7} ${ht+6}Z" fill="${hc}"/><path d="${calotte(1,0)}" fill="${hc}" opacity=".22"/>`;
  // lumière de contour (couleur de l'organisation)
  if(o.rim)s+=`<path d="M${100+jw} ${cy-14} Q${100+jw+1} ${cy+18} ${100+jw*.72} ${cy+fl*.42}" stroke="${o.rim}" stroke-width="1.6" fill="none" opacity=".5"/><path d="M200 ${208-(F?0:10)} Q180 ${178-(F?0:8)} ${100+sh*.55} 172" stroke="${o.rim}" stroke-width="3" fill="none" opacity=".6"/>`;
- s+='</svg>';cache[key]=s;return s;}
+ s+='</svg>';cache[key]=s;return uniq(s);}
 function vider(){for(const k in cache)delete cache[k];}
 return {svg,vider};
 })();

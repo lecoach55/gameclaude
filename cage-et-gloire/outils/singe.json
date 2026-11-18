@@ -31,7 +31,7 @@
   }
  ],
  "etat": "'semaine '+G.sem",
- "invariants": "(()=>{const b=[];if(!isFinite(G.argent))b.push('argent '+G.argent);return b;})()",
+ "invariants": "(()=>{const b=[];if(typeof G==='undefined'||!G)return b;if(!isFinite(G.argent))b.push('argent '+G.argent);return b;})()",
  "pause": [
   60,
   600

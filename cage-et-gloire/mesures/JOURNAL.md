@@ -70,3 +70,11 @@ Tests : evtest 32 événements + 8 spéciaux sans erreur ; parcours au doigt, vu
 - Essayé et retiré : resserrement des cuisses dans regions() — ROUGE relecteur (os en mètres, sommets compressés ±0,01 : t bloqué à 1, aplatissement du bassin annulé, aine déchirée) et ROUGE graphiste (ligne blanche du liseré, short plus lobé).
 - Références refaites (headkick et sol ne correspondaient plus à la v11) + garde, coin, portrait1, ko. Banc swiftshader : appels et triangles identiques, ms dans le bruit.
 - Studio : relecteur ROUGE→VERT (après retrait), graphiste ROUGE→retiré, testeur ORANGE (perte de progression vue 1 fois sur 6 après reprise, non reproduite, probablement le script de test).
+
+## v11.2 — 18/11/2026 — portraits, écran de défaite, préparation du nouveau personnage
+- Portraits aux visages noirs (art-cage-et-gloire-3) : cause confirmée par capture avant/après — le même combattant inséré plusieurs fois donnait des id de dégradés SVG en double (4 doublons pour 2 copies) ; ids uniques à chaque insertion (gabarit en cache), idem pour les emblèmes d'organisation. Visage peint sur l'écran de résultat.
+- « DÉFAITE » en rouge sourd (#c8615a, contraste ≈ 4,2:1), « MATCH NUL » en gris chaud (l'or reste pour la victoire) ; affiche de l'écurie limitée à 620 px de large au-delà de 900 px (≈ 400 px de haut).
+- Accueil robuste à une très vieille sauvegarde sans `stats` (bug-cage-et-gloire-1) ; « par KO / TKO » en majuscules dans les nouvelles (bug-cage-et-gloire-2, partie texte).
+- Trousse de test v6 → v7 (appareil lent : banc jamais vide, « (lent) » affiché).
+- Nouveau personnage Mixamo (dec1117-cage) : `outils/prep_perso.mjs` prêt et essayé ; aucun personnage Mixamo masculin torse nu joignable (mixamo.com bloqué, seuls Xbot/Ybot/Michelle publics) → question posée à Victor.
+- Outils : `outils/verif.json` pour la vérification commune.

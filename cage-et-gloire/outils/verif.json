@@ -1,0 +1,31 @@
+{
+ "_note": "Vérification avant publication (outil commun) : python3 outils-communs/verif.py cage-et-gloire/outils/verif.json [--complet] ; rapport /tmp/verif-cage-et-gloire/rapport.html",
+ "jeu": "cage-et-gloire",
+ "construire": "cd cage-et-gloire && npm i --silent >/dev/null 2>&1; python3 jeu/build.py /home/claude/cg.html",
+ "budget_min": 10,
+ "etapes": [
+  {"nom": "Équilibre des combats (calib_combat, repère : favori à 5 points ≈ 75 %)",
+   "commande": "cd cage-et-gloire && node outils/calib_combat.js",
+   "ok_si": "écart 5 R 3 .*fav 7[0-9]%", "chiffres": "écart 5 R 3 .*fav (\\d+%)"},
+  {"nom": "Événements et choix (evtest)",
+   "commande": "cd cage-et-gloire && node outils/evtest.js",
+   "ok_si": "événements testés \\d+ erreurs 0[\\s\\S]*spéciaux testés \\d+ erreurs 0", "chiffres": "événements testés (\\d+)"},
+  {"nom": "Invariants sur longues parties (audit 2 × 8 ans)",
+   "commande": "cd cage-et-gloire && node outils/audit.js 2 8",
+   "ok_si": "PROBLÈMES aucun", "delai_s": 300},
+  {"nom": "Sauvegarde compressée → rechargement identique",
+   "commande": "python3 cage-et-gloire/outils/sauvegarde.py /home/claude/cg.html",
+   "ok_si": "identique True .*erreurs \\[\\]", "chiffres": "taille compressée (\\d+)", "delai_s": 300},
+  {"nom": "Soirée de combat 3D jusqu'au résultat (combat3d)",
+   "commande": "python3 cage-et-gloire/outils/combat3d.py /home/claude/cg.html /tmp/verif-cg-combat3d",
+   "ok_si": "erreurs \\[\\]", "delai_s": 400},
+  {"nom": "Parcours au doigt 390×844 (lent sous swiftshader)",
+   "commande": "python3 cage-et-gloire/outils/parcours.py /home/claude/cg.html /tmp/verif-cg-parcours",
+   "ok_si": "ERREURS \\[\\]", "complet": true, "delai_s": 600},
+  {"nom": "Singe téléphone + ordinateur",
+   "singe": "cage-et-gloire/outils/singe.json", "args": ["--secondes", "45"], "delai_s": 400},
+  {"nom": "Banc avant/après (CPU ×4)",
+   "banc": "cage-et-gloire/outils/banc.json", "avant": "HEAD", "args": ["--cpu", "4"], "complet": true},
+  {"nom": "Poids de la page", "poids": "/home/claude/cg.html", "max_mo": 16}
+ ]
+}

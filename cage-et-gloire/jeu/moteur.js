@@ -184,7 +184,7 @@ function avancer(){
  for(const e of G.ev)if(e.sem===s&&!e.fait){if(e.maison)recetteGala(e);for(const c of e.combats){if(c.res)continue;
    if(c.mine){if(c.ok){const f=G.F[c.a];if(f.bless>0){forfait(e,c);continue;}G.aJouer.push(c.id);}else annuler(c);}else{const A=G.F[c.a],B=G.F[c.b];if(A.bless>0||B.bless>0){annuler(c);continue;}appliquer(c.id,preparerSim(c.id));}}
   e.fait=!G.aJouer.some(id=>id.startsWith(e.id+'c'));out.evts.push(e.id);
-  const m=e.combats.find(c=>c.main&&c.res&&!c.mine);if(m&&ORG(e.org).tier>=2&&m.res.w>=0){const W=G.F[[m.a,m.b][m.res.w]],L=G.F[[m.a,m.b][1-m.res.w]];news(ORG(e.org).tier===4?'🌟':'📰',e.nom+' ('+e.ville+') : '+W.pr+' '+W.nom+' bat '+L.pr+' '+L.nom+' par '+ISSUES[m.res.m].toLowerCase()+(m.titre?' — combat pour le titre':'')+'.',ORG(e.org).c1);}}
+  const m=e.combats.find(c=>c.main&&c.res&&!c.mine);if(m&&ORG(e.org).tier>=2&&m.res.w>=0){const W=G.F[[m.a,m.b][m.res.w]],L=G.F[[m.a,m.b][1-m.res.w]];news(ORG(e.org).tier===4?'🌟':'📰',e.nom+' ('+e.ville+') : '+W.pr+' '+W.nom+' bat '+L.pr+' '+L.nom+' par '+(/^T?KO$/.test(ISSUES[m.res.m])?ISSUES[m.res.m]:ISSUES[m.res.m].toLowerCase())+(m.titre?' — combat pour le titre':'')+'.',ORG(e.org).c1);}}
  G.ev=G.ev.filter(e=>!e.fait||s-e.sem<10);
  if(s%4===0){mercato();for(const f of mes()){f.carr=f.carr||[];f.carr.push({s,o:ov(f)});if(f.carr.length>160)f.carr.shift();}}
  if(s%52===8)demarrerGP();

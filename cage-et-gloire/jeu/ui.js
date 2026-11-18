@@ -14,7 +14,7 @@ const rec=f=>f.v+'-'+f.d+(f.n?'-'+f.n:'');
 const noteCol=n=>n>=85?'#ffd36b':n>=75?'#f0a23a':n>=65?'#7fd0ff':n>=55?'#8fe0a8':'#c9c9c9';
 function toast(t,ms=2400){const d=document.createElement('div');d.textContent=t;$('toast').appendChild(d);setTimeout(()=>d.remove(),ms);}
 /* ---------- emblèmes, ceinture ---------- */
-function embleme(O,big){const id='em'+O.id+(big?'b':'');const st='★'.repeat(O.tier+1);
+let EMN=0;function embleme(O,big){const id='em'+O.id+(big?'b':'')+'_'+(++EMN).toString(36);const st='★'.repeat(O.tier+1);
  return `<svg viewBox="0 0 100 100"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${O.c2}"/><stop offset="1" stop-color="#050507"/></linearGradient></defs>
 <polygon points="30,3 70,3 97,30 97,70 70,97 30,97 3,70 3,30" fill="url(#${id})" stroke="${O.c1}" stroke-width="4"/>
 <polygon points="33,11 67,11 89,33 89,67 67,89 33,89 11,67 11,33" fill="none" stroke="${O.c1}" stroke-width="1.2" opacity=".55"/>
@@ -42,7 +42,7 @@ async function charge(){try{const z=localStorage.getItem(CLE+'z');if(z&&window.D
 /* ---------- accueil ---------- */
 async function accueil(){$('accueil').classList.remove('cache');$('app').classList.add('cache');$('combat').classList.add('cache');$('cv3d').style.display='block';
  const s=await charge();let h='';
- if(s){const ms=Object.values(s.F).filter(f=>f.mine&&!f.ret).sort((p,q)=>(q.v-q.d)-(p.v-p.d)).slice(0,4);h+=`<button class="btn or" id="bCont">Continuer · ${esc(s.nom)}</button><div class="acc-sauv"><div>${ms.map(f=>`<span>${Portrait.svg(f,{mini:1,nobg:true})}</span>`).join('')}</div><small>${esc(dateDe(s))} · ${M.fmtE(s.argent)} · ${s.stats.v}-${s.stats.d} · ${s.stats.titres} ceinture(s)</small></div>`;}
+ if(s){const ms=Object.values(s.F).filter(f=>f.mine&&!f.ret).sort((p,q)=>(q.v-q.d)-(p.v-p.d)).slice(0,4);h+=`<button class="btn or" id="bCont">Continuer · ${esc(s.nom)}</button><div class="acc-sauv"><div>${ms.map(f=>`<span>${Portrait.svg(f,{mini:1,nobg:true})}</span>`).join('')}</div><small>${esc(dateDe(s))} · ${M.fmtE(s.argent)} · ${s.stats?s.stats.v:0}-${s.stats?s.stats.d:0} · ${s.stats?s.stats.titres:0} ceinture(s)</small></div>`;}
  h+=`<button class="btn ${s?'':'or'}" id="bNouv">Nouvelle carrière</button><button class="btn fant" id="bNuage" style="display:none">☁ Reprendre la partie d'un autre appareil</button><button class="btn fant" id="bTest" style="min-height:46px">🧪 Mode test (mesures, partie à part)</button>`;
  $('accBtns').innerHTML=h;
  if(s)$('bCont').onclick=()=>{G=M.charger(s);completer(G);lancer();};
@@ -402,7 +402,7 @@ function resultat(cid,sim,vu){const t=M.trouverCombat(cid);const {c,e}=t;const A
  const r=sim.res,W=r.w===0?A:r.w===1?B:null;const moi=r.w===0;const st=r.stats;const O=OE(e);
  const devientChamp=!champAv&&estChamp(A);
  const h=`<div class="resultat"><div class="doux" style="font-size:12px;letter-spacing:.12em">${e.nom} · ${esc(e.ville)}</div>${W?`<div style="width:130px;margin:10px auto;border-radius:14px;overflow:hidden;border:2px solid ${moi?'#e9c46a':'#555'}">${por(W)}</div>`:''}
- <div class="gagnant">${W?(moi?'VICTOIRE !':'DÉFAITE'):'MATCH NUL'}</div><div style="font-size:16px;font-weight:700">${W?esc(nomC(W))+' l\'emporte':''}</div>
+ <div class="gagnant${W?(moi?'':' defaite'):' nul'}">${W?(moi?'VICTOIRE !':'DÉFAITE'):'MATCH NUL'}</div><div style="font-size:16px;font-weight:700">${W?esc(nomC(W))+' l\'emporte':''}</div>
  <div class="meth">${ISSUES[r.m].toUpperCase()}${['ko','tko','sub'].includes(r.m)?' · ROUND '+r.r+' · '+r.temps:''}${r.tech?' · '+esc(r.tech).toUpperCase():''}</div>
  ${devientChamp?`<div class="carte" style="background:linear-gradient(120deg,#3a2c08,#141008);border-color:#e9c46a"><div style="font-size:40px">${ceinture(O.c1).replace('class="ceinture"','style="width:120px;height:64px"')}</div><h2 style="color:#ffe39a">NOUVEAU CHAMPION ${O.court} !</h2></div>`:''}
  ${r.cards?`<div class="cartes-juges">${r.cards.map(k=>`<div>${k.s[0]}-${k.s[1]}</div>`).join('')}</div>`:''}
@@ -428,7 +428,7 @@ async function banc(){if(!TK){toast('Trousse de test indisponible');return;}ferm
   {nom:'échanges serrés'+qn(),preparer:async()=>{Arene.cam('serre');let i=0;clearInterval(banc.t);banc.t=setInterval(()=>{Arene.action({k:['jab','cross','hook','lowkick'][i++%4],a:i%2,h:1,z:'tete',pos:'S'});},700);}},
   {nom:'au sol'+qn(),preparer:async()=>{clearInterval(banc.t);Arene.action({k:'td',a:0,h:1,pos:'G0'});banc.t=setInterval(()=>Arene.action({k:'gnp',a:0,h:1,pos:'G0'}),900);}}],6000);
  clearInterval(banc.t);G=M.charger(sauv);TEST=testAv;quitterCombat();
- modal(`<h2>Fluidité</h2>${res.res.map(r=>`<p><b>${r.scene}</b> : ${r.fps||'?'} img/s (1 % bas : ${r.bas1||'?'})</p>`).join('')}<p class="doux">GPU : ${esc(res.gpu)}<br>${res.enregistre?'Envoyé à Claude ✓':'Non envoyé ('+esc(res.base)+')'}</p><div class="btns"><button class="btn" onclick="fermerModal()">OK</button></div>`);}
+ modal(`<h2>Fluidité</h2>${res.res.map(r=>`<p><b>${r.scene}</b> : ${r.fps||'?'} img/s (1 % bas : ${r.bas1||'?'})${r.lent?' (lent)':''}</p>`).join('')}<p class="doux">GPU : ${esc(res.gpu)}<br>${res.enregistre?'Envoyé à Claude ✓':'Non envoyé ('+esc(res.base)+')'}</p><div class="btns"><button class="btn" onclick="fermerModal()">OK</button></div>`);}
 /* ---------- démarrage ---------- */
 async function demarrer(){
  try{TK=Testkit({jeu:'cage-gloire',canvas:()=>$('cv3d'),capture:async()=>{try{return Arene.capture();}catch(e){return '';}},etat:()=>({vue:VUE,test:TEST,sem:G&&G.sem,argent:G&&Math.round(G.argent),mes:G&&M.mes().map(f=>({n:nomC(f),org:f.org,note:M.ov(f),rec:rec(f)})),offres:G&&G.offres.length,aJouer:G&&G.aJouer,combat:CB&&{cid:CB.cid,i:CB.i},ecran:innerWidth+'x'+innerHeight,arene:ARENE_OK,infos:Arene.infos&&Arene.infos()})});}catch(e){}

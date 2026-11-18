@@ -69,3 +69,10 @@ Construction : `npm i` à la racine du dossier (three 0.160, esbuild, @fontsourc
 ## Outils de chasse aux bugs
 - `node outils/audit.js 4 12` : 4 parties de 12 ans avec un joueur au hasard ; vérifie NaN, bornes, combats en double, ceintures vacantes, champions partis, offres orphelines, taille de la sauvegarde.
 - `python3 outils/monkey.py build/index.html dossier 900 390 844 1` : robot qui clique au hasard (vrais clics) ; rapporte erreurs JS, écrans bloquants, boutons les plus cliqués.
+- **Tout vérifier en une commande** : `python3 outils-communs/verif.py cage-et-gloire/outils/verif.json` (calib, evtest, audit, sauvegarde, combat 3D, singe, poids ; `--complet` ajoute parcours + banc avant/après) → `/tmp/verif-cage-et-gloire/rapport.html`.
+
+## Nouveau personnage (décision de Victor du 17/11, en cours)
+- But : remplacer Xbot par un personnage Mixamo à peau continue (même squelette mixamorig, mêmes poses), short et tête séparés, +1 à 2 Mo, crédit Mixamo.
+- `node outils/prep_perso.mjs source.glb [sommets=12000] [sortie=jeu/perso.glb]` : retire animations, textures et UV, vérifie les 20 os utilisés par les poses, simplifie, compresse (meshopt). Un FBX Mixamo se convertit d'abord en GLB avec `valdragon/outils/ressources/mxbuild.py`.
+- Le site Mixamo (compte Adobe) n'est pas joignable depuis les conversations : le fichier source doit être fourni (dossier `cage-et-gloire/dl/`).
+- Ensuite : `regions()` d'arene.js à refaire pour ce maillage (pas de « Joints », positions de repos `bp` recalculées), puis captures + banc.

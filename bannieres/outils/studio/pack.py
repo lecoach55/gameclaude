@@ -2,13 +2,15 @@
 # Chaque créature : une planche (une ligne d'images recadrées), le point d'appui au sol et l'échelle (pixels par unité du monde).
 import sys,glob,os,json,base64,io
 from PIL import Image,ImageFilter,ImageEnhance,ImageChops
-D,OUT=sys.argv[1],sys.argv[2]
+D,OUT=sys.argv[1],sys.argv[2];FUSION='--fusion' in sys.argv
+# bêtes sculptées (quad.js) : couleurs déjà naturelles, pas de saturation ajoutée (revue artistique 16/11 : « plastique orange »)
+BETES={'loup','chevloup','roc','behemoth','centaure','griffon','pegase','licorne','treant'}
 ANIMS=['idle','atk','hit','die']
 PXU={'dragonvert':224/3.3,'dragonos':224/3.3,'wyverne':176/2.6}
-def traiter(im):
+def traiter(im,sat=1.4,lum=(.9,1.3)):
     im=im.convert('RGBA');r,g,b,a=im.split();rgb=Image.merge('RGB',(r,g,b))
     import numpy as np;A=np.asarray(a,dtype=np.float32)>40;L=np.asarray(rgb.convert('L'),dtype=np.float32)[A].mean()/255 if A.any() else .5
-    rgb=ImageEnhance.Color(rgb).enhance(1.4);rgb=ImageEnhance.Brightness(rgb).enhance(max(.9,min(1.3,.42/max(.05,L))));rgb=ImageEnhance.Contrast(rgb).enhance(1.1)
+    rgb=ImageEnhance.Color(rgb).enhance(sat);rgb=ImageEnhance.Brightness(rgb).enhance(max(lum[0],min(lum[1],.42/max(.05,L))));rgb=ImageEnhance.Contrast(rgb).enhance(1.1)
     # contour sombre doux (comme les créatures dessinées)
     a2=a.filter(ImageFilter.MaxFilter(3));contour=Image.new('RGBA',im.size,(24,14,6,0));contour.putalpha(a2.point(lambda v:int(v*.6)))
     corps=Image.merge('RGBA',(*rgb.split(),a));contour.alpha_composite(corps);return contour
@@ -16,7 +18,7 @@ res={}
 for f in sorted(glob.glob(D+'/*_idle0.png')):
     cid=os.path.basename(f)[:-len('_idle0.png')];frames=[];nb={}
     for an in ANIMS:
-        l=sorted(glob.glob(f'{D}/{cid}_{an}[0-9].png'));nb[an]=len(l);frames+= [traiter(Image.open(x)) for x in l]
+        l=sorted(glob.glob(f'{D}/{cid}_{an}[0-9].png'));nb[an]=len(l);frames+= [traiter(Image.open(x),*((1.0,(.95,1.15)) if cid in BETES else ())) for x in l]
     bb=None
     for im in frames:
         b=im.getbbox()
@@ -30,5 +32,7 @@ for f in sorted(glob.glob(D+'/*_idle0.png')):
     buf=io.BytesIO();sheet.save(buf,'WEBP',quality=82,method=6)
     res[cid]={'w':fw,'h':fh,'ax':round(ax-x0,1),'ay':yb-y0,'n':nb,'pxu':round(PXU.get(cid,168/2.35),1),'img':'data:image/webp;base64,'+base64.b64encode(buf.getvalue()).decode()}
     print(cid,fw,fh,len(frames),len(buf.getvalue())//1024,'Kio')
+if FUSION and os.path.exists(OUT):
+    src=open(OUT).read();anc=json.loads(src[src.index('var SPR3D=')+10:src.rindex(';')]);anc.update(res);res=anc;print('fusion :',len(res),'créatures')
 open(OUT,'w').write("'use strict';\n/* Créatures pré-rendues en 3D (outils/studio : modèles de Valdragon — Mixamo, dragon « Drago » d'Oscar Creativo CC BY 4.0, armes KayKit CC0). Généré par pack.py. */\nvar SPR3D="+json.dumps(res,separators=(',',':'))+";\n")
 print('total',os.path.getsize(OUT)//1024,'Kio')

@@ -26,7 +26,7 @@ function brume(m,opt={}){m.onBeforeCompile=sh=>{sh.uniforms.bsFog=U.fog;sh.unifo
  diffuseColor*=tc;}
 #endif`);
   if(opt.extra)opt.extra(sh);};
- m.customProgramCacheKey=()=>'bs'+(opt.vent||'')+(opt.onde?'o':'')+(opt.tri?'t'+opt.tri+(opt.neige??''):'')+(opt.cle||'')+((opt.cle==='sol'||opt.tri)&&S.qual<=0?'0':'');return m;}
+ m.customProgramCacheKey=()=>'bs'+(opt.vent||'')+(opt.onde?'o':'')+(opt.tri?'t'+opt.tri+(opt.neige??''):'')+(opt.cle||'')+((opt.cle==='sol'||opt.cle==='eau'||opt.tri)&&S.qual<=0?'0':'');return m;}
 const PM={tri:'mur',r:.92},PM2={tri:'mur2',r:.92},PT={tri:'ardoise',r:.75,ech:1.2},PTU={tri:'tuile',r:.8,ech:1.2},PC={tri:'chaume',r:.95,ech:1.4},PB={tri:'bois',r:.85,ech:1.1};
 let ECH=3;// répétitions des textures par unité (carte 3, combat 1.4, ville .55)
 const MATS={};function mat(c,o={}){if(o.map===null)delete o.map;if(o.tri&&!RES.tx[o.tri])o=Object.assign({},o,{tri:null});if(o.tri)o=Object.assign({},o,{ech:(o.ech||1)*ECH});const k=c+JSON.stringify(o,(n,v)=>n==='map'?(v&&v.uuid):v);if(MATS[k])return MATS[k];const m=new T.MeshStandardMaterial(Object.assign({color:c,roughness:o.r??.85,metalness:o.m||0,flatShading:!!o.plat},o.map?{map:o.map}:{},o.tri?{map:RES.tx[o.tri]}:{}));if(o.em){m.emissive=new T.Color(o.em);m.emissiveIntensity=o.ei||1;}if(o.vc)m.vertexColors=true;if(o.transp){m.transparent=true;m.opacity=o.transp;}return MATS[k]=brume(m,o);}
@@ -67,7 +67,16 @@ function hauteurs(){const c=G.carte;N=c.N;const SD=champSigne(c);const nz=bruit(
   let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const tx=Math.floor(x)+dx,ty=Math.floor(z)+dy;if(tx>=0&&ty>=0&&tx<N&&ty<N&&mont[ty*N+tx]){const d=Math.hypot(x-tx-.5,z-ty-.5);m=Math.max(m,Math.max(0,1-d/1.6));}}h+=m*.45;
   const tx=Math.min(N-1,Math.floor(x)),ty=Math.min(N-1,Math.floor(z));if(c.route[ty*N+tx])h*=.4;
   H[j*W+i]=h;}
- H.R=R;H.W=W;}
+ H.R=R;H.W=W;RIVE=texRive();}
+// rivages (19/11) : R = profondeur (distance à la terre, cases/2,5), G = proximité de l'eau sur la terre (bande de sable mouillé ≈ 0,45 case)
+let RIVE=null;function texRive(){const R=H.R,W=H.W,n=W*W,BIG=1e6;const eauP=new Uint8Array(n);for(let k=0;k<n;k++)eauP[k]=H[k]<-.1?1:0;
+ const dt=src=>{const d=new Float32Array(n);for(let k=0;k<n;k++)d[k]=src[k]?0:BIG;// chanfrein 3-4, deux passes
+  for(let j=0;j<W;j++)for(let i=0;i<W;i++){const k=j*W+i;let v=d[k];if(!v)continue;if(i>0)v=Math.min(v,d[k-1]+3);if(j>0){v=Math.min(v,d[k-W]+3);if(i>0)v=Math.min(v,d[k-W-1]+4);if(i<W-1)v=Math.min(v,d[k-W+1]+4);}d[k]=v;}
+  for(let j=W-1;j>=0;j--)for(let i=W-1;i>=0;i--){const k=j*W+i;let v=d[k];if(!v)continue;if(i<W-1)v=Math.min(v,d[k+1]+3);if(j<W-1){v=Math.min(v,d[k+W]+3);if(i<W-1)v=Math.min(v,d[k+W+1]+4);if(i>0)v=Math.min(v,d[k+W-1]+4);}d[k]=v;}
+  return d;};
+ const dEau=dt(eauP),terre=new Uint8Array(n);for(let k=0;k<n;k++)terre[k]=1-eauP[k];const dTer=dt(terre);
+ const px=new Uint8Array(n*4);for(let k=0;k<n;k++){const de=dEau[k]/3/R,dtr=dTer[k]/3/R;px[k*4]=eauP[k]?Math.min(255,dtr/2.5*255):0;px[k*4+1]=eauP[k]?255:Math.max(0,255*(1-de/.45));px[k*4+3]=255;}
+ if(RIVE)RIVE.dispose();const t=new T.DataTexture(px,W,W);t.magFilter=t.minFilter=T.LinearFilter;t.wrapS=t.wrapT=T.ClampToEdgeWrapping;t.needsUpdate=true;t.userData={W,R};return t;}
 function h(x,z){if(!H)return 0;const R=H.R,W=H.W;const fx=Math.max(0,Math.min(W-1.001,x*R)),fz=Math.max(0,Math.min(W-1.001,z*R));const i=Math.floor(fx),j=Math.floor(fz),ax=fx-i,az=fz-j;
  return H[j*W+i]*(1-ax)*(1-az)+H[j*W+i+1]*ax*(1-az)+H[(j+1)*W+i]*(1-ax)*az+H[(j+1)*W+i+1]*ax*az;}
 function sol(x,y){return Math.max(-.12,h(x+.5,y+.5));}// hauteur d'appui au centre d'une case (pas sous l'eau)
@@ -76,7 +85,18 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
  terrain=new T.Mesh(g,RES.lay?matSol():(()=>{const tx=new T.CanvasTexture(V.sol);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=Math.min(8,ren.capabilities.getMaxAnisotropy());return brume(new T.MeshStandardMaterial({map:tx,roughness:.93,metalness:0}));})());terrain.receiveShadow=true;terrain.name='terrain';scene.add(terrain);
  // eau : plan brillant et légèrement transparent
  const ge=new T.PlaneGeometry(N+40,N+40,1,1);ge.rotateX(-Math.PI/2);ge.translate(N/2,-.1,N/2);
- const me=brume(new T.MeshStandardMaterial({color:0x1a4558,roughness:.05,metalness:.15,transparent:true,opacity:.9,envMapIntensity:1.3,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}));eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
+ const me=brume(new T.MeshStandardMaterial({color:0x1a4558,roughness:.05,metalness:.15,transparent:true,opacity:.9,envMapIntensity:1.3,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}),{cle:'eau',extra:sh=>{
+  Object.assign(sh.uniforms,{bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsBr:{value:texBruitGL()}});
+  sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+'uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;uniform sampler2D bsBr;uniform float bsT;\nvoid main() {')
+   .replace('#include <color_fragment>',`#include <color_fragment>
+ {float d=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).r;// hauts-fonds #3c6e6a → large #12303f
+  diffuseColor.rgb=mix(vec3(.045,.155,.144),vec3(.006,.03,.05),smoothstep(.0,.75,d));diffuseColor.a=mix(.42,.93,smoothstep(.0,.4,d));
+#ifndef BS_LEGER
+  float nz=texture2D(bsBr,vBsW*.9+vec2(bsT*.03,bsT*.02)).r,nz2=texture2D(bsBr,vBsW*2.3-vec2(bsT*.05,0.)).r;
+  float ec=(1.-smoothstep(.0,.06+.05*nz,d))*smoothstep(.35,.7,nz2*.6+nz*.4+.15*sin(bsT*1.3+d*40.));
+  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.8,.78),ec*.75);diffuseColor.a=max(diffuseColor.a,ec*.85);
+#endif
+ }`);}});eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
  const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint
@@ -87,10 +107,10 @@ function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);const g=cv.getCont
  try{rivieres(g,Object.assign({graine:G.graine},c),G.objs,'#00ff00');}catch(e){console.warn(e);}g.filter='none';
  const t=new T.CanvasTexture(cv);t.minFilter=T.LinearMipmapLinearFilter;return t;}
 function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N;i++)td[i]=c.ter[i];const tt=new T.DataTexture(td,N,N,T.RedFormat);tt.needsUpdate=true;
- const uni={bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
+ const uni={bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
  const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});
  return brume(m,{cle:'sol',extra:sh=>{Object.assign(sh.uniforms,uni);
-  sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;
+  sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;
 float bsRiv=0.,bsGlow=0.;
 vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;
 #ifdef BS_LEGER
@@ -114,6 +134,8 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
+ col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,.76);// grandes surfaces moins saturées (revue artistique : S ≤ 0,45)
+ {float sa=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).g;sa=smoothstep(.2,.7,sa+(nz-.5)*.55);col=mix(col,couche(p,4.,nz)*vec3(.74,.72,.68),sa*(t0==6.?0.:1.));col*=1.-.22*smoothstep(.75,1.,sa);}// sable mouillé (19/11)
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
@@ -148,7 +170,7 @@ const MPI={};function planImp(vue,nom,ht,mir,q){const k=nom+'_'+vue,me=RES.imp&&
 function matSolSimple(a,b,ech,var2){const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});const uni={bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsBr:{value:texBruitGL()}};
  return brume(m,{cle:'solS'+a+b+ech,extra:sh=>{Object.assign(sh.uniforms,uni);sh.fragmentShader=sh.fragmentShader.replace('void main() {','uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsBr;\nvoid main() {').replace('#include <map_fragment>',`{vec2 p=vBsW*${ech.toFixed(3)};float nz=texture2D(bsBr,p*.11).r,nz2=texture2D(bsBr,p*.023+.4).r;
  vec3 ca=mix(texture(bsLay,vec3(p,${a}.)).rgb,texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.71+.3,${a}.)).rgb,smoothstep(.35,.65,nz));vec3 cb=texture(bsLay,vec3(p*.9,${b}.)).rgb;
- float mb=smoothstep(.56,.68,nz2*.7+nz*.3)*${(var2??1).toFixed(2)};vec3 col=mix(ca,cb,mb);col*=.85+.3*nz2;diffuseColor.rgb*=col;bsNt=mix(texture(bsLayN,vec3(p,${a}.)).xyz,texture(bsLayN,vec3(p*.9,${b}.)).xyz,mb)*2.-1.;}`).replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1);normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}');}});}
+ float mb=smoothstep(.56,.68,nz2*.7+nz*.3)*${(var2??1).toFixed(2)};vec3 col=mix(ca,cb,mb);col*=.85+.3*nz2;col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,.8);diffuseColor.rgb*=col;bsNt=mix(texture(bsLayN,vec3(p,${a}.)).xyz,texture(bsLayN,vec3(p*.9,${b}.)).xyz,mb)*2.-1.;}`).replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1);normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}');}});}
 const SEC={herbe:1,terre:2,rude:1,neige:2,sable:2,marais:7,lave:2};const IDT={herbe:0,terre:1,rude:2,neige:3,sable:4,marais:5,lave:6};
 function arbresPour(ter,r){const p=r.f();switch(ter){
  case 'neige':return p<.8?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:'jeune_a';
@@ -296,7 +318,8 @@ function villeMesh(v){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=n
 function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.25,o.id);const col={or:0x8a7a5a,minerai:0x7a7670,mercure:0x6a7078,soufre:0x8a7a40,cristal:0x6a5a6a,gemmes:0x5a6a6a,bois:0x6a5a3a}[o.res];
  if(o.res==='bois'){const h0=new T.Group();h0.position.set(-.05,0,-.12);colombage(h0,.8,.5,.36,0x8a7a5a,false,PC);gr.add(h0);bloc(gr,GBOX,0x4a3424,PP,[.5,.2,0],null,[.04,.4,.04]);for(let k=0;k<3;k++)bloc(gr,CYL,0xa87a48,PB,[-.25+k*.15,.08+k%2*.06,.35],[0,0,Math.PI/2],[.12,.5,.12]);
   const roue=new T.Group();roue.position.set(.45,.45,-.1);for(let k=0;k<4;k++)bloc(roue,BOX,0xc8b48a,PB,[0,0,0],[0,0,k*Math.PI/4],[.06,.7,.04]);gr.add(roue);gr.userData.tourne=roue;}
- else{const m=bloc(gr,g,0xd8d0c4,{tri:'roche2',r:.95,ech:.5},[0,0,-.15],null,[1.1,1.1,1]);bloc(gr,BOX,0x0e0a08,{r:1},[0,.17,.32],null,[.3,.34,.1]);for(const s2 of [-1,1])bloc(gr,GBOX,0x4a3424,PP,[s2*.18,.2,.38],null,[.05,.42,.05]);bloc(gr,GBOX,0x4a3424,PP,[0,.42,.38],null,[.46,.05,.06]);for(let k=0;k<4;k++)bloc(gr,GBOX,0x4a3a30,PP,[0,.005,.5+k*.12],null,[.3,.01,.03]);
+ else{// colline rocheuse (19/11) : rochers Poly Haven pré-rendus derrière l'entrée boisée, l'ancien dôme seulement sans atlas
+  if(RES.atlas){impObj(gr,'roc_a',1.0,-.04,-.08);impObj(gr,'roc_b',.62,-.5,0,1);impObj(gr,'roc_c',.5,.48,.02);}else bloc(gr,g,0xd8d0c4,{tri:'roche2',r:.95,ech:.5},[0,0,-.15],null,[1.1,1.1,1]);bloc(gr,BOX,0x0e0a08,{r:1},[0,.17,.32],null,[.3,.34,.1]);for(const s2 of [-1,1])bloc(gr,GBOX,0x4a3424,PP,[s2*.18,.2,.38],null,[.05,.42,.05]);bloc(gr,GBOX,0x4a3424,PP,[0,.42,.38],null,[.46,.05,.06]);for(let k=0;k<4;k++)bloc(gr,GBOX,0x4a3a30,PP,[0,.005,.5+k*.12],null,[.3,.01,.03]);
   const pile={or:0xf2c23a,minerai:0x9a9a9a,mercure:0xd8e8f0,soufre:0xe8d23a,cristal:0xe0384a,gemmes:0x3ac85a}[o.res];for(let k=0;k<5;k++)bloc(gr,o.res==='cristal'||o.res==='gemmes'?new T.OctahedronGeometry(.08):SPH,o.res==='gemmes'?[0x3a7ae8,0x3ac85a,0xe83a8a,0xf0d03a,0x3ac8e8][k]:pile,{r:.3,m:o.res==='or'||o.res==='mercure'?.7:0,em:o.res==='cristal'||o.res==='gemmes'?pile:null,ei:.25},[-.3+k*.14,.07,.48+(k%2)*.08],null,o.res==='cristal'||o.res==='gemmes'?[1,1.6,1]:[.14,.1,.14]);}
  if(RES.atlas&&o.res!=='bois'){impObj(gr,'tonneau',.22,-.42,.42);impObj(gr,'caisse',.16,.45,.45,1);}gr.userData.drap=drapeauMesh(gr,.3,.95,-.1,o.prop>=0?COULEURS[G.joueurs[o.prop].coul].c:'#d8d2c2',.9);return gr;}
 function pileMesh(o){const gr=new T.Group();const r=o.res;
@@ -531,7 +554,7 @@ function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?
   if(b==='hotelville'||b==='capitole')for(const s of [-1,1])tourR(gr,s*w*.55,0,w*.1,w*.85,mur,toit,'cone',P);if(b==='capitole')bloc(gr,SPH,0xf0c040,{em:0xd0a020,ei:1,m:.8,r:.2},[0,w*1.25+w*.62,-w*.1],null,[w*.22,w*.22,w*.22]);return gr;}
  if(b==='graal'){bloc(gr,CONE4,fac==='necro'?0x5a4a7a:fac==='sylve'?0x5a9a4a:0xf0e0a0,{em:0xffd060,ei:.6,tri:P.tri},[0,w*1.3,0],[0,Math.PI/4,0],[w*.6,w*2.6,w*.6]);bloc(gr,SPH,0xfff0b0,{em:0xffe080,ei:3},[0,w*2.75,0],null,[w*.3,w*.3,w*.3]);return gr;}
  if(b.startsWith('guilde')){const n=+b[6];tourR(gr,0,0,w*.3,w*(.9+n*.4),mur,toit,'fleche',P);bloc(gr,SPH,0xc8b0ff,{em:0xa080ff,ei:2.5},[0,w*(.9+n*.4)+w*1.25,0],null,[w*.22,w*.22,w*.22]);return gr;}
- if(b==='taverne'){bloc(gr,GBOX,0xd8d0c4,PM3,[0,w*.17,0],null,[w*1.02,w*.34,w*.78]);const h1=new T.Group();h1.position.y=w*.34;colombage(h1,w,w*.76,w*.36,0x9a6a54,nuit,PTU,false);gr.add(h1);bloc(gr,GBOX,0x3a2412,PP,[0,w*.13,w*.4],null,[w*.18,w*.26,.02]);bloc(gr,BOX,0x3a2a1a,PB,[w*.62,w*.5,w*.3],null,[w*.3,.06,.06]);bloc(gr,BOX,0xc89040,{},[w*.7,w*.38,w*.3],null,[w*.18,w*.16,.04]);for(let k=0;k<2;k++)bloc(gr,CYL,0x8a5a30,PB,[-w*.65+k*.3,w*.12,w*.35],null,[w*.16,w*.24,w*.16]);return gr;}
+ if(b==='taverne'){bloc(gr,GBOX,0xd8d0c4,PM3,[0,w*.17,0],null,[w*1.02,w*.34,w*.78]);const h1=new T.Group();h1.position.y=w*.34;colombage(h1,w,w*.76,w*.36,fac==='horde'?0xb08a48:fac==='bastion'?0x9a6a54:toit,nuit,fac==='horde'?PC:fac==='bastion'?PTU:PT,false);gr.add(h1);bloc(gr,GBOX,0x3a2412,PP,[0,w*.13,w*.4],null,[w*.18,w*.26,.02]);bloc(gr,BOX,0x3a2a1a,PB,[w*.62,w*.5,w*.3],null,[w*.3,.06,.06]);bloc(gr,BOX,0xc89040,{},[w*.7,w*.38,w*.3],null,[w*.18,w*.16,.04]);for(let k=0;k<2;k++)bloc(gr,CYL,0x8a5a30,PB,[-w*.65+k*.3,w*.12,w*.35],null,[w*.16,w*.24,w*.16]);return gr;}
  if(b==='marche'){for(let k=0;k<3;k++){const x=(k-1)*w*.42;for(const sx of [-1,1])for(const sz of [-1,1])bloc(gr,CYL,0x6a4a2a,PB,[x+sx*w*.15,w*.22,sz*w*.12],null,[.06,w*.44,.06]);bloc(gr,CONE4,[0x8a4a3a,0xc8bca0,0x4a5a6a][k],PE,[x,w*.52,0],[0,Math.PI/4,0],[w*.48,w*.18,w*.4]);bloc(gr,BOX,0x9a6a3a,PB,[x,w*.16,0],null,[w*.32,w*.08,w*.22]);for(let j=0;j<3;j++)bloc(gr,SPH,[0xe85a3a,0xf0c040,0x6ac84a][(j+k)%3],{},[x+(j-1)*w*.08,w*.22,0],null,[w*.06,w*.06,w*.06]);}return gr;}
  if(b==='silo'){tourR(gr,0,0,w*.32,w*.85,0xd8d0c0,0x8a6a4a,'cone',PM3,PB);bloc(gr,GBOX,0x3a2412,PP,[0,w*.15,w*.33],null,[w*.16,w*.3,.02]);return gr;}
  // habitations
@@ -539,7 +562,7 @@ function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?
  if(fac==='sylve'){bloc(gr,CYL,0x6a4a2a,PB,[0,w*.55,0],null,[w*.2,w*1.1,w*.2]);{const o=RES.atlas?planImp('b','feuillu_b',w*2.4,false,null):null;if(o){o.position.set(0,0,-w*.2);o.userData.face=1;gr.add(o);}else for(let k=0;k<5;k++){const a=k*1.26;bloc(gr,SPH,0x3f7a34,{},[Math.cos(a)*w*.28,w*(1.15+(k%2)*.12),Math.sin(a)*w*.2],null,[w*.5,w*.42,w*.5]);}}const n0=gr.children.length;maison(gr,w*.6,w*.3,0x9a7448,toit,PB,nuit,false);gr.children.slice(n0).forEach(m=>m.position.y+=w*.45);}
  else if(fac==='horde'){bloc(gr,CYL,0x9a7448,PB,[0,w*.25,0],null,[w,w*.5,w*.9]);bloc(gr,CONE,0xc9a050,PC,[0,w*.5+w*.3,0],null,[w*1.25,w*.6,w*1.15]);bloc(gr,BOX,0x2a1608,PB,[0,w*.16,w*.44],null,[w*.26,w*.32,.04]);}
  else if(fac==='necro'){bloc(gr,BOX,teinteHex(mur,-.15),P,[0,w*.3,0],null,[w,w*.6,w*.8]);bloc(gr,CONE4,teinteHex(mur,-.3),P,[0,w*.6+w*.25,0],[0,Math.PI/4,0],[w*1.2,w*.5,w*1]);bloc(gr,BOX,0x120c18,{},[0,w*.2,w*.41],null,[w*.3,w*.4,.04]);for(const s of [-1,1])bloc(gr,BOX,0x7cf7a2,{em:0x7cf7a2,ei:1.5},[s*w*.3,w*.42,w*.41],null,[w*.08,w*.12,.03]);}
- else colombage(gr,w,w*.75,w*(.5+niv*.03),niv%2?0x9a6a54:toit,nuit,niv%2?PTU:PT);
+ else colombage(gr,w,w*.75,w*(.5+niv*.03),niv%2&&fac==='bastion'?0x9a6a54:toit,nuit,niv%2&&fac==='bastion'?PTU:PT);
  return gr;}
 function teinteHex(h,k){const c=new T.Color(h);c.multiplyScalar(1+k);return c.getHex();}
 // profondeur et taille dans la scène pour chaque emplacement de l'ancien panorama
@@ -551,7 +574,8 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const tf=Math.tan(fov*Math.PI/360);const pitch=Math.atan((camY-tgY)/camZ);const yh=.5-.5*Math.tan(pitch)/tf;// horizon (fraction de la hauteur)
  // ciel + montagnes lointaines peints (comme l'ancien panorama)
  const bg=mkC(W,H),g=bg.getContext('2d');const sky=g.createLinearGradient(0,0,0,H*yh);sky.addColorStop(0,nuit?'#141026':hd?'#c0603a':syl?'#5a9ad0':'#4a84c8');sky.addColorStop(1,nuit?'#4a3c60':hd?'#f8d090':syl?'#d8ecd0':'#f2dcb4');g.fillStyle=sky;g.fillRect(0,0,W,H);
- if(nuit){g.fillStyle='#e8e4d0';g.beginPath();g.arc(W*.8,H*.12,H*.05,0,7);g.fill();g.fillStyle='#141026';g.beginPath();g.arc(W*.815,H*.11,H*.046,0,7);g.fill();for(let k=0;k<60;k++){g.fillStyle='rgba(255,255,255,'+(.3+r.f()*.6)+')';g.fillRect(r.f()*W,r.f()*H*yh*.8,1.5,1.5);}}
+ if(nuit){const lx=W*.8,ly=H*.12,lr=H*.032;const hl=g.createRadialGradient(lx,ly,lr*.8,lx,ly,lr*6);hl.addColorStop(0,'rgba(200,205,220,.28)');hl.addColorStop(1,'rgba(200,205,220,0)');g.fillStyle=hl;g.fillRect(lx-lr*6,ly-lr*6,lr*12,lr*12);
+  const dl=g.createRadialGradient(lx-lr*.3,ly-lr*.3,lr*.1,lx,ly,lr);dl.addColorStop(0,'#e4e2d8');dl.addColorStop(1,'#b8b6ae');g.fillStyle=dl;g.beginPath();g.arc(lx,ly,lr,0,7);g.fill();g.fillStyle='rgba(120,120,128,.35)';for(const [a,b,c] of [[-.3,-.2,.35],[.25,.1,.28],[-.05,.35,.2],[.3,-.35,.15]]){g.beginPath();g.arc(lx+a*lr,ly+b*lr,c*lr,0,7);g.fill();}for(let k=0;k<60;k++){g.fillStyle='rgba(255,255,255,'+(.3+r.f()*.6)+')';g.fillRect(r.f()*W,r.f()*H*yh*.8,1.5,1.5);}}
  else{g.save();g.filter='blur('+Math.round(H*.018)+'px)';for(let k=0;k<9;k++){const x=r.f()*W,y=H*(.04+r.f()*yh*.55),L=W*(.08+r.f()*.14);g.globalAlpha=.25+r.f()*.35;g.fillStyle='#fff';for(let j=0;j<7;j++){g.beginPath();g.ellipse(x+(r.f()-.5)*L,y+(r.f()-.5)*H*.02,L*(.18+r.f()*.2),H*(.012+r.f()*.02),0,0,7);g.fill();}}g.restore();}
  g.save();g.filter='blur('+Math.max(1,Math.round(H*.003))+'px)';for(let l=0;l<2;l++){g.fillStyle=nuit?['#3a3050','#2a2438'][l]:syl?['#8ab0a0','#5a8a64'][l]:hd?['#b88a6a','#8a6a4a'][l]:['#9aa8c0','#7a8aa4'][l];g.beginPath();g.moveTo(0,H*(yh+.05));for(let x=0;x<=W;x+=W/16)g.lineTo(x,H*(yh-.2+l*.08)+Math.sin(x/W*12+l*2+v.id)*H*.05+r.f()*H*.035);g.lineTo(W,H*(yh+.05));g.closePath();g.fill();}g.restore();
  const tb=new T.CanvasTexture(bg);tb.colorSpace=T.SRGBColorSpace;sc.background=tb;

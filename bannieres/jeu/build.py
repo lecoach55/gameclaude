@@ -8,7 +8,8 @@ css=open(os.path.join(d,'style.css'),encoding='utf-8').read()
 for _n in ('bois','fond_cre'):css=css.replace('url(tex/'+_n+'.jpg)','url(data:image/jpeg;base64,'+_b.b64encode(open(os.path.join(d,'tex',_n+'.jpg'),'rb').read()).decode()+')')
 import subprocess as _sp
 # polices du studio intégrées (Cinzel, Alegreya : SIL OFL) — page hors ligne
-_pol=_sp.run([sys.executable,os.path.join(d,'..','..','studio','ressources','polices','polices.py'),'cinzel,alegreya'],capture_output=True,text=True,check=True).stdout
+try:_pol=_sp.run([sys.executable,os.path.join(d,'..','..','studio','ressources','polices','polices.py'),'cinzel,alegreya'],capture_output=True,text=True,check=True).stdout
+except Exception as _e:print('polices du studio introuvables (hors du dépôt ?) : page construite sans elles',_e);_pol=''
 html=html.replace('<link rel="stylesheet" href="style.css">','<style>\n'+_pol+css+'\n</style>')
 def inl(m):
     typ,src=m.group(1) or "",m.group(2)

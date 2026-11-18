@@ -33,6 +33,6 @@ for f in sorted(glob.glob(D+'/*_idle0.png')):
     res[cid]={'w':fw,'h':fh,'ax':round(ax-x0,1),'ay':yb-y0,'n':nb,'pxu':round(PXU.get(cid,168/2.35),1),'img':'data:image/webp;base64,'+base64.b64encode(buf.getvalue()).decode()}
     print(cid,fw,fh,len(frames),len(buf.getvalue())//1024,'Kio')
 if FUSION and os.path.exists(OUT):
-    src=open(OUT).read();anc=json.loads(src[src.index('var SPR3D=')+10:src.rindex(';')]);anc.update(res);res=anc;print('fusion :',len(res),'créatures')
-open(OUT,'w').write("'use strict';\n/* Créatures pré-rendues en 3D (outils/studio : modèles de Valdragon — Mixamo, dragon « Drago » d'Oscar Creativo CC BY 4.0, armes KayKit CC0). Généré par pack.py. */\nvar SPR3D="+json.dumps(res,separators=(',',':'))+";\n")
+    src=open(OUT,encoding='utf-8').read();anc=json.loads(src[src.index('var SPR3D=')+10:src.rindex(';')]);anc.update(res);res=anc;print('fusion :',len(res),'créatures')
+open(OUT,'w',encoding='utf-8').write("'use strict';\n/* Créatures pré-rendues en 3D (outils/studio : modèles de Valdragon — Mixamo, dragon « Drago » d'Oscar Creativo CC BY 4.0, armes KayKit CC0). Généré par pack.py. */\nvar SPR3D="+json.dumps(res,separators=(',',':'))+";\n")
 print('total',os.path.getsize(OUT)//1024,'Kio')

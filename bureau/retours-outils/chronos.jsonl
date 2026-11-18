@@ -133,3 +133,13 @@
 {"quand": "2026-11-18 18:13", "jeu": "cage-et-gloire", "etape": "verif · Sauvegarde compressée → rechargement identique", "commande": "python3 cage-et-gloire/outils/sauvegarde.py /home/claude/cg.html", "secondes": 25.2, "code": 0}
 {"quand": "2026-11-18 18:14", "jeu": "cage-et-gloire", "etape": "verif · Soirée de combat 3D jusqu'au résultat (combat3d)", "commande": "python3 cage-et-gloire/outils/combat3d.py /home/claude/cg.html /tmp/verif-cg-combat3d", "secondes": 73.0, "code": 0}
 {"quand": "2026-11-18 18:16", "jeu": "cage-et-gloire", "etape": "verif · Singe téléphone + ordinateur", "commande": "python3 outils-communs/robots/singe.py cage-et-gloire/outils/singe.json --sortie /tmp/verif-cage-et-gloire/singe-telephone-ordinateur --secondes 45", "secondes": 105.2, "code": 0}
+{"quand": "2026-11-18 19:37", "jeu": "bannieres", "etape": "verif · Construction", "commande": "python3 bannieres/jeu/build.py", "secondes": 0.2, "code": 0}
+{"quand": "2026-11-18 19:37", "jeu": "bannieres", "etape": "verif · Parcours 6 jours carte 2D + sauvegarde", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/parcours.py 6", "secondes": 16.7, "code": 0}
+{"quand": "2026-11-18 19:37", "jeu": "bannieres", "etape": "verif · Scénarios siège, Graal, victoire", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/scen.py", "secondes": 12.9, "code": 0}
+{"quand": "2026-11-18 19:38", "jeu": "bannieres", "etape": "verif · Singe téléphone carte 2D", "commande": "V3D=0 python3 bannieres/outils/monkey.py 45 390 844 1", "secondes": 56.4, "code": 0}
+{"quand": "2026-11-18 19:39", "jeu": "bannieres", "etape": "verif · Page publiée hors ligne", "commande": "python3 bannieres/outils/hors_ligne.py", "secondes": 13.3, "code": 0}
+{"quand": "2026-11-18 20:36", "jeu": "bannieres", "etape": "verif · Construction", "commande": "python3 bannieres/jeu/build.py", "secondes": 0.2, "code": 0}
+{"quand": "2026-11-18 20:36", "jeu": "bannieres", "etape": "verif · Parcours 6 jours carte 2D + sauvegarde", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/parcours.py 6", "secondes": 16.4, "code": 0}
+{"quand": "2026-11-18 20:37", "jeu": "bannieres", "etape": "verif · Scénarios siège, Graal, victoire", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/scen.py", "secondes": 13.1, "code": 0}
+{"quand": "2026-11-18 20:37", "jeu": "bannieres", "etape": "verif · Singe téléphone carte 2D", "commande": "V3D=0 python3 bannieres/outils/monkey.py 45 390 844 1", "secondes": 53.1, "code": 0}
+{"quand": "2026-11-18 20:38", "jeu": "bannieres", "etape": "verif · Page publiée hors ligne", "commande": "python3 bannieres/outils/hors_ligne.py", "secondes": 13.1, "code": 0}

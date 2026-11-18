@@ -208,7 +208,7 @@ function hauteurPose(g){const p0=g.pose0;let m=0;for(const [av] of [[1],[0]]){co
 // ---------- oiseau géant (roc) ----------
 function oiseau(o){const root=new THREE.Group(),corps=new THREE.Group();root.add(corps);const mc=new MarchingCubes(o.res||100,matPeau({etire:[60,160,60],tache:.18,relief:.5,freq:5}),false,true,220000);mc.castShadow=true;corps.add(mc);const ex=new THREE.Group();corps.add(ex);
  const C=o.couleurs;const etat={root,corps};
-  etat.poser=(an,t)=>{SEED=777;const k=Math.sin(t*Math.PI),s=Math.sin(t*Math.PI*2);let ouv=.15+(an==='idle'?.05*s:an==='atk'?.85*k:an==='hit'?.4:.5),ty=0,cou=0,rz=0;
+  etat.poser=(an,t)=>{SEED=777;const k=Math.sin(t*Math.PI),s=Math.sin(t*Math.PI*2);let ouv=(o.ouv0||.15)+(an==='idle'?.05*s:an==='atk'?.85*k:an==='hit'?.4:.5),ty=0,cou=0,rz=0;
   if(an==='atk'){cou=-k*.5;rz=-k*.2;}if(an==='hit'){cou=k*.4;rz=k*.15;}
   for(const m of [...ex.children]){ex.remove(m);}
   const S=new Sculpt();S.el([0,0,0],[.5,.3,.27],C.robe,.12).el([.22,.05,0],[.3,.3,.24],C.poitrail,.12).el([-.38,-.02,0],[.3,.18,.18],C.robe,.1);
@@ -302,7 +302,7 @@ export const QDEFS={
  griffon:{c:()=>{const o={g:G_GRIFFON,res:104,cabre:1,ailes:1,ailesT:1.1,ailesRepos:.35,plumes:[0x7a5430,0x3a2616],couv:[0x9a6e3e,0x7a5430],couleurs:{robe:0x9a6c3a,fonce:0x5a3c1e,ventre:0xc8b088,tete:0xece6d6,bec:0xd8a838,oeil:0xc88a10},peau:{etire:[90,90,90],tache:.25,relief:.4,freq:5}};
    o.hauteur=hauteurPose(o.g);const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.0,fw:200,fh:192},
  behemoth:{c:()=>{const o={g:G_BEHEMOTH,res:112,couleurs:{robe:0x3e3730,fonce:0x1a1612,ventre:0x5a4e40,nez:0x100c0a,oeil:0xc83a10,corne:0x5e5444,poils:[0x2a241e,0x1a1612,0x3a3228]},peau:{etire:[30,30,30],tache:.35,relief:1.3,freq:4,r:.75}};o.hauteur=hauteurPose(o.g);o.dos=1;o.fourrure=1;const Q=quadrupede(o);return{root:Q.root,poser:(an,t)=>Q.poser(an,t)};},u:3.2,fw:224,fh:192},
- roc:{c:()=>{const E=oiseau({hauteur:.75,ailesT:1.6,rapace:1,couleurs:{robe:0x24180e,poitrail:0x2c1e10,tete:0x1e150c,nuque:0x5a4020,bec:0x3a3632,cire:0xb8902a,patte:0xb08a2a,plumes:[0x3a2818,0x1a120a],couv:[0x4a3420,0x3a2818]}});return{root:E.root,poser:E.poser};},u:3.2,fw:224,fh:200},
+ roc:{c:()=>{const E=oiseau({hauteur:.75,ailesT:1.6,rapace:1,ouv0:.38,couleurs:{robe:0x24180e,poitrail:0x2c1e10,tete:0x1e150c,nuque:0x5a4020,bec:0x3a3632,cire:0xb8902a,patte:0xb08a2a,plumes:[0x3a2818,0x1a120a],couv:[0x4a3420,0x3a2818]}});E.root.scale.setScalar(1.4);return{root:E.root,poser:E.poser};},u:4.2,fw:294,fh:262},
  treant:{c:()=>{const E=treant({couleurs:{ecorce:0x6a5038,fonce:0x3e2e20,feuilles:[0x3a5a22,0x4a6a2a,0x5a7a30,0x2e4a1c]}});return{root:E.root,poser:E.poser};},u:3.0,fw:184,fh:208},
  centaure:{c:()=>{const o=cheval({robe:0x4e3220,fonce:0x22160c,ventre:0x5a3e2a,crin:[0x2a1a10,0x3a2414],nez:0x201410,sabot:0x2a2018});o.g=Object.assign({},o.g,{cou:Object.assign({},o.g.cou,{l:.05,r0:.12,r1:.1})});o.criniere=0;o.sansTete=1;o.g.queue='crins';
    const Q=quadrupede(o);Q.poser('idle',0);

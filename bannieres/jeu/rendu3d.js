@@ -8,7 +8,7 @@
 var R3=(()=>{
 const T=window.THREE;if(!T)return{ok:false};
 let ren=null,scene,cam,soleil,hemi,terrain,eau,fogTex,fogData,N=0,H=null,grp=null,decor=null,objets=new Map(),herosS=new Map(),fleches=null,anneau=null,croixG=null,env=null;
-const U={fog:{value:null},N:{value:1},t:{value:0}};
+const U={fog:{value:null},N:{value:1},t:{value:0},loin:{value:0}};
 let PAN_A=.45,PAN_K=1.1;
 const C3={cible:new T.Vector3(10,0,10),dist:16,tang:.95,yaw:0};
 const S={pret:false,glb:{},qual:2};
@@ -107,10 +107,10 @@ function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);const g=cv.getCont
  try{rivieres(g,Object.assign({graine:G.graine},c),G.objs,'#00ff00');}catch(e){console.warn(e);}g.filter='none';
  const t=new T.CanvasTexture(cv);t.minFilter=T.LinearMipmapLinearFilter;return t;}
 function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N;i++)td[i]=c.ter[i];const tt=new T.DataTexture(td,N,N,T.RedFormat);tt.needsUpdate=true;
- const uni={bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
+ const uni={bsLoin:U.loin,bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
  const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});
  return brume(m,{cle:'sol',extra:sh=>{Object.assign(sh.uniforms,uni);
-  sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;
+  sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMasque;uniform sampler2D bsBr;uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;uniform float bsLoin;
 float bsRiv=0.,bsGlow=0.;
 vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;
 #ifdef BS_LEGER
@@ -129,7 +129,7 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  vec3 col=c0*w.x+c1*w.y+c2*w.z+c3*w.w;
 
 #ifndef BS_LEGER
- {vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
+ if(bsLoin<.5){vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
 #endif
  float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
@@ -407,9 +407,10 @@ A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart()
  N=G.carte.N;fogData=new Uint8Array(N*N);fogTex=new T.DataTexture(fogData,N,N,T.RedFormat);fogTex.magFilter=T.LinearFilter;fogTex.minFilter=T.LinearFilter;U.fog.value=fogTex;U.N.value=N;majBrume();
  construireTerrain();construireDecor();grp=new T.Group();scene.add(grp);objets.clear();herosS.clear();construireAides();
  A.redim();A.actif=true;V.fogDirty=false;return true;};
-A.vider=()=>{if(!scene)return;scene.traverse(o=>{if(o.geometry&&!Object.values(GEO).includes(o.geometry)&&![BOX,CYL,CONE,CONE4,SPH].includes(o.geometry))o.geometry.dispose();});for(const t of TXC.values())t.dispose();TXC.clear();if(terrain&&terrain.material.map)terrain.material.map.dispose();scene=null;objets.clear();herosS.clear();};
+A.vider=()=>{if(!scene)return;if(RIVE){RIVE.dispose();RIVE=null;}scene.traverse(o=>{if(o.geometry&&!Object.values(GEO).includes(o.geometry)&&![BOX,CYL,CONE,CONE4,SPH].includes(o.geometry))o.geometry.dispose();});for(const t of TXC.values())t.dispose();TXC.clear();if(terrain&&terrain.material.map)terrain.material.map.dispose();scene=null;objets.clear();herosS.clear();};
 A.redim=()=>{if(!ren)return;const dpr=Math.min(devicePixelRatio||1,S.qual>=2?1.5:S.qual>=1?1.25:1);ren.setPixelRatio(dpr);ren.setSize(innerWidth,innerHeight,false);if(cam){cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();}};
-A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;
+A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;U.loin.value=C3.dist>24?1:0;// vue dézoomée : relief fin du sol inutile à cette distance (compense l'eau et le sable du 19/11)
+
  if(V.fogDirty){majBrume();V.fogDirty=false;}
  majObjets();majHeros();majChemin();
  // animations : ailes des moulins, roues, artefacts, drapeaux

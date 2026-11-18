@@ -94,6 +94,25 @@ const BIO=[
 let ENV=null,grade,flashV=0,hiQ=true,renderer,composer,rp,bloom,cam,scW,scB,clock,W=1,H=1,mode='explo';
 const hr=(x,y,k=0)=>{let h=(x*374761393+y*668265263+k*1442695041)|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return(h>>>0)/4294967296;};
 
+/* ---------- 18/11 : champignons et cristaux de biome (remplacent les demi-sphères plates et les octaèdres « jouets ») ---------- */
+const BGEO={};const bgeo=(k,f)=>{if(!BGEO[k]){BGEO[k]=f();BGEO[k].userData.keep=1;}return BGEO[k];};
+const BMAT={};function bmat(k,o,g){if(!BMAT[k]){const m=new THREE.MeshStandardMaterial(o);if(g)grime(m,g);m.userData.keep=1;BMAT[k]=m;}return BMAT[k];}
+const V2=(a,b)=>new THREE.Vector2(a,b);
+function shroomGeo(){return{
+ top:bgeo('shT',()=>new THREE.LatheGeometry([V2(.118,-.004),V2(.116,.016),V2(.104,.042),V2(.082,.064),V2(.05,.08),V2(.02,.087),V2(.001,.088)],16)),
+ gill:bgeo('shG',()=>new THREE.LatheGeometry([V2(.001,.03),V2(.03,.026),V2(.07,.014),V2(.105,.002),V2(.118,-.004)],16)),
+ stem:bgeo('shS',()=>new THREE.LatheGeometry([V2(.001,0),V2(.034,0),V2(.03,.04),V2(.024,.1),V2(.021,.16),V2(.024,.2),V2(.001,.2)],9))};}
+function shroomCluster(n,sc,seed){const G=shroomGeo(),g=new THREE.Group();
+ const mT=bmat('shT',{color:0x6d6458,roughness:.62},{sc:9,amt:.35,sat:.8,dk:.95}),mG=bmat('shG',{color:0x6a8a84,roughness:.8,emissive:0x2f8f8a,emissiveIntensity:.55}),mS=bmat('shS',{color:0xb8b2a0,roughness:.85},{sc:14,amt:.3,sat:.7,dk:.92});
+ for(let m=0;m<n;m++){const h=.55+hr(seed,m,1)*1.1,cs=.6+hr(seed,m,2)*.9,a=hr(seed,m,3)*TAU,r=m?.06+hr(seed,m,4)*.16:0,u=new THREE.Group();
+  const st=new THREE.Mesh(G.stem,mS);st.scale.set(cs*.9,h,cs*.9);u.add(st);const cap=new THREE.Group();cap.position.y=.2*h-.004;cap.scale.setScalar(cs);cap.rotation.set((hr(seed,m,5)-.5)*.35,0,(hr(seed,m,6)-.5)*.35);
+  const t=new THREE.Mesh(G.top,mT),gl=new THREE.Mesh(G.gill,mG);t.castShadow=true;cap.add(t,gl);u.add(cap);
+  u.position.set(Math.cos(a)*r,0,Math.sin(a)*r);u.rotation.set((hr(seed,m,7)-.5)*.3,a,(hr(seed,m,8)-.5)*.3);g.add(u);}
+ g.scale.setScalar(sc);return g;}
+function crystalCluster(n,sc,seed){const geo=bgeo('cry',()=>{const g=new THREE.LatheGeometry([V2(.001,-.05),V2(.06,-.05),V2(.06,.62),V2(.001,.8)],6).toNonIndexed();g.computeVertexNormals();return g;});
+ const m=bmat('cry',{color:0x9db6c8,roughness:.14,metalness:.08,emissive:0x23405e,emissiveIntensity:.45,envMapIntensity:1.6,flatShading:true});const g=new THREE.Group();
+ for(let i=0;i<n;i++){const c=new THREE.Mesh(geo,m),h=.5+hr(seed,i,1)*1.1,w=1+hr(seed,i,2)*.9;c.scale.set(w,h,w);const a=hr(seed,i,3)*TAU,tl=i?.25+hr(seed,i,4)*.45:hr(seed,i,4)*.15;c.rotation.set(Math.sin(a)*tl,hr(seed,i,5)*TAU,Math.cos(a)*tl);c.position.set(Math.cos(a)*(i?.07:0),0,Math.sin(a)*(i?.07:0));c.castShadow=true;g.add(c);}
+ g.scale.setScalar(sc);return g;}
 /* ---------- textures procédurales ---------- */
 const TX={};
 function canvasTex(key,size,draw,rep=1){if(TX[key])return TX[key];const _k=1;const c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rep,rep);t.anisotropy=4;t.userData.keep=1;TX[key]=t;return t;}
@@ -186,8 +205,8 @@ function buildFloor(VD){endTitle();mode='explo';needComp=1;EX.lavas=[];EX.bats=n
  // décor de biome
  EX.props=[];const add=(o,x,y)=>{o.position.x=x;o.position.z=y;o.visible=false;o.userData.c=[x|0,y|0];scW.add(o);EX.props.push(o);};
  VD.rooms.forEach((r,i)=>{for(let k=0;k<5;k++){const x=r.x+hr(i,k,1)*r.w,y=r.y+hr(i,k,2)*r.h;if(VD.solid(x,y))continue;const sel=hr(i,k,3);
-  if(tier===1&&sel<.5){const g=new THREE.Group();for(let m=0;m<3;m++){const st=new THREE.Mesh(new THREE.CylinderGeometry(.03,.04,.2+m*.06,6),mat(0x8a8a7a));st.position.set((m-1)*.12,.1+m*.03,(m%2)*.08);g.add(st);const cp=new THREE.Mesh(new THREE.SphereGeometry(.1,12,6,0,TAU,0,Math.PI/2),mat(0x5a6a62,{em:0x3a8a90,ei:.35}));cp.position.set((m-1)*.12,.2+m*.06,(m%2)*.08);g.add(cp);}add(g,x,y);}
-  else if(tier===3&&sel<.45){const g=new THREE.Group();for(let m=0;m<4;m++){const c=new THREE.Mesh(new THREE.OctahedronGeometry(.12,0),mat(0x8fa8b8,{em:0x3a6a8a,ei:.25,flat:1}));c.scale.set(.8,2+m*.6,.8);c.position.set((m-1.5)*.1,.25+m*.05,(m%2)*.07);c.rotation.z=(m-1.5)*.25;g.add(c);}add(g,x,y);}
+  if(tier===1&&sel<.5){add(shroomCluster(3+((sel*8)|0),1.25,i*5+k),x,y);}
+  else if(tier===3&&sel<.45){add(crystalCluster(4+((sel*6)|0),.62,i*5+k),x,y);}
   else if(tier===3&&sel<.75&&K.ok){const c=iceSheet(1.3+hr(i,k,5)*.8);c.rotation.z=hr(i,k,4)*3;c.userData.kind='glace';add(c,x,y);}
   else if(tier===2&&sel<.4){if(K.ok){const c=lavaDecal(1.5,1.25,i*7+k);c.rotation.z=hr(i,k,4)*3;c.userData.kind='lave';add(c,x,y);(EX.lavas=EX.lavas||[]).push(c);}else{const c=new THREE.Mesh(new THREE.PlaneGeometry(.9,.12),new THREE.MeshBasicMaterial({color:0xff6a1a}));c.rotation.x=-Math.PI/2;c.rotation.z=hr(i,k,4)*3;c.position.y=.015;add(c,x,y);}}
   else if(sel<.6){const g=new THREE.Group();const b=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.35,5),mat(0xcfc7b0));b.rotation.z=Math.PI/2;b.position.y=.03;g.add(b);if(sel<.5){const sk=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),mat(0xd8d0b8));sk.position.set(.18,.07,.05);g.add(sk);}g.rotation.y=sel*9;add(g,x,y);}}});
@@ -408,7 +427,7 @@ function updTitle(dt,t){if(!scT)return;TT.t+=dt;const fl=flick(t,7);TT.light.int
 function endTitle(){if(!scT)return;purge(scT);scT=null;}
 /* ===================== COMBAT ===================== */
 const BT={units:new Map(),fx:[]};
-function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);keepAll();purge(scB);BT.units=new Map();BT.fx=[];const tier=Math.floor((VD.F-1)/4)%4,Bi=BIO[tier];BT.tier=tier;rimBiome(tier);BT.uiS=BT.uiS||0;
+function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);keepAll();purge(scB);BT.units=new Map();BT.lavas=[];BT.fx=[];const tier=Math.floor((VD.F-1)/4)%4,Bi=BIO[tier];BT.tier=tier;rimBiome(tier);BT.uiS=BT.uiS||0;
  scB.fog=new THREE.FogExp2(Bi.fog,.048);scB.background=new THREE.Color(Bi.fog);
  scB.add(new THREE.HemisphereLight(Bi.amb,0x050405,.6));scB.add(new THREE.AmbientLight(Bi.amb,.3));
  const ft=stoneTex(tier).clone();ft.needsUpdate=true;ft.repeat.set(7,7);const fl=new THREE.Mesh(new THREE.CircleGeometry(9,48),new THREE.MeshStandardMaterial({map:ft,bumpMap:ft,bumpScale:.05,roughness:.85}));fl.rotation.x=-Math.PI/2;fl.receiveShadow=true;scB.add(fl);
@@ -439,14 +458,14 @@ function buildArena(VD,B){mode='battle';needComp=1;CUT.p.value.set(1e5,0,1e5);ke
    if(i%3===2){const tm=piece('torch_mounted',.8,false);tm.position.set(Math.cos(a)*(R0-.32),2.3,Math.sin(a)*(R0-.32)-.5);tm.rotation.y=-a-Math.PI/2;scB.add(tm);const f=new THREE.Sprite(new THREE.SpriteMaterial({map:elTex('flame')||glowTex(),color:Bi.light,blending:THREE.AdditiveBlending,depthWrite:false}));f.scale.set(.7,.95,1);f.position.copy(tm.position).add(new THREE.Vector3(-Math.cos(a)*.45,.65,-Math.sin(a)*.45));scB.add(f);}}
   {const RL=KROCK[tier];for(let i=0;i<(tier===1?16:8);i++){const a=Math.PI*.9+hr(i,61,tier)*Math.PI*1.2,r=6.6+hr(i,62,tier)*2.8;const nm=RL[(hr(i,63,tier)*RL.length)|0],grass=/Grass|Bush/.test(nm);const o=fitObj(tintObj(piece(nm,1,!grass),grass?0x9aa86a:KRT[tier]),grass?.7:.8+hr(i,64,tier)*1.1);o.position.set(Math.cos(a)*r,0,Math.sin(a)*r-.5);o.rotation.y=hr(i,65)*TAU;if(o.position.z<3.2)scB.add(o);}}
   const L=KPROP[tier];for(let i=0;i<9;i++){const a=Math.PI*1.05+hr(i,5,tier)*Math.PI*.9,r=7.9+hr(i,6,tier)*1.2;const nm=L[(hr(i,7,tier)*L.length)|0];const o=fitH(piece(nm,1),(PH[nm]||.5)*1.42);o.position.set(Math.cos(a)*r,0,Math.sin(a)*r-.5);o.rotation.y=hr(i,8)*TAU;scB.add(o);}
-  if(VD.F%4===0)for(let i=0;i<5;i++){const o=piece(['coin_stack_large','coin_stack_medium','chest_gold'][i%3],i%3===2?.7:.8);o.position.set((hr(i,21)-.5)*9,0,-6+hr(i,22)*1.5);o.rotation.y=hr(i,23)*TAU;scB.add(o);}}
+  if(VD.F%4===0)for(let i=0;i<5;i++){const o=fitH(piece(['coin_stack_large','coin_stack_medium','chest_gold'][i%3],1),[.75,.48,.8][i%3]);o.position.set((hr(i,21)-.5)*9,0,-6+hr(i,22)*1.5);o.rotation.y=hr(i,23)*TAU;scB.add(o);}}
  // décor de biome
  for(let i=0;i<14;i++){const a=hr(i,7,tier)*TAU,r=5+hr(i,8,tier)*2.5,x=Math.cos(a)*r,z=Math.sin(a)*r-1;if(z>3)continue;
-  if(tier===1){const cp=new THREE.Mesh(new THREE.SphereGeometry(.25,10,6,0,TAU,0,Math.PI/2),mat(0x3a4a44,{em:0x2a8a7a,ei:.35}));cp.position.set(x,.35,z);const st=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,.4,6),mat(0x8a8a7a));st.position.set(x,.18,z);scB.add(cp,st);}
-  else if(tier===3){const c=new THREE.Mesh(new THREE.OctahedronGeometry(.3,0),mat(0x8fa8b8,{em:0x3a6a8a,ei:.25,flat:1}));c.scale.y=2.5;c.position.set(x,.6,z);c.rotation.z=(hr(i,9)-.5)*.6;scB.add(c);}
-  else if(tier===2){const c=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.18),new THREE.MeshBasicMaterial({color:0xff6a1a}));c.rotation.x=-Math.PI/2;c.rotation.z=hr(i,9)*3;c.position.set(x,.02,z);scB.add(c);}
-  else{const sk=new THREE.Mesh(new THREE.SphereGeometry(.14,8,6),mat(0xd8d0b8));sk.position.set(x,.1,z);const b=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.5,5),mat(0xcfc7b0));b.rotation.z=Math.PI/2;b.position.set(x+.2,.04,z+.1);scB.add(sk,b);}}
- if(VD.F%4===0){const c=new THREE.InstancedMesh(new THREE.CylinderGeometry(.06,.06,.02,8),mat(0xf2c14a,{std:{metalness:.9,roughness:.3}}),60),m4=new THREE.Matrix4();for(let i=0;i<60;i++){m4.makeTranslation((hr(i,1)-.5)*10,.01,(hr(i,2)-.5)*6-2.5);c.setMatrixAt(i,m4);}c.frustumCulled=false;scB.add(c);}// trésor du boss : 60 pièces en 1 appel au lieu de 60
+  if(tier===1){const g=shroomCluster(3+((hr(i,9)*4)|0),2.1,i*3+tier);g.position.set(x,0,z);scB.add(g);}
+  else if(tier===3){const g=crystalCluster(4+((hr(i,9)*4)|0),1.3,i*3+tier);g.position.set(x,0,z);scB.add(g);}
+  else if(tier===2){if(K.ok){if(i%2)continue;const c=lavaDecal(1.5,1.25,i*7);c.rotation.z=hr(i,9)*3;c.position.x=x;c.position.z=z;scB.add(c);(BT.lavas=BT.lavas||[]).push(c);}else{const c=new THREE.Mesh(new THREE.PlaneGeometry(1.6,.18),new THREE.MeshBasicMaterial({color:0xff6a1a}));c.rotation.x=-Math.PI/2;c.rotation.z=hr(i,9)*3;c.position.set(x,.02,z);scB.add(c);}}
+  else{const o=fitObj(piece(hr(i,9)<.5?'rubble_half':'rock_scatter',1),.45+hr(i,10)*.35);o.position.set(x,0,z);o.rotation.y=hr(i,11)*TAU;scB.add(o);}}
+ if(VD.F%4===0){const c=new THREE.InstancedMesh(new THREE.CylinderGeometry(.06,.06,.02,8),mat(0xf2c14a,{std:{metalness:.72,roughness:.34},em:0x3a2406,ei:.6}),60),m4=new THREE.Matrix4();for(let i=0;i<60;i++){m4.makeTranslation((hr(i,1)-.5)*10,.01,(hr(i,2)-.5)*6-2.5);c.setMatrixAt(i,m4);}c.frustumCulled=false;scB.add(c);}// trésor du boss : 60 pièces en 1 appel au lieu de 60
  // lumière principale avec ombres + contre-jour
  BT.key=new THREE.SpotLight(0xffe0c0,62,26,.75,.5,1.3);BT.key.position.set(2.5,9,7);BT.key.target.position.set(0,0,-.8);BT.key.castShadow=true;BT.key.shadow.mapSize.set(qLvl>=2?1024:512,qLvl>=2?1024:512);BT.key.shadow.bias=-.0006;scB.add(BT.key,BT.key.target);
  BT.lavas=[];BT.rays=[];scB.add(smokeSys());smokeClear();
@@ -483,7 +502,7 @@ function hit(u,src,crit){const R=BT.units.get(u);if(!R)return;R.st.hit=crit?1:.7
  R.flash=.2;}
 function die(u){const R=BT.units.get(u);if(!R)return;R.dying=0;R.st.fallDir=Math.random()<.5?-1:1;}
 function revive(u){const R=BT.units.get(u);if(!R)return;R.dying=null;R.st.dead=0;}
-function updBattle(VD,dt,t){const B=VD.B;if(!B)return;
+function updBattle(VD,dt,t){const B=VD.B;if(!B)return;if(BT.lavas)BT.lavas.forEach(l=>l.material.uniforms.t.value=t);
  for(const[u,R]of BT.units){const st=R.st;if(st.act){st.p+=dt/R.actDur;if(st.p>=1){st.act=null;st.p=0;}}
   let ox=0,oz=0;if(R.lunge&&st.act){const p=st.p;const q=p<.3?-.18*Math.sin(p/.3*Math.PI/2):p<.5?-.18+1.18*(1-Math.pow(1-(p-.3)/.2,3)):p<.65?1:1-((p-.65)/.35)**2*(3-2*(p-.65)/.35);ox=R.lunge.x*q;oz=R.lunge.z*q;}
   if(R.kb){R.kb.t+=dt;const f=Math.max(0,1-R.kb.t/.35)*Math.sin(Math.min(1,R.kb.t*8)*Math.PI/2);ox+=R.kb.x*f;oz+=R.kb.z*f;if(R.kb.t>.35)R.kb=null;}

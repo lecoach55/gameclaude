@@ -33,5 +33,20 @@
    "attente_ms": 2500,
    "infos": "window.W3&&W3.info?W3.info():null"
   }
- ]
+ ],
+ "appareils": {
+  "telephone": {
+   "largeur": 390,
+   "hauteur": 780,
+   "cpu": 4,
+   "dpr": 2
+  },
+  "ordinateur": {
+   "largeur": 1280,
+   "hauteur": 800,
+   "cpu": 1,
+   "dpr": 2
+  }
+ },
+ "_note_appareils": "18/11 : ordinateur ajouté (deux colonnes, scène ≈ 650×770 css) à dpr 2 comme le MacBook ; la résolution est plafonnée par resize()"
 }

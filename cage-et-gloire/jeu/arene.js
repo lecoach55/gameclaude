@@ -510,7 +510,7 @@ function majCam(dt){const F=A.f;const m=F[0].pos.clone().add(F[1].pos).multiplyS
  // jamais dans les gradins (premier rang à 8,2 m du centre)
  {const L=Math.hypot(tgt.x,tgt.z);if(L>7.9){tgt.x*=7.9/L;tgt.z*=7.9/L;}}
  // champ élargi quand les combattants sont loin l'un de l'autre (présentation, coins) : les deux restent dans l'image
- {const sep=F[0].pos.distanceTo(F[1].pos);const fv=A.fov0+Math.min(14,Math.max(0,sep-2.5)*3.5);if(Math.abs(C.fov-fv)>.2){C.fov+=(fv-C.fov)*Math.min(1,dt*3);C.updateProjectionMatrix();}}
+ {const sep=F[0].pos.distanceTo(F[1].pos);const D=Math.PI/180,hb=2*Math.atan(Math.tan(A.fov0*D/2)*C.aspect),hf=hb+Math.min(22,Math.max(0,sep-2.5)*5)*D;const fv=Math.min(82,2*Math.atan(Math.tan(hf/2)/C.aspect)/D);if(Math.abs(C.fov-fv)>.2){C.fov+=(fv-C.fov)*Math.min(1,dt*3);C.updateProjectionMatrix();}}
  // au sortir d'un gros plan (coin, présentation) : coupe franche vers la vue générale, plutôt qu'un travelling depuis l'intérieur des combattants
  if(CAM.coupe){CAM.coupe=0;CAM.cur.copy(tgt);CAM.look.set(m.x,cfg[2],m.z);}
  CAM.cur.lerp(tgt,1-Math.pow(.12,dt));C.position.copy(CAM.cur);

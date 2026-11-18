@@ -52,7 +52,7 @@ const T={
 function txt(r,arr,o){let s=arr[Math.floor(r()*arr.length)];return s.replace(/\{(\w)\}/g,(m,k)=>o[k]??'');}
 function cf(a){return 1-((a.cardio??a.e.cardio)-65)/150;}
 function eff(f,plan,j){const a=f.at,fo=cl((f.forme??100)/100,.4,1);const m=-(1-fo)*18+(j||0)+(f.bonusCamp||0);
- return {frappe:a.frappe+m,puiss:a.puiss+m,def:a.def+(PLANS[plan].def||0)+m,lutte:a.lutte+m,sol:a.sol+m,cardio:a.cardio+m,menton:a.menton};}
+ const o=f.bonusAt||{};return {frappe:a.frappe+m+(o.frappe||0),puiss:a.puiss+m+(o.puiss||0),def:a.def+(PLANS[plan].def||0)+m,lutte:a.lutte+m+(o.lutte||0),sol:a.sol+m+(o.sol||0),cardio:a.cardio+m+(o.cardio||0),menton:a.menton};}
 /* simule un combat ; F = [combattant0, combattant1], o = {rounds, plans:[p0,p1], seed} */
 function simuler(F,o){
  o=o||{};const r=rngOf(o.seed||Math.floor(Math.random()*1e9));const R=o.rounds||3;const plans=o.plans||['equi','equi'];

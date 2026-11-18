@@ -167,10 +167,11 @@ function construire(O){
 function vnzh(x,y,z){let h=Math.sin(x*12.9898+y*78.233+z*37.719)*43758.5453;return h-Math.floor(h);}
 function vnz(x,y,z){const i=Math.floor(x),j=Math.floor(y),k=Math.floor(z);let fx=x-i,fy=y-j,fz=z-k;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);fz=fz*fz*(3-2*fz);const L=(a,b,t)=>a+(b-a)*t,h=vnzh;
  return L(L(L(h(i,j,k),h(i+1,j,k),fx),L(h(i,j+1,k),h(i+1,j+1,k),fx),fy),L(L(h(i,j,k+1),h(i+1,j,k+1),fx),L(h(i,j+1,k+1),h(i+1,j+1,k+1),fx),fy),fz);}
+let PERSO_MH=false; // corps CC0 MakeHuman (outils/prep_mh.py) chargé à la place de Xbot
 function regions(src){src.updateMatrixWorld(true);const BB=new THREE.Box3(),_p=new THREE.Vector3();const WP=new Map();src.traverse(o=>{if(o.isSkinnedMesh){const p=o.geometry.attributes.position,a=new Float32Array(p.count*3);for(let i=0;i<p.count;i++){_p.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld);a[i*3]=_p.x;a[i*3+1]=_p.y;a[i*3+2]=_p.z;BB.expandByPoint(_p);}WP.set(o,a);}});
  src.traverse(o=>{if(!o.isSkinnedMesh||o.geometry.userData.reg)return;const g=o.geometry;const p=g.attributes.position,si=g.attributes.skinIndex,sw=g.attributes.skinWeight,nm=g.attributes.normal;
  const bones=o.skeleton.bones.map(b=>b.name.replace(/^mixamorig:?/,''));const bb=BB;const hgt=bb.max.y-bb.min.y;
- const JNT=/Joint/i.test(o.name+' '+(o.material&&o.material.name||''));const reg=new Float32Array(p.count);let hz0=1e9,hz1=-1e9;const hi=[];
+ const JNT=/Joint/i.test(o.name+' '+(o.material&&o.material.name||''));const MH=o.name==='Corps';if(MH)PERSO_MH=true;const reg=new Float32Array(p.count);let hz0=1e9,hz1=-1e9;const hi=[];
  for(let i=0;i<p.count;i++){let bw=0,bi=0;for(let k=0;k<4;k++){const w=sw.getComponent(i,k);if(w>bw){bw=w;bi=si.getComponent(i,k);}}const n=bones[bi]||'';const W3=WP.get(o);const yn=(W3[i*3+1]-bb.min.y)/hgt;
   if(JNT&&yn>.55&&yn<.70&&(n==='Hips'||n==='Spine'||/UpLeg/.test(n)))reg[i]=1;else if(/Hand/.test(n))reg[i]=2;else if((n==='Hips'||/UpLeg/.test(n)||n==='Spine')&&yn>.405&&yn<(n==='Spine'||n==='Hips'?.675:.625))reg[i]=1;else if(n==='Head'||n==='HeadTop_End'){hi.push(i);const z=WP.get(o)[i*3+2];if(z<hz0)hz0=z;if(z>hz1)hz1=z;}
   else if(/Foot|Toe/.test(n))reg[i]=4;
@@ -179,8 +180,8 @@ function regions(src){src.updateMatrixWorld(true);const BB=new THREE.Box3(),_p=n
  const W4=WP.get(o);for(const i of hi){const yn=(W4[i*3+1]-bb.min.y)/hgt,zn=(W4[i*3+2]-hz0)/(hz1-hz0||1);if(yn>.965||(yn>.915&&zn<.45)||(yn>.94&&zn<.62))reg[i]=3;else if(yn<.918&&zn>.5)reg[i]=8;else reg[i]=7;}
  // position de repos en coordonnées communes aux deux maillages (x : gauche, y : hauteur 0-1, z : avant), pour le détail des matières
  const W5=WP.get(o),cx=(bb.min.x+bb.max.x)/2,cz=(bb.min.z+bb.max.z)/2,bp=new Float32Array(p.count*3);for(let i=0;i<p.count;i++){bp[i*3]=(W5[i*3]-cx)/hgt;bp[i*3+1]=(W5[i*3+1]-bb.min.y)/hgt;bp[i*3+2]=(W5[i*3+2]-cz)/hgt;}
- // le bassin du mannequin (coque + rotule) faisait un « ballon » rouge sous le short : on l'aplatit vers l'axe du corps
- {const inv=o.matrixWorld.clone().invert(),q=new THREE.Vector3();for(let i=0;i<p.count;i++)if(reg[i]===1){const dx=(W5[i*3]-cx)/hgt,c=Math.exp(-dx*dx/.005)*Math.exp(-Math.pow((W5[i*3+1]-bb.min.y)/hgt-.555,2)/.005),k=1-.65*c,fz=(JNT?.72:.82)*k,y0=bb.min.y+.56*hgt;q.set(cx+(W5[i*3]-cx)*(JNT?.86:.95)*k,y0+(W5[i*3+1]-y0)*(1-.2*c),cz+(W5[i*3+2]-cz)*fz).applyMatrix4(inv);p.setXYZ(i,q.x,q.y,q.z);}p.needsUpdate=true;}
+ // le bassin du mannequin (coque + rotule) faisait un « ballon » rouge sous le short : on l'aplatit vers l'axe du corps (pas pour le corps MakeHuman)
+ if(!MH){const inv=o.matrixWorld.clone().invert(),q=new THREE.Vector3();for(let i=0;i<p.count;i++)if(reg[i]===1){const dx=(W5[i*3]-cx)/hgt,c=Math.exp(-dx*dx/.005)*Math.exp(-Math.pow((W5[i*3+1]-bb.min.y)/hgt-.555,2)/.005),k=1-.65*c,fz=(JNT?.72:.82)*k,y0=bb.min.y+.56*hgt;q.set(cx+(W5[i*3]-cx)*(JNT?.86:.95)*k,y0+(W5[i*3+1]-y0)*(1-.2*c),cz+(W5[i*3+2]-cz)*fz).applyMatrix4(inv);p.setXYZ(i,q.x,q.y,q.z);}p.needsUpdate=true;}
  // bruits basse fréquence (grain de peau, plis du tissu) calculés une fois par sommet sur le processeur
  const nzv=new Float32Array(p.count*2);for(let i=0;i<p.count;i++){const x=bp[i*3],y=bp[i*3+1],z=bp[i*3+2];nzv[i*2]=vnz(x*30,y*30,z*30);nzv[i*2+1]=vnz(x*70,y*16,z*70);}g.setAttribute('nzv',new THREE.BufferAttribute(nzv,2));
  g.setAttribute('reg',new THREE.BufferAttribute(reg,1));g.setAttribute('bp',new THREE.BufferAttribute(bp,3));g.userData.reg=1;});}
@@ -239,6 +240,7 @@ else if(rr==8.)cc=mix(sk,uHair,uBarbe*.7);
 #endif
 #ifdef CG_GROS
 // visage (avant de la tête) : arcades, sourcils, nez, bouche, barbe en poils courts
+#ifndef CG_MH
 if(rr==7.||rr==8.){float ff=smoothstep(.02,.04,P.z);
  float de=length(vec2((ax-.0175)/.012,(P.y-.927)/.0068));cc*=mix(1.,mix(.65,1.,smoothstep(.45,1.15,de)),ff);
  cc=mix(cc,cc*.55,ff*(1.-smoothstep(.12,.32,de))*.8);
@@ -250,9 +252,16 @@ if(rr==7.||rr==8.){float ff=smoothstep(.02,.04,P.z);
  cc=mix(cc,cc*vec3(.78,.55,.52),ff*(1.-smoothstep(.0012,.0024,abs(P.y-.8925)))*(1.-smoothstep(.011,.014,ax)));
  cc=mix(cc,cc*vec3(1.06,.9,.88),ff*g1(ax-.03,.012)*g1(P.y-.912,.012)*.6);}
 #endif
+#endif
 #ifdef CG_PROCHE
 // musculature (torse, dos, bras) en relief, seulement là où la peau est nue
+// corps MakeHuman : visage et muscles sculptés dans le maillage, pas peints
+#ifdef CG_MH
+if(false){float m=uMus;
+#else
 if((rr==0.||rr==5.)&&uTopOn<.5&&uFem<.5){float m=uMus;
+#endif
+
  float abz=smoothstep(.605,.62,P.y)*(1.-smoothstep(.725,.74,P.y))*(1.-smoothstep(.044,.052,ax));
  gH-=fr*m*abz*(g1(P.x,.0035)*3.+(g1(P.y-.648,.0032)+g1(P.y-.678,.0032)+g1(P.y-.708,.0032))*2.2*step(.005,ax));
  gH+=fr*m*abz*(1.-g1(P.x,.006))*1.2;
@@ -271,7 +280,7 @@ vec4 diffuseColor=vec4(diffuse*cc,opacity);`;
 // trois variantes compilées : « gros plan » (+ visage), « proche » (muscles, relief, détails du short et des gants) et « loin » (couleurs seules) ;
 // chaque personnage passe de l'une à l'autre selon sa distance à la caméra (proches()), les deux partagent les mêmes uniformes
 function matPerso(u0,niv){const m=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:.62,metalness:0});
- if(niv&&A.qual>=1&&!window.NODET)m.defines=niv>1?{CG_PROCHE:1,CG_GROS:1}:{CG_PROCHE:1};
+ if(niv&&A.qual>=1&&!window.NODET){m.defines=niv>1?{CG_PROCHE:1,CG_GROS:1}:{CG_PROCHE:1};if(PERSO_MH)m.defines.CG_MH=1;}
  m.userData.u=u0||{uSkin:{value:new THREE.Color('#e3b08c')},uShort:{value:new THREE.Color('#c22')},uGlove:{value:new THREE.Color('#111')},uHair:{value:new THREE.Color('#222')},uHairOn:{value:1},uTop:{value:new THREE.Color('#111')},uTopOn:{value:0},uLeg:{value:new THREE.Color('#111')},uLegOn:{value:0},uDmg:{value:0},uSweat:{value:0},uBarbe:{value:0},uRim:{value:RIM},
   uAcc:{value:new THREE.Color('#eee')},uChev:{value:2},uArb:{value:0},uMus:{value:1},uFem:{value:0}};
  m.onBeforeCompile=sh=>{Object.assign(sh.uniforms,m.userData.u);

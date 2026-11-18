@@ -443,7 +443,7 @@ async function banc(){if(!TK){toast('Trousse de test indisponible');return;}ferm
 async function demarrer(){
  try{TK=Testkit({jeu:'cage-gloire',canvas:()=>$('cv3d'),capture:async()=>{try{return Arene.capture();}catch(e){return '';}},etat:()=>({vue:VUE,test:TEST,sem:G&&G.sem,argent:G&&Math.round(G.argent),mes:G&&M.mes().map(f=>({n:nomC(f),org:f.org,note:M.ov(f),rec:rec(f)})),offres:G&&G.offres.length,aJouer:G&&G.aJouer,combat:CB&&{cid:CB.cid,i:CB.i},ecran:innerWidth+'x'+innerHeight,arene:ARENE_OK,infos:Arene.infos&&Arene.infos()})});}catch(e){}
  try{NUAGE=SauvegardeEnLigne({etat:()=>JSON.stringify(G),meta:()=>({nom:G.nom,date:M.date(),sem:G.sem}),coupe:()=>TEST||!G});addEventListener('visibilitychange',()=>{if(document.hidden&&G&&!TEST){sauver();NUAGE.push(true);}});}catch(e){}
- try{const x=$('xbot');let b64=x?x.textContent.trim():'';if(!b64){const r=await fetch('xbot.glb');const buf=new Uint8Array(await r.arrayBuffer());let s='';for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));b64=btoa(s);}
+ try{let mh=false;try{mh=/[?&]perso=mh/.test(location.search)||localStorage.getItem('cg-perso')==='mh';}catch(e){}const x=(mh&&$('perso_mh'))||$('xbot');let b64=x?x.textContent.trim():'';if(!b64){const r=await fetch('xbot.glb');const buf=new Uint8Array(await r.arrayBuffer());let s='';for(let i=0;i<buf.length;i+=0x8000)s+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));b64=btoa(s);}
   await document.fonts.load('40px "Bebas Neue"').catch(()=>{});
   let q=1;try{const v=localStorage.getItem('cg-qual');if(v==='0'||v==='2')q=+v;}catch(e){}await Arene.init($('cv3d'),b64,q);ARENE_OK=true;}catch(e){console.error('arène',e);TK&&TK.erreurs.push('arène: '+e);ARENE_OK=false;}
  accueil();}

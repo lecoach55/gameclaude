@@ -20,6 +20,9 @@ def inl(m):
     return '<script>\n/* %s */\n%s\n</script>'%(src,code)
 html=re.sub(r'<script src="([^"]+)"></script>',inl,html)
 html=html.replace('<body>','<body>\n<script type="text/plain" id="xbot">'+f64(os.path.join(d,'xbot.glb'))+'</script>',1)
+# combattant CC0 MakeHuman (outils/prep_mh.py), à l'essai : chargé à la place de xbot avec ?perso=mh
+if os.path.exists(os.path.join(d,'perso_mh.glb')):
+    html=html.replace('<body>','<body>\n<script type="text/plain" id="perso_mh">'+f64(os.path.join(d,'perso_mh.glb'))+'</script>',1)
 # textures réalistes (Poly Haven, CC0 ; outils/prep_tex.py) : <script type="text/plain" id="tex-NOM">
 td=os.path.join(d,'tex')
 if os.path.isdir(td):

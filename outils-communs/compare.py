@@ -1,5 +1,6 @@
 # Comparaison d'images : référence vs nouvelle version. Signale les changements visuels involontaires.
 # usage : python3 compare.py dossier_ref dossier_nouveau planche.png [seuil_pct] [--json resultat.json] [--strict]
+#   images .png/.jpg/.webp appariées par nom (référence JPEG réduite ↔ capture PNG : permis)
 #   --json f : écrit aussi le résultat (scènes, % changé, luminosité, détail fin, alerte, images manquantes) pour l'automatisation
 #   --strict : code de sortie 1 s'il y a une alerte, une image manquante ou aucune image comparée (sinon toujours 0, comme avant)
 import sys,os,json,numpy as np
@@ -29,10 +30,23 @@ def fin(pa,pb):
 try:f=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',11)
 except:f=None
 rows=[];tiles=[];manquantes=[]
-for n in sorted(os.listdir(ref)):
-    if not n.endswith('.png'):continue
-    if not os.path.exists(os.path.join(new,n)):manquantes.append(n[:-4]);continue
-    ia,a=prep(os.path.join(ref,n));ib,b=prep(os.path.join(new,n))
+# Images .png, .jpg/.jpeg ou .webp, appariées par NOM sans l'extension : une référence légère en JPEG (captures.py --format jpg
+# --echelle 0.5) se compare à une capture PNG pleine taille (tout est ramené à 195×390, puis ≤ 720 px pour le détail fin).
+EXT=('.png','.jpg','.jpeg','.webp')
+# Les planches (planche.png, planche_scenes.png…) ne sont pas des vues : ignorées (avant, comptées « manquantes » → --strict en échec).
+def images(d):
+    r={}
+    for x in sorted(os.listdir(d),key=lambda x:(os.path.splitext(x)[0],os.path.splitext(x)[1].lower()!='.png')):  # .png d'abord
+        b,e=os.path.splitext(x)
+        if e.lower() not in EXT or b=='planche' or b.startswith('planche_'):continue
+        if b in r:print(f'compare.py : {x} ignoré, {r[b]} porte le même nom (dossier {d})',file=sys.stderr);continue
+        r[b]=x
+    return r
+_R,_N=images(ref),images(new)
+for n0,fr in _R.items():
+    n=n0+'.png'
+    if n0 not in _N:manquantes.append(n0);continue
+    ia,a=prep(os.path.join(ref,fr));ib,b=prep(os.path.join(new,_N[n0]))
     m=np.zeros((H,W),bool);m[int(H*.08):int(H*.86),:]=True
     la=(a*[.299,.587,.114]).sum(-1);lb=(b*[.299,.587,.114]).sum(-1)
     # écart tolérant : pour chaque pixel, la meilleure correspondance dans un voisinage de ±3 px (balancement de caméra, animations)
@@ -42,7 +56,7 @@ for n in sorted(os.listdir(ref)):
             d=np.minimum(d,np.abs(np.roll(np.roll(a,dy,0),dx,1)-b).max(-1))
     ch=(d>22)&m;pct=100*ch.sum()/m.sum();dl=lb[m].mean()-la[m].mean()
     alerte=pct>SEUIL or abs(dl)>4
-    rows.append((n[:-4],pct,dl,alerte,fin(os.path.join(ref,n),os.path.join(new,n))))
+    rows.append((n[:-4],pct,dl,alerte,fin(os.path.join(ref,fr),os.path.join(new,_N[n0]))))
     hm=np.zeros((H,W,3),np.uint8);hm[...,0]=np.clip(d*3,0,255);hm[...,1]=np.clip(d*1.2,0,255)*0;g=(np.asarray(ib.convert('L'))*.35).astype(np.uint8)
     hm=np.maximum(hm,np.stack([g,g,g],-1));tiles.append((n[:-4],ia,ib,Image.fromarray(hm),pct,dl,alerte))
 C=Image.new('RGB',(W*3+10,(H+22)*len(tiles)+30),(16,14,12));dr=ImageDraw.Draw(C)

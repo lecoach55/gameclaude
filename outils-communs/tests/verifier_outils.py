@@ -762,6 +762,62 @@ def _():
         shutil.rmtree(jeu, ignore_errors=True); shutil.rmtree(copie, ignore_errors=True)
 
 
+@controle("captures.py : vues en JSON reproductibles (2 séries identiques), « occupe » attendu (avant : délai fixe = image de préparation), 🐞 caché, références JPEG ½ sans fausse alerte, --avant-dossier voit un changement (--strict code 1 sur alerte seule), vue en échec isolée, erreur JS au chargement rapportée, sortie nettoyée sans toucher aux fichiers étrangers ; compare.py apparie .jpg/.png (png d'abord), ignore planche_*")
+def _():
+    import numpy as np
+    from PIL import Image
+    sc = os.path.join(OC, 'captures.py')
+    with tempfile.TemporaryDirectory() as d:
+        page = open(os.path.join(OC, 'tests', 'captures_factice.html')).read()
+        for nom, pg in (('jeu', page), ('autre', page.replace("window.VARIANTE='#2c2'", "window.VARIANTE='#22c'"))):
+            os.makedirs(os.path.join(d, nom)); open(os.path.join(d, nom, 'index.html'), 'w').write(pg)
+        vues = [{'nom': 'pret', 'js': 'preparer()', 'occupe': 'window.occupe'}, {'nom': 'sans_occupe', 'js': 'preparer()'},
+                {'nom': 'casse', 'js': 'pasDeFonction()'}, {'nom': 'apres', 'js': 'window.occupe=false'}]
+        cfg = {'jeu': 'factice', 'dossier': os.path.join(d, 'jeu'), 'pret': 'window.pret', 'pret_ms': 50, 'images': 16, 'pas': 162, 'vues': vues,
+               'appareils': {'petit': {'largeur': 200, 'hauteur': 220}}}
+        reg = os.path.join(d, 'vues.json'); json.dump(cfg, open(reg, 'w'))
+        o1 = os.path.join(d, 'o1')
+        r = subprocess.run([sys.executable, sc, reg, o1, '--stabilite', '--vues', 'pret,sans_occupe,apres'], capture_output=True, text=True, timeout=120)
+        if r.returncode:
+            raise RuntimeError('série : ' + (r.stderr or r.stdout)[-300:])
+        b = json.load(open(os.path.join(o1, 'captures.json')))
+        if any(v > 0.1 for v in b['stabilite'].values()) or len(b['stabilite']) != 3:
+            raise RuntimeError(f"séries différentes : {b['stabilite']}")
+        px = lambda f, xy: tuple(Image.open(os.path.join(o1, f)).convert('RGB').getpixel(xy))
+        if px('pret.png', (5, 5))[1] < 150 or px('sans_occupe.png', (5, 5))[0] < 150:
+            raise RuntimeError(f"occupe non attendu : pret {px('pret.png', (5, 5))}, sans_occupe {px('sans_occupe.png', (5, 5))}")
+        if px('pret.png', (180, 200)) != px('pret.png', (130, 200)) or px('pret.png', (66, 10)) == (0, 255, 0):
+            raise RuntimeError(f"bouton 🐞 ou voyant 🧪 de testkit visible sur la capture : {px('pret.png', (180, 200))} {px('pret.png', (66, 10))}")
+        # références légères : JPEG à ½ ; la série PNG comparée à elles ne sonne pas
+        rj = os.path.join(d, 'rj'); os.makedirs(rj)
+        open(os.path.join(rj, 'perso.txt'), 'w').write('x'); open(os.path.join(rj, 'pret.png'), 'wb').write(b'ancienne')
+        Image.new('RGB', (10, 10)).save(os.path.join(rj, 'planche_scenes.png'))
+        run(sys.executable, sc, reg, rj, '--format', 'jpg', '--echelle', '0.5', '--vues', 'pret,apres', timeout=120)
+        if not os.path.exists(os.path.join(rj, 'perso.txt')) or os.path.exists(os.path.join(rj, 'pret.png')):
+            raise RuntimeError('nettoyage de la sortie : fichier étranger effacé, ou ancienne image de la vue laissée')
+        im = Image.open(os.path.join(rj, 'pret.jpg'))
+        if im.size != (100, 110) or os.path.exists(os.path.join(rj, 'pret.png')):
+            raise RuntimeError(f'JPEG ½ : {im.size}')
+        r = subprocess.run([sys.executable, sc, reg, os.path.join(d, 'o2'), '--comparer', rj, '--vues', 'pret,apres', '--strict'], capture_output=True, text=True, timeout=120)
+        if r.returncode or 'ALERTES 0 / 2' not in r.stdout:
+            raise RuntimeError('JPEG ½ contre PNG (planche_* ignorée) : fausse alerte ? ' + r.stdout[-300:])
+        # --strict réagit à une ALERTE seule (aucune vue en échec) ; erreur JS du chargement rapportée
+        r = subprocess.run([sys.executable, sc, reg, os.path.join(d, 'o4'), '--avant-dossier', os.path.join(d, 'autre'), '--vues', 'pret,apres', '--strict'], capture_output=True, text=True, timeout=180)
+        if r.returncode != 1 or 'ALERTES 2 / 2' not in r.stdout or 'échec' in r.stdout:
+            raise RuntimeError(f'--strict sur alerte seule (code {r.returncode}) : ' + r.stdout[-300:])
+        cfg['page'] = 'index.html?erreur'; json.dump(cfg, open(reg, 'w'))
+        r = subprocess.run([sys.executable, sc, reg, os.path.join(d, 'o5'), '--vues', 'apres', '--strict'], capture_output=True, text=True, timeout=120)
+        if r.returncode != 1 or 'ERREUR_CHARGEMENT' not in r.stdout:
+            raise RuntimeError(f'erreur JS au chargement non rapportée (code {r.returncode}) : ' + r.stdout[-300:])
+        cfg['page'] = 'index.html'; json.dump(cfg, open(reg, 'w'))
+        # avant/après : la copie « autre » dessine en bleu → alerte et code 1 avec --strict ; la vue cassée n'arrête pas les autres
+        r = subprocess.run([sys.executable, sc, reg, os.path.join(d, 'o3'), '--avant-dossier', os.path.join(d, 'autre'), '--strict'], capture_output=True, text=True, timeout=180)
+        c = json.load(open(os.path.join(d, 'o3', 'comparaison.json')))
+        al = {s['nom'] for s in c['scenes'] if s['alerte']}
+        if r.returncode != 1 or not {'pret', 'apres'} <= al or 'casse' not in r.stdout or 'échec' not in r.stdout or c['total'] != 3:
+            raise RuntimeError(f'avant/après (code {r.returncode}, alertes {al}) : ' + r.stdout[-400:])
+
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

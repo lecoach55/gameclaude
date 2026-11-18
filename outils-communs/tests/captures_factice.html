@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#222}#tourne{position:absolute;left:10px;top:150px;width:40px;height:40px;background:#fc0;animation:t 1.3s linear infinite}
+@keyframes t{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style></head><body>
+<canvas id=c width=200 height=200 style="display:block"></canvas><div id=tourne></div>
+<button style="position:fixed;right:10px;bottom:10px;z-index:9999;width:38px;height:38px;background:#f0f">🐞</button>
+<div style="position:fixed;top:4px;left:60px;z-index:9999;background:#0f0;font:12px monospace;padding:4px">🧪 60 img/s · pire 17 ms</div>
+<script>
+// Jeu factice pour verifier_outils.py (captures.py) : « prépare » pendant 300 images (occupe = vrai, fond ROUGE) puis dessine VERT ;
+// ?erreur : erreur JS au chargement ; voyant 🧪 de testkit mis à jour (à cacher aussi) ; un carré tiré au hasard (graine) ; une animation CSS infinie ; un bouton 🐞 de testkit à cacher.
+const x=document.getElementById('c').getContext('2d');let n=0,prep=0;window.occupe=false;const R=[Math.random()*150,Math.random()*150];
+window.preparer=()=>{prep=300;window.occupe=true;};
+window.VARIANTE='#2c2';
+function f(){n++;if(prep>0){prep--;if(!prep)window.occupe=false;}x.fillStyle=window.occupe?'#c22':window.VARIANTE;x.fillRect(0,0,200,200);
+ x.fillStyle='#fff';x.fillRect(R[0],R[1],30,30);x.fillStyle='#000';x.fillRect((n*3)%180,180,20,20);requestAnimationFrame(f);}
+requestAnimationFrame(f);window.pret=1;
+if(location.search.includes('erreur'))setTimeout(()=>{throw new Error('ERREUR_CHARGEMENT')},0);
+</script></body></html>

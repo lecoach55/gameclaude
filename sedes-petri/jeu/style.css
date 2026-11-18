@@ -536,3 +536,7 @@ h4{font-size:12px;letter-spacing:.12em;color:var(--ink2);margin:10px 0 6px;text-
 .ambc.rate{opacity:.75}
 .ambc .pos{color:var(--green)}.ambc .neg{color:var(--red)}
 .bl-l li.blamb{color:#7a5410;font-weight:600}
+
+/* v18 : les portraits sont des <img class=pimg> depuis la v15 : mêmes règles que les anciens svg */
+.cc .pimg,.pap .pimg{display:block;margin:0 auto}
+@media (max-width:900px){.cc .pimg{grid-row:span 5;width:60px;height:auto}.ev-port .pimg{width:70px;height:auto}}

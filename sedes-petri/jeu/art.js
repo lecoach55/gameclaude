@@ -92,21 +92,25 @@ function papalArms0(w) {
 const SKINS = ['#f2cba6', '#e9b993', '#ddaa80', '#cf9a70', '#bb8459', '#f6d6b8', '#a8714a'];
 const _PTC = new Map();
 function portraitSVG(o) {
- const ck = [o.seed, o.kind, Math.floor((o.age || 40) / 6), o.w, o.female ? 1 : 0, o.bg, o.robe].join('|'); if (_PTC.has(ck)) return _PTC.get(ck);
+ const ck = [o.seed, o.kind, ageBand(o.age || 40), o.w, o.female ? 1 : 0, o.bg, o.robe].join('|'); if (_PTC.has(ck)) return _PTC.get(ck);
  const out = svgImg(portraitSVG0(o), 'pimg'); if (_PTC.size > 600) _PTC.clear(); _PTC.set(ck, out); return out;
 }
+function ageBand(a) { let b = 0; for (const t of [30, 40, 44, 45, 48, 50, 52, 55, 58, 60, 62]) if (a >= t) b++; return b; }
 function portraitSVG0(o) {
  /* Portrait « panneau gothique » : buste de trois quarts sur fond d'or poinçonné (Simone Martini, Melozzo da Forlì).
     Visage construit point par point (largeurs, mâchoire, pommettes, nez, lèvres tirés de la graine) ; l'âge pilote
     cheveux, rides, cernes, bajoues et joues creuses : 41, 51 et 64 ans se distinguent sans lire le texte. */
  const rng = mulberry(o.seed || 1); const R = () => rng(); const P = a => a[Math.floor(R() * a.length)];
  const kind = o.kind || 'king', age = o.age || 40, w = o.w || 80, female = !!o.female;
+ /* Aléas liés à l'âge tirés d'avance, d'un générateur à part : le visage (nez, barbe…) reste le même toute la vie. */
+ const rq = mulberry(((o.seed || 1) ^ 0x5bd1e995) >>> 0), Qa = Array.from({ length: 16 }, () => rq());
+ const kw = Math.min(1.8, Math.max(1, 70 / w)); // rides plus épaisses sur les petits portraits
  const south = ['sultan', 'khan'].includes(kind);
  let skin = south ? P(['#d9a47c', '#c88f68', '#b97f57', '#e1b28a']) : P(SKINS.slice(0, 6));
  if (age > 55) skin = mixHex(skin, '#c9b49c', Math.min(0.35, (age - 55) / 40));
  const skinD = shade(skin, -0.25), skinL = shade(skin, 0.18);
  let hair0 = P(['#2a1a10', '#4a3020', '#6b4a2a', '#8a6236', '#b08850', '#3a2a1e']), hair = hair0;
- if (age >= 62) hair = '#e8e4dc'; else if (age >= 55) hair = '#aaa49b'; else if (age >= 45) hair = mixHex(hair0, '#b8b2a8', 0.5); else if (age >= 40) hair = mixHex(hair0, '#b8b2a8', 0.12);
+ if (age >= 62) hair = '#e8e4dc'; else if (age >= 55) hair = '#aaa49b'; else if (age >= 45) hair = mixHex(hair0, '#b8b2a8', 0.6); else if (age >= 40) hair = mixHex(hair0, '#b8b2a8', 0.12);
  const id = 'pt' + (++_uid), bg = o.bg || '#5a1a1a';
  const robe = { pope: '#f4efe2', cardinal: '#a3171c', king: o.robe || '#5b2a6e', emperor: '#3a2a6e', basileus: '#5a1c62', sultan: o.robe || '#2f6b44', khan: '#284f86', doge: '#c9a13a', master: '#efeee8', queen: o.robe || '#7a2240' }[kind] || '#555';
  const flip = R() < 0.5; // regard vers la gauche ou vers la droite
@@ -157,10 +161,10 @@ function portraitSVG0(o) {
  h += `<path d="M${f(ax - 5)} ${f(jawY + 4)}L${f(ax - 6)} 87Q${f(ax + 3)} 91 ${f(ax + 10)} 86L${f(ax + 9)} ${f(jawY)}Z" fill="${skinD}"/>`;
  if (age >= 58) h += `<path d="M${f(ax - 3)} ${f(chinY + 2)}Q${f(ax + 1)} ${f(chinY + 6)} ${f(ax + 2)} 87M${f(ax + 1)} ${f(chinY + 1.5)}Q${f(ax + 4)} ${f(chinY + 5)} ${f(ax + 5)} 86" stroke="${shade(skin, -0.42)}" stroke-width=".6" fill="none" opacity=".8"/>`;
  // chevelure arrière / couronne de cheveux (tonsure sous la calotte pour le clergé)
- const bald = !clergy && !female && age >= 50 && R() < 0.35;
+ const bald = !clergy && !female && age >= 50 && Qa[0] < 0.35;
  if (!female && kind !== 'sultan' && kind !== 'queen') {
   if (clergy) h += `<path d="M${f(NT[0] - 3)} ${f(browY - 9)}Q${f(NT[0] + 5)} ${f(browY - 4)} ${f(NT[0] + 3)} ${f(cheekY + 3)}Q${f(NT[0] - 1)} ${f(jawY - 1)} ${f(NT[0] - 6)} ${f(jawY - 3)}Q${f(NT[0] - 2)} ${f(cheekY)} ${f(NT[0] - 3)} ${f(browY - 9)}Z" fill="${hair}" stroke="#1a0f08" stroke-width=".3"/><path d="M${f(FT[0] + 0.5)} ${f(browY - 7)}Q${f(FT[0] - 2.5)} ${f(browY - 1)} ${f(FT[0] - 0.5)} ${f(eyeY + 3)}L${f(FT[0] + 1.5)} ${f(browY - 2)}Z" fill="${hair}"/>`;
-  else if (!bald) { const hl = R() * 6; h += `<path d="M${f(ax - fwF - 3)} ${f(browY - 2)}C${f(ax - fwF - 6)} ${f(top - 7)} ${f(ax + fwN + 8)} ${f(top - 7)} ${f(NT[0] + 4)} ${f(browY)}Q${f(NT[0] + 6)} ${f(cheekY + 6 + hl)} ${f(NT[0] - 2)} ${f(jawY + hl)}L${f(NT[0] - 4)} ${f(cheekY)}L${f(ax - fwF + 1)} ${f(browY - 1)}L${f(ax - fwF - 2)} ${f(eyeY + 4)}Z" fill="${hair}" stroke="#1a0f08" stroke-width=".35"/>`; }
+  else if (!bald) { const hl = Qa[1] * 6; h += `<path d="M${f(ax - fwF - 3)} ${f(browY - 2)}C${f(ax - fwF - 6)} ${f(top - 7)} ${f(ax + fwN + 8)} ${f(top - 7)} ${f(NT[0] + 4)} ${f(browY)}Q${f(NT[0] + 6)} ${f(cheekY + 6 + hl)} ${f(NT[0] - 2)} ${f(jawY + hl)}L${f(NT[0] - 4)} ${f(cheekY)}L${f(ax - fwF + 1)} ${f(browY - 1)}L${f(ax - fwF - 2)} ${f(eyeY + 4)}Z" fill="${hair}" stroke="#1a0f08" stroke-width=".35"/>`; }
   else h += `<path d="M${f(NT[0] - 2)} ${f(browY - 3)}Q${f(NT[0] + 5)} ${f(browY)} ${f(NT[0] + 3)} ${f(cheekY + 4)}L${f(NT[0] - 4)} ${f(cheekY)}Z" fill="${hair}"/>`;
  }
  if (female) h += `<path d="M${f(ax - fwF - 6)} ${f(cy - 6)}C${f(ax - fwF - 8)} ${f(top - 10)} ${f(ax + fwN + 8)} ${f(top - 10)} ${f(ax + fwN + 6)} ${f(cy - 6)}L${f(ax + fwN + 10)} 92L${f(ax - fwF - 10)} 92Z" fill="${kind === 'queen' ? '#f4f0e6' : hair}" stroke="#1a0f08" stroke-width=".5"/>`;
@@ -168,23 +172,23 @@ function portraitSVG0(o) {
  const er = age >= 58 ? 6.6 : 5.6;
  h += `<ellipse cx="${f(NT[0] - 2.5)}" cy="${f(eyeY + 3.5)}" rx="3.3" ry="${er}" fill="${skin}" stroke="#3a2210" stroke-width=".6"/><path d="M${f(NT[0] - 2)} ${f(eyeY)}q1.6 3 0 6.5" stroke="${skinD}" stroke-width=".8" fill="none"/>`;
  // visage + modelé
- h += `<path d="${head}" fill="${skin}" stroke="#3a2210" stroke-width=".8"/><path d="${head}" fill="url(#${id}m)"/>`;
+ h += `<path d="${head}" fill="${skin}" stroke="${shade(skin, -0.5)}" stroke-width=".6"/><path d="${head}" fill="url(#${id}m)"/>`;
  h += `<ellipse cx="${f(ax - 2)}" cy="${f(browY - 7)}" rx="${f(fwF * 0.8)}" ry="5" fill="#fff" opacity=".13"/>`;
  h += `<ellipse cx="${f(ax + fwN * 0.55)}" cy="${f(cheekY + 2)}" rx="6" ry="4.5" fill="url(#${id}c)"/>`;
- if (age >= 55) h += `<path d="M${f(ax + fwN * 0.45)} ${f(cheekY + 1.5)}Q${f(ax + fwN * 0.75)} ${f(cheekY + 7)} ${f(ax + fwN * 0.55)} ${f(jawY - 1)}Q${f(ax + fwN * 0.95)} ${f(cheekY + 6)} ${f(ax + fwN * 0.85)} ${f(cheekY)}Z" fill="#3a1a08" opacity="${age >= 62 ? .2 : .12}"/>`;
+ if (age >= 55) h += `<path d="M${f(ax + fwN * 0.45)} ${f(cheekY + 1.5)}Q${f(ax + fwN * 0.75)} ${f(cheekY + 7)} ${f(ax + fwN * 0.55)} ${f(jawY - 1)}Q${f(ax + fwN * 0.95)} ${f(cheekY + 6)} ${f(ax + fwN * 0.85)} ${f(cheekY)}Z" fill="#3a1a08" opacity="${age >= 62 ? .12 : .08}"/>`;
  // yeux (orbites ombrées)
- const es = 5.6 + R() * 1.4, iris = P(['#3b2414', '#5a3b1f', '#2f4e6e', '#3e5a34', '#1d1410', '#6d5a3a']), heavy = age >= 55 || R() < 0.3;
- const brow = age >= 62 ? '#d8d2c6' : age >= 50 ? mixHex(hair0, '#b8b2a8', 0.45) : shade(hair0, -0.1), bw = 1.1 + R() * 1.1 + (age >= 58 && R() < .5 ? 0.6 : 0);
+ const es = 5.6 + R() * 1.4, iris = P(['#3b2414', '#5a3b1f', '#2f4e6e', '#3e5a34', '#1d1410', '#6d5a3a']), heavy = age >= 55 || Qa[2] < 0.3;
+ const brow = age >= 62 ? '#d8d2c6' : age >= 50 ? mixHex(hair0, '#b8b2a8', 0.45) : shade(hair0, -0.1), bw = 1.1 + R() * 1.1 + (age >= 58 && Qa[3] < .5 ? 0.6 : 0);
  for (const [x, sc] of [[ax + es, 1], [ax - es * 0.72, 0.78]]) {
   const hw = 3.5 * sc;
   h += `<ellipse cx="${f(x)}" cy="${f(eyeY - 0.5)}" rx="${f(hw + 2.2)}" ry="3.4" fill="url(#${id}e)"/>`;
-  h += `<path d="M${f(x - hw)} ${f(eyeY)}Q${f(x - 0.4)} ${f(eyeY - 2.3)} ${f(x + hw)} ${f(eyeY - 0.2)}Q${f(x)} ${f(eyeY + 1.9)} ${f(x - hw)} ${f(eyeY)}Z" fill="#efe6d4"/><circle cx="${f(x - hw * 0.28)}" cy="${f(eyeY - 0.1)}" r="${f(1.35 * Math.max(sc, .85))}" fill="${iris}"/><circle cx="${f(x - hw * 0.28)}" cy="${f(eyeY - 0.1)}" r=".55" fill="#120a06"/><circle cx="${f(x - hw * 0.12)}" cy="${f(eyeY - 0.6)}" r=".38" fill="#fff" opacity=".85"/>`;
+  h += `<path d="M${f(x - hw)} ${f(eyeY)}Q${f(x - 0.4)} ${f(eyeY - 2.3)} ${f(x + hw)} ${f(eyeY - 0.2)}Q${f(x)} ${f(eyeY + 1.9)} ${f(x - hw)} ${f(eyeY)}Z" fill="#efe6d4"/><circle cx="${f(x - hw * 0.18)}" cy="${f(eyeY - 0.1)}" r="${f(1.35 * Math.max(sc, .85))}" fill="${iris}"/><circle cx="${f(x - hw * 0.18)}" cy="${f(eyeY - 0.1)}" r=".55" fill="#120a06"/><circle cx="${f(x - hw * 0.12)}" cy="${f(eyeY - 0.6)}" r=".38" fill="#fff" opacity=".85"/>`;
   h += `<path d="M${f(x - hw - 0.3)} ${f(eyeY + 0.1)}Q${f(x - 0.4)} ${f(eyeY - (heavy ? 1.7 : 2.6))} ${f(x + hw + 0.3)} ${f(eyeY - 0.2)}" stroke="#2a160a" stroke-width="${heavy ? 1.1 : 0.8}" fill="none" stroke-linecap="round"/>`;
   if (heavy) h += `<path d="M${f(x - hw)} ${f(eyeY - 1.6)}Q${f(x)} ${f(eyeY - 3.4)} ${f(x + hw + 0.5)} ${f(eyeY - 1.2)}" stroke="${skinD}" stroke-width=".6" fill="none"/>`;
   const bt = (R() - 0.5) * 1.6;
   h += `<path d="M${f(x - hw - 1)} ${f(eyeY - 3.6 + bt)}Q${f(x)} ${f(eyeY - 5.8)} ${f(x + hw + 1.2)} ${f(eyeY - 3.8 - bt * 0.5)}" stroke="${brow}" stroke-width="${f(bw * sc)}" fill="none" stroke-linecap="round"/>`;
-  if (age >= 45) h += `<path d="M${f(x - hw + 0.5)} ${f(eyeY + 2)}Q${f(x)} ${f(eyeY + (age >= 58 ? 3.8 : 3))} ${f(x + hw)} ${f(eyeY + 1.6)}" stroke="${skinD}" stroke-width="${age >= 58 ? .75 : .5}" fill="none" opacity=".85"/>`;
-  if (age >= 52 && sc === 1) h += `<path d="M${f(x + hw + 1)} ${f(eyeY - 0.8)}l2.4 -1.2M${f(x + hw + 1.2)} ${f(eyeY + 0.4)}l2.6 .2M${f(x + hw + 1)} ${f(eyeY + 1.5)}l2.2 1.3" stroke="${skinD}" stroke-width=".5" opacity=".9"/>`;
+  if (age >= 45) h += `<path d="M${f(x - hw + 0.5)} ${f(eyeY + 2)}Q${f(x)} ${f(eyeY + (age >= 58 ? 3.8 : 3))} ${f(x + hw)} ${f(eyeY + 1.6)}" stroke="${skinD}" stroke-width="${f((age >= 58 ? .75 : .55) * kw)}" fill="none" opacity=".9"/>`;
+  if (age >= 52 && sc === 1) h += `<path d="M${f(x + hw + 1)} ${f(eyeY - 0.8)}l2.4 -1.2M${f(x + hw + 1.2)} ${f(eyeY + 0.4)}l2.6 .2M${f(x + hw + 1)} ${f(eyeY + 1.5)}l2.2 1.3" stroke="${skinD}" stroke-width="${f(.5 * kw)}" opacity=".9"/>`;
  }
  // nez (profil côté fuyant, aile côté proche)
  const nl = 9 + R() * 4, np = 2.4 + R() * 2.6, ny = eyeY + 1, nt = P(['droit', 'aquilin', 'aquilin', 'fort', 'retrousse']);
@@ -194,7 +198,7 @@ function portraitSVG0(o) {
  h += `<path d="M${f(ax + 1.4)} ${f(tipY + 0.4)}Q${f(ax + 3.6)} ${f(tipY + 0.2)} ${f(ax + 3)} ${f(tipY - 1.8)}" stroke="${shade(skin, -0.35)}" stroke-width=".8" fill="none"/><path d="M${f(tipX + 1.6)} ${f(tipY + 1.8)}Q${f(ax)} ${f(tipY + 2.6)} ${f(ax + 2)} ${f(tipY + 1.2)}" stroke="#2a1006" stroke-width=".7" fill="none" opacity=".7"/>`;
  h += `<ellipse cx="${f(tipX + 0.8)}" cy="${f(tipY - 1)}" rx="1.1" ry=".7" fill="#fff" opacity=".25"/>`;
  // sillons nasogéniens
- if (age >= 44) { const d = age >= 58 ? 1 : 0.6; h += `<path d="M${f(ax + 4.2)} ${f(tipY - 0.5)}Q${f(ax + 6.5)} ${f(tipY + 4)} ${f(ax + 5.2)} ${f(tipY + 8 + sag)}" stroke="${shade(skin, -0.35)}" stroke-width="${f(0.5 + d * 0.4)}" fill="none" opacity="${f(0.5 + d * 0.4)}"/><path d="M${f(tipX - 0.5)} ${f(tipY + 1.5)}Q${f(tipX - 2.4)} ${f(tipY + 5)} ${f(tipX - 1.2)} ${f(tipY + 8)}" stroke="${shade(skin, -0.32)}" stroke-width=".5" fill="none" opacity="${f(0.35 + d * 0.3)}"/>`; }
+ if (age >= 44) { const d = age >= 58 ? 1 : 0.6; h += `<path d="M${f(ax + 4.2)} ${f(tipY - 0.5)}Q${f(ax + 6.5)} ${f(tipY + 4)} ${f(ax + 5.2)} ${f(tipY + 8 + sag)}" stroke="${shade(skin, -0.35)}" stroke-width="${f((0.5 + d * 0.4) * kw)}" fill="none" opacity="${f(0.5 + d * 0.4)}"/><path d="M${f(tipX - 0.5)} ${f(tipY + 1.5)}Q${f(tipX - 2.4)} ${f(tipY + 5)} ${f(tipX - 1.2)} ${f(tipY + 8)}" stroke="${shade(skin, -0.32)}" stroke-width=".5" fill="none" opacity="${f(0.35 + d * 0.3)}"/>`; }
  // bouche
  const my = tipY + 4.5 + R() * 1.2, mwN = 4.2 + R() * 1.6, mwF = mwN * 0.62, mx = ax - 1.2, lip = Math.max(0.5, 1.9 + R() * 0.8 - Math.max(0, age - 45) * 0.04), mc = (R() - 0.6) * 1.6 - (age >= 58 ? 0.8 : 0);
  const lipC = female ? '#a8483f' : mixHex(skin, '#8a3a30', 0.55);
@@ -205,12 +209,12 @@ function portraitSVG0(o) {
  h += `<ellipse cx="${f(C[0] + 1)}" cy="${f(chinY - 2.6)}" rx="2.6" ry="1.5" fill="#fff" opacity=".14"/>`;
  // front : rides selon l'âge
  const nf = age >= 60 ? 3 : age >= 50 ? 2 : age >= 44 ? 1 : 0;
- for (let i = 0; i < nf; i++) { const y = browY - 4.5 - i * 2.4, wv = (R() - 0.5) * 1.2; h += `<path d="M${f(ax - fwF * 0.55)} ${f(y + 0.5)}Q${f(ax + 2)} ${f(y - 1 + wv)} ${f(ax + fwN * 0.6)} ${f(y + 0.4)}" stroke="${shade(skin, -0.3)}" stroke-width="${age >= 60 ? .6 : .45}" fill="none" opacity=".8"/>`; }
- if (age >= 50 && R() < 0.6) h += `<path d="M${f(ax + 1)} ${f(eyeY - 4.5)}l.3 2.6M${f(ax + 2.5)} ${f(eyeY - 4.8)}l.1 2.4" stroke="${shade(skin, -0.32)}" stroke-width=".5"/>`;
- if (age >= 62) for (let i = 0; i < 3; i++) h += `<circle cx="${f(ax + fwN * (0.2 + R() * 0.6))}" cy="${f(browY - 2 - R() * 6)}" r="${f(0.5 + R() * 0.5)}" fill="#8a6040" opacity=".22"/>`;
+ for (let i = 0; i < nf; i++) { const y = browY - 4.5 - i * 2.4, wv = (Qa[4 + i] - 0.5) * 1.2; h += `<path d="M${f(ax - fwF * 0.55)} ${f(y + 0.5)}Q${f(ax + 2)} ${f(y - 1 + wv)} ${f(ax + fwN * 0.6)} ${f(y + 0.4)}" stroke="${shade(skin, -0.3)}" stroke-width="${f((age >= 60 ? .6 : .5) * kw)}" fill="none" opacity=".85"/>`; }
+ if (age >= 50 && Qa[7] < 0.6) h += `<path d="M${f(ax + 1)} ${f(eyeY - 4.5)}l.3 2.6M${f(ax + 2.5)} ${f(eyeY - 4.8)}l.1 2.4" stroke="${shade(skin, -0.32)}" stroke-width=".5"/>`;
+ if (age >= 62) for (let i = 0; i < 2; i++) h += `<circle cx="${f(ax + fwN * (0.2 + Qa[8 + i * 3] * 0.6))}" cy="${f(browY - 2 - Qa[9 + i * 3] * 6)}" r="${f(0.5 + Qa[10 + i * 3] * 0.5)}" fill="#8a6040" opacity=".22"/>`;
  // barbe
  const beardP = { pope: 0.05, cardinal: 0.1, king: 0.6, emperor: 0.65, basileus: 0.97, sultan: 0.9, khan: 0.4, doge: 0.5, master: 0.75 }[kind] || 0;
- if (!female && R() < beardP) {
+ if (!female && R() < beardP * (age < 30 ? 0.4 : 1)) {
   const bc = age >= 62 ? '#ddd8ce' : age >= 50 ? mixHex(hair0, '#c8c2b8', 0.5) : hair0, bl = 5 + R() * 12;
   h += `<path d="M${f(FC[0] + 0.5)} ${f(cheekY + 1)}Q${f(FJ[0] - 1)} ${f(chinY + bl * 0.5)} ${f(C[0])} ${f(chinY + bl)}Q${f(NJ[0] + 1)} ${f(chinY + bl * 0.4)} ${f(NC[0] - 1.5)} ${f(cheekY)}Q${f(NC[0] - 5)} ${f(my + 1)} ${f(mx + mwN + 1)} ${f(my + 1)}Q${f(mx)} ${f(my + 3.5)} ${f(mx - mwF - 1)} ${f(my + 1)}Q${f(FC[0] + 3)} ${f(my)} ${f(FC[0] + 0.5)} ${f(cheekY + 1)}Z" fill="${bc}" stroke="#1a0f08" stroke-width=".4"/>`;
   h += `<path d="M${f(mx - mwF - 1.5)} ${f(my - 0.8)}Q${f(mx)} ${f(my - 3.8)} ${f(mx + mwN + 1.5)} ${f(my - 0.8)}Q${f(mx)} ${f(my - 0.2)} ${f(mx - mwF - 1.5)} ${f(my - 0.8)}Z" fill="${bc}"/>`;

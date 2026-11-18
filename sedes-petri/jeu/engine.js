@@ -444,7 +444,7 @@ function agenda() {
  if (S.schism) add('crit', `Schisme : l’antipape ${S.schism.anti} divise la Chrétienté.`, { tab: 'eglise' });
  if (S.authority < 25) add('crit', `Votre autorité vacille (${Math.round(S.authority)}). À zéro, la papauté s’effondre.`, { tab: 'pontife' });
  const b = budget(); if (b.total < 0 && S.treasury < -b.total * 4) add('crit', `Le trésor sera vide dans ${Math.max(0, Math.floor(S.treasury / -b.total))} saison(s).`, { tab: 'tresor' });
- else if (S.treasury < 60) add('warn', `Coffres presque vides : ${Math.max(0, Math.round(S.treasury))} marcs. Leviers : fiscalité, indulgences ou emprunt (onglet Trésor).`, { tab: 'tresor' });
+ else if (S.treasury < 60) add('warn', `${S.treasury <= 0 ? 'Coffres vides' : 'Coffres presque vides : ' + Math.round(S.treasury) + ' marc' + (Math.round(S.treasury) > 1 ? 's' : '')}. Leviers : fiscalité, indulgences ou emprunt (onglet Trésor).`, { tab: 'tresor' });
  if (S.debt > 700) add('warn', `Dette de ${Math.round(S.debt)} marcs : la banqueroute guette au-delà de 1 200.`, { tab: 'tresor' });
  if (S.curia === 'rome' && S.rome.stab < 30) add(S.rome.stab < 22 ? 'crit' : 'warn', `Rome gronde (stabilité ${Math.round(S.rome.stab)}) : risque de soulèvement.`, { tab: 'rome' });
  if (S.curia === 'exil' && S.rome.stab >= 35) add('info', 'Rome s’est apaisée : vous pouvez quitter l’exil.', { tab: 'rome' });

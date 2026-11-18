@@ -52,9 +52,10 @@ function ambVass() { return catholics(r => RL(r).vassal).length; }
 function ambEnsure() {
  if (!S || !S.pope || S.over) return null;
  const p = S.pope;
- if (p.amb || p.ambO) return p.amb || p.ambO;
+ if (p.amb) return p.amb;
+ if (p.ambO && p.ambO.ids.some(ambOuverte)) return p.ambO; // offres encore valables ; sinon nouveau tirage
  const rng = mulberryAmb(((p.seed || 1) ^ (S.year * 2654435761)) >>> 0);
- const pool = Object.keys(AMB).filter(k => { try { return AMB[k].when(); } catch (e) { return false; } });
+ const pool = Object.keys(AMB).filter(ambOuverte);
  const pick3 = [];
  while (pick3.length < 3 && pool.length) {
   const wts = pool.map(k => 1 + (AMB[k].aff || []).filter(t => p.traits.includes(t)).length * 2);
@@ -64,9 +65,11 @@ function ambEnsure() {
  p.ambO = { ids: pick3, y: S.year };
  return p.ambO;
 }
+/* Une offre n'est valable que si l'objectif n'est pas déjà atteint et que sa condition tient toujours (sinon : gloire gratuite). */
+function ambOuverte(k) { const A = AMB[k]; if (!A) return false; try { return A.when() && !A.ok(A.base ? A.base() : {}); } catch (e) { return false; } }
 function mulberryAmb(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function ambChoose(id) {
- const p = S.pope, A = AMB[id]; if (!A || p.amb || !p.ambO || !p.ambO.ids.includes(id)) return false;
+ const p = S.pope, A = AMB[id]; if (!A || p.amb || !p.ambO || !p.ambO.ids.includes(id) || !ambOuverte(id)) return false;
  p.amb = { id, y: S.year, b: A.base ? A.base() : {}, st: 'cours' }; delete p.ambO;
  log(`${popeName()} fait vœu : « ${A.n} ». ${A.d}`, 'info');
  ambTick(); return true;
@@ -86,6 +89,7 @@ function ambTick() {
 }
 /* Pour le bilan du pape défunt (popeRecord). */
 function ambRecord() {
+ ambTick(); // une réussite de la dernière saison (fin du schisme puis abdication…) compte encore
  const a = S.pope && S.pope.amb; if (!a || !AMB[a.id]) return null;
  return { id: a.id, n: AMB[a.id].n, st: a.st === 'cours' ? 'rate' : a.st, g: a.st === 'ok' ? AMB[a.id].g : 0 };
 }

@@ -208,8 +208,8 @@ function tabPontife() {
  const p = S.pope; const reign = S.year - p.start;
  const achs = Object.keys(ACH).map(k => `<div class="ach ${S.ach[k] ? 'on' : ''}" title="${esc(ACH[k].d)}${S.ach[k] ? ' — ' + S.ach[k].y + ', ' + S.ach[k].p : ''}"><span>✦</span><b>${ACH[k].n}</b></div>`).join('');
  const lin = S.popes.slice(-12).reverse().map(x => `<div class="lin"><div>${portraitSVG({ seed: x.seed, kind: 'pope', age: 65, w: 38, bg: '#4a1010' })}</div><div><b>${x.name}${x.sum ? ' ' + x.sum.ep : ''}</b><small>${x.from}–${x.to} · ${x.how === 'abdication' ? 'abdiqua' : 'mort'} · autorité ${x.auth}${x.sum && x.sum.ach.length ? ' · ' + x.sum.ach.join(', ') : ''}</small></div></div>`).join('') || '<p class="mut">Vous êtes le premier pontife de cette lignée.</p>';
- const ag = agenda(); if (typeof ambEnsure === 'function' && ambEnsure() && !p.amb) ag.push({ l: 'info', t: 'Choisissez l’ambition de votre pontificat (plus bas).', go: { tab: 'pontife' } });
- const agH = ag.length ? ag.map(x => `<button class="agi ${x.l}" ${x.go.realm ? `data-realm="${x.go.realm}"` : `data-tab="${x.go.tab}"`}><i>${x.l === 'crit' ? '‼' : x.l === 'warn' ? '!' : '•'}</i><span>${x.t}</span></button>`).join('') : '<p class="mut">Aucune affaire pressante : la barque de Pierre vogue en eaux calmes.</p>';
+ const ag = agenda(); if (typeof ambEnsure === 'function' && ambEnsure() && !p.amb) ag.push({ l: 'info', t: 'Choisissez l’ambition de votre pontificat (plus bas).', go: { tab: 'pontife', amb0: 1 } });
+ const agH = ag.length ? ag.map(x => `<button class="agi ${x.l}" ${x.go.realm ? `data-realm="${x.go.realm}"` : `data-tab="${x.go.tab}"${x.go.amb0 ? ' data-amb0="1"' : ''}`}><i>${x.l === 'crit' ? '‼' : x.l === 'warn' ? '!' : '•'}</i><span>${x.t}</span></button>`).join('') : '<p class="mut">Aucune affaire pressante : la barque de Pierre vogue en eaux calmes.</p>';
  return `${sec('Affaires pressantes', `<div class="agenda">${agH}</div>`)}<div class="hero"><div class="hero-p">${popePortrait(p, 132)}</div><div class="hero-i"><div class="eyebrow">Servus servorum Dei</div><h2>${popeName()}</h2><div class="mut">${p.fn ? p.fn + ' ' : ''}${p.fam} · ${NAT_LABEL[p.nat] ? { italien: 'Romain', francais: 'Français', allemand: 'Allemand', espagnol: 'Ibérique', anglais: 'Anglais' }[p.nat] : ''}</div>
  <div class="mut">${p.age} ans · pontife depuis ${reign ? reign + ' an' + (reign > 1 ? 's' : '') : 'cette année'}</div>
  ${stat('Santé', p.health, p.health < 35 ? 'red' : 'green')}${stat('Autorité', S.authority, 'gold')}
@@ -224,10 +224,10 @@ function tabPontife() {
 function ambSec() {
  if (typeof ambEnsure !== 'function' || !ambEnsure()) return '';
  const p = S.pope;
- if (!p.amb) return sec('Ambition du pontificat', `<p class="mut">Un vœu pour marquer votre règne : s’il s’accomplit, votre nom s’inscrit en lettres d’or dans les annales (gloire seulement). Une fois choisi, il ne se change plus.</p><div class="ambs">${p.ambO.ids.map(k => { const A = AMB[k]; return `<button class="amb" data-amb="${k}"><b>${A.n}</b><span>${A.d}</span><small>${A.yrs ? A.yrs + ' ans' : 'avant votre mort'} · +${A.g} gloire</small></button>`; }).join('')}</div>`, 'ambsec');
+ if (!p.amb) return sec('Ambition du pontificat', `<p class="mut">Un vœu pour marquer votre règne : s’il s’accomplit, votre nom s’inscrit en lettres d’or dans les annales (gloire seulement). Une fois choisi, il ne se change plus.</p><div class="ambs">${p.ambO.ids.filter(ambOuverte).map(k => { const A = AMB[k]; return `<button class="amb" data-amb="${k}"><b>${A.n}</b><span>${A.d}</span><small>${A.yrs ? A.yrs + ' ans' : 'avant votre mort'} · +${A.g} gloire</small></button>`; }).join('')}</div>`, 'ambsec');
  const st = ambState(); if (!st) return '';
  const pc = Math.max(0, Math.min(100, st.v / st.max * 100));
- const etat = st.a.st === 'ok' ? `<b class="pos">Accomplie en ${st.a.fin}</b> · +${st.A.g} gloire` : st.a.st === 'rate' ? `<b class="neg">Vœu resté pieux</b> (${st.a.fin})` : (st.left != null ? `encore ${Math.max(0, st.left)} an${st.left > 1 ? 's' : ''}` : 'avant votre mort') + ` · +${st.A.g} gloire`;
+ const etat = st.a.st === 'ok' ? `<b class="pos">Accomplie en ${st.a.fin}</b> · +${st.A.g} gloire` : st.a.st === 'rate' ? `<b class="neg">Vœu resté pieux</b> (${st.a.fin})` : (st.left != null ? (st.left > 0 ? `encore ${st.left} an${st.left > 1 ? 's' : ''}` : 'dernière année') : 'avant votre mort') + ` · +${st.A.g} gloire`;
  return sec('Ambition du pontificat', `<div class="ambc ${st.a.st}"><b>${st.A.n}</b><span>${st.A.d}</span>${st.a.st === 'ok' ? '' : `<div class="bar gold"><i style="width:${pc}%"></i></div>`}<small>${st.a.st === 'ok' ? '' : esc(st.lbl) + ' · '}${etat}</small></div>`, 'ambsec');
 }
 function relWord(v) { return v > 60 ? 'Dévoué' : v > 25 ? 'Amical' : v > -10 ? 'Réservé' : v > -45 ? 'Méfiant' : 'Hostile'; }
@@ -570,8 +570,8 @@ function onClick(e) {
  if (d.export) { const code = exportCode(); modal(`<div class="rep"><h2>Code de partie</h2><p class="mut">Copiez ce texte et collez-le dans « Importer un code » sur un autre appareil.</p><textarea rows="7" readonly onclick="this.select()">${code}</textarea><button class="big" data-copy="1">Copier</button><button class="ghost" data-close="1">Fermer</button></div>`, 'repm'); return; }
  if (d.copy) { const ta = $('#modalBox textarea'); try { navigator.clipboard.writeText(ta.value).then(() => toast('Code copié.'), () => { ta.select(); toast('Sélectionnez puis copiez le texte.'); }); } catch (er) { ta.select(); } return; }
  if (d.new) { if (S && S.test) { location.reload(); return; } closeModal(); START.name = null; startScreen(); return; }
- if (d.amb) { if (ambChoose(d.amb)) { sfx('gold'); toast(`Vœu prononcé : <b>${AMB[d.amb].n}</b>`, 'gold'); UI.keepScroll = true; renderAll(); } return; }
- if (d.tab) { UI.tab = d.tab; if (d.tab !== 'royaume') { } sfx('click'); renderPanel(); return; }
+ if (d.amb) { if (!ambOuverte(d.amb)) { toast('Ce vœu n’a plus d’objet : l’objectif est déjà atteint.'); renderAll(); return; } if (ambChoose(d.amb)) { sfx('gold'); toast(`Vœu prononcé : <b>${AMB[d.amb].n}</b>`, 'gold'); UI.keepScroll = true; renderAll(); } return; }
+ if (d.tab) { UI.tab = d.tab; if (d.tab !== 'royaume') { } sfx('click'); renderPanel(); if (d.amb0 && $('.ambsec')) $('.ambsec').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
  if (d.realm !== undefined && !t.closest('#modal')) { selectRealm(d.realm); return; }
  if (d.realm !== undefined && t.classList.contains('lgr')) { closeModal(); selectRealm(d.realm); return; }
  if (d.mode) { MAP.mode = d.mode; renderMap(); renderEnd(); return; }
@@ -582,8 +582,8 @@ function onClick(e) {
  if (t.id === 'endTurn') { endTurn(); return; }
  if (d.act) {
   if (S.over) return; const a = JSON.parse(d.a || '{}'); const id = d.act;
-  if (id === 'abdiquer' && !t.dataset.sure) { t.dataset.sure = 1; t.querySelector('.ad').textContent = 'Touchez encore pour confirmer : le conclave s’ouvrira aussitôt.'; return; }
-  if (id === 'disgrace' && !t.dataset.sure) { t.dataset.sure = 1; t.querySelector('.ad').textContent = 'Touchez encore pour confirmer.'; return; }
+  if (id === 'abdiquer' && !t.dataset.sure) { t.dataset.sure = 1; $('#tabBody')._h = null; t.querySelector('.ad').textContent = 'Touchez encore pour confirmer : le conclave s’ouvrira aussitôt.'; return; }
+  if (id === 'disgrace' && !t.dataset.sure) { t.dataset.sure = 1; $('#tabBody')._h = null; t.querySelector('.ad').textContent = 'Touchez encore pour confirmer.'; return; }
   const r = doAct(id, a);
   if (!r.ok) { toast(r.msg, 'bad'); sfx('click'); return; }
   sfx(ACT[id].s ? 'seal' : 'click');

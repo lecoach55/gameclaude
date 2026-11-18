@@ -11,7 +11,9 @@ options : --vues a,b (les vues s'enchaînent dans la même page : un sous-ensemb
           série complète ; pour une vue indépendante, "seule": true) · --appareils telephone,ordinateur · --construire · --seuil 6 (% de compare.py) · --strict (code 1 si
           alerte, image manquante, vue en échec, erreur JS ou vue instable) · --stabilite (chaque vue capturée DEUX fois : une vue
           qui change d'une série à l'autre donnerait de fausses alertes) · --format png|jpg · --echelle 1 · --qualite 85
-          · --mode fige|reel (remplace celui des réglages)
+          · --mode fige|reel (remplace celui des réglages) · --sans-verrou · --attente-max 1800 (s)
+Verrou machine (verrou.py, 18/11) : les captures passent avec les autres robots mais jamais pendant un banc (elles fausseraient ses
+  mesures : bruit 69-315 % vu chez Une vie) ; elles attendent sa fin en le disant.
 Seules les images que la série refait sont remplacées dans la sortie (rien d'autre n'y est effacé).
 Sortie (défaut /tmp/captures-<jeu>) : une image par vue (`nom.png`, ou `<appareil>_nom.png` s'il y a plusieurs appareils),
   captures.json (durée, erreurs, infos de chaque vue), et avec --comparer/--avant : planche.png + comparaison.json.
@@ -43,6 +45,7 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 RAC = os.path.dirname(ICI)
 sys.path.insert(0, ICI)
 import banc as B  # noqa: E402  (lieu, construire, extraire, servir… : mêmes règles de chargement et d'avant/après que le banc)
+import verrou as V  # noqa: E402
 from atelier import ARGS, HORLOGE  # noqa: E402
 from routes import brancher as brancher_routes  # noqa: E402
 
@@ -68,12 +71,13 @@ async def ev(pg, js, arg=None, delai=DELAI_EVAL):
 
 def lire_args(argv):
     o = {'vues': None, 'appareils': None, 'construire': False, 'seuil': None, 'strict': False, 'stabilite': False, 'format': None,
-         'echelle': None, 'qualite': None, 'mode': None, 'comparer': None, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'pos': []}
+         'echelle': None, 'qualite': None, 'mode': None, 'comparer': None, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'pos': [],
+         'sans_verrou': False, 'attente_max': None}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a in ('--construire', '--strict', '--stabilite'):
-            o[a[2:]] = True
+        if a in ('--construire', '--strict', '--stabilite', '--sans-verrou'):
+            o[a[2:].replace('-', '_')] = True
         elif a.startswith('--'):
             k = a[2:].replace('-', '_')
             if k not in o or i + 1 >= len(argv):
@@ -350,18 +354,19 @@ def main(argv):
     seuil = float(o['seuil'] or cfg.get('seuil', 6))
     avec_avant = bool(o['avant'] or o['avant_dossier'] or o['avant_page'])
     t0 = time.time(); tmp = None; serveurs = []; code = 0
+    jeton = None if o['sans_verrou'] else V.prendre('robot', f'captures {jeu}', True, float(o['attente_max'] or 1800))[0]
     bilan = {'jeu': jeu, 'mode': mode, 'format': fmt, 'echelle': echelle, 'appareils': list(appareils)}
     try:
         if o['construire']:
             B.construire(cfg, RAC)
         d_ap, p_ap = B.lieu(cfg, RAC)
-        B.verifier_page(d_ap, p_ap, 'APRÈS' if avec_avant else 'en cours')
+        B.assurer_page(cfg, d_ap, p_ap, 'APRÈS' if avec_avant else 'en cours', o['construire'])
         if avec_avant:
             if o['avant']:
                 t1 = time.time(); tmp = B.extraire(o['avant'], cfg)
                 print(f"  révision {o['avant']} extraite en {time.time()-t1:.1f} s", flush=True)
                 if B.hors_depot(cfg):
-                    d_ap, d_av = B.mettre_de_cote(d_ap, cfg, tmp); p_av = p_ap
+                    d_ap, d_av = B.mettre_de_cote(d_ap, cfg, tmp, p_ap); p_av = p_ap
                 else:
                     B.construire(cfg, tmp); d_av, p_av = B.lieu(cfg, tmp)
             elif o['avant_page']:
@@ -434,6 +439,8 @@ def main(argv):
             s.shutdown(); s.server_close()
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)
+        if jeton:
+            jeton.close()
     series = [bilan['apres']] + ([bilan['avant']] if avec_avant else [])
     echecs = [f'{f} : {r["echec"]}' for sr in series for f, r in sr['vues'].items() if 'echec' in r]
     err = sorted({e for sr in series for r in sr['vues'].values() for e in r.get('erreurs', [])} | {e for sr in series for e in sr['erreurs_page']})

@@ -105,3 +105,5 @@
 {"quand": "2026-11-18 09:56", "jeu": "une-vie", "etape": "banc avant/après", "commande": "python3 outils-communs/banc.py une-vie/outils/banc.json --avant 492267b --sortie /tmp/claude-0/-home-claude-gameclaude/57af8be3-d229-5489-8946-516d3865bd32/scratchpad/banc.json", "secondes": 0.2, "code": 1}
 {"quand": "2026-11-18 10:08", "jeu": "une-vie", "etape": "banc avant/après", "commande": "python3 outils-communs/banc.py une-vie/outils/banc.json --avant 492267b", "secondes": 690.0, "code": 0}
 {"quand": "2026-11-18 10:17", "jeu": "hameau", "etape": "banc avant/après (3 scènes)", "commande": "python3 outils-communs/banc.py hameau/outils/banc.json --avant HEAD --construire --tours 1 --scenes village_jour,hiver,vue_large", "secondes": 382.5, "code": 0}
+{"quand": "2026-11-18 13:27", "jeu": "outils", "etape": "verifier_outils (après)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 231.7, "code": 0}
+{"quand": "2026-11-18 13:48", "jeu": "outils", "etape": "verifier_outils (après corrections)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 229.7, "code": 0}

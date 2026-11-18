@@ -960,6 +960,135 @@ def _():
         if r.returncode == 0 or 'vont avec --profil' not in r.stderr:
             raise RuntimeError('--images sans --profil accepté en silence')
 
+@controle("banc/captures --avant, page à chemin absolu (retour Cage 18/11 : /home/claude/cg.html recopiait tout /home/claude puis shutil.Error) : dossier PARTAGÉ → seulement la page (+ \"sorties\"), fichier d'une autre conversation ni effacé ni remis, APRÈS servi avec ses sous-dossiers ; dossier propre → tout suivi (sous-dossier, lien vers dossier), fichiers SUPPRIMÉS par la construction de l'AVANT remis (même si elle échoue) ; page absente + \"construire\" → construite d'office")
+def _():
+    sys.path.insert(0, OC)
+    import banc as B_
+    if B_.dossier_propre(RAC) or B_.dossier_propre(os.path.dirname(RAC)) or B_.dossier_propre('/') or B_.dossier_propre(tempfile.gettempdir()):
+        raise RuntimeError('dépôt, son dossier parent, / ou /tmp pris pour un dossier propre à la page')
+    with tempfile.TemporaryDirectory() as d:
+        P = os.path.join(d, 'partage'); os.makedirs(os.path.join(P, '.git')); os.makedirs(os.path.join(P, 'assets'))
+        open(os.path.join(P, 'page.html'), 'w').write('APRES'); open(os.path.join(P, 'voisin.png'), 'w').write('img')
+        open(os.path.join(P, 'assets', 'x.js'), 'w').write('x'); os.symlink(os.path.join(P, 'assets'), os.path.join(P, 'lien'))
+        open(os.path.join(P, 'autre.html'), 'w').write('AUTRE v1')
+        tmp = os.path.join(d, 'tmp'); os.makedirs(tmp)
+        # pendant la construction de l'AVANT, « une autre conversation » réécrit autre.html et crée la sienne
+        cfg = {'construire': f"echo AVANT > {P}/page.html; echo AUTRE v2 > {P}/autre.html; echo z > {P}/sienne.html"}
+        ap, av = B_.mettre_de_cote(P, cfg, tmp, 'page.html')
+        if open(os.path.join(P, 'page.html')).read() != 'APRES':
+            raise RuntimeError('dossier partagé : APRÈS non remis')
+        if open(os.path.join(P, 'autre.html')).read().strip() != 'AUTRE v2' or not os.path.exists(os.path.join(P, 'sienne.html')):
+            raise RuntimeError('dossier partagé : fichiers d\'une autre conversation ramenés en arrière ou effacés')
+        if open(os.path.join(av, 'page.html')).read().strip() != 'AVANT' or open(os.path.join(av, 'assets', 'x.js')).read() != 'x' or open(os.path.join(av, 'voisin.png')).read() != 'img':
+            raise RuntimeError('AVANT servi faux ou sans ses voisins / sous-dossiers')
+        if os.path.realpath(ap) != os.path.realpath(P) or os.listdir(os.path.join(tmp, '.banc_apres')) != ['page.html']:
+            raise RuntimeError(f'dossier partagé : APRÈS servi depuis {ap} (sans ses sous-dossiers ?) ou autres fichiers copiés')
+        # dossier propre : sous-dossier et lien vers dossier suivis ; fichiers supprimés remis
+        Q = os.path.join(d, 'banc', 'jeu'); os.makedirs(os.path.join(Q, 'img')); os.makedirs(os.path.join(d, 'ext'))
+        open(os.path.join(Q, 'page.html'), 'w').write('APRES'); open(os.path.join(Q, 'img', 'a.png'), 'w').write('a2')
+        open(os.path.join(Q, 'img', 'nouveau.png'), 'w').write('n'); open(os.path.join(d, 'ext', 't.jpg'), 'w').write('t')
+        os.symlink('../../ext', os.path.join(Q, 'tex'))
+        if not B_.dossier_propre(Q, 'page.html') or B_.dossier_propre(P, 'page.html'):
+            raise RuntimeError('dossier propre / partagé mal reconnu')
+        tmp2 = os.path.join(d, 'tmp2'); os.makedirs(tmp2)
+        ap, av = B_.mettre_de_cote(Q, {'construire': f"rm -r {Q}/img; mkdir {Q}/img; echo AVANT > {Q}/page.html; echo a1 > {Q}/img/a.png"}, tmp2, 'page.html')
+        if open(os.path.join(Q, 'img', 'a.png')).read() != 'a2' or open(os.path.join(av, 'img', 'a.png')).read().strip() != 'a1':
+            raise RuntimeError('dossier propre : sous-dossier non suivi')
+        if not os.path.exists(os.path.join(Q, 'img', 'nouveau.png')) or os.path.exists(os.path.join(av, 'img', 'nouveau.png')):
+            raise RuntimeError('fichier supprimé par la construction de l\'AVANT : non remis, ou présent dans l\'AVANT')
+        if not os.path.exists(os.path.join(ap, 'tex', 't.jpg')) or not os.path.exists(os.path.join(av, 'tex', 't.jpg')):
+            raise RuntimeError('lien vers un dossier oublié')
+        tmp3 = os.path.join(d, 'tmp3'); os.makedirs(tmp3)
+        try:
+            B_.mettre_de_cote(Q, {'construire': f"rm {Q}/page.html; exit 1"}, tmp3, 'page.html')
+            raise RuntimeError('construction ratée non signalée')
+        except RuntimeError as e:
+            if 'échouée' not in str(e):
+                raise
+        if not os.path.exists(os.path.join(Q, 'page.html')) or open(os.path.join(Q, 'page.html')).read() != 'APRES':
+            raise RuntimeError('construction ratée qui efface la page : APRÈS perdu')
+        # page absente + "construire" : construite d'office (avant : « page APRÈS introuvable », code 2)
+        F = os.path.join(d, 'neuf', 'p.html')
+        B_.assurer_page({'construire': f'mkdir -p {os.path.dirname(F)} && echo ok > {F}'}, os.path.dirname(F), 'p.html', 'APRÈS')
+        if not os.path.exists(F):
+            raise RuntimeError('page absente non construite d\'office')
+        try:
+            B_.assurer_page({}, os.path.join(d, 'rien'), 'p.html', 'APRÈS'); raise RuntimeError('page absente sans "construire" acceptée')
+        except B_.PageAbsente:
+            pass
+
+
+@controle("verrou.py : bancs seuls, robots ensemble (R1 ∥ R2 → banc → R3 arrivé pendant que le banc attendait : file d'attente), qui tient la machine dit ; captures.py attend un banc (--attente-max → code 3) et passe avec --sans-verrou ; verif.py : commande du jeu sous verrou robot, VERROU_TENU transmis")
+def _():
+    V = os.path.join(OC, 'verrou.py')
+    env = dict(os.environ, BANC_VERROU=os.path.join(tempfile.gettempdir(), f'verrou-ctl-{os.getpid()}.verrou'))
+    with tempfile.TemporaryDirectory() as d:
+        log = os.path.join(d, 'log')
+        def lance(mode, nom, s):
+            return subprocess.Popen([sys.executable, V, mode, '--nom', nom, '--', 'sh', '-c', f'echo "$(date +%s.%N) debut {nom} $VERROU_TENU" >> {log}; sleep {s}; echo "$(date +%s.%N) fin {nom}" >> {log}'],
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+        r1 = lance('robot', 'R1', 1.5); time.sleep(0.4)
+        r2 = lance('robot', 'R2', 1.5); time.sleep(0.4)
+        b = lance('banc', 'B', 1); time.sleep(0.6)
+        r3 = lance('robot', 'R3', 0.3)
+        for p_ in (r1, r2, b, r3):
+            p_.wait(timeout=30)
+        ev = sorted((l.split() for l in open(log)), key=lambda x: float(x[0]))
+        ordre = ' '.join(f'{x[1]}-{x[2]}' for x in ev)
+        if ordre != 'debut-R1 debut-R2 fin-R1 fin-R2 debut-B fin-B debut-R3 fin-R3':
+            raise RuntimeError('ordre : ' + ordre)
+        if not all(x[3] in ('robot', 'banc') for x in ev if x[1] == 'debut'):
+            raise RuntimeError('VERROU_TENU non transmis')
+        sb, s3 = b.stdout.read(), r3.stdout.read()
+        if 'des robots tournent' not in sb or 'R1' not in sb or 'un banc attend son tour' not in s3:
+            raise RuntimeError('messages : ' + sb[-200:] + ' | ' + s3[-200:])
+        # captures.py pendant un banc : attend (ici abandon après 2 s, code 3), --sans-verrou passe
+        open(os.path.join(d, 'index.html'), 'w').write('<body style="background:#2c2"><script>window.pret=1</script>')
+        reg = os.path.join(d, 'vues.json')
+        json.dump({'jeu': 'factice', 'dossier': d, 'pret': 'window.pret', 'vues': [{'nom': 'v'}], 'appareils': {'p': {'largeur': 100, 'hauteur': 100}}}, open(reg, 'w'))
+        bt = subprocess.Popen([sys.executable, V, 'banc', '--', 'sleep', '8'], env=env); time.sleep(0.6)
+        try:
+            r = subprocess.run([sys.executable, os.path.join(OC, 'captures.py'), reg, os.path.join(d, 'o'), '--attente-max', '2'], capture_output=True, text=True, timeout=60, env=env)
+            if r.returncode != 3 or 'un banc mesure' not in r.stdout:
+                raise RuntimeError(f'captures pendant un banc : code {r.returncode} ' + r.stdout[-200:])
+            r = subprocess.run([sys.executable, os.path.join(OC, 'captures.py'), reg, os.path.join(d, 'o'), '--sans-verrou'], capture_output=True, text=True, timeout=60, env=env)
+            if r.returncode or not os.path.exists(os.path.join(d, 'o', 'v.png')):
+                raise RuntimeError('captures --sans-verrou : ' + (r.stdout + r.stderr)[-200:])
+            # verif.py : la commande du jeu attend aussi le banc (attente_max_s 1 → abandon)
+            vj = os.path.join(d, 'verif.json')
+            json.dump({'jeu': 'factice', 'etapes': [{'nom': 'robot du jeu', 'commande': 'echo tenu=$VERROU_TENU', 'attente_max_s': 1}]}, open(vj, 'w'))
+            r = subprocess.run([sys.executable, os.path.join(OC, 'verif.py'), vj, '--sortie', os.path.join(d, 'vs'), '--sans-chrono'], capture_output=True, text=True, timeout=60, env=env)
+            if r.returncode != 1 or not os.path.exists(os.path.join(d, 'vs', 'rapport.html')) or 'machine tenue' not in open(os.path.join(d, 'vs', 'verif.json')).read():
+                raise RuntimeError('verif.py : commande lancée pendant un banc, ou abandon sans rapport : ' + (r.stdout + r.stderr)[-200:])
+            # un processus qui tient le verrou : ses enfants ne le reprennent pas (sinon : enfant derrière un banc qui attend le parent)
+            sys.path.insert(0, OC)
+            import verrou as V_
+            ancien_v = os.environ['BANC_VERROU']; os.environ['BANC_VERROU'] = env['BANC_VERROU']
+        finally:
+            bt.wait(timeout=30)
+        j, _a = V_.prendre('robot', 'parent')
+        try:
+            if os.environ.get('VERROU_TENU') != 'robot':
+                raise RuntimeError('VERROU_TENU non posé par prendre()')
+            r = subprocess.run([sys.executable, V, 'robot', '--attente-max', '3', '--', 'true'], capture_output=True, text=True, timeout=30)
+            if r.returncode:
+                raise RuntimeError('enfant d\'un tenant du verrou bloqué : ' + r.stdout[-200:])
+        finally:
+            j.close(); os.environ['BANC_VERROU'] = ancien_v
+        if 'VERROU_TENU' in os.environ:
+            raise RuntimeError('VERROU_TENU non rendu après close()')
+        r = subprocess.run([sys.executable, os.path.join(OC, 'verif.py'), vj, '--sortie', os.path.join(d, 'vs'), '--sans-chrono'], capture_output=True, text=True, timeout=60, env=env)
+        jr = os.path.join(d, 'vs', 'robot-du-jeu', 'journal.txt')
+        if r.returncode or not os.path.exists(jr) or 'tenu=robot' not in open(jr).read():
+            raise RuntimeError('verif.py : commande non lancée sous verrou robot : ' + (r.stdout + r.stderr)[-300:])
+    for x in ('', '.file'):
+        try:
+            os.remove(env['BANC_VERROU'] + x)
+        except OSError:
+            pass
+    shutil.rmtree(env['BANC_VERROU'] + '.qui', ignore_errors=True)
+
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():
@@ -968,10 +1097,12 @@ if '--reseau' in sys.argv:
         if 'Diffuse' not in json.dumps(m.files('rock_wall')):
             raise RuntimeError('réponse inattendue')
 
-try:
-    os.remove(os.environ['BANC_VERROU'])
-except OSError:
-    pass
+for _x in ('', '.file'):
+    try:
+        os.remove(os.environ['BANC_VERROU'] + _x)
+    except OSError:
+        pass
+shutil.rmtree(os.environ['BANC_VERROU'] + '.qui', ignore_errors=True)
 ok = sum(1 for r in RES if r[1])
 for nom, bon, err, d in RES:
     print(f"{'OK    ' if bon else 'ÉCHEC '} {nom} ({d:.1f} s){'' if bon else ' — ' + err}")

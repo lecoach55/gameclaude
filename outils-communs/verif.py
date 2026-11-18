@@ -29,6 +29,8 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; les commandes sont 
           l'adresse des pages ouvertes par atelier.page() : robots propres au jeu, parcours.py, monkey.py…) · "args": [...] (options
           en plus pour l'outil commun) · "reserve": true (un échec devient une RÉSERVE : signalé, sans faire échouer la vérification ;
           un délai dépassé reste un échec) · "bloquant": true (si l'étape échoue, les suivantes ne sont pas lancées)
+Verrou machine (verrou.py) : chaque commande du jeu passe avec les autres robots mais jamais pendant un banc ("verrou": "banc" pour
+une commande qui mesure, comme un perf.py propre au jeu ; "verrou": false pour aucun ; "attente_max_s": 1800).
 Les étapes captures/singe/banc sont lancées avec --strict (alerte, erreur JS, blocage, ralentissement = échec) et leur rapport JSON
 est relu pour les chiffres. Un seul jeu 3D à la fois : les étapes s'enchaînent, jamais en parallèle.
 """
@@ -36,6 +38,8 @@ import datetime, html, json, os, re, shlex, shutil, signal, subprocess, sys, tim
 
 ICI = os.path.dirname(os.path.abspath(__file__))
 RAC = os.path.dirname(ICI)
+sys.path.insert(0, ICI)
+import verrou  # noqa: E402
 OUTILS = {'captures': os.path.join(ICI, 'captures.py'), 'singe': os.path.join(ICI, 'robots', 'singe.py'), 'banc': os.path.join(ICI, 'banc.py')}
 MARQUE = '.verif-sortie'  # posé dans chaque sortie : seul un dossier qui le porte peut être effacé
 TYPES = ('commande', 'captures', 'singe', 'banc', 'poids')
@@ -285,7 +289,28 @@ def une_etape(e, o, sortie):
         affiche = ' '.join(shlex.quote(os.path.relpath(x, RAC) if x.startswith(RAC + os.sep) else x) for x in cmd[1:])
         affiche = 'python3 ' + affiche
     res['commande'] = (' '.join(f'{k}={shlex.quote(str(v))}' for k, v in env.items()) + ' ' if env else '') + affiche
-    code, out, s = lancer(cmd, delai, env, journal, shell)
+    # verrou machine (verrou.py, 18/11) : une commande du jeu (robot, test, construction) passe avec les autres robots mais jamais
+    # pendant un banc ; "verrou": "banc" pour une commande qui MESURE (perf.py propre au jeu) ; "verrou": false pour aucun.
+    # Les outils communs (captures, singe, banc) prennent eux-mêmes le leur. Le délai de l'étape ne compte pas l'attente.
+    mode_v = e.get('verrou', 'robot') if t == 'commande' else None
+    if mode_v and re.search(r'outils-communs/(banc|profil3d)\.py', cmd if isinstance(cmd, str) else ' '.join(cmd)):
+        mode_v = None  # le banc commun lancé en commande prend lui-même le verrou exclusif
+    try:
+        jeton, attendu = verrou.prendre(mode_v, f"verif {e['nom']}", True, float(e.get('attente_max_s', 1800)),
+                                        '"verrou": false dans verif.json') if mode_v in ('robot', 'banc') else (None, 0)
+    except SystemExit:  # machine tenue au-delà de l'attente maximale : étape en échec, la vérification continue (rapport écrit)
+        res.update(statut='echec', secondes=0, code=None, pourquoi=f'machine tenue par un banc ({verrou._resume()}) au-delà de attente_max_s',
+                   chiffres='machine tenue (verrou)')
+        return res
+    if jeton:
+        env['VERROU_TENU'] = mode_v  # les outils communs lancés par la commande ne reprennent pas le verrou (pas d'attente sur soi-même)
+    try:
+        code, out, s = lancer(cmd, delai, env, journal, shell)
+    finally:
+        if jeton:
+            jeton.close()
+    if attendu > 1:
+        res['attente_verrou_s'] = round(attendu)
     res['secondes'] = round(s, 1); res['code'] = code
     ok = code is not None and code in (e.get('codes_ok') or [0])
     pourquoi = '' if code is not None else f'délai dépassé ({delai:.0f} s)'

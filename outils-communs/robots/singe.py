@@ -3,7 +3,8 @@
 
 usage : python3 outils-communs/robots/singe.py <jeu>/outils/singe.json [--secondes 60] [--graine 1]
                 [--appareils telephone,ordinateur] [--sortie dossier] [--fichier page.html] [--couvrir] [--actions N]
-                [--ordinateur 1280x800] [--telephone 360x740]
+                [--ordinateur 1280x800] [--telephone 360x740] [--sans-verrou] [--attente-max 1800]
+Verrou machine (verrou.py, 18/11) : le singe passe avec les autres robots mais jamais pendant un banc ; il attend sa fin en le disant.
 --images N (ou "images": N) : mode ÉCONOME pour la 3D lourde (rendu logiciel à plusieurs secondes par image) — horloge.js fige
   le temps après l'entrée et le singe ne joue que N images après chaque action (au lieu de laisser le jeu dessiner en continu
   pendant que les relevés attendent) ; chargement, entrée et relances restent en temps réel. Hameau : 4 → 39 actions en 2×45 s.
@@ -60,6 +61,7 @@ from sonde import cliquer, debordements, resume, SONDE  # noqa: E402
 HORLOGE = os.path.join(os.path.dirname(ICI), 'horloge.js')
 from atelier import serveur, ARGS  # noqa: E402
 from routes import brancher as brancher_routes, resume as resume_routes  # noqa: E402
+import verrou  # noqa: E402
 from playwright.async_api import async_playwright  # noqa: E402
 
 APPAREILS = {'telephone': dict(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True, device_scale_factor=1),
@@ -71,12 +73,17 @@ def args():
     if not a or a[0].startswith('-'):
         print(__doc__); sys.exit(2)
     o = {'reglages': a[0], 'secondes': 60, 'graine': 1, 'appareils': 'telephone,ordinateur', 'sortie': None, 'fichier': None, 'couvrir': False, 'actions': 0,
-         'ordinateur': None, 'telephone': None, 'images': None}
+         'ordinateur': None, 'telephone': None, 'images': None,
+         'attente_max': None, 'sans_verrou': False}
     i = 1
     while i < len(a):
         k = a[i].lstrip('-')
         if k == 'couvrir':
             o['couvrir'] = True; i += 1
+        elif k == 'sans-verrou':
+            o['sans_verrou'] = True; i += 1
+        elif k == 'attente-max' and i + 1 < len(a):
+            o['attente_max'] = a[i + 1]; i += 2
         elif k in o and i + 1 < len(a):
             o[k] = a[i + 1]; i += 2
         else:
@@ -377,11 +384,14 @@ async def principal():
         if f: APPAREILS[nom] = dict(APPAREILS[nom], viewport=format_ecran(f))
     sortie = o['sortie'] or os.path.join('/tmp', 'singe-' + R['jeu']); os.makedirs(sortie, exist_ok=True)
     res = []
-    async with async_playwright() as p:
-        for nom in o['appareils'].split(','):
-            nom = nom.strip().replace('é', 'e')
-            if nom not in APPAREILS: raise SystemExit(f'appareil inconnu : {nom} (telephone, ordinateur)')
-            res.append(await un_appareil(p, R, nom, o['secondes'], o['graine'], sortie, couvrir=bool(o['couvrir'] or R.get('couvrir')), max_actions=o['actions']))
+    for nom in o['appareils'].split(','):
+        if nom.strip().replace('é', 'e') not in APPAREILS: raise SystemExit(f"appareil inconnu : {nom.strip()} (telephone, ordinateur)")
+    # verrou machine (verrou.py) : avec les autres robots, jamais pendant un banc (il fausserait ses mesures)
+    with verrou.tenir('robot', f"singe {R['jeu']}", True, float(o['attente_max'] or 1800), actif=not o['sans_verrou']):
+        async with async_playwright() as p:
+            for nom in o['appareils'].split(','):
+                nom = nom.strip().replace('é', 'e')
+                res.append(await un_appareil(p, R, nom, o['secondes'], o['graine'], sortie, couvrir=bool(o['couvrir'] or R.get('couvrir')), max_actions=o['actions']))
     rap = {'jeu': R['jeu'], 'graine': o['graine'], 'appareils': res}
     json.dump(rap, open(os.path.join(sortie, 'singe.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     grave = 0

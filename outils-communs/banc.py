@@ -154,18 +154,160 @@ def hors_depot(cfg):
     return os.path.isabs(c) and not os.path.abspath(c).startswith(RAC + os.sep)
 
 
-def mettre_de_cote(d_ap, cfg, tmp):
-    """Construction de l'AVANT pour une page à chemin absolu : renvoie (dossier APRÈS mis de côté, dossier AVANT copié), tous
-    deux dans `tmp` (effacé à la fin). Le dossier d'origine retrouve le contenu APRÈS."""
+MAX_DE_COTE = (3000, 400 * 2**20)  # dossier « propre à la page » : au plus 3 000 fichiers et 400 Mo
+
+
+def dossier_propre(d, page=None):
+    """Vrai si `d` paraît PROPRE À LA PAGE (dossier de sortie d'une seule construction, ex. /home/claude/banc/hameau) : ni la racine,
+    ni la maison, ni /tmp, ni un dossier qui contient le dépôt ou un .git, petit, et AUCUNE autre page .html que `page` dans tout
+    l'arbre (/home/claude/banc, qui sert Cage ET Wall Street ET Hameau, est donc partagé). Le 18/11, "fichier": "/home/claude/cg.html"
+    faisait mettre de côté TOUT /home/claude (dépôt compris) puis plantait en le remettant (shutil.Error sur les liens)."""
+    d = os.path.realpath(d)
+    interdits = {os.path.realpath(x) for x in ('/', '/tmp', '/home', '/root', '/var', '/usr', os.path.expanduser('~'), tempfile.gettempdir())}
+    if d in interdits or len(d.rstrip(os.sep).split(os.sep)) <= 2:
+        return False
+    rac = os.path.realpath(RAC)
+    if rac == d or rac.startswith(d + os.sep) or os.path.exists(os.path.join(d, '.git')):
+        return False
+    page = os.path.normpath(page) if page else None
+    n = taille = 0
+    for r, dirs, fs in os.walk(d):
+        if '.git' in dirs:
+            return False
+        n += len(fs)
+        for f in fs:
+            if f.lower().endswith(('.html', '.htm')) and os.path.relpath(os.path.join(r, f), d) != page:
+                return False  # une autre page : dossier de sortie commun à plusieurs jeux
+            try:
+                taille += os.lstat(os.path.join(r, f)).st_size
+            except OSError:
+                pass
+        if n > MAX_DE_COTE[0] or taille > MAX_DE_COTE[1]:
+            return False
+    return True
+
+
+def _etat(d, rels=None):
+    """{chemin relatif: (taille, mtime_ns, lien)} de tous les fichiers de d (liens vers des dossiers compris, non suivis),
+    ou seulement des chemins `rels` (dossier partagé)."""
+    e = {}
+    def noter(rel):
+        c = os.path.join(d, rel)
+        try:
+            st = os.lstat(c)
+        except OSError:
+            return
+        if os.path.isdir(c) and not os.path.islink(c):
+            return
+        e[rel] = (st.st_size, st.st_mtime_ns, os.readlink(c) if os.path.islink(c) else None)
+    if rels is not None:
+        for rel in rels:
+            noter(rel)
+        return e
+    for r, dirs, fs in os.walk(d):
+        for f in fs + [x for x in dirs if os.path.islink(os.path.join(r, x))]:
+            noter(os.path.relpath(os.path.join(r, f), d))
+    return e
+
+
+def _copier(src, dst, lien=None):
+    """Copie d'un fichier ou d'un lien (remplace un fichier ou un lien à `dst` : plus de shutil.Error « déjà présent ») ; refuse
+    d'écrire DANS un vrai dossier qui aurait pris la place du fichier. Un lien RELATIF copié ailleurs devient absolu (sinon il ne
+    mène plus nulle part) ; lien = texte du lien à écrire tel quel (remise en place à l'endroit d'origine)."""
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.lexists(dst):
+        if os.path.isdir(dst) and not os.path.islink(dst):
+            raise RuntimeError(f'{dst} est devenu un dossier : non remplacé')
+        os.unlink(dst)
+    if lien is not None:
+        os.symlink(lien, dst)
+    elif os.path.islink(src):
+        cible = os.readlink(src)
+        os.symlink(cible if os.path.isabs(cible) else os.path.normpath(os.path.join(os.path.dirname(src), cible)), dst)
+    else:
+        shutil.copy2(src, dst)
+
+
+def mettre_de_cote(d_ap, cfg, tmp, page=None):
+    """Construction de l'AVANT pour une page à chemin absolu (la construction de la révision écrit au même endroit que l'APRÈS).
+    Renvoie (dossier APRÈS à servir, dossier AVANT servi). Les fichiers surveillés que la construction a CHANGÉS, CRÉÉS ou
+    SUPPRIMÉS sont copiés dans l'AVANT puis remis à l'état APRÈS (copie de côté), même si la construction échoue.
+    - Dossier propre à la page (dossier_propre) : tout le dossier est surveillé (copie complète, servie comme APRÈS).
+    - Dossier partagé (/home/claude/cg.html, /home/claude/banc/…) : SEULEMENT la page et les "sorties" des réglages (chemins
+      relatifs au dossier de la page) ; rien d'autre n'est copié, remis ni effacé (une autre conversation peut y construire son jeu).
+      APRÈS servi depuis le dossier lui-même (remis en place) ; AVANT = fichiers surveillés + liens vers tout le reste du dossier."""
+    pg = _fichier_page('', page).lstrip('/') if page else None
+    if pg and os.path.isdir(os.path.join(d_ap, pg)):
+        pg = os.path.join(pg, 'index.html')
+    propre = dossier_propre(d_ap, pg) if os.path.isdir(d_ap) else True
+    suivis = None if propre else sorted({x for x in [pg] + list(cfg.get('sorties') or []) if x})
     ap, av = os.path.join(tmp, '.banc_apres'), os.path.join(tmp, '.banc_avant')
-    shutil.copytree(d_ap, ap, symlinks=True)
+    os.makedirs(ap, exist_ok=True); os.makedirs(av, exist_ok=True)
+    avant = _etat(d_ap, suivis) if os.path.isdir(d_ap) else {}
+    # dossier partagé : relevé (sans copie) des autres fichiers du 1er niveau, pour DIRE si la construction en réécrit un
+    voisins = {} if propre else {k: v for k, v in _etat(d_ap, [x for x in os.listdir(d_ap)]).items() if k not in avant}
+    for rel in avant:
+        _copier(os.path.join(d_ap, rel), os.path.join(ap, rel))
+    change, rates = [], []
     try:
         construire(cfg, tmp)
-        shutil.copytree(d_ap, av, symlinks=True)
     finally:
-        shutil.copytree(ap, d_ap, symlinks=True, dirs_exist_ok=True)  # l'APRÈS reprend sa place, même si la construction échoue
-    print(f'  page hors du dépôt ({d_ap}) : APRÈS mis de côté, AVANT construit puis copié à part', flush=True)
-    return ap, av
+        apres = _etat(d_ap, suivis) if os.path.isdir(d_ap) else {}
+        change = sorted(r for r in set(apres) | set(avant) if avant.get(r) != apres.get(r))
+        try:
+            for rel in change:  # 1) l'AVANT construit, copié à part (une copie ratée n'empêche pas la remise en place)
+                if rel in apres:
+                    try:
+                        _copier(os.path.join(d_ap, rel), os.path.join(av, rel))
+                    except Exception as e:
+                        rates.append(f'{rel} : {e}')
+        finally:
+            for rel in change:  # 2) l'APRÈS reprend sa place, QUOI QU'IL ARRIVE (fichier changé, créé ou supprimé)
+                try:
+                    if rel in avant:
+                        _copier(os.path.join(ap, rel), os.path.join(d_ap, rel), avant[rel][2])
+                    elif propre:
+                        os.unlink(os.path.join(d_ap, rel))
+                except Exception as e:
+                    print(f'  ⚠ {os.path.join(d_ap, rel)} non remis à l\'état APRÈS ({e}) ; copie de l\'APRÈS : {os.path.join(ap, rel)}', flush=True)
+    if voisins:
+        v2 = _etat(d_ap, list(voisins))
+        touches = [k for k in voisins if v2.get(k) != voisins[k]]
+        if touches:
+            print(f'  ⚠ fichier(s) voisin(s) changé(s) pendant la construction de l\'AVANT, NON remis (peut-être une autre conversation ;'
+                  f' si c\'est la construction du jeu : les ajouter à "sorties" dans les réglages) : {", ".join(touches[:6])}', flush=True)
+    if rates:
+        raise RuntimeError('AVANT incomplet, copie ratée : ' + ' | '.join(rates[:3]))
+    if pg and pg not in change:
+        print(f'  ⚠ la construction de l\'AVANT n\'a pas réécrit {pg} : AVANT = APRÈS pour cette page ?', flush=True)
+    base = ap if propre else d_ap  # voisins non changés (ou non surveillés) : présents dans l'AVANT servi, par lien
+    for r, dirs, fs in os.walk(base):
+        for f in fs + dirs:
+            rel = os.path.relpath(os.path.join(r, f), base)
+            dst = os.path.join(av, rel)
+            if rel in change or os.path.lexists(dst):
+                continue
+            if (f in dirs) and not os.path.islink(os.path.join(r, f)) and any(c.startswith(rel + os.sep) for c in change):
+                continue  # dossier qui contient un fichier changé : on descend dedans
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            os.symlink(os.path.join(r, f), dst)
+        dirs[:] = [x for x in dirs if not os.path.islink(os.path.join(r, x)) and any(c.startswith(os.path.relpath(os.path.join(r, x), base) + os.sep) for c in change)]
+    if propre:
+        print(f'  page hors du dépôt ({d_ap}) : APRÈS mis de côté ({len(avant)} fichiers), AVANT construit puis copié à part'
+              f' ({len(change)} fichiers changés, créés ou supprimés, remis à l\'état APRÈS)', flush=True)
+        return ap, av
+    print(f'  page hors du dépôt dans un dossier PARTAGÉ ({d_ap}) : seuls {", ".join(suivis)} surveillés (réglage "sorties" pour'
+          f' en ajouter), rien d\'autre n\'est copié ni touché ; {len(change)} changés par la construction de l\'AVANT, remis à l\'état APRÈS', flush=True)
+    return d_ap, av
+
+
+def assurer_page(cfg, d, p, nom, deja_construit=False):
+    """Page absente mais réglages avec "construire" : construction lancée d'office (retour Cage & Gloire 18/11 : --avant HEAD sans
+    --construire s'arrêtait « page APRÈS introuvable » sur une machine neuve). Puis verifier_page."""
+    if not deja_construit and cfg.get('construire') and not os.path.isfile(_fichier_page(d, p)) and not os.path.isfile(os.path.join(_fichier_page(d, p), 'index.html')):
+        print(f'  page {nom} absente ({_fichier_page(d, p)}) : construction lancée d\'office', flush=True)
+        construire(cfg, RAC)
+    verifier_page(d, p, nom)
 
 
 def _fichier_page(dossier, page):
@@ -428,40 +570,18 @@ def _duree(s):
     return f'{s // 60} min {s % 60:02d} s' if s >= 60 else f'{s} s'
 
 
-VERROU = os.environ.get('BANC_VERROU') or os.path.join(tempfile.gettempdir(), 'banc-commun.verrou')
+import verrou as _verrou  # noqa: E402
+VERROU = _verrou.FICHIER
 
 
 def verrouiller(attendre=True, attente_max=1800):
-    """Un seul banc à la fois sur la machine (deux bancs ensemble faussent les ms : charge 5-12 sur 2 cœurs, vu le 17/11).
-    Renvoie (fichier verrou ouvert à garder, secondes attendues). Attend que l'autre banc finisse en le redisant chaque minute ;
-    abandonne (SystemExit, code 3) après attente_max secondes (--attente-max). BANC_VERROU=fichier : autre verrou (vérificateur)."""
-    import fcntl
-    f = open(VERROU, 'a+')
-    t, dit = time.time(), 0
-    while True:
-        try:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            break
-        except OSError:
-            if not attendre:
-                f.close()
-                return None, 0
-            if time.time() - dit >= 60:
-                f.seek(0)
-                qui = f.read().strip() or '?'
-                print(f'⏳ un autre banc tourne sur cette machine ({qui}) : attente de sa fin pour ne pas fausser les mesures'
-                      f' ({_duree(time.time() - t)} ; --sans-verrou pour passer outre)', flush=True)
-                dit = time.time()
-            if time.time() - t > attente_max:
-                f.close()
-                print(f'banc : un autre banc tient la machine depuis plus de {_duree(attente_max)} ; abandon (--attente-max, ou --sans-verrou)', flush=True)
-                sys.exit(3)
-            time.sleep(2)
-    attendu = time.time() - t
-    if attendu > 1:
-        print(f'   … libre après {_duree(attendu)}', flush=True)
-    f.seek(0); f.truncate(); f.write(f'pid {os.getpid()}, {" ".join(sys.argv[1:3])}'); f.flush()
-    return f, attendu
+    """Un seul banc à la fois sur la machine (deux bancs ensemble faussent les ms : charge 5-12 sur 2 cœurs, vu le 17/11), et
+    depuis le 18/11 aucun ROBOT pendant un banc (captures, singe, étapes de verif.py, outils lancés par `verrou.py robot`) : le banc
+    attend la fin des robots en cours, les nouveaux attendent derrière lui (verrou.py). Renvoie (jeton à fermer, secondes
+    attendues) ; abandon (SystemExit, code 3) après attente_max secondes (--attente-max). BANC_VERROU=fichier : autre verrou."""
+    if os.environ.get('VERROU_TENU') == 'robot':
+        print('⚠ banc lancé sous un verrou « robot » (verrou.py robot -- …) : pas de verrou exclusif ; lancer le banc hors de verrou.py robot', flush=True)
+    return _verrou.prendre('banc', f'{" ".join(os.path.basename(x) for x in sys.argv[1:3])}', attendre, attente_max)
 
 
 def charge():
@@ -789,7 +909,7 @@ def main(argv):
         if o['construire']:
             construire(cfg, RAC)
         d_ap, p_ap = lieu(cfg, RAC)
-        verifier_page(d_ap, p_ap, 'en cours' if not avec_avant else 'APRÈS')
+        assurer_page(cfg, d_ap, p_ap, 'en cours' if not avec_avant else 'APRÈS', o['construire'])
         if avec_avant:
             if o['avant']:
                 t1 = time.time()
@@ -799,7 +919,7 @@ def main(argv):
                     # page construite à un chemin ABSOLU (Cage & Gloire, Hameau, Wall Street : /home/claude/banc/…) : la construction
                     # de l'AVANT écrit au MÊME endroit. Avant le 17/11 au soir, elle écrasait l'APRÈS → avant = après, aucune alerte possible.
                     # Maintenant : l'APRÈS est mis de côté, l'AVANT construit puis copié à part, l'APRÈS remis en place.
-                    d_ap, d_av = mettre_de_cote(d_ap, cfg, tmp)
+                    d_ap, d_av = mettre_de_cote(d_ap, cfg, tmp, p_ap)
                     p_av = p_ap
                 else:
                     construire(cfg, tmp)

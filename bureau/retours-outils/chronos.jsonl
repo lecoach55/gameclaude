@@ -143,3 +143,4 @@
 {"quand": "2026-11-18 20:37", "jeu": "bannieres", "etape": "verif · Scénarios siège, Graal, victoire", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/scen.py", "secondes": 13.1, "code": 0}
 {"quand": "2026-11-18 20:37", "jeu": "bannieres", "etape": "verif · Singe téléphone carte 2D", "commande": "V3D=0 python3 bannieres/outils/monkey.py 45 390 844 1", "secondes": 53.1, "code": 0}
 {"quand": "2026-11-18 20:38", "jeu": "bannieres", "etape": "verif · Page publiée hors ligne", "commande": "python3 bannieres/outils/hors_ligne.py", "secondes": 13.1, "code": 0}
+{"quand": "2026-11-18 21:36", "jeu": "cage-et-gloire", "etape": "captures arène après correctifs", "commande": "python3 outils-communs/captures.py cage-et-gloire/outils/vues_arene.json /tmp/cga5 --construire", "secondes": 281.2, "code": 0}

@@ -1,7 +1,8 @@
 # gameclaude — consignes pour Claude
 
 Dépôt de Victor (lecoach55) : ses jeux créés avec Claude et les outils de fabrication, partagés entre conversations.
-Réponds à Victor en français. Il joue surtout sur téléphone et sur un MacBook Pro Intel (puce graphique modeste).
+Réponds à Victor en français. Il joue sur un MacBook Pro Intel (puce Iris Plus, modeste) et parfois sur téléphone.
+**Décision de Victor (18/11/2026) : aucun jeu n'a plus l'obligation d'être bien jouable au téléphone.** Cible principale = son Mac (qualité visuelle d'abord, fluidité mesurée sur ce Mac). Garder pour chaque jeu un mode « téléphone » allégé qui se lance et reste utilisable, sans effort pour l'embellir ; les vérifications téléphone se limitent à « ça démarre, on peut jouer, pas de blocage ».
 
 ## Le Bureau (`bureau/`) — à lire en premier
 Espace commun à toutes les conversations : chantiers en cours, journal, catalogue des outils (`bureau/ressources.md`), mises en commun à faire (`bureau/a-mutualiser.md`). Mode d'emploi complet : `bureau/README.md`.

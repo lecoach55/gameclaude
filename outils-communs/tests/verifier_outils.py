@@ -899,6 +899,67 @@ def _():
         if os.path.exists(chr_) and d in open(chr_, encoding='utf-8').read():  # (une autre conversation peut écrire au même moment)
             raise RuntimeError('--sans-chrono a écrit dans chronos.jsonl')
 
+@controle("profil3d.py (banc.py --profil) : moteur et scène Three.js trouvés sans réglage, forêt lourde en tête (≥ 50 % de l'image), ombres/brouillard/lumières/résolution essayés, objet remis visible par le jeu signalé, tout remis en place après le profil, bruit mesuré ; page sans three.js = erreur claire ; banc sans --profil inchangé (aucun crochet) ; --profil --avant et --images sans --profil refusés")
+def _():
+    three = next((os.path.join(RAC, c) for c in ('bannieres/jeu/lib/three.js', 'couronnes-et-lignees/jeu/three.js')
+                  if os.path.exists(os.path.join(RAC, c)) and 'var THREE=' in open(os.path.join(RAC, c)).read(200)), None)
+    if not three:
+        raise RuntimeError('aucune copie globale de three.js (var THREE=…) trouvée dans le dépôt pour la page factice')
+    pr = os.path.join(OC, 'profil3d.py')
+    with tempfile.TemporaryDirectory() as d:
+        shutil.copy(three, os.path.join(d, 'three.js'))
+        page = open(os.path.join(OC, 'tests', 'profil3d_factice.html')).read().replace('FINESSE', '40').replace('NARBRES', '120')
+        open(os.path.join(d, 'index.html'), 'w').write(page)
+        open(os.path.join(d, 'vide.html'), 'w').write('<!doctype html><body><canvas></canvas><script>requestAnimationFrame(function f(){requestAnimationFrame(f)});window.pret=1</script>')
+        etat = "({visibles:sc.children.every(o=>o.visible)&&foret.children.every(o=>o.visible),ombres:r.shadowMap.enabled,brouillard:!!sc.fog,lampe:lp.visible,pr:r.getPixelRatio()})"
+        cfg = {'jeu': 'factice', 'dossier': d, 'page': 'index.html', 'pret': 'window.pret', 'pret_ms': 100, 'images': 10,
+               'scenes': [{'nom': 'foret', 'attente_ms': 100}, {'nom': 'apres', 'attente_ms': 50, 'infos': etat}]}
+        rg = os.path.join(d, 'banc.json'); json.dump(cfg, open(rg, 'w'))
+        t = time.time()
+        r = subprocess.run([sys.executable, pr, rg, os.path.join(d, 'o.json'), '--scenes', 'foret,apres'], capture_output=True, text=True, timeout=240)
+        o = json.load(open(os.path.join(d, 'o.json')))['appareils']['telephone']['scenes']
+        p = o['foret'].get('profil') or {}
+        if r.returncode or 'variantes' not in p or not json.load(open(os.path.join(d, 'o.json'))).get('profil'):
+            raise RuntimeError(f'profil absent (code {r.returncode}) : {p} ' + (r.stdout + r.stderr)[-300:])
+        v = {x['nom']: x for x in p['variantes']}
+        tete = p['variantes'][0]
+        if tete['nom'] != 'foret/arbre' or tete['objets'] != 120 or tete['gain_pct'] < 50 or tete['appels_en_moins'] < 100:
+            raise RuntimeError(f"forêt pas en tête : {tete} ; " + ', '.join(f"{x['nom']} {x['gain_pct']}" for x in p['variantes']))
+        noms = ' | '.join(v)
+        for att in ('sans ombres', 'sans brouillard', 'sans lumières ponctuelles', 'résolution ½', 'sol', 'roche'):
+            if att not in noms:
+                raise RuntimeError(f'variante « {att} » absente : {noms}')
+        if not v.get('balise', {}).get('remis_par_le_jeu'):
+            raise RuntimeError(f"objet remis visible par le jeu non signalé : {v.get('balise')}")
+        if len(p.get('scenes', [])) != 1 or p['scenes'][0]['enfants'] != 9 or p.get('bruit_pct') is None or len(p.get('bases_ms', [])) < 3:
+            raise RuntimeError(f"scène ou bruit mal relevés : {p.get('scenes')} bases {p.get('bases_ms')}")
+        if o['apres'].get('infos') != {'visibles': True, 'ombres': True, 'brouillard': True, 'lampe': True, 'pr': 1}:
+            raise RuntimeError(f"page pas remise en place après le profil : {o['apres'].get('infos')}")
+        if 'foret/arbre' not in r.stdout or '◀' not in r.stdout:
+            raise RuntimeError('tableau lisible absent : ' + r.stdout[-300:])
+        if time.time() - t > 150:
+            raise RuntimeError(f'profil trop lent : {time.time()-t:.0f} s')
+        # page sans three.js : erreur claire, pas de plantage
+        cv = dict(cfg, page='vide.html', scenes=[{'nom': 'v', 'attente_ms': 50}]); rv = os.path.join(d, 'vide.json'); json.dump(cv, open(rv, 'w'))
+        r = subprocess.run([sys.executable, pr, rv, os.path.join(d, 'v.json')], capture_output=True, text=True, timeout=120)
+        pv = json.load(open(os.path.join(d, 'v.json')))['appareils']['telephone']['scenes']['v'].get('profil', {})
+        if r.returncode or 'aucun moteur Three.js' not in pv.get('erreur', '') or 'profil impossible' not in r.stdout:
+            raise RuntimeError(f'page sans three.js : {pv} ' + r.stdout[-200:])
+        # banc ordinaire : aucun crochet, aucune clé « profil » ; --profil avec --avant refusé
+        cb = dict(cfg, scenes=[{'nom': 'apres', 'attente_ms': 50, 'infos': "typeof __profil3d==='undefined'&&typeof __THREE_DEVTOOLS__==='undefined'"}])
+        rb = os.path.join(d, 'banc_ordinaire.json'); json.dump(cb, open(rb, 'w'))
+        r = subprocess.run([sys.executable, os.path.join(OC, 'banc.py'), rb, os.path.join(d, 'b.json')], capture_output=True, text=True, timeout=120)
+        b = json.load(open(os.path.join(d, 'b.json')))
+        b = dict(b['appareils']['telephone']['scenes']['apres'], _marque=b.get('profil'))
+        if r.returncode or 'profil' in b or 'ms' not in b or b.get('infos') is not True or b['_marque']:
+            raise RuntimeError(f'banc ordinaire modifié : {b}')
+        r = subprocess.run([sys.executable, pr, rg, '--avant', 'HEAD'], capture_output=True, text=True, timeout=30)
+        if r.returncode == 0 or 'une seule version' not in r.stderr:
+            raise RuntimeError('--profil --avant accepté : ' + (r.stdout + r.stderr)[-200:])
+        r = subprocess.run([sys.executable, os.path.join(OC, 'banc.py'), rg, '--images', '5'], capture_output=True, text=True, timeout=30)
+        if r.returncode == 0 or 'vont avec --profil' not in r.stderr:
+            raise RuntimeError('--images sans --profil accepté en silence')
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

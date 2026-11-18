@@ -18,6 +18,8 @@ options : --tours N (défaut 2 avec --avant : A B B A A B… ; 1 sinon) · --sce
           --sans-verrou (par défaut, un seul banc à la fois par machine : le second attend la fin du premier, en le disant)
           --attente-max 1800 (s : abandon, code 3, si l'autre banc ne finit pas)
           --gels tous|nom1,nom2 (seulement les gels) · --sans-gels
+          --profil (+ --groupes 20, --images N) : CE QUI COÛTE dans chaque scène Three.js (profil3d.py : chaque groupe d'objets
+                   masqué tour à tour, ombres, environnement, lumières, brouillard, résolution ½) ; une passe, sans avant/après
 Au fil de l'eau : <sortie>.partiel.json (ou /tmp/banc-<jeu>.partiel.json) est réécrit après chaque scène (mesures faites, temps
 restant estimé, aussi affiché à l'écran) et effacé à la fin ; la sortie note la charge de la machine au début et à la fin.
 
@@ -63,6 +65,7 @@ RAC = os.path.dirname(ICI)
 sys.path.insert(0, ICI)
 from atelier import MESURE_JS, ARGS, ARGS_SANS_PLAFOND, HORLOGE  # noqa: E402
 from routes import brancher as brancher_routes  # noqa: E402
+import profil3d  # noqa: E402
 
 # Mode « figé » (défaut) : horloge.js fige le temps et le hasard ; le banc joue lui-même chaque image et chronomètre son coût réel
 # (rappels requestAnimationFrame + mise en page forcée + attente du GPU par lecture d'1 pixel de chaque canvas AFFICHÉ créé par le jeu).
@@ -214,7 +217,7 @@ async def patienter(pg, ms, fige):
         await pg.wait_for_timeout(ms)
 
 
-async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, au_fil=None):
+async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, au_fil=None, profil=None):
     """Ouvre le jeu sur un appareil et mesure les scènes demandées. Renvoie {scenes, chronos, chargement_ms, erreurs}."""
     res = {'scenes': {}, 'chronos': {}, 'erreurs': []}
     groupes = []  # suites de scènes qui partagent une page
@@ -245,6 +248,8 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, 
             elif cfg.get('graine') is not None:
                 init += GRAINE_JS % int(cfg['graine'])
             await pg.add_init_script(init)
+            if profil is not None:
+                await pg.add_init_script(profil3d.INIT)  # moteurs et scènes Three.js annoncés par three.js lui-même (__THREE_DEVTOOLS__)
             if fige:
                 await pg.add_init_script(path=HORLOGE)
                 if cfg.get('coulant', True):
@@ -300,11 +305,22 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, 
                             m['infos'] = await pg.evaluate('()=>(' + s['infos'] + ')')
                         except Exception as e:
                             m['infos'] = 'erreur : ' + str(e)[:120]
+                    if profil is not None and 'ms' in m:
+                        if prep_reelle:
+                            await pg.evaluate('()=>{__horloge.reel(false);__horloge.coulant(true)}')
+                        try:
+                            m['profil'] = await profil3d.profiler(pg, cfg, profil)
+                        except Exception as e:
+                            m['profil'] = {'erreur': str(e)[:300]}
+                        if prep_reelle:
+                            await pg.evaluate('()=>{__horloge.coulant(false);__horloge.reel(true)}')
                     res['scenes'][s['nom']] = m
                 except Exception as e:
                     res['scenes'][s['nom']] = {'erreur': str(e)[:300]}
                     res['erreurs'].append(f"scène {s['nom']} : {str(e)[:200]}")
                 print(f"    {app_nom:10s} {s['nom']:18s} {resume_mesure(res['scenes'][s['nom']])}" + (au_fil(s['nom'], res) if au_fil else ''), flush=True)
+                if profil is not None and 'profil' in res['scenes'][s['nom']]:
+                    print(profil3d.tableau(f"{app_nom} · {s['nom']}", res['scenes'][s['nom']]['profil']), flush=True)
             if gi == len(groupes) - 1:
                 for nom, js in (cfg.get('chronos') or {}).items():
                     try:
@@ -465,7 +481,7 @@ def resume_mesure(m):
     return t
 
 
-async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu, partiel=None, gels=()):
+async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu, partiel=None, gels=(), profil=None):
     """versions = [(nom, base, page)] ; tours entrelacés A B B A A B… Renvoie {nom: [passes]} (une passe = {appareil: résultat}).
     partiel = fichier JSON réécrit après CHAQUE scène (mesures déjà faites, progression, temps restant estimé)."""
     from playwright.async_api import async_playwright
@@ -516,7 +532,7 @@ async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu
                         fait[0] = f0 + len(scenes) + len(gels)
                         continue
                     try:
-                        passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu, au_fil) if scenes else {'scenes': {}, 'chronos': {}, 'erreurs': []}
+                        passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu, au_fil, profil) if scenes else {'scenes': {}, 'chronos': {}, 'erreurs': []}
                     except Exception as e:  # jeu jamais prêt, erreur dans « entree »… : la passe est notée en erreur, le banc continue
                         err = f'passe {nom}/{an} : {str(e)[:250]}'
                         print('    ERREUR ' + err, flush=True)
@@ -566,6 +582,8 @@ def fusion(passes):
                 m['pauses'] = max(v.get('pauses', 0) for v in ok)
             if 'infos' in ok[-1]:
                 m['infos'] = ok[-1]['infos']
+            if 'profil' in ok[-1]:
+                m['profil'] = ok[-1]['profil']
             sc[s] = m
         ch, chv = {}, {}
         for c in passes[0][an].get('chronos', {}):
@@ -689,12 +707,12 @@ def tableau(L):
 
 
 def lire_args(argv):
-    o = {'tours': None, 'scenes': None, 'appareils': None, 'plafond': False, 'cpu': None, 'construire': False, 'seuil': None, 'sans_verrou': False, 'attente_max': None,
+    o = {'profil': False, 'groupes': None, 'images': None, 'tours': None, 'scenes': None, 'appareils': None, 'plafond': False, 'cpu': None, 'construire': False, 'seuil': None, 'sans_verrou': False, 'attente_max': None,
          'strict': False, 'sans_gels': False, 'gels': None, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'reference': None, 'comparer': None, 'pos': []}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a in ('--plafond', '--construire', '--strict', '--sans-verrou', '--sans-gels'):
+        if a in ('--plafond', '--construire', '--strict', '--sans-verrou', '--sans-gels', '--profil'):
             o[a[2:].replace('-', '_')] = True
         elif a == '--comparer':
             o['comparer'] = (argv[i + 1], argv[i + 2]); i += 2
@@ -743,6 +761,20 @@ def main(argv):
         appareils = {k: v for k, v in appareils.items() if k in o['appareils'].split(',')}
     jeu = cfg.get('jeu') or os.path.basename(os.path.dirname(os.path.dirname(reg)))
     avec_avant = bool(o['avant'] or o['avant_dossier'] or o['avant_page'])
+    profil = None
+    if (o['groupes'] or o['images']) and not o['profil']:
+        sys.exit('--groupes / --images vont avec --profil (le nombre d\'images du banc se règle par "images" dans les réglages)')
+    if o['profil']:
+        if avec_avant:
+            sys.exit("--profil : une seule version (pas de --avant) ; pour comparer, profiler chaque version à part")
+        if cfg.get('mode', 'fige') != 'fige':
+            sys.exit('--profil : mode figé seulement (ce jeu est réglé en "mode": "reel")')
+        if not scenes:
+            sys.exit('--profil : aucune scène à profiler (les gels ne se profilent pas)')
+        if o['tours'] and o['tours'] != '1':
+            print('--profil : une seule passe (--tours ignoré)', flush=True)
+        gels, o['tours'] = [], '1'
+        profil = {'groupes': int(o['groupes']) if o['groupes'] else None, 'images': int(o['images']) if o['images'] else None}
     tours = int(o['tours'] or (2 if avec_avant else 1))
     verrou, attente_verrou = (None, 0) if o['sans_verrou'] else verrouiller(attente_max=float(o['attente_max'] or 1800))
     t0 = time.time()
@@ -786,9 +818,9 @@ def main(argv):
         if avec_avant:
             b_av, s = servir(d_av); serveurs.append(s)
             versions = [('avant', b_av, p_av)] + versions
-        print(f"Banc {jeu} · {len(scenes)} scènes{f' + {len(gels)} gel(s) en temps réel' if gels else ''} · {', '.join(appareils)} · {tours} tour(s) · {'' if not scenes else ('temps figé, préparation réelle' if cfg.get('preparation') == 'reelle' else 'temps figé') + ' : coût réel par image, GPU compris' if cfg.get('mode', 'fige') == 'fige' else ('temps réel, plafond 60 img/s' if o['plafond'] else 'temps réel sans plafond')}", flush=True)
+        print(f"{'Profil 3D' if profil is not None else 'Banc'} {jeu} · {len(scenes)} scènes{f' + {len(gels)} gel(s) en temps réel' if gels else ''} · {', '.join(appareils)} · {tours} tour(s) · {'' if not scenes else ('temps figé, préparation réelle' if cfg.get('preparation') == 'reelle' else 'temps figé') + ' : coût réel par image, GPU compris' if cfg.get('mode', 'fige') == 'fige' else ('temps réel, plafond 60 img/s' if o['plafond'] else 'temps réel sans plafond')}", flush=True)
         print(f'mesures au fil de l\'eau : {partiel}', flush=True)
-        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu'], partiel, gels))
+        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu'], partiel, gels, profil))
     except PageAbsente as e:  # page absente : rien à mesurer, on le dit tout de suite (avant : 180 s d'attente par passe)
         print('banc : ' + str(e), flush=True)
         return 2
@@ -815,7 +847,7 @@ def main(argv):
             print(f'\nAucun ralentissement au-delà de {seuil:.0f} % et du bruit.')
     else:
         ap = fusion(brut['mesure'])
-        out = {**meta, 'appareils': ap}
+        out = {**meta, 'appareils': ap, **({'profil': True} if profil is not None else {})}
         if o['reference']:
             L, al = ecarts(charger_sortie(o['reference']), ap, seuil)
             out['ecarts'] = L

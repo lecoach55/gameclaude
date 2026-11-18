@@ -8,6 +8,8 @@ import os, re, sys, subprocess, tempfile, time, json, shutil, importlib.util
 RAC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # verrou du banc propre au vérificateur : un vrai banc en cours (15 min sur Hameau) ne le bloque pas, et il ne bloque pas ce banc
 os.environ['BANC_VERROU'] = os.path.join(tempfile.gettempdir(), f'banc-verificateur-{os.getpid()}.verrou')
+# un vrai robot d'un jeu qui tourne à côté (hors verrou) ne doit pas faire attendre les bancs du vérificateur (contrôle dédié plus bas)
+os.environ.setdefault('VERROU_NAVIGATEURS', '0')
 OC = os.path.join(RAC, 'outils-communs')
 RES = []
 
@@ -1142,6 +1144,149 @@ def _():
         e = {x['scene']: x['verdict'] for x in json.load(open(sortie))['ecarts']}
         if r.returncode != 1 or e.get('peindre') != 'plus lent' or e.get('rien', '').startswith('plus'):
             raise RuntimeError(f'avant/après : code {r.returncode}, verdicts {e} ' + r.stdout[-300:])
+
+
+ROBOT_HORS_VERROU = """import asyncio, sys
+from playwright.async_api import async_playwright
+async def m():
+    async with async_playwright() as p:
+        b = await p.chromium.launch(); pg = await b.new_page()
+        if sys.argv[2] == 'occupe':
+            await pg.set_content('<script>var x=0;(function f(){for(var i=0;i<3e6;i++)x+=i%7;setTimeout(f,0)})()</script>')
+        print('pret', flush=True)
+        await asyncio.sleep(float(sys.argv[1]))
+asyncio.run(m())
+"""
+
+
+@controle("verrou.py : navigateurs HORS VERROU (robot d'un jeu lancé tel quel) — etat les liste (lanceur, % cpu, ACTIF/calme) au lieu de « machine libre » ; un banc attend la fin d'un navigateur actif, pas d'un calme ; --attente-navigateurs 0 = pas d'attente mais noté ; ses propres navigateurs exclus ; orphelin (lanceur disparu) signalé sans attente")
+def _():
+    V = os.path.join(OC, 'verrou.py')
+    env = dict(os.environ, BANC_VERROU=os.path.join(tempfile.gettempdir(), f'verrou-nav-{os.getpid()}.verrou'))
+    env.pop('VERROU_NAVIGATEURS', None)
+    with tempfile.TemporaryDirectory() as d:
+        rob = os.path.join(d, 'robot_du_jeu.py'); open(rob, 'w').write(ROBOT_HORS_VERROU)
+        def lancer(s, quoi):
+            p = subprocess.Popen([sys.executable, rob, str(s), quoi], stdout=subprocess.PIPE, text=True, env=env)
+            if p.stdout.readline().strip() != 'pret':
+                raise RuntimeError('robot factice : Chromium ne démarre pas')
+            return p
+        p = lancer(7, 'occupe')
+        try:
+            out = subprocess.run([sys.executable, V, 'etat'], capture_output=True, text=True, env=env, timeout=30).stdout
+            if 'robot_du_jeu.py' not in out or 'ACTIF' not in out or 'machine libre' in out:
+                raise RuntimeError('etat ne voit pas le navigateur actif hors verrou : ' + out[-300:])
+            t = time.time()
+            r = subprocess.run([sys.executable, V, 'banc', '--attente-navigateurs', '60', '--', 'echo', 'MESURE'], capture_output=True, text=True, env=env, timeout=90)
+            dt = time.time() - t
+            if r.returncode or 'HORS VERROU' not in r.stdout or 'terminés' not in r.stdout or dt < 3 or p.poll() is None:
+                raise RuntimeError(f'le banc n\'a pas attendu la fin du navigateur actif ({dt:.1f} s, robot fini : {p.poll() is not None}) : ' + r.stdout[-300:])
+        finally:
+            p.kill(); p.wait()
+        p = lancer(25, 'calme')  # page vide : présent mais calme → aucune attente
+        try:
+            t = time.time()
+            r = subprocess.run([sys.executable, V, 'banc', '--', 'echo', 'MESURE'], capture_output=True, text=True, env=env, timeout=60)
+            if r.returncode or 'MESURE' not in r.stdout or time.time() - t > 12 or 'HORS VERROU' in r.stdout:
+                raise RuntimeError(f'navigateur calme : le banc a attendu ({time.time() - t:.1f} s) ' + r.stdout[-200:])
+            out = subprocess.run([sys.executable, V, 'etat'], capture_output=True, text=True, env=env, timeout=30).stdout
+            if '(calme)' not in out:
+                raise RuntimeError('etat : navigateur calme non signalé : ' + out[-200:])
+        finally:
+            p.kill(); p.wait()
+        p = lancer(25, 'occupe')
+        try:
+            t = time.time()
+            r = subprocess.run([sys.executable, V, 'banc', '--attente-navigateurs', '0', '--', 'echo', 'MESURE'], capture_output=True, text=True, env=env, timeout=60)
+            if r.returncode or time.time() - t > 12 or 'encore actifs' not in r.stdout:
+                raise RuntimeError(f'--attente-navigateurs 0 : {time.time() - t:.1f} s ' + r.stdout[-200:])
+        finally:
+            p.kill(); p.wait()
+    # navigateur ORPHELIN (lanceur disparu, rattaché au processus 1) : vu et signalé, jamais attendu
+    nav = shutil.which('chromium') or next(iter(sorted(__import__('glob').glob('/opt/pw-browsers/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell'))), None)
+    if nav:
+        d = tempfile.mkdtemp(prefix='verif-orphelin-')
+        if True:
+            h = os.path.join(d, 'o.html'); open(h, 'w').write('<script>var x=0;(function f(){for(var i=0;i<3e6;i++)x+=i%7;setTimeout(f,0)})()</script>')
+            subprocess.run(f'setsid {nav} --headless --no-sandbox --remote-debugging-port=0 --user-data-dir={d}/u file://{h} >/dev/null 2>&1 &', shell=True)
+            try:
+                time.sleep(3)
+                out = subprocess.run([sys.executable, V, 'etat'], capture_output=True, text=True, env=env, timeout=30).stdout
+                t = time.time()
+                r = subprocess.run([sys.executable, V, 'banc', '--attente-navigateurs', '60', '--', 'echo', 'MESURE'], capture_output=True, text=True, env=env, timeout=90)
+                if 'ORPHELIN' not in out or 'machine libre' in out or time.time() - t > 15 or 'ORPHELIN' not in r.stdout:
+                    raise RuntimeError(f'orphelin : etat {out[-200:]!r} ; banc {time.time() - t:.1f} s {r.stdout[-200:]!r}')
+            finally:
+                subprocess.run(['pkill', '-f', f'user-data-dir={d}/u']); time.sleep(1)
+                shutil.rmtree(d, ignore_errors=True)
+    # ses propres navigateurs (lancés par ce processus) ne comptent pas
+    sys.path.insert(0, OC)
+    import verrou as V_
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        b = pw.chromium.launch(); pg = b.new_page(); pg.set_content('<b>x</b>')
+        if [n for n in V_.navigateurs(0.5) if n['lanceur_pid'] == os.getpid() or n['pid'] in (os.getpid(),)]:
+            raise RuntimeError('le propre navigateur du processus est compté hors verrou')
+        b.close()
+    for x in ('', '.file'):
+        try:
+            os.remove(env['BANC_VERROU'] + x)
+        except OSError:
+            pass
+    shutil.rmtree(env['BANC_VERROU'] + '.qui', ignore_errors=True)
+
+
+@controle("banc.py / captures.py --avant arrivee : début du chantier en cours (commit qui a ouvert bureau/chantiers/<jeu>.md), commits faits en route dans l'APRÈS, chantier ré-ouvert = nouvelle base (ralentissement commité en route vu « plus lent », invisible avec HEAD qui avertit) ; arrivée non commitée ou aucun chantier = HEAD")
+def _():
+    if not shutil.which('git'):
+        raise RuntimeError('git absent')
+    with tempfile.TemporaryDirectory() as d:
+        rac = os.path.join(d, 'depot'); os.makedirs(os.path.join(rac, 'bureau', 'chantiers')); os.makedirs(os.path.join(rac, 'jeu', 'outils'))
+        shutil.copytree(OC, os.path.join(rac, 'outils-communs'), ignore=shutil.ignore_patterns('__pycache__', 'node_modules'))
+        g = lambda *a: subprocess.run(['git', '-C', rac, '-c', 'user.name=t', '-c', 'user.email=t@t', *a], capture_output=True, text=True, check=True).stdout.strip()
+        src = open(os.path.join(OC, 'tests', 'action_factice.html')).read()
+        leger = src.replace('filter:blur(30px) drop-shadow(0 0 40px #000)', '').replace('i<120', 'i<4')
+        open(os.path.join(rac, 'jeu', 'p.html'), 'w').write(leger)
+        cfg = {'jeu': 'jeu', 'fichier': 'jeu/p.html', 'pret': 'window.pret', 'pret_ms': 100, 'images': 20,
+               'appareils': {'ordinateur': {'largeur': 1024, 'hauteur': 700}},
+               'scenes': [{'nom': 'peindre', 'action': 'peindre()', 'attente_ms': 0, 'repetitions': 8}]}
+        json.dump(cfg, open(os.path.join(rac, 'jeu', 'outils', 'banc.json'), 'w'))
+        g('init', '-q'); g('add', '-A'); g('commit', '-qm', 'départ')
+        sys.path.insert(0, OC)
+        import banc as B_
+        ancien = B_.RAC
+        try:
+            B_.RAC = rac; dits = []
+            if B_.resoudre_avant('arrivee', 'jeu', dits.append)[0] != 'HEAD' or 'aucun chantier' not in dits[-1]:
+                raise RuntimeError('sans chantier : ' + str(dits))
+            open(os.path.join(rac, 'bureau', 'chantiers', 'jeu.md'), 'w').write('objet: essai\ndepuis: 2026-11-18 21:00\n')
+            if B_.resoudre_avant('arrivee', 'jeu', dits.append)[0] != 'HEAD' or 'pas encore commitée' not in dits[-1]:
+                raise RuntimeError('arrivée non commitée : ' + str(dits))
+            g('add', '-A'); g('commit', '-qm', 'arrivée (1er chantier)'); premier = g('rev-parse', 'HEAD')
+            # chantier ré-ouvert par-dessus (bureau.py réécrit le fichier : modification, pas ajout) → base = la NOUVELLE arrivée
+            open(os.path.join(rac, 'jeu', 'notes.txt'), 'w').write('entre deux chantiers'); g('add', '-A'); g('commit', '-qm', 'entre deux')
+            open(os.path.join(rac, 'bureau', 'chantiers', 'jeu.md'), 'w').write('objet: essai 2\ndepuis: 2026-11-18 22:00\n')
+            g('commit', '-qam', 'arrivée (ré-ouverture)'); arr = g('rev-parse', 'HEAD')
+            if B_.resoudre_avant('arrivee', 'jeu', dits.append)[0] != arr or arr == premier:
+                raise RuntimeError('chantier ré-ouvert : base = ancienne arrivée ' + str(dits[-1:]))
+        finally:
+            B_.RAC = ancien
+        open(os.path.join(rac, 'jeu', 'p.html'), 'w').write(src)  # dessin 30× plus lourd, COMMITÉ en route
+        g('commit', '-qam', 'ralentissement commité en route')
+        open(os.path.join(rac, 'jeu', 'notes.txt'), 'w').write('travail en cours')
+        sb = os.path.join(rac, 'outils-communs', 'banc.py'); reg = os.path.join(rac, 'jeu', 'outils', 'banc.json')
+        verdicts = {}
+        for rev in ('HEAD', 'arrivee'):
+            so = os.path.join(d, f'{rev}.json')
+            r = subprocess.run([sys.executable, sb, reg, so, '--avant', rev, '--tours', '2'], capture_output=True, text=True, timeout=300, cwd=rac)
+            if r.returncode:
+                raise RuntimeError(f'banc --avant {rev} : code {r.returncode} ' + (r.stderr or r.stdout)[-300:])
+            o = json.load(open(so))
+            verdicts[rev] = (o['ecarts'][0]['verdict'], o['avant_rev'], r.stdout)
+        if verdicts['arrivee'][0] != 'plus lent' or not verdicts['arrivee'][1].startswith('arrivee ' + arr[:7]):
+            raise RuntimeError(f"arrivee : {verdicts['arrivee'][:2]} " + verdicts['arrivee'][2][-300:])
+        if verdicts['HEAD'][0] == 'plus lent' or "touchent déjà jeu/" not in verdicts['HEAD'][2]:
+            raise RuntimeError(f"HEAD : {verdicts['HEAD'][:2]} (avertissement attendu) " + verdicts['HEAD'][2][-300:])
 
 
 if '--reseau' in sys.argv:

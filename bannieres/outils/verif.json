@@ -25,7 +25,7 @@
   {"nom": "Page publiée hors ligne",
    "commande": "python3 bannieres/outils/hors_ligne.py", "ok_si": "hors ligne OK.*erreurs \\[\\]"},
   {"nom": "Banc avant/après",
-   "banc": "bannieres/outils/banc.json", "avant": "HEAD", "delai_s": 1200, "complet": true},
+   "banc": "bannieres/outils/banc.json", "avant": "arrivee", "delai_s": 1200, "complet": true},
   {"nom": "Poids de la page", "poids": "bannieres/build/bannieres.html", "max_mo": 16}
  ]
 }

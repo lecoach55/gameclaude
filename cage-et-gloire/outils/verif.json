@@ -25,7 +25,7 @@
   {"nom": "Singe téléphone + ordinateur",
    "singe": "cage-et-gloire/outils/singe.json", "args": ["--secondes", "45"], "delai_s": 400},
   {"nom": "Banc avant/après (CPU ×4)",
-   "banc": "cage-et-gloire/outils/banc.json", "avant": "HEAD", "args": ["--cpu", "4"], "complet": true},
+   "banc": "cage-et-gloire/outils/banc.json", "avant": "arrivee", "args": ["--cpu", "4"], "complet": true},
   {"nom": "Poids de la page", "poids": "/home/claude/cg.html", "max_mo": 16}
  ]
 }

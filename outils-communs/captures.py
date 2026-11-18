@@ -6,6 +6,7 @@ usage :
   python3 outils-communs/captures.py <jeu>/outils/vues.json sortie --comparer <jeu>/references   + comparaison (compare.py)
   python3 outils-communs/captures.py <jeu>/outils/vues.json sortie --avant HEAD       AVANT (révision git) / APRÈS : aucune
         référence à garder dans le dépôt (révision extraite et construite à part, comme banc.py ; --avant-dossier, --avant-page)
+        --avant arrivee : comparer au DÉBUT DU CHANTIER en cours sur le jeu (bureau.py arrivee), commits faits en route compris
   python3 outils-communs/captures.py <jeu>/outils/vues.json refs --format jpg --echelle 0.5   références LÉGÈRES (JPEG, ½ taille)
 options : --vues a,b (les vues s'enchaînent dans la même page : un sous-ensemble ne part pas forcément du même état qu'une
           série complète ; pour une vue indépendante, "seule": true) · --appareils telephone,ordinateur · --construire · --seuil 6 (% de compare.py) · --strict (code 1 si
@@ -354,6 +355,7 @@ def main(argv):
     echelle = float(o['echelle'] or cfg.get('echelle', 1)); qualite = int(o['qualite'] or cfg.get('qualite', 85))
     mode = o['mode'] or cfg.get('mode', 'fige')
     seuil = float(o['seuil'] or cfg.get('seuil', 6))
+    o['avant'] = B.resoudre_avant(o['avant'], jeu, lambda m: print(m, flush=True))[0]
     avec_avant = bool(o['avant'] or o['avant_dossier'] or o['avant_page'])
     t0 = time.time(); tmp = None; serveurs = []; code = 0
     jeton = None if o['sans_verrou'] else V.prendre('robot', f'captures {jeu}', True, float(o['attente_max'] or 1800))[0]

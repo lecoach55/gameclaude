@@ -13,7 +13,10 @@ usage en ligne de commande (pour un outil propre à un jeu, sans toucher à son 
   python3 outils-communs/verrou.py robot -- python3 une-vie/outils/qa.py          robot : passe avec les autres robots
   python3 outils-communs/verrou.py banc  -- python3 sedes-petri/outils/perf.py   banc : seul sur la machine
   python3 outils-communs/verrou.py etat                                           qui tient la machine
-options : --attente-max 1800 (s ; code 3 si dépassé) · --nom "texte affiché aux autres"
+options : --attente-max 1800 (s ; code 3 si dépassé) · --nom "texte affiché aux autres" · --attente-navigateurs 600 (banc : s)
+Navigateurs HORS VERROU (18/11 soir) : un Chromium lancé par un outil qui ne prend pas le verrou (robot d'un jeu lancé tel quel) est
+vu dans les processus ; `etat` le liste avec son lanceur et son % de processeur, et un BANC attend qu'il s'arrête ou se calme (au
+plus --attente-navigateurs s, puis mesure quand même en le notant). VERROU_NAVIGATEURS=0 : ne pas attendre (seulement noter).
 Variables : BANC_VERROU=fichier (autre verrou : le vérificateur des outils), VERROU_AUCUN=1 (aucun verrou, ex. un robot lancé par
 un banc lui-même) ; les commandes lancées par `verrou.py` héritent de VERROU_TENU=banc|robot : un outil commun qui le voit ne
 reprend pas le verrou (sinon un robot sous un banc s'attendrait lui-même).
@@ -67,6 +70,153 @@ def qui():
             continue
         l.append(e)
     return sorted(l, key=lambda e: e.get('depuis', 0))
+
+
+# ---------------------------------------------------------------- navigateurs hors verrou (retour Bannières 18/11 soir)
+# Le verrou ne voit que les outils qui le prennent. Un robot propre à un jeu lancé tel quel (parcours.py, monkey.py, agent2.js,
+# script d'un testeur) fait tourner Chromium sans rien dire : avant, `etat` annonçait « machine libre » et un banc mesurait en même
+# temps (bruit ×2). On regarde donc aussi les processus : tout Chromium principal dont le lanceur n'est ni nous, ni un de nos
+# ancêtres (verif.py, vérificateur), ni un tenant du verrou, est « hors verrou » ; il est « actif » s'il consomme du processeur.
+import re as _re
+
+_NAV = _re.compile(r'(chrom(e|ium)[^/]*|headless[_-]shell[^/]*)$', _re.I)
+SEUIL_ACTIF = 10.0  # % d'un cœur (navigateur + ses sous-processus) au-delà duquel un navigateur compte comme actif
+
+
+def _procs():
+    """{pid: (ppid, argv, ticks cpu)} lu dans /proc (vide hors Linux)."""
+    r = {}
+    try:
+        pids = [int(p) for p in os.listdir('/proc') if p.isdigit()]
+    except OSError:
+        return r
+    for p in pids:
+        try:
+            with open(f'/proc/{p}/stat') as f:
+                s = f.read()
+            champs = s[s.rindex(')') + 2:].split()
+            with open(f'/proc/{p}/cmdline', 'rb') as f:
+                argv = [a.decode('utf-8', 'replace') for a in f.read().split(b'\0') if a]
+            r[p] = (int(champs[1]), argv, int(champs[11]) + int(champs[12]))
+        except (OSError, ValueError, IndexError):
+            continue
+    return r
+
+
+def _est_nav(argv):
+    return bool(argv) and bool(_NAV.search(os.path.basename(argv[0]))) and not any(a.startswith('--type=') for a in argv)
+
+
+def _est_pilote(argv):
+    """Pilote de Playwright (node … cli.js run-driver) : on remonte au script qui l'a lancé."""
+    return 'run-driver' in argv or any(a.endswith(('cli.js', 'playwright')) for a in argv[1:2])
+
+
+def _ancetres(pid, P):
+    l, vus = [], set()
+    while pid in P and pid not in vus and pid > 1:
+        vus.add(pid); pid = P[pid][0]; l.append(pid)
+    return l
+
+
+def _court(argv, n=90):
+    a = [os.path.basename(argv[0])] + [x if len(x) < 60 else '…' + x[-40:] for x in argv[1:6]] if argv else ['?']
+    s = ' '.join(a)
+    return s if len(s) <= n else s[:n - 1] + '…'
+
+
+def navigateurs(echantillon=2.0, sauf_pids=()):
+    """Navigateurs Chromium principaux HORS VERROU : [{pid, lanceur, lanceur_pid, cpu (% d'un cœur, arbre compris), actif}].
+    Exclus : ceux lancés par ce processus ou un de ses ancêtres, et ceux d'un tenant du verrou (qui() ; leurs enfants compris).
+    echantillon=0 : pas de mesure du processeur (cpu None, actif None)."""
+    P = _procs()
+    if not P:
+        return []
+    moi = ({os.getpid(), *_ancetres(os.getpid(), P), *sauf_pids}) - {0, 1}  # 1 = init : jamais un lanceur (navigateurs orphelins)
+    tenants = {e['pid'] for e in qui()}
+    navs = []
+    for p, (pp, argv, _) in P.items():
+        if not _est_nav(argv) or (pp in P and _est_nav(P[pp][1])):
+            continue
+        anc = _ancetres(p, P)
+        lanceur = next((a for a in anc if a in P and not _est_nav(P[a][1]) and not _est_pilote(P[a][1])), pp)
+        if lanceur in moi or p in moi or tenants & ({p} | set(anc)):
+            continue
+        # orphelin : son lanceur a disparu (script tué par timeout, navigateur resté dans sa propre session) ; il ne s'arrêtera pas seul
+        orphelin = lanceur <= 1 or lanceur not in P or (anc and anc[0] == 1)
+        navs.append({'pid': p, 'lanceur_pid': lanceur, 'orphelin': bool(orphelin),
+                     'lanceur': 'orphelin (lanceur disparu)' if orphelin else (_court(P[lanceur][1]) if lanceur in P else '?')})
+    if not navs or not echantillon:
+        for n in navs:
+            n['cpu'] = n['actif'] = None
+        return navs
+
+    def arbre(racine, Q):  # ticks de tout l'arbre du navigateur (rendus, GPU…)
+        enf = {}
+        for p, (pp, _, _) in Q.items():
+            enf.setdefault(pp, []).append(p)
+        t, pile = 0, [racine]
+        while pile:
+            x = pile.pop()
+            if x in Q:
+                t += Q[x][2]; pile += enf.get(x, [])
+        return t
+    t0 = {n['pid']: arbre(n['pid'], P) for n in navs}
+    debut = time.time(); time.sleep(echantillon); Q = _procs(); dt = time.time() - debut
+    hz = os.sysconf('SC_CLK_TCK') if hasattr(os, 'sysconf') else 100
+    for n in navs:
+        if n['pid'] not in Q:
+            n['cpu'], n['actif'] = 0.0, False; n['fini'] = True
+            continue
+        n['cpu'] = round(max(0.0, 100.0 * (arbre(n['pid'], Q) - t0[n['pid']]) / hz / dt), 1)
+        n['actif'] = n['cpu'] >= SEUIL_ACTIF
+    return [n for n in navs if not n.get('fini')]
+
+
+def resume_navigateurs(navs):
+    par = {}
+    for n in navs:
+        par.setdefault((n['lanceur_pid'], n['lanceur']), []).append(n)
+    return ', '.join(f"{l} (pid {lp}{', ' + str(len(v)) + ' navigateurs' if len(v) > 1 else ''}"
+                     f"{', ' + format(sum(x['cpu'] or 0 for x in v), '.0f') + ' % cpu' if v[0]['cpu'] is not None else ''})"
+                     for (lp, l), v in par.items())
+
+
+def attendre_navigateurs(attente_max=None, nom='banc', dire=print):
+    """Attend que les navigateurs HORS VERROU actifs s'arrêtent ou se calment (2 relevés calmes de suite), au plus attente_max s.
+    Les ORPHELINS (lanceur disparu) ne sont jamais attendus (ils ne s'arrêteront pas seuls) : signalés, à arrêter à la main.
+    Renvoie {'attendu_s', 'restants': [...] (actifs encore là à l'abandon, orphelins actifs compris), 'calmes': [...]}.
+    attente_max None = VERROU_NAVIGATEURS (secondes ; 0 = ne pas attendre, seulement relever) ou 600."""
+    if attente_max is None:
+        try:
+            attente_max = float(os.environ.get('VERROU_NAVIGATEURS') or 600)
+        except ValueError:
+            attente_max = 600.0
+    t, dit, calmes_de_suite, deja_actif = time.time(), 0.0, 0, False
+    navs = navigateurs()
+    orph = [n for n in navs if n.get('orphelin') and n['actif']]
+    if orph:
+        dire(f"⚠ {nom} : {len(orph)} navigateur(s) ORPHELIN(S) actif(s) (lanceur disparu, ne s'arrêteront pas seuls : pid "
+             f"{', '.join(str(n['pid']) for n in orph)}, {sum(n['cpu'] or 0 for n in orph):.0f} % cpu) ; les arrêter : kill <pid> ; mesure faussée sinon")
+    while True:
+        actifs = [n for n in navs if n['actif'] and not n.get('orphelin')]
+        if not actifs:
+            calmes_de_suite += 1
+            if calmes_de_suite >= 2 or not deja_actif or attente_max <= 0:
+                return {'attendu_s': round(time.time() - t), 'restants': [n for n in navs if n['actif']], 'calmes': [n for n in navs if not n['actif']]}
+        else:
+            calmes_de_suite, deja_actif = 0, True
+            if time.time() - t >= attente_max:
+                dire(f"⚠ {nom} : {len(actifs)} navigateur(s) hors verrou encore actifs après {_duree(attente_max)} ({resume_navigateurs(actifs)}) ;"
+                     " mesure lancée quand même : ms plus hautes et plus bruitées")
+                return {'attendu_s': round(time.time() - t), 'restants': [n for n in navs if n['actif']], 'calmes': [n for n in navs if not n['actif']]}
+            if not dit or time.time() - dit >= 60:
+                dire(f"⏳ {nom} : le verrou est libre mais {len(actifs)} navigateur(s) tournent HORS VERROU ({resume_navigateurs(actifs)}) ;"
+                     f" attente de leur fin pour ne pas fausser la mesure ({_duree(time.time() - t)} / {_duree(attente_max)} ;"
+                     " --attente-navigateurs 0 pour ne pas attendre ; envelopper ces robots : verrou.py robot -- …)")
+                dit = time.time()
+        time.sleep(3)
+        navs = navigateurs()
 
 
 def _dire(mode, nom, attend):
@@ -149,16 +299,22 @@ def _attendre(f, op, mode, nom, t, attente_max, dit, attendre, outre='--sans-ver
             time.sleep(1)
 
 
-def prendre(mode='robot', nom='', attendre=True, attente_max=1800, outre='--sans-verrou'):
+def prendre(mode='robot', nom='', attendre=True, attente_max=1800, outre='--sans-verrou', attente_navigateurs=None):
     """mode 'banc' (seul sur la machine) ou 'robot' (avec les autres robots, jamais pendant un banc).
     Renvoie (Jeton à garder puis .close(), secondes attendues) ; (None, 0) si attendre=False et la machine est tenue,
-    ou si VERROU_AUCUN=1, ou si ce processus est lancé sous un verrou (VERROU_TENU)."""
+    ou si VERROU_AUCUN=1, ou si ce processus est lancé sous un verrou (VERROU_TENU).
+    Un BANC attend d'abord, AVANT de prendre la file (les robots des autres ne sont pas bloqués pendant ce temps), la fin des
+    navigateurs Chromium HORS VERROU actifs (robots des jeux lancés tels quels ; au plus attente_navigateurs s, défaut
+    VERROU_NAVIGATEURS ou 600), puis relève sans attendre ceux encore actifs une fois le verrou pris ;
+    jeton.navigateurs = {'attendu_s', 'restants', 'calmes'} (à noter dans la sortie du banc)."""
     if mode not in ('banc', 'robot'):
         raise ValueError('mode : banc ou robot')
     if os.environ.get('VERROU_AUCUN') or os.environ.get('VERROU_TENU'):
         return None, 0
     principal, file_, _ = _chemins()
     t = time.time()
+    nav0 = attendre_navigateurs(attente_navigateurs, f'banc {nom}'.strip(), lambda m: print(m, flush=True)) if mode == 'banc' and attendre else None
+    t_verrou = time.time()
     fq = open(file_, 'a+')
     note = _dire(mode, nom, True)
     try:
@@ -187,15 +343,28 @@ def prendre(mode='robot', nom='', attendre=True, attente_max=1800, outre='--sans
         raise
     _dire(mode, nom, False)
     attendu = time.time() - t
-    if attendu > 1:
-        print(f'   … machine libre après {_duree(attendu)}', flush=True)
-    return Jeton(fichiers, note, mode), attendu
+    if time.time() - t_verrou > 1:
+        print(f'   … verrou libre après {_duree(time.time() - t_verrou)}', flush=True)
+    j = Jeton(fichiers, note, mode)
+    j.navigateurs = None
+    if mode == 'banc':
+        try:  # relevé sans attente une fois le verrou pris (un robot hors verrou a pu démarrer pendant l'attente des robots)
+            n1 = attendre_navigateurs(0, '', lambda m: None)
+        except BaseException:
+            j.close(); raise
+        j.navigateurs = {'attendu_s': (nav0 or {}).get('attendu_s', 0), 'restants': n1['restants'], 'calmes': n1['calmes']}
+        if n1['restants']:
+            print(f"⚠ banc {nom} : {len(n1['restants'])} navigateur(s) hors verrou actifs au départ de la mesure ({resume_navigateurs(n1['restants'])}) ;"
+                  " ms plus hautes et plus bruitées", flush=True)
+        elif j.navigateurs['attendu_s'] > 1:
+            print(f"   … navigateurs hors verrou terminés après {_duree(j.navigateurs['attendu_s'])}", flush=True)
+    return j, attendu
 
 
 class tenir:
     """with verrou.tenir('robot', 'captures hameau', attendre=True, attente_max=1800) as attendu: …"""
-    def __init__(self, mode='robot', nom='', attendre=True, attente_max=1800, actif=True, outre='--sans-verrou'):
-        self.a = (mode, nom, attendre, attente_max, outre); self.actif = actif; self.j = None
+    def __init__(self, mode='robot', nom='', attendre=True, attente_max=1800, actif=True, outre='--sans-verrou', attente_navigateurs=None):
+        self.a = (mode, nom, attendre, attente_max, outre, attente_navigateurs); self.actif = actif; self.j = None
 
     def __enter__(self):
         if not self.actif:
@@ -213,24 +382,32 @@ def main(argv):
         print(__doc__); return 0
     if argv[0] == 'etat':
         l = qui()
-        print('machine libre' if not l else '\n'.join(f"{e['mode']:5} pid {e['pid']} {e.get('nom','')} {'(attend) ' if e.get('attend') else ''}depuis {_duree(time.time()-e['depuis'])}" for e in l))
+        print('verrou libre' if not l else '\n'.join(f"{e['mode']:5} pid {e['pid']} {e.get('nom','')} {'(attend) ' if e.get('attend') else ''}depuis {_duree(time.time()-e['depuis'])}" for e in l))
+        navs = navigateurs()
+        for n in navs:
+            print(f"hors verrou : navigateur pid {n['pid']} {'ORPHELIN (lanceur disparu : kill ' + str(n['pid']) + ')' if n.get('orphelin') else 'lancé par ' + n['lanceur'] + ' (pid ' + str(n['lanceur_pid']) + ')'}, {n['cpu']:.0f} % cpu"
+                  f"{(' — ACTIF : à arrêter, il fausse les bancs' if n.get('orphelin') else ' — ACTIF : un banc lancé maintenant l attendrait') if n['actif'] else ' (calme)'}".replace('l attendrait', "l'attendrait"))
+        if not l and not any(n['actif'] for n in navs):
+            print('machine libre')
         return 0
     mode = argv[0]
     if mode not in ('banc', 'robot') or '--' not in argv:
-        print('usage : verrou.py banc|robot [--attente-max S] [--nom texte] -- commande …', file=sys.stderr); return 2
+        print('usage : verrou.py banc|robot [--attente-max S] [--attente-navigateurs S] [--nom texte] -- commande …', file=sys.stderr); return 2
     i = argv.index('--'); opts, cmd = argv[1:i], argv[i + 1:]
     if not cmd:
         print('verrou.py : commande manquante après --', file=sys.stderr); return 2
-    attente, nom = 1800.0, ' '.join(os.path.basename(c) for c in cmd[:3])
+    attente, nom, att_nav = 1800.0, ' '.join(os.path.basename(c) for c in cmd[:3]), None
     k = 0
     while k < len(opts):
         if opts[k] == '--attente-max':
             attente = float(opts[k + 1]); k += 2
+        elif opts[k] == '--attente-navigateurs':
+            att_nav = float(opts[k + 1]); k += 2
         elif opts[k] == '--nom':
             nom = opts[k + 1]; k += 2
         else:
             print(f'verrou.py : option inconnue {opts[k]}', file=sys.stderr); return 2
-    with tenir(mode, nom, True, attente, outre='VERROU_AUCUN=1'):
+    with tenir(mode, nom, True, attente, outre='VERROU_AUCUN=1', attente_navigateurs=att_nav):
         return subprocess.call(cmd, env=dict(os.environ, VERROU_TENU=mode))
 
 

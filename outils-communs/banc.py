@@ -5,6 +5,8 @@ usage :
   python3 outils-communs/banc.py <jeu>/outils/banc.json [sortie.json]          une mesure de la version en cours
   python3 outils-communs/banc.py <jeu>/outils/banc.json --avant HEAD           AVANT (révision git) / APRÈS (dossier de travail), entrelacés
   python3 outils-communs/banc.py <jeu>/outils/banc.json --avant-dossier /tmp/ancien_jeu   (ou --avant-page fichier.html)
+        --avant arrivee (ou chantier) = DÉBUT DU CHANTIER en cours (commit de `bureau.py arrivee <jeu>`) : les commits faits en route
+        restent dans l'APRÈS (avec HEAD ils passaient dans l'AVANT : fausses alertes) ; sans chantier ouvert = HEAD
         --avant HEAD extrait TOUT le dépôt à cette révision (≈ 2 s : un jeu qui lit un autre dossier se construit) ;
         --avant-dossier accepte aussi la RACINE d'une copie du dépôt (git worktree) : on y sert le même chemin que les réglages
         (+ --construire : construit aussi dans cette copie). Page absente = arrêt immédiat (code 2) ; une version jamais prête
@@ -17,6 +19,8 @@ options : --tours N (défaut 2 avec --avant : A B B A A B… ; 1 sinon) · --sce
           --reference mesures/x.json (compare à une mesure enregistrée : moins fiable, autre minute / autre machine)
           --sans-verrou (par défaut, un seul banc à la fois par machine : le second attend la fin du premier, en le disant)
           --attente-max 1800 (s : abandon, code 3, si l'autre banc ne finit pas)
+          --attente-navigateurs 600 (s : attente des navigateurs Chromium HORS VERROU actifs, robots des jeux lancés tels quels ;
+                   0 = ne pas attendre ; ceux encore actifs au début ou à la fin sont notés dans la sortie : "navigateurs_hors_verrou")
           --gels tous|nom1,nom2 (seulement les gels) · --sans-gels
           --profil (+ --groupes 20, --images N) : CE QUI COÛTE dans chaque scène Three.js (profil3d.py : chaque groupe d'objets
                    masqué tour à tour, ombres, environnement, lumières, brouillard, résolution ½) ; une passe, sans avant/après
@@ -161,6 +165,69 @@ def extraire(rev, cfg):
                 os.symlink(os.path.realpath(src), dst)
             dirs.remove('node_modules')
     return d
+
+ARRIVEE = ('arrivee', 'arrivée', 'chantier', 'debut', 'début')
+
+
+def _git(*a):
+    r = subprocess.run(['git', '-C', RAC, *a], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ''
+
+
+def resoudre_avant(rev, jeu, dire=print):
+    """Révision AVANT d'un --avant. « arrivee » (ou chantier, debut) = le DÉBUT DU CHANTIER en cours sur ce jeu : le commit qui a
+    ouvert bureau/chantiers/<jeu>.md (bureau.py arrivee). Retour Cage & Gloire 18/11 : avec « HEAD », une équipe qui commite en
+    route comparait sa version à elle-même moins le dernier commit (2 fausses alertes « plus lente », et un vrai ralentissement
+    commité plus tôt devenait invisible). Sans chantier ouvert (ou arrivée pas encore commitée) : HEAD, en le disant.
+    Avec « HEAD » explicite : avertit si des commits du chantier touchent déjà <jeu>/. Renvoie (révision, étiquette pour la sortie)."""
+    if not rev:
+        return rev, rev
+    ch = f'bureau/chantiers/{jeu}.md'
+    ouvert = os.path.exists(os.path.join(RAC, ch))
+    objet = quand = ''
+    if ouvert:
+        try:
+            for l in open(os.path.join(RAC, ch), encoding='utf-8'):
+                if l.startswith('objet:'):
+                    objet = l[6:].strip()
+                elif l.startswith('depuis:'):
+                    quand = l[7:].strip()
+        except OSError:
+            pass
+    base, pourquoi = '', ''
+    if ouvert:
+        # le commit qui a écrit CETTE arrivée (ligne « depuis: » du fichier actuel) : un chantier ré-ouvert par-dessus un ancien
+        # (bureau.py réécrit le fichier : modification, pas ajout) a sa propre base
+        base = _git('log', '-1', '--format=%H', '-S', f'depuis: {quand}', '--', ch) if quand else ''
+        if not base:
+            base = _git('log', '-1', '--format=%H', '--diff-filter=A', '--', ch) if not quand else ''
+        if not base or _git('show', f'HEAD:{ch}').find(f'depuis: {quand}') < 0:
+            base, pourquoi = '', 'arrivée pas encore commitée'
+        elif subprocess.run(['git', '-C', RAC, 'merge-base', '--is-ancestor', base, 'HEAD'], capture_output=True).returncode:
+            base, pourquoi = '', "commit d'arrivée hors de l'historique de HEAD"
+        else:
+            gp = _git('rev-parse', '--git-path', 'shallow')
+            try:  # clone superficiel : au commit limite, tous les fichiers paraissent « ajoutés » → base fausse
+                lim = open(gp if os.path.isabs(gp) else os.path.join(RAC, gp)).read().split() if gp else []
+            except OSError:
+                lim = []
+            if base in lim:
+                base, pourquoi = '', "clone superficiel : l'arrivée est avant la limite (git fetch --unshallow)"
+            elif subprocess.run(['git', '-C', RAC, 'diff', '--quiet', f'{base}^', base, '--', jeu], capture_output=True).returncode == 1:
+                base = _git('rev-parse', f'{base}^') or base  # le commit d'arrivée touche aussi le jeu : AVANT = son parent
+    else:
+        pourquoi = 'aucun chantier ouvert sur ' + jeu
+    n = int(_git('rev-list', '--count', f'{base}..HEAD', '--', jeu) or 0) if base else 0
+    if rev.lower() in ARRIVEE:
+        if not base:
+            dire(f"--avant {rev} : {pourquoi} → comparaison à HEAD")
+            return 'HEAD', f'{rev} = HEAD'
+        dire(f"--avant {rev} : début du chantier « {objet} » (commit {base[:7]}{', ' + quand if quand else ''}) ; {n} commit(s) du chantier sur {jeu}/ comptés dans l'APRÈS")
+        return base, f'{rev} {base[:7]}'
+    if base and n and _git('rev-parse', rev) == _git('rev-parse', 'HEAD'):
+        dire(f"⚠ --avant {rev} : {n} commit(s) de ce chantier touchent déjà {jeu}/ depuis l'arrivée ({base[:7]}) ; ils sont dans l'AVANT et leurs"
+             f" effets ne seront pas vus → pour comparer au début du chantier : --avant arrivee")
+    return rev, rev
 
 
 def hors_depot(cfg):
@@ -661,14 +728,29 @@ import verrou as _verrou  # noqa: E402
 VERROU = _verrou.FICHIER
 
 
-def verrouiller(attendre=True, attente_max=1800):
+def verrouiller(attendre=True, attente_max=1800, attente_navigateurs=None):
     """Un seul banc à la fois sur la machine (deux bancs ensemble faussent les ms : charge 5-12 sur 2 cœurs, vu le 17/11), et
     depuis le 18/11 aucun ROBOT pendant un banc (captures, singe, étapes de verif.py, outils lancés par `verrou.py robot`) : le banc
     attend la fin des robots en cours, les nouveaux attendent derrière lui (verrou.py). Renvoie (jeton à fermer, secondes
     attendues) ; abandon (SystemExit, code 3) après attente_max secondes (--attente-max). BANC_VERROU=fichier : autre verrou."""
     if os.environ.get('VERROU_TENU') == 'robot':
         print('⚠ banc lancé sous un verrou « robot » (verrou.py robot -- …) : pas de verrou exclusif ; lancer le banc hors de verrou.py robot', flush=True)
-    return _verrou.prendre('banc', f'{" ".join(os.path.basename(x) for x in sys.argv[1:3])}', attendre, attente_max)
+    return _verrou.prendre('banc', f'{" ".join(os.path.basename(x) for x in sys.argv[1:3])}', attendre, attente_max,
+                           attente_navigateurs=attente_navigateurs)
+
+
+def _nav_meta(debut, fin):
+    """Navigateurs hors verrou (verrou.py) : attente au début, actifs restants au début et à la fin ; avertit si la mesure en a souffert."""
+    r = {}
+    if debut.get('attendu_s'):
+        r['attente_navigateurs_s'] = debut['attendu_s']
+    deb = [{'pid': n['pid'], 'lanceur': n['lanceur'], 'cpu': n['cpu']} for n in debut.get('restants') or []]
+    fn = [{'pid': n['pid'], 'lanceur': n['lanceur'], 'cpu': n['cpu']} for n in fin or []]
+    if deb or fn:
+        r['navigateurs_hors_verrou'] = {'debut': deb, 'fin': fn}
+        print(f"⚠ navigateurs HORS VERROU actifs pendant la mesure ({_verrou.resume_navigateurs((debut.get('restants') or []) + (fin or []))}) :"
+              " ms plus hautes et plus bruitées ; refaire le banc quand ils ont fini (verrou.py etat)", flush=True)
+    return r
 
 
 def charge():
@@ -931,7 +1013,7 @@ def tableau(L):
 
 
 def lire_args(argv):
-    o = {'profil': False, 'groupes': None, 'images': None, 'tours': None, 'scenes': None, 'appareils': None, 'plafond': False, 'cpu': None, 'construire': False, 'seuil': None, 'sans_verrou': False, 'attente_max': None,
+    o = {'profil': False, 'groupes': None, 'images': None, 'tours': None, 'scenes': None, 'appareils': None, 'plafond': False, 'cpu': None, 'construire': False, 'seuil': None, 'sans_verrou': False, 'attente_max': None, 'attente_navigateurs': None,
          'strict': False, 'sans_gels': False, 'gels': None, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'reference': None, 'comparer': None, 'pos': []}
     i = 0
     while i < len(argv):
@@ -991,6 +1073,7 @@ def main(argv):
     if o['appareils']:
         appareils = {k: v for k, v in appareils.items() if k in o['appareils'].split(',')}
     jeu = cfg.get('jeu') or os.path.basename(os.path.dirname(os.path.dirname(reg)))
+    o['avant'], etiquette_avant = resoudre_avant(o['avant'], jeu, lambda m: print(m, flush=True))
     avec_avant = bool(o['avant'] or o['avant_dossier'] or o['avant_page'])
     profil = None
     if (o['groupes'] or o['images']) and not o['profil']:
@@ -1007,7 +1090,10 @@ def main(argv):
         gels, o['tours'] = [], '1'
         profil = {'groupes': int(o['groupes']) if o['groupes'] else None, 'images': int(o['images']) if o['images'] else None}
     tours = int(o['tours'] or (2 if avec_avant else 1))
-    verrou, attente_verrou = (None, 0) if o['sans_verrou'] else verrouiller(attente_max=float(o['attente_max'] or 1800))
+    att_nav = float(o['attente_navigateurs']) if o['attente_navigateurs'] not in (None, '') else None  # None : VERROU_NAVIGATEURS ou 600
+    verrou, attente_verrou = (None, 0) if o['sans_verrou'] else verrouiller(attente_max=float(o['attente_max'] or 1800), attente_navigateurs=att_nav)
+    nav_debut = (getattr(verrou, 'navigateurs', None) or {}) if verrou else {}
+    nav_fin = []
     t0 = time.time()
     serveurs, tmp = [], None
     ch0 = charge()
@@ -1056,6 +1142,10 @@ def main(argv):
         print('banc : ' + str(e), flush=True)
         return 2
     finally:
+        try:  # navigateurs hors verrou ACTIFS à la fin : un robot lancé pendant la mesure l'a peut-être faussée
+            nav_fin = [n for n in _verrou.navigateurs(1.0) if n['actif']] if verrou else []
+        except Exception:
+            nav_fin = []
         if verrou:
             verrou.close()
         for s in serveurs:
@@ -1064,12 +1154,12 @@ def main(argv):
             shutil.rmtree(tmp, ignore_errors=True)
     meta = {'jeu': jeu, 'date': datetime.datetime.now().isoformat(timespec='seconds'), 'plafond': o['plafond'], 'tours': tours,
             'cpu': o['cpu'], 'duree_s': round(time.time() - t0), 'charge': {'debut': ch0, 'fin': charge(), **({'heritee': True} if attente_verrou > 1 else {})},
-            'attente_verrou_s': round(attente_verrou), **({'drapeaux': ['--run-all-compositor-stages-before-draw']} if any(x.get('action') for x in scenes) else {})}
+            'attente_verrou_s': round(attente_verrou), **_nav_meta(nav_debut, nav_fin), **({'drapeaux': ['--run-all-compositor-stages-before-draw']} if any(x.get('action') for x in scenes) else {})}
     code = 0
     if avec_avant:
         av, ap = fusion(brut['avant']), fusion(brut['apres'])
         L, al = ecarts(av, ap, seuil)
-        out = {**meta, 'avant_rev': o['avant'] or o['avant_dossier'] or o['avant_page'], 'avant': av, 'apres': ap, 'ecarts': L}
+        out = {**meta, 'avant_rev': etiquette_avant or o['avant_dossier'] or o['avant_page'], 'avant': av, 'apres': ap, 'ecarts': L}
         print('\n' + tableau(L))
         if al:
             print(f"\n⚠ {len(al)} mesure(s) plus lente(s) au-delà de {seuil:.0f} % et du bruit : " + ', '.join(f"{e['appareil']}/{e['scene']} {e['ecart_pct']:+.0f} %" for e in al))

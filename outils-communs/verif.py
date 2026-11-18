@@ -6,7 +6,7 @@ usage :
   python3 outils-communs/verif.py <jeu>/outils/verif.json --complet       toutes les étapes
 options : --sortie dossier (défaut /tmp/verif-<jeu>) · --etapes mot1,mot2 (seulement les étapes dont le nom contient un de ces mots)
           · --sauter mot1,mot2 · --avant REV (révision des étapes captures/banc qui comparent à une révision ; défaut : celle des
-          réglages) · --sans-construire · --liste (affiche les étapes et s'arrête) · --sans-chrono (ne note pas les durées dans
+          réglages ; « arrivee » = début du chantier en cours sur le jeu, commits faits en route compris dans l'APRÈS) · --sans-construire · --liste (affiche les étapes et s'arrête) · --sans-chrono (ne note pas les durées dans
           bureau/retours-outils/chronos.jsonl) · --continuer (ne s'arrête pas après une étape "bloquante" ratée)
 Code de sortie : 0 tout est bon (réserves comprises) · 1 une étape a échoué · 2 réglages illisibles.
 Sortie (hors du dépôt ; effacée à chaque vérification, seulement si elle porte le repère .verif-sortie) : <sortie>/rapport.html (une ligne par étape, chiffres, planches avant/après, détails des échecs), resume.txt, verif.json,
@@ -23,12 +23,17 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; les commandes sont 
           = images jointes au rapport. Les outils propres aux jeux rendent souvent 0 même en cas d'erreur : mettre "ok_si".
     {"nom": "Captures 2D", "captures": "x/outils/vues.json", "comparer": "x/references"}   (ou "avant": "HEAD") studio commun
     {"nom": "Singe", "singe": "x/outils/singe.json", "args": ["--secondes", "45", "--couvrir"]}             singe commun
-    {"nom": "Banc", "banc": "x/outils/banc.json", "avant": "HEAD"}                                        banc commun
+    {"nom": "Banc", "banc": "x/outils/banc.json", "avant": "arrivee"}                                     banc commun
+          "avant": "arrivee" (conseillé) = début du chantier en cours (bureau.py arrivee) ; "HEAD" = dernier commit (les commits
+          faits en route passent alors dans l'AVANT : leurs effets ne sont pas vus) ; sans chantier ouvert, arrivee = HEAD
     {"nom": "Poids de la page", "poids": "x/build/index.html", "max_mo": 16}       page publiée (réserve au-delà de 97 %)
   clés communes : "complet": true (seulement avec --complet) · "delai_s": 600 · "env": {"V3D": "0"} · "params": "v3d=0" (ajouté à
           l'adresse des pages ouvertes par atelier.page() : robots propres au jeu, parcours.py, monkey.py…) · "args": [...] (options
           en plus pour l'outil commun) · "reserve": true (un échec devient une RÉSERVE : signalé, sans faire échouer la vérification ;
           un délai dépassé reste un échec) · "bloquant": true (si l'étape échoue, les suivantes ne sont pas lancées)
+Étape banc : il attend d'abord les navigateurs Chromium HORS VERROU actifs (robots lancés tels quels), au plus
+"attente_navigateurs_s" (300), ajouté au délai de l'étape ; s'il en reste, le rapport le signale.
+(Un banc.py lancé comme étape "commande" attend jusqu'à 600 s, comptés dans son "delai_s" : préférer l'étape "banc".)
 Verrou machine (verrou.py) : chaque commande du jeu passe avec les autres robots mais jamais pendant un banc ("verrou": "banc" pour
 une commande qui mesure, comme un perf.py propre au jeu ; "verrou": false pour aucun ; "attente_max_s": 1800).
 Les étapes captures/singe/banc sont lancées avec --strict (alerte, erreur JS, blocage, ralentissement = échec) et leur rapport JSON
@@ -231,6 +236,10 @@ def chiffres_banc(fj):
         morceaux = [f"{len(L)} mesure(s) avant/après ({b.get('avant_rev')}), {len(lents)} plus lente(s)"]
         for e in L:
             detail.append(f"{e['appareil']}/{e['scene']} : {e['avant_ms']:.2f} → {e['apres_ms']:.2f} ms ({e['ecart_pct']:+.1f} %) {e['verdict']}")
+        nav = b.get('navigateurs_hors_verrou')
+        if nav:  # robot d'un jeu lancé hors verrou pendant la mesure (verrou.py, 18/11 soir) : chiffres à prendre avec prudence
+            morceaux[0] += ' · ⚠ navigateurs hors verrou actifs pendant la mesure'
+            detail.append('navigateurs hors verrou : ' + ', '.join(sorted({x.get('lanceur', '?') for x in (nav.get('debut') or []) + (nav.get('fin') or [])})))
         return morceaux[0], detail, []
     sc = []
     for an, v in (b.get('appareils') or {}).items():
@@ -285,6 +294,9 @@ def une_etape(e, o, sortie):
                 cmd += ['--avant', avant]
             elif e.get('reference'):
                 cmd += ['--reference', e['reference']]
+            if '--attente-navigateurs' not in extra:  # navigateurs hors verrou attendus par le banc : ajoutés au délai (sinon « délai »)
+                an = float(e.get('attente_navigateurs_s', 300))
+                cmd += ['--attente-navigateurs', f'{an:g}']; delai += an
         cmd += extra; shell = False
         affiche = ' '.join(shlex.quote(os.path.relpath(x, RAC) if x.startswith(RAC + os.sep) else x) for x in cmd[1:])
         affiche = 'python3 ' + affiche

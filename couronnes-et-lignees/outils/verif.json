@@ -21,11 +21,11 @@
   {"nom": "Captures 2D contre references",
    "captures": "couronnes-et-lignees/outils/vues.json", "comparer": "couronnes-et-lignees/references"},
   {"nom": "Captures 3D avant/après",
-   "captures": "couronnes-et-lignees/outils/vues3d.json", "avant": "HEAD"},
+   "captures": "couronnes-et-lignees/outils/vues3d.json", "avant": "arrivee"},
   {"nom": "Singe explorateur téléphone + ordinateur",
    "singe": "couronnes-et-lignees/outils/singe.json", "args": ["--secondes", "45", "--couvrir"], "delai_s": 400},
   {"nom": "Banc avant/après (CPU ×4)",
-   "banc": "couronnes-et-lignees/outils/banc.json", "avant": "HEAD", "args": ["--cpu", "4"], "complet": true},
+   "banc": "couronnes-et-lignees/outils/banc.json", "avant": "arrivee", "args": ["--cpu", "4"], "complet": true},
   {"nom": "Poids de la page", "poids": "couronnes-et-lignees/jeu/index.html", "max_mo": 16}
  ]
 }

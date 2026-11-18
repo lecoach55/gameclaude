@@ -19,19 +19,19 @@
    "nom": "rural0",
    "js": "S.c=C.find(c=>c.n==\"Niger\");S.m=8;S.age=30;S.urban=false;S.turnNo=1;theme(S.c.r);hdr()",
    "attente_ms": 2500,
-   "infos": "window.W3&&W3.info?W3.info():null"
+   "infos": "typeof W3!=\"undefined\"&&W3.info?W3.info():null"
   },
   {
    "nom": "villa4",
    "js": "S.c=C.find(c=>c.n==\"France\");S.m=95;S.age=50;S.urban=true;S.turnNo=1;theme(S.c.r);hdr()",
    "attente_ms": 2500,
-   "infos": "window.W3&&W3.info?W3.info():null"
+   "infos": "typeof W3!=\"undefined\"&&W3.info?W3.info():null"
   },
   {
    "nom": "hiver",
    "js": "S.c=C.find(c=>c.n==\"Allemagne\");S.m=60;S.age=40;S.urban=false;S.turnNo=3;theme(S.c.r);hdr()",
    "attente_ms": 2500,
-   "infos": "window.W3&&W3.info?W3.info():null"
+   "infos": "typeof W3!=\"undefined\"&&W3.info?W3.info():null"
   }
  ],
  "appareils": {

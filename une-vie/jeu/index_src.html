@@ -177,7 +177,8 @@ body.night:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:
 @media (min-width:1000px){
 .wrap.duo{max-width:1240px;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(400px,1fr);column-gap:26px;align-items:start}
 .wrap.duo>.scene3d.has3d{margin:0;top:14px;height:calc(100vh - 28px);min-height:420px;max-height:880px;border:1px solid var(--line);border-radius:18px}
-.wrap.duo>.log{margin-top:0;min-width:0}
+.wrap.duo{padding-bottom:14px}
+.wrap.duo>.log{margin-top:0;min-width:0;padding-bottom:66px}
 .wrap.duo .has3d~.log .end{scroll-margin-top:14px}
 }
 /* arbre */
@@ -1096,7 +1097,7 @@ function hdr(delta){
   $("hd").innerHTML=`<div class="top" id="idtop" title="Replier / déplier">${avBox()}<div class="idt"><b>${S.name}</b><span>${job} · ${S.ab?S.ab[0]:S.c.city}</span></div><div class="age"><b>${S.age}</b>ans</div><span class="idch" aria-hidden="true">▾</span></div>
   <div class="stats">${st.map(([l,k])=>{const v=S[k],d=delta&&delta[k];return`<div class="st">${l}<span class="v">${v}${d?`<em class="dlt ${d>0?"up":"dn"}">${d>0?"+":""}${d}</em>`:""}</span><div class="bar"><i class="${v<25?"lo":v>=75?"hi":""}" style="width:${v}%"></i></div></div>`}).join("")}</div>
   <div class="life" title="Ta vie"><span style="left:${clamp(LE(),0,100)}%" title="Espérance de vie"></span><i style="left:${clamp(S.age,0,100)}%"></i></div>
-  <div class="chips">${chips}<span class="chip btn" id="fb">👪 Famille${S.kids.length?" · "+alive().length:""}</span></div><div class="fam ${famOpen?"on":""}" id="fam">${famHtml()}</div>`;
+  <div class="chips"><span class="chip btn" id="fb">👪 Famille${S.kids.length?" · "+alive().length:""}</span>${chips}</div><div class="fam ${famOpen?"on":""}" id="fam">${famHtml()}</div>`;
   $("fb").onclick=openTree;
   $("hd").classList.toggle("mini",idMini());$("idtop").onclick=()=>{const m=!idMini();try{localStorage.setItem("vie8m_idmini",m?"1":"0")}catch(e){}$("hd").classList.toggle("mini",m)};
   W3.sync();
@@ -1497,7 +1498,7 @@ function buildHome(){
   /* sol intérieur + murs */
   const fk=["dirt","concrete","tiles","wood","marble"][tier];
   gHome.add(BX(RW+.2,.12,RD+.2,"#8a8478",0,-.04,0,{cast:false}));
-  gHome.add(BX(RW,.1,RD,tmat(fk,fk=="wood"?[2,2]:fk=="tiles"?[3.5,3]:[2,2]),0,0,0,{cast:false}));
+  gHome.add(BX(RW,.1,RD,tmat(fk,fk=="wood"||fk=="tiles"?[3.5,3]:[3,3]),0,0,0,{cast:false}));
   const H=tier==0?2.1:2.7;
   const wk=tier==0?(cold?"logs":"mud"):tier==1?(cold?"logs":"plaster"):tier==2?(bio=="temperate"||cold?"brick":"plaster"):tier==3?"paint":"lux";
   const wm=tmat(wk,[2,1.2]),wout=tmat(wk,[2,1.2],"#d8d0c4");
@@ -1532,8 +1533,8 @@ function buildHome(){
   front.add(at(door(),0,.05,0,.05));front.add(at(windowW(1,.8,tier==0,curtain),-2.2,.09,0,1.2));
   /* mobilier */
   const add=(g,x,z,ry=0,w=1,d=1,blk=true)=>{at(g,x,z,ry,.05);gHome.add(g);if(!(w==1&&d==1&&!blk)&&w*d>=.15)cshad.push([x,z,ry,w,d]);if(blk)block(x,z,w,d);return g};
-  const bedC=["#8a6bb8","#c0665a","#4f9bb0","#d07a3c","#5fa58a"][r()*5|0];
-  const sofaC=["#5b7fb8","#8a5a5a","#5f8a6a","#b07a3a","#6a5a8a"][r()*5|0];
+  const bedC=["#8f82a6","#b07a6e","#6f97a3","#c08a5c","#7d9c86"][r()*5|0];
+  const sofaC=["#5b7fb8","#8a5a5a","#5f8a6a","#b07a3a","#6f6680"][r()*5|0];
   const A=(k,x,z,ry,pose,y=.45,extra={})=>acts.push({k,x,z,ry,pose,y,...extra});
   if(tier==0){
     add(floormat(),-2.7,-1.9,0,1,1.9);A("sleep",-2.7,-1.9,0,"lie",.12,{ax:-1.85,az:-1.4});
@@ -1938,7 +1939,7 @@ function frame(){
   R.render(SC,CAM);
 }
 /* précompilation des shaders juste après une construction : évite l'à-coup à la première image */
-{const WARM=()=>{if(!MC.__warm){const g=new V.Group(),sp=new V.Sprite(new V.SpriteMaterial({map:tex("glow"),transparent:true,depthWrite:false}));g.add(sp);MC.__warm=g}return MC.__warm};
+{const WARM=()=>{if(!MC.__warm){const g=new V.Group(),sp=new V.Sprite(new V.SpriteMaterial({map:tex("glow"),transparent:true,depthWrite:false}));g.add(sp);g.add(new V.Sprite(new V.SpriteMaterial({toneMapped:false,map:tex("glow"),transparent:true,depthWrite:false})));MC.__warm=g}return MC.__warm};
  const pre=f=>function(){const r=f.apply(this,arguments);if(R&&SC&&CAM)try{const w=WARM();SC.add(w);R.compile(SC,CAM);SC.remove(w)}catch(e){}return r};buildHome=pre(buildHome);buildPeople=pre(buildPeople)}
 const BASE=new V.Vector3(0,.9,.6),CG=new V.Vector3(),CF=new V.Vector3(),WP=new V.Vector3();
 function camUpdate(dt=0){

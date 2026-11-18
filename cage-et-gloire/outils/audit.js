@@ -28,6 +28,11 @@ for(let g=1;g<=N;g++){
   for(const o in G.orgs){const O=G.orgs[o];for(const d in (O.ch||{})){const c=O.ch[d];const k=o+d;if(!c){vac[k]=(vac[k]||0)+1;if(vac[k]===40)note('ceinture vacante > 40 sem.',k+' sem '+G.sem);}else vac[k]=0;
     if(c&&G.F[c]&&(G.F[c].ret||G.F[c].org!==o))note('champion parti/retraité',k+' '+c);}}
   for(const o of G.offres){if(o.f&&!G.F[o.f])note('offre orpheline',o.id);}
+  // v12 : écurie rivale, relations, semaine du combat
+  if(!G.rival)note('écurie rivale absente','sem '+G.sem);else{const R=G.rival;if(new Set(R.ids).size!==R.ids.length)note('rival : combattant en double','sem '+G.sem);if(R.ids.length>12)note('rival : trop de combattants',R.ids.length);
+   if(G.sem%4===1)for(const id of R.ids){const f=G.F[id];if(!f)note('rival : combattant inconnu',id);else if(f.mine)note('rival : combattant à moi',id);}
+   for(const k of ['v','d','n'])if(!isFinite(R[k]))note('rival : bilan NaN',k);}
+  for(const o in G.orgs){const r=G.orgs[o].rel;if(!isFinite(r)||r<0||r>100)note('relation hors bornes',o+'='+r);}
   if(w%52===51){const s=JSON.stringify(G).length;tailles.push(s);}
  }
  const nb={};for(const id in G.F){const f=G.F[id];if(!f.ret&&f.org){const k=f.org;nb[k]=(nb[k]||0)+1;}}

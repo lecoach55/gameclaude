@@ -6,7 +6,7 @@ const _C=typeof module!=='undefined'?require('./combat.js'):globalThis.Combat;
 const {ORGS,DIVS,STYLES,ATTRS,PAYS,PAYS_TIER,SURNOMS,SURNOMS_F,ISSUES,TRAITS,BLESSURES,CLANS}=_D;
 const COMM=.25,ALLOC=60;
 // allocation hebdomadaire d'un combattant : suit le niveau de son organisation (v12)
-const ALLOC_T=[1,1.5,3,5,8];
+const ALLOC_T=[1,2,5,9,14];
 function allocF(f){return Math.round(ALLOC*ALLOC_T[f&&f.org?ORG(f.org).tier:0]);}
 function allocTot(){let t=0;for(const f of mes())t+=allocF(f);return t;}
 const SALLES=[
@@ -105,10 +105,10 @@ function creerEvent(O,s){const go=G.orgs[O.id];go.num++;
   else if(chId&&rf_>=1&&(rf_<=2||(rf_<=3&&f.serie>=2))&&s-(go.dernierTitre[f.div]||-99)>=8){const C=G.F[chId];if(C&&dispo(C,s)&&!usage.has(chId)){adv=C;titre=true;go.dernierTitre[f.div]=s;}}
   else if(chId===adv.id)titre=true;
   let rival=false;if(!titre){const rv=Object.keys(f.riv||{}).map(id=>G.F[id]).filter(x=>x&&x.org===O.id&&x.div===f.div&&dispo(x,s)&&!usage.has(x.id));if(rv.length&&R()<.45){adv=rv[0];rival=true;}}
-  let ecr=false;if(!titre&&!rival&&G.rival){const rv2=L.filter(x=>estRival(x)).sort((a,b)=>Math.abs(a.elo-f.elo)-Math.abs(b.elo-f.elo));if(rv2.length&&R()<.3){adv=rv2[0];rival=true;ecr=true;}}
+  let ecr=false;if(!titre&&!rival&&G.rival){const rv2=L.filter(x=>estRival(x)).sort((a,b)=>Math.abs(a.elo-f.elo)-Math.abs(b.elo-f.elo));if(rv2.length&&R()<.4){adv=rv2[0];rival=true;ecr=true;}}
   usage.add(f.id);usage.add(adv.id);
   const c={id:ev.id+'c'+ev.combats.length,a:f.id,b:adv.id,div:f.div,titre,mine:true,ok:false,res:null,rival,ecr};ev.combats.push(c);f.prochain=c.id;adv.prochain=c.id;
-  const sh=Math.round(bourse(f,O.id,titre,false)*(rival?1.3:1)/50)*50;
+  const sh=Math.round(bourse(f,O.id,titre,false)*(rival&&!ecr?1.3:1)/50)*50; // contre l'écurie rivale : pas de prime de revanche (trésorerie)
   G.offres.push({id:'o'+(G.noff++),type:'combat',f:f.id,ev:ev.id,c:c.id,adv:adv.id,show:sh,win:sh,exp:s-3,titre,rival,ecr});
  }
  reserverGP(O,ev,s,usage);
@@ -398,7 +398,7 @@ function mkP(id,x){const E=SPECIAUX[id];return {id,x,t:E.t(x),d:E.d(x),ch:E.ch.m
 const SPECIAUX={
  bilan:{t:x=>'Bilan de la saison '+x.an,d:x=>'Bilan des combats : '+x.v+' victoires ('+x.f+' avant la limite), '+x.d+' défaites. '+(x.t?x.t+' ceinture(s) remportée(s) ! ':'')+'Commissions : '+fmtE(x.b)+'. Trésorerie : '+(x.da>=0?'+':'')+fmtE(x.da)+' sur l\'année. Objectifs atteints : '+x.ob+'/3.'+(x.best?' Votre meilleur combattant : '+nomF(x.best)+' ('+ov(G.F[x.best])+').':''),ch:[{t:'En route pour la nouvelle saison !'}]},
  semaine:{t:x=>'Semaine du combat : '+nomF(x.f),d:x=>{const f=G.F[x.f];const bm=bonusMoral(f);return 'Conférence de presse, pesée, face-à-face : '+nomF(x.f)+' affronte '+nomF(x.adv)+rivTxt(x.adv)+' dans une semaine. Moral actuel '+Math.round(f.moral)+' : '+(bm>=0?'+':'')+bm.toLocaleString('fr-FR')+' à toutes les qualités le soir du combat. Comment aborde-t-il la semaine ?';},
-  ch:[{t:'Faire le show',e:x=>'Popularité +4 · bourse +5 % · mais l\'adversaire, piqué, gagne +1 le soir du combat',f:x=>{const t=trouverCombat(x.c);const f=G.F[x.f];if(!t||!f)return;f.pop=cl(f.pop+4,0,100);if(t.c.show)t.c.show=Math.round(t.c.show*1.05/50)*50;t.c.sdc=t.c.sdc||{a:0,b:0};t.c.sdc.b=1;}},
+  ch:[{t:'Faire le show',e:x=>'Popularité +3 · bourse +5 % · mais l\'adversaire, piqué, gagne +0,5 le soir du combat',f:x=>{const t=trouverCombat(x.c);const f=G.F[x.f];if(!t||!f)return;f.pop=cl(f.pop+3,0,100);if(t.c.show)t.c.show=Math.round(t.c.show*1.05/50)*50;t.c.sdc=t.c.sdc||{a:0,b:0};t.c.sdc.b=.5;}},
    {t:'Rester concentré',e:x=>'Moral +8 · relation '+(x.org?ORG(x.org).court:'organisation')+' +3',f:x=>{const f=G.F[x.f];if(!f)return;f.moral=cl(f.moral+8,0,100);relAj(x.org,3);}},
    {t:'Couper le poids au maximum',e:x=>'+1,2 à toutes les qualités le soir · 20 % de risque de rater le poids : amende de 20 % de la bourse, moral −10, relation −8',f:x=>{const t=trouverCombat(x.c);const f=G.F[x.f];if(!t||!f)return;t.c.sdc=t.c.sdc||{a:0,b:0};t.c.sdc.a=1.2;
     if(R()<.2){if(t.c.show)t.c.show=Math.round(t.c.show*.8/50)*50;f.moral=cl(f.moral-10,0,100);relAj(x.org,-8);t.c.rate=1;news('⚖️',nomF(x.f)+' rate le poids ! Amende de 20 % sur sa bourse.','#e8344a');}}}]},

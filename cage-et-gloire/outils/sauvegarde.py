@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Sauvegarde locale compressée : nouvelle partie, 30 semaines, rechargement, Continuer. python3 outils/sauvegarde.py page"""
+"""Sauvegarde locale compressée : nouvelle partie, 30 semaines, rechargement, Continuer. python3 outils/sauvegarde.py page [capture.png]"""
 import sys,os,asyncio
 from playwright.async_api import async_playwright
-html=os.path.abspath(sys.argv[1])
+html=os.path.abspath(sys.argv[1]);capt=sys.argv[2] if len(sys.argv)>2 else '/tmp/acc_sauv.png'  # capture de l'accueil après rechargement
 async def main():
   async with async_playwright() as p:
     b=await p.chromium.launch(executable_path='/usr/bin/google-chrome',args=['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--allow-file-access-from-files'])
@@ -15,7 +15,7 @@ async def main():
     await pg.wait_for_timeout(800)
     av=await pg.evaluate("JSON.stringify({sem:G.sem,arg:Math.round(G.argent),n:Object.keys(G.F).length})")
     taille=await pg.evaluate("(localStorage.getItem('cage-gloire-v1z')||'').length")
-    await pg.reload();await pg.wait_for_timeout(3500);await pg.screenshot(path='/tmp/acc_sauv.png')
+    await pg.reload();await pg.wait_for_timeout(3500);await pg.screenshot(path=capt)
     await pg.click('#bCont');await pg.wait_for_timeout(500)
     ap=await pg.evaluate("JSON.stringify({sem:G.sem,arg:Math.round(G.argent),n:Object.keys(G.F).length})")
     print('avant',av,'après',ap,'identique',av==ap,'taille compressée',taille,'erreurs',errs[:4]);await b.close()

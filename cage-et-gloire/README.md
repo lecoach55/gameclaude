@@ -34,6 +34,7 @@ Construction : `npm i` à la racine du dossier (three 0.160, esbuild, @fontsourc
 - `sim_monde.js N ans [bon|passif]` : parties automatiques. Repère : 0 erreur, organisations pleines, APEX atteint en 4 à 6 ans, 2 à 6 ceintures en 6 ans.
 - `parcours.py page dossier [l h]` : partie au doigt (accueil, onglets, offre, combat 3D jusqu'au bout avec le coin, résultat, fiche). Lent sous swiftshader (≈ 4 min).
 - `studio.py page dossier [poses]` : une capture par pose de l'arène. `bureau.py` : captures 1280×800.
+- Poses de l'arène sur le studio commun : `python3 outils-communs/captures.py cage-et-gloire/outils/vues.json /tmp/cg --avant HEAD --construire` (21 poses, ≈ 4 min ; les anciennes références de studio.py ont un autre cadrage).
 - `traits.js` (effet des traits), `evtest.js` (chaque événement et chaque choix), `vues.py page dossier semaines` (tous les écrans après N semaines de robot), `combat3d.py` (présentation, coin, ralenti d'un KO, résultat), `sauvegarde.py` (sauvegarde compressée → rechargement identique).
 - Références : `references/`.
 

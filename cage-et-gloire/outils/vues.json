@@ -1,0 +1,107 @@
+{
+ "_note": "Poses de l'arène (ancien outils/studio.py porté sur le studio commun) : python3 outils-communs/captures.py cage-et-gloire/outils/vues.json /tmp/cg --comparer cage-et-gloire/references --strict (ou --avant HEAD)",
+ "jeu": "cage-et-gloire",
+ "fichier": "/home/claude/banc/cg.html",
+ "construire": "cd cage-et-gloire && npm i --silent >/dev/null 2>&1; python3 jeu/build.py /home/claude/banc/cg.html",
+ "stockage": {
+  "cg-qual": "1"
+ },
+ "appareils": {
+  "studio": {
+   "largeur": 640,
+   "hauteur": 480,
+   "dpr": 1
+  }
+ },
+ "pret": "typeof Arene!=='undefined'&&typeof ORGS!=='undefined'",
+ "pret_ms": 5000,
+ "entree": "window.__pose=(n)=>{const A=Arene,P=A.POSES;const O=ORGS[4];const mk=i=>({id:'s'+i,sexe:n==='femmes'?'F':'H',div:n==='femmes'?'fc':'mm',app:{peau:[1,4][i],chev:[2,0][i],cc:0,short:['#c1121f','#1d4ed8'][i],gant:'#111'}}); A.preparer(O,[mk(0),mk(1)]);A.demarrer();const F=A.perso();const st=A.ST;st.pos='S';st.dist=1.35;st.ang=0;st.c.set(0,0,0); const pose={garde:['garde','garde'],jab:['jab','coupTete'],cross:['cross','bloque'],hook:['hook','esquive'],upper:['upper','coupCorps'],lowkick:['lowkick','coupJambe'],bodykick:['bodykick','coupCorps'],headkick:['headkick','coupTete'],knee:['knee','clinch'],  shoot:['shoot','sprawl'],sprawl:['shoot','sprawl'],clinch:['clinch','clinch'],ko:['victoire','basKO'],portrait0:['garde','garde'],portrait1:['garde','garde'],coin:['garde','garde'],femmes:['garde','garde'],victoire:['victoire','attente'],arbitre:['garde','garde'],sol:['haut','bas'],solFrappe:['hautFrappe','basProtege'],soum:['hautSoum','basProtege']}[n]; if(n==='clinch'||n==='knee')st.pos='C';if(n==='sol'||n==='solFrappe'||n==='soum'){st.pos='G';st.top=0;} if(n==='portrait0'||n==='portrait1'){A.intro(+n.slice(8));return;} A.placer(true);F[0].idle=()=>P[pose[0]](0);F[1].idle=()=>P[pose[1]](0);F.forEach(h=>h.seq=[]); if(n==='ko'){F[1].ttilt=-Math.PI/2+.08;F[1].ty=.14;F[1].tilt=F[1].ttilt;} if(n==='coin'){A.coinsVue(true);return;} A.cam(n==='arbitre'?'large':n.startsWith('sol')||n==='soum'||n==='ko'?'sol':'serre');};document.getElementById('accueil').classList.add('cache');",
+ "images": 60,
+ "pas": 45,
+ "vues": [
+  {
+   "nom": "garde",
+   "js": "__pose('garde')"
+  },
+  {
+   "nom": "jab",
+   "js": "__pose('jab')"
+  },
+  {
+   "nom": "cross",
+   "js": "__pose('cross')"
+  },
+  {
+   "nom": "hook",
+   "js": "__pose('hook')"
+  },
+  {
+   "nom": "upper",
+   "js": "__pose('upper')"
+  },
+  {
+   "nom": "lowkick",
+   "js": "__pose('lowkick')"
+  },
+  {
+   "nom": "bodykick",
+   "js": "__pose('bodykick')"
+  },
+  {
+   "nom": "headkick",
+   "js": "__pose('headkick')"
+  },
+  {
+   "nom": "knee",
+   "js": "__pose('knee')"
+  },
+  {
+   "nom": "shoot",
+   "js": "__pose('shoot')"
+  },
+  {
+   "nom": "sprawl",
+   "js": "__pose('sprawl')"
+  },
+  {
+   "nom": "clinch",
+   "js": "__pose('clinch')"
+  },
+  {
+   "nom": "sol",
+   "js": "__pose('sol')"
+  },
+  {
+   "nom": "solFrappe",
+   "js": "__pose('solFrappe')"
+  },
+  {
+   "nom": "soum",
+   "js": "__pose('soum')"
+  },
+  {
+   "nom": "ko",
+   "js": "__pose('ko')"
+  },
+  {
+   "nom": "victoire",
+   "js": "__pose('victoire')"
+  },
+  {
+   "nom": "arbitre",
+   "js": "__pose('arbitre')"
+  },
+  {
+   "nom": "portrait0",
+   "js": "__pose('portrait0')"
+  },
+  {
+   "nom": "portrait1",
+   "js": "__pose('portrait1')"
+  },
+  {
+   "nom": "coin",
+   "js": "__pose('coin')"
+  }
+ ]
+}

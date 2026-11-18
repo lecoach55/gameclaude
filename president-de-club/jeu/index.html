@@ -137,6 +137,7 @@ th.sort{cursor:pointer}
 .choice{text-align:left;background:var(--turf2);border:1px solid var(--line);border-radius:6px;padding:11px 14px;cursor:pointer;font-weight:600}
 .choice:hover{border-color:var(--flood)}
 .choice small{display:block;font-weight:400;color:var(--muted);margin-top:2px}
+.choice small.evpv{font-size:12.5px;font-variant-numeric:tabular-nums}.choice small.evpv .good{color:var(--good)}.choice small.evpv .bad{color:var(--bad)}
 
 .scoreboard{background:#050806;border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;text-align:center}
 .scoreboard .tn{font-family:var(--display);font-size:20px;font-weight:800;text-transform:uppercase;line-height:1}
@@ -1069,6 +1070,19 @@ const wageBill=()=>S.players.reduce((s,p)=>s+(p.loan?p.wage*(1-p.loan.share):p.w
 const squadN=()=>S.players.filter(p=>!p.loan).length;
 const staffBill=()=>Object.values(S.staff).reduce((s,x)=>s+(x?x.salary:0),0);
 const debt=()=>S.loans.reduce((s,l)=>s+l.remaining,0);
+/* v39 — dépense risquée (décision de Victor, 18/11) */
+const RISK={pal1:.4,pal2:.8,sur1:.03,sur2:.06,frais:.08,seuilFrais:.6,libre:.8};
+function recettesAn(){const L=LV[S.div],i=S.infra;return S.sponsorAnnual+(S.sponsorBonus||0)+(S.naming||0)+L.sub*(S.subsidyMult||1)+L.tv+(S.flags.tvLocal||0)+S.fans*MERCH[i.commerce]*(1+S.div*.4)*(S.flags.kitShare?1.5:1)+S.fans*.6*S.ticket*S.N/2+(i.loges?LOGES[i.loges]*(1+S.div*.25)*S.N/2:0);}
+function recettesRef(){const est=recettesAn();if(!S.sf||S.week<4)return est;const inc=Object.values(S.sf.inc||{}).reduce((a,b)=>a+b,0),ven=(S.sf.inc||{})['Transferts (ventes)']||0;return Math.max(est,(inc-ven)*S.N/S.week+ven);}
+// NB (relecture 18/11) : version mesurée par run3 ; les abonnements et recettes ponctuelles sont extrapolés, l'estimation
+// de billetterie n'est pas plafonnée au stade → question q-design-president-de-club-3 posée à Victor avant de durcir.
+const msRatio=()=>(wageBill()+staffBill())*12/Math.max(1,recettesRef());
+const detteRatio=(x=0)=>(debt()+x)/Math.max(1,recettesRef());
+function tauxEmprunt(amt){const dr=detteRatio(amt||0);return .045+(S.confidence<40?.03:0)+(S.cash<0?.03:0)+(dr>RISK.pal2?RISK.sur2:dr>RISK.pal1?RISK.sur1:0);}
+function fraisDette(){const r=recettesRef(),ex=debt()-r*RISK.seuilFrais;return ex>0?ex*RISK.frais:0;}
+const zoneRel=()=>{const L=LV[S.div];return S.div>0&&L.rel>0&&S.week>=3&&myPos()>L.teams-L.rel;};
+function libresRel(){const z=zoneRel();(S.market||[]).forEach(p=>{if(p.fee)return;if(z&&!p.rd){p.rd=1;p.demand=Math.round(p.demand*RISK.libre/10)*10;}else if(!z&&p.rd){delete p.rd;p.demand=Math.round(p.demand/RISK.libre/10)*10;}});
+  if(z!==!!S.relZ){S.relZ=z;if(z)news('Zone de relégation : les joueurs libres acceptent de baisser leurs prétentions de 20 % pour venir jouer le maintien.','g');}}
 
 /* ---------- Tour de jeu ---------- */
 A.play=function(){
@@ -1108,9 +1122,9 @@ A.play=function(){
   afterResult(rep.res,rep.home?rep.att:0,me.ovr-rep.opp.rating,rep.home);
   S.track.pos.push(myPos());S.track.cash.push(Math.round(S.cash));if(S.track.cash.length>160)S.track.cash.shift();
   if(S.week===Math.floor(S.N/2)&&S.div>=2){
-    const pr=projection(),inc=S.sponsorAnnual+LV[S.div].sub+LV[S.div].tv;
-    if(pr<-inc*.2){S.dncg={lvl:2,cap:wageBill()};UI.queue.push({type:'info',t:'DNCG : interdiction de recruter',d:'Après examen de vos comptes à la trêve, la DNCG vous interdit tout recrutement jusqu’à la fin de la saison (fin de saison prévue à '+money(pr)+'). Une trésorerie négative en fin de saison entraînera une rétrogradation administrative.'});news('La DNCG interdit au club de recruter.','b');}
-    else if(pr<0){S.dncg={lvl:1,cap:wageBill()};UI.queue.push({type:'info',t:'DNCG : encadrement de la masse salariale',d:'La DNCG juge votre budget fragile (fin de saison prévue à '+money(pr)+'). Votre masse salariale est encadrée : impossible de l’augmenter d’ici la fin de la saison.'});news('La DNCG encadre la masse salariale du club.','b');}
+    const pr=projection(),inc=S.sponsorAnnual+LV[S.div].sub+LV[S.div].tv,msr=msRatio(),trop=msr>1;
+    if(pr<-inc*.2||(trop&&pr<0)){S.dncg={lvl:2,cap:wageBill()};UI.queue.push({type:'info',t:'DNCG : interdiction de recruter',d:'Après examen de vos comptes à la trêve, la DNCG vous interdit tout recrutement jusqu’à la fin de la saison (fin de saison prévue à '+money(pr)+(trop?' ; masse salariale à '+Math.round(msr*100)+' % des recettes':'')+'). Une trésorerie négative en fin de saison entraînera une rétrogradation administrative.'});news('La DNCG interdit au club de recruter.','b');}
+    else if(pr<0||trop){S.dncg={lvl:1,cap:wageBill()};UI.queue.push({type:'info',t:'DNCG : encadrement de la masse salariale',d:(trop?'Votre masse salariale atteint '+Math.round(msr*100)+' % de vos recettes : la DNCG la juge excessive (fin de saison prévue à '+money(pr)+'). Au 30 juin, elle ne tolérera aucun déficit et tiendra compte de vos emprunts.':'La DNCG juge votre budget fragile (fin de saison prévue à '+money(pr)+').')+' Votre masse salariale est encadrée : impossible de l’augmenter d’ici la fin de la saison.'});news('La DNCG encadre la masse salariale du club.','b');}
     else if(S.dncg){S.dncg=null;}
   }
   if(S.week===Math.floor(S.N*2/3)&&L.promo&&S.div<6&&myPos()<=L.promo+1&&!UI.multiRun){const pr=projection();if(pr<0)UI.queue.push({type:'info',t:'Le trésorier tire la sonnette d’alarme',d:'Le club est '+myPos()+'e et peut monter, mais la saison finirait avec une trésorerie de '+money(pr)+'. Sans trésorerie positive au 30 juin, la montée sera refusée (et la DNCG pourrait sévir). Il reste '+(S.N-S.week)+' journées pour trouver environ '+money(-pr)+' : vente d’un joueur, prêt avec prise en charge du salaire ou emprunt (onglet Finances).'});}
@@ -1128,7 +1142,7 @@ A.play=function(){
   if(!S.cup.out&&!S.cup.won&&S.cup.round<12&&S.week===cupDay(S.cup.round)){const c=playCup();if(c)UI.queue.push({type:'report',d:c});}
   if(euroDue()){const d=euroPlay();if(d)UI.queue.push({type:'report',d});}
   if(S.div===6&&S.week===Math.floor(S.N/2)&&myPos()===1&&S.elite){S.teams.filter(t=>t.elite).forEach(t=>{const b=rf(.8,2.2);t.rating+=b;t.att+=b;t.def+=b;});news('Mercato d’hiver : piqués au vif, les cadors du championnat se renforcent pour vous rattraper.','b');}
-  weeklyUpdates();
+  weeklyUpdates();libresRel();
   misTick();spTick();
   // événements
   maybeEvent();
@@ -1159,6 +1173,7 @@ function weeklyFinance(rep){
   if(S.flags.fem)fin('Section féminine',-FEMCOST[S.div]/N);
   S.loans.forEach(l=>{const pay=Math.min(l.perWeek,l.remaining);l.remaining-=pay;const it=Math.min(pay,l.intW||0);if(it)fin('Intérêts d’emprunt',-it);fin('Remboursements d’emprunt',-(pay-it));});
   S.loans=S.loans.filter(l=>l.remaining>1);
+  {const fd=fraisDette();if(fd>0)fin('Intérêts d’emprunt',-fd/N);}
   if(S.cash<0)fin('Agios bancaires',S.cash*.006);
 }
 const fanCap=()=>LV[S.div].fcap*(1+S.rep/150)*terrFan();
@@ -1487,7 +1502,10 @@ function computeSeasonEnd(){S._deloc=null;S._guar=null;leagueSnap();
   if((S.div===5||S.div===6)&&pos===L.teams-L.rel){const oppR=LV[S.div-1].str[1]+rf(-2,2),pw=clamp(.5+(me-oppR)*.035,.12,.88),win=R()<pw;
     barrage={up:false,win,txt:'Barrage pour le maintien contre le 3e de '+LV[S.div-1].n+' : '+(win?'victoire, maintien assuré.':'défaite, relégation.')};if(!win)out='down';}
   // DNCG : contrôle des comptes dès le National 2 (fédérale) et en pro
-  if(S.cash<0&&out!=='down'){
+  const msrF=msRatio(),dueF=S.loans.reduce((s,l)=>s+Math.min(l.remaining,l.perWeek*S.N),0);
+  if(S.div>=2&&msrF>1&&out!=='down'&&S.cash>=0&&S.cash<dueF*.5){out='dncg';notes.push('La DNCG prononce une rétrogradation administrative : masse salariale à '+Math.round(msrF*100)+' % des recettes et trésorerie insuffisante pour couvrir les emprunts de la saison prochaine.');}
+  else if(S.div>=2&&msrF>1&&S.cash<0&&out!=='down'&&S.div<4){out='dncg';notes.push('La DNCG fédérale prononce une rétrogradation administrative : déficit avec une masse salariale supérieure aux recettes.');}
+  if(S.cash<0&&out!=='down'&&out!=='dncg'){
     if(S.div>=4){out='dncg';notes.push('La DNCG prononce une rétrogradation administrative pour déficit.');}
     else if(S.div>=2&&S.cash<-(S.sponsorAnnual+LV[S.div].sub)*.15){out='dncg';notes.push('La DNCG fédérale prononce une rétrogradation administrative : comptes trop déficitaires.');}
   }
@@ -1821,7 +1839,37 @@ function showEvent(q){
   const tt=typeof e.title==='function'?e.title(q.d):e.title,chs=typeof e.ch==='function'?e.ch(q.d):e.ch;
   openModal(`<div class="kicker">${e.icon?e.icon:''}${esc(e.k)} · ${wkLabel()}</div><h2>${esc(tt)}</h2><p>${esc(e.text(q.d))}</p>
   ${(()=>{const d=q.d||{};const pp=d.pid!=null?getP(d.pid):d.p;return pp?`<div class="row"><button class="btn sm" onclick="A.evProfile()">👤 Voir le profil de ${esc(pname(pp))}</button></div>`:'';})()}
-  <div class="choices">${chs.map((c,i)=>`<button class="choice" onclick="A.evChoice(${i})">${esc(c.t)}${c.s?'<small>'+esc(c.s)+'</small>':''}</button>`).join('')}</div>`);
+  <div class="choices">${chs.map((c,i)=>{const pv=evPreview(q,i);return `<button class="choice" onclick="A.evChoice(${i})">${esc(c.t)}${c.s?'<small>'+esc(c.s)+'</small>':''}${pv?'<small class="evpv">'+pv+'</small>':''}</button>`;}).join('')}</div>`);
+}
+// v39b : aperçu chiffré d'un choix, joué à blanc sur une copie de la partie (aucun effet réel)
+function evPreview(q,i,K){K=K||5;const e=EVENTS[q.id];if(!e)return '';
+  const real=S,uq=UI.queue.slice(),um=UI.modalOpen,ut=UI.tab,ucur=UI.curEv,G=window,keep={save,toast,render,openModal,nextQueue,checkOver},st=G.setTimeout,si=G.setInterval;
+  const acc={cash:[],mood:[],conf:[],rep:[],fans:[],mor:[],inj:0,n:[],later:0,ok:0};let base=null;
+  try{
+    const json=JSON.stringify(real),dj=q.d?JSON.stringify(q.d):null;
+    save=()=>{};toast=()=>{};render=()=>{};openModal=()=>{};nextQueue=()=>{};checkOver=()=>{};G.setTimeout=()=>0;G.setInterval=()=>0;
+    for(let k=0;k<K;k++){
+      S=JSON.parse(json);const d=dj?JSON.parse(dj):q.d;
+      const chs=typeof e.ch==='function'?e.ch(d):e.ch;if(!chs||!chs[i])break;
+      const a=evSnap();if(!base)base=a;
+      try{chs[i].f(d);}catch(x){continue;}
+      S.mood=clamp(S.mood,0,100);S.confidence=clamp(S.confidence,0,100);S.rep=clamp(S.rep,0,100);
+      const b=evSnap();acc.ok++;
+      acc.cash.push(b.cash-a.cash);acc.mood.push(b.mood-a.mood);acc.conf.push(b.conf-a.conf);acc.rep.push(b.rep-a.rep);acc.fans.push(b.fans-a.fans);acc.n.push(b.n-a.n);
+      let ms=0,mn=0,inj=false;for(const id in b.sq){const x=a.sq[id];if(!x)continue;const dm=b.sq[id].m-x.m;if(Math.round(dm)){ms+=dm;mn++;}if(b.sq[id].i>x.i)inj=true;}
+      acc.mor.push(mn?ms/mn:0);if(inj)acc.inj++;if(a.later!==b.later)acc.later++;
+    }
+  }catch(x){acc.ok=0;}
+  finally{S=real;UI.queue=uq;UI.modalOpen=um;UI.tab=ut;UI.curEv=ucur;save=keep.save;toast=keep.toast;render=keep.render;openModal=keep.openModal;nextQueue=keep.nextQueue;checkOver=keep.checkOver;G.setTimeout=st;G.setInterval=si;}
+  if(!acc.ok)return '';
+  const avg=a=>a.reduce((s,v)=>s+v,0)/a.length,vary=a=>Math.max(...a)-Math.min(...a)>.5,out=[];
+  const one=(arr,lab,fmt)=>{const m=avg(arr);if(Math.abs(m)<.5)return;const t=(vary(arr)?'≈ ':'')+(m>0?'+':'−')+fmt(Math.abs(m))+' '+lab;out.push(`<span class="${m>0?'good':'bad'}">${t}</span>`);};
+  {const m=avg(acc.cash);if(Math.abs(m)>=50){const t=(vary(acc.cash)?'≈ ':'')+(m>0?'+':'−')+money(Math.abs(Math.round(m/10)*10));out.push(`<span class="${m>0?'good':'bad'}">${t}</span>`);}}
+  one(acc.mood,'humeur',v=>Math.round(v));one(acc.conf,'confiance',v=>Math.round(v));one(acc.rep,'réputation',v=>Math.round(v));one(acc.fans,'supporters',v=>nf(Math.round(v)));
+  one(acc.mor,'moral',v=>Math.round(v));one(acc.n,'effectif',v=>Math.round(v));
+  if(acc.inj)out.push(`<span class="bad">risque de blessure ${Math.round(acc.inj/acc.ok*100)} %</span>`);
+  if(acc.later)out.push('<span>suites à venir</span>');
+  return out.join(' · ');
 }
 A.evChoice=function(i){
   const q=UI.curEv;if(!q)return;const e=EVENTS[q.id];
@@ -2113,7 +2161,7 @@ A.askSubv=function(){
 function loanCap(){const L=LV[S.div];const est=S.sponsorAnnual+L.sub+L.tv+S.fans*.6*S.ticket*S.N/2;return Math.max(0,Math.round((est*.6-debt())/1000)*1000);}
 A.loan=function(frac){
   const amt=Math.round(loanCap()*frac/1000)*1000;if(amt<1000){toast('La banque refuse : capacité d’emprunt épuisée.');return;}
-  const rate=.045+(S.confidence<40?.03:0)+(S.cash<0?.03:0);
+  const rate=tauxEmprunt(amt);
   const total=Math.round(amt*(1+rate*2));
   S.loans.push({label:'Prêt bancaire '+(rate*100).toFixed(1).replace('.',',')+' %',amount:amt,remaining:total,perWeek:total/(S.N*2),intW:(total-amt)/(S.N*2)});
   fin('Emprunts',amt);news('Emprunt bancaire de '+money(amt)+' (remboursement '+money(total)+' sur deux saisons).');save();render();
@@ -2770,7 +2818,10 @@ function vFin(){
     <p class="muted" style="font-size:13px;margin:0">Un billet cher remplit moins le stade et agace les supporters. Affluence estimée face à un adversaire moyen : ≈ ${nf(Math.min(cap(),Math.round(S.fans*(.45+S.mood/200)*clamp(Math.pow(tk()/S.ticket,1.1),.25,1.6))))} / ${nf(cap())} places.</p>
    </div>
    <div class="card"><h3>Banque</h3>
-    <p style="margin:0;font-size:14px">Capacité d’emprunt : <b>${money(lc)}</b>. Taux : ${S.confidence<40||S.cash<0?'majoré (situation fragile)':'4,5 % par an'}. Remboursement sur deux saisons.</p>
+    <p style="margin:0;font-size:14px">Capacité d’emprunt : <b>${money(lc)}</b>. Taux du prochain emprunt (moitié de la capacité) : <b>${(tauxEmprunt(lc*.5)*100).toFixed(1).replace('.',',')}&nbsp;% par an</b>${tauxEmprunt(lc*.5)>.046?' (majoré : '+[S.confidence<40?'confiance basse':'',S.cash<0?'trésorerie négative':'',detteRatio(lc*.5)>RISK.pal1?'endettement élevé':''].filter(Boolean).join(', ')+')':''}. Remboursement sur deux saisons.</p>
+    <p style="margin:0;font-size:13.5px">Dette : <b class="${detteRatio()>RISK.seuilFrais?'bad':''}">${money(debt())}</b> = ${Math.round(detteRatio()*100)} % des recettes annuelles${fraisDette()>0?' · frais de surendettement : <b class="bad">'+money(fraisDette())+'/an</b>':''}. Masse salariale (joueurs + staff) : <b class="${msRatio()>1?'bad':msRatio()>.85?'warn':''}">${Math.round(msRatio()*100)} %</b> des recettes${S.div>=2&&msRatio()>1?' — <span class="bad">au-delà de 100 %, la DNCG ne tolère aucun déficit et compte vos emprunts</span>':''}.</p>
+    <p class="muted" style="margin:0;font-size:12.5px">Taux selon le montant : ${[.25,.5,1].map(f=>money(lc*f)+' → '+(tauxEmprunt(lc*f)*100).toFixed(1).replace('.',',')+'&nbsp;%').join(' · ')}.</p>
+    <p class="muted" style="margin:0;font-size:12.5px">Quand la dette dépasse 40 % des recettes annuelles, chaque nouvel emprunt coûte 3 points de plus (6 au-delà de 80 %) ; au-delà de 60 %, la part en excès coûte 8 % par an.</p>
     <div class="row"><button class="btn" onclick="A.loan(.25)" ${lc<4000?'disabled':''}>Emprunter ${money(lc*.25)}</button><button class="btn" onclick="A.loan(.5)" ${lc<2000?'disabled':''}>Emprunter ${money(lc*.5)}</button><button class="btn" onclick="A.loan(1)" ${lc<1000?'disabled':''}>Emprunter ${money(lc)}</button></div>
     ${S.loans.map((l,i)=>`<div class="spread" style="font-size:14px"><span>${esc(l.label||'Prêt')} · reste ${money(l.remaining)} (${money(l.perWeek)}/journée)</span><button class="btn sm" onclick="A.repay(${i})">Solder</button></div>`).join('')}
    </div>
@@ -3469,6 +3520,10 @@ function staffAdvice(){
   const out=[],L=LV[S.div],hide=UI.advHide||{};
   const DM={ticket:'ticket',abo:'abo',contrat:'renew',jeune:'loan',gap:'recruit'};
   const add=(key,role,pri,text,acts)=>{if(hide[key]===S.gw)return;if(DM[key]&&dlgOn(DM[key]))return;out.push({key,who:advWho(role),pri,text,acts:acts||[]});};
+  // v39 : masse salariale et dette
+  if(S.div>=2&&msRatio()>1)add('msr','commercial',1,`Notre masse salariale représente ${Math.round(msRatio()*100)} % de nos recettes. La DNCG ne nous passera aucun déficit au 30 juin et comptera nos emprunts : il faut vendre ou ne pas prolonger.`);
+  else if(detteRatio()>RISK.seuilFrais)add('dette','commercial',2,`Notre dette atteint ${Math.round(detteRatio()*100)} % des recettes annuelles : la banque facture ${money(fraisDette())} par an de frais en plus. Évitons d’emprunter encore.`);
+  if(zoneRel()&&squadN()<28)add('librel','recruteur',2,`Nous sommes en zone de relégation : les joueurs libres demandent 20 % de moins pour venir jouer le maintien. C’est le moment de renforcer l’équipe à bas prix (Mercato).`);
   // billetterie
   if(S.week<S.N){const w=advWho('commercial'),b=noisy(bestTicket(),w.lvl,S.year*11+3),cur=S.ticket;
     if(Math.abs(b-cur)>=Math.max(1,Math.round(cur*.08))){
@@ -4544,6 +4599,7 @@ function migrate(){
   S.players.forEach(p=>{if(!p.s)p.s=Object.assign(newS(),{mj:p.sa||0,g:p.sg||0});p.assists=p.assists||0;p.hist=p.hist||[];p.moves=p.moves||[];});
   (S.teams||[]).forEach(t=>{if(!t.user&&!t.sq)t.sq=genSq();});
   ensureCoach(S.staff.coach);
+  if(S.relZ==null)S.relZ=false;
 }
 function boot(data){
   try{const lp=localStorage.getItem('president-club-lite');document.body.classList.toggle('lite',lp==='1'||(lp===null&&/Electron/.test(navigator.userAgent)));}catch(e){}

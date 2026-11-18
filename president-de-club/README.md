@@ -1,7 +1,7 @@
 # Président de Club
 
 Jeu de gestion d'un club de football français, du Régional 2 à la Ligue 1. Une seule page HTML/JS, sans dépendance.
-Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144` (https://claude.ai/artifact/UxkiPA4AZZZUoYeCYtbYbM). Dernière version : v38 (voir JOURNAL), apps 2.9.0 (v35).
+Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144` (https://claude.ai/artifact/UxkiPA4AZZZUoYeCYtbYbM). Dernière version : v39 (voir JOURNAL), apps 2.9.0 (v35).
 
 ## Organisation
 - `jeu/index.html` : le jeu complet (c'est le fichier publié en `index.html`, publish_files mode patch).
@@ -19,6 +19,9 @@ Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144` (https://claude.ai/artifa
 - `outils/imptest.js [html]` : import d'un ancien code de sauvegarde puis 11 onglets + 20 journées, codes invalides/abîmés sans perte de la partie.
 - `outils/evfx.js [html]` : chaque choix d'événement affiche-t-il ses conséquences chiffrées ?
 - `outils/captel.py html dossier` : captures téléphone + ordinateur (accueil, classement, effectif, match en direct à maillots proches).
+- `outils/pvtest.js [html]` (v39) : aperçu chiffré sous chaque choix d'événement — ouvrir la fenêtre ne change rien (S, file d'attente, 0 sauvegarde), nombre de choix avec indication, temps d'ouverture.
+- `outils/anciennes.js ancien.html nouveau.html` (v39) : partie de l'ancienne version reprise dans la nouvelle (complétée, 11 onglets, 40 journées, 0 erreur, source intacte).
+- run3 : neutraliser l'aperçu dans le banc (`evPreview=()=>''`), sinon les compteurs `BOT.x` sont gonflés (les choix sont rejoués à blanc). Pour lancer les 4 stratégies en parallèle : 3 processus au plus (≈ 1,5 Go chacun, mémoire 8 Go).
 - `outils/evtest.js` : tous les événements dans 4 divisions (presse_conf en erreur = artefact connu du test).
 - Tests ciblés : mistest (recruteur), sptest/spdrift (sponsors), lgtest (championnat persistant), reptest (notes), ytest (formation), bilantest, n1test, formtest (systèmes).
 - Captures : `sweep.py` (11 onglets bureau + mobile, débordements), `shots*.py` (Playwright + /usr/bin/google-chrome).
@@ -34,4 +37,5 @@ Artefact : slug `e26f972e-fb7b-400e-846b-68da3d529144` (https://claude.ai/artifa
 - Nouvelle mécanique = conseil du staff (`staffAdvice`) + délégation possible (`DELEG`).
 - Victor aime les petits événements aléatoires : en ajouter régulièrement (`EVENTS`, avec `cond`, `make`, `text`, `ch`).
 - Ne pas changer l'équilibre sans lots de contrôle avant/après.
+- Dépense risquée (v39, décision de Victor 18/11) : réglages dans `RISK` (paliers d'endettement 40/80 %, frais 8 %/an au-delà de 60 %, libres ×0,8 en zone de relégation) ; ratios `msRatio()` (joueurs + staff / recettes) et `detteRatio()`. run3 très bruité à 6 parties : comparer sur ≥ 12 parties par stratégie.
 - Fluidité : éviter backdrop-filter, fonds fixes, grandes ombres (Mac Intel) ; mode « Affichage allégé » actif par défaut dans les apps.

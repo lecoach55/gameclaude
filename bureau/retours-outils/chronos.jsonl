@@ -110,3 +110,4 @@
 {"quand": "2026-11-18 14:14", "jeu": "couronnes-et-complots", "etape": "banc --avant HEAD", "commande": "python3 outils-communs/banc.py couronnes-et-complots/outils/banc.json --avant HEAD", "secondes": 54.0, "code": 0}
 {"quand": "2026-11-18 14:10", "jeu": "wallstreet", "etape": "banc avant/après", "commande": "python3 outils-communs/banc.py wallstreet/outils/banc.json --avant HEAD --construire --cpu 4", "secondes": 0.3, "code": 1}
 {"quand": "2026-11-18 14:11", "jeu": "wallstreet", "etape": "banc avant/après", "commande": "python3 outils-communs/banc.py wallstreet/outils/banc.json --avant HEAD --construire --cpu 4", "secondes": 31.7, "code": 0}
+{"quand": "2026-11-18 14:15", "jeu": "sedes-petri", "etape": "banc avant/après", "commande": "python3 outils-communs/banc.py sedes-petri/outils/banc.json --avant HEAD --cpu 4 /tmp/claude-0/-home-claude-gameclaude/35a5a025-b5b9-5825-83ed-1de642292175/scratchpad/banc.json", "secondes": 28.4, "code": 0}

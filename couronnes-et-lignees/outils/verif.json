@@ -1,0 +1,31 @@
+{
+ "_note": "Vérification avant publication (outil commun) : python3 outils-communs/verif.py couronnes-et-lignees/outils/verif.json [--complet] ; rapport /tmp/verif-couronnes-et-lignees/rapport.html",
+ "jeu": "couronnes-et-lignees",
+ "construire": "cd couronnes-et-lignees/jeu && python3 build.py",
+ "budget_min": 10,
+ "etapes": [
+  {"nom": "Équilibre : bot attentif 1000 parties (72-80 %)",
+   "commande": "cd couronnes-et-lignees/jeu && node -e \"const S=require('./sim.js');console.log(S.fmt(S.run('heur',1000)))\"",
+   "ok_si": "win=(7[2-9]\\.\\d|80\\.0)%", "chiffres": "win=([\\d.]+%)", "delai_s": 300},
+  {"nom": "Choix dominants (analyze, 300 parties)",
+   "commande": "JEU=couronnes-et-lignees/jeu node couronnes-et-lignees/outils/tests/analyze.js 300 heur",
+   "chiffres": "victoire (\\d+%), ([\\d.]+ tours)", "complet": true, "reserve": true,
+   "_echec_si": "règle « aucun choix > 95 % » sur les événements vus au moins 30 fois : signalée en RÉSERVE (à regarder, n'empêche pas de publier)",
+   "echec_si": "(?m)^\\S+\\s+(?:[3-9]\\d|\\d{3,}) \\|.*?\\b(?:9[6-9]|100)%"},
+  {"nom": "Partie complète + anciennes sauvegardes (pass1test)",
+   "commande": "cd couronnes-et-lignees/jeu && python3 ../outils/tests/pass1test.py index.html",
+   "ok_si": "v10 ok \\d+ \\[\\][\\s\\S]*v13 ok \\d+ \\[\\][\\s\\S]*v14 ok \\d+ \\[\\][\\s\\S]*erreurs \\[\\]", "echec_si": "v\\d+ ok (None|\\S+ \\[(?!\\]))", "chiffres": "partie (\\[[^\\]]*\\])"},
+  {"nom": "Chronique libre avec IA simulée (mock)",
+   "commande": "cd couronnes-et-lignees/jeu && python3 ../outils/tests/mock.py index.html",
+   "ok_si": "erreurs \\[\\]"},
+  {"nom": "Captures 2D contre references",
+   "captures": "couronnes-et-lignees/outils/vues.json", "comparer": "couronnes-et-lignees/references"},
+  {"nom": "Captures 3D avant/après",
+   "captures": "couronnes-et-lignees/outils/vues3d.json", "avant": "HEAD"},
+  {"nom": "Singe explorateur téléphone + ordinateur",
+   "singe": "couronnes-et-lignees/outils/singe.json", "args": ["--secondes", "45", "--couvrir"], "delai_s": 400},
+  {"nom": "Banc avant/après (CPU ×4)",
+   "banc": "couronnes-et-lignees/outils/banc.json", "avant": "HEAD", "args": ["--cpu", "4"], "complet": true},
+  {"nom": "Poids de la page", "poids": "couronnes-et-lignees/jeu/index.html", "max_mo": 16}
+ ]
+}

@@ -1,0 +1,31 @@
+{
+ "_note": "Vérification avant publication (outil commun) : python3 outils-communs/verif.py bannieres/outils/verif.json [--complet] ; rapport /tmp/verif-bannieres/rapport.html. Les robots du jeu passent en carte 2D par \"params\": \"v3d=0\" (ATELIER_PARAMS) : 3 jours en 13 s au lieu de ≈ 110 s PAR jour en 3D logiciel.",
+ "jeu": "bannieres",
+ "construire": "python3 bannieres/jeu/build.py",
+ "budget_min": 10,
+ "etapes": [
+  {"nom": "Parcours 6 jours carte 2D + sauvegarde",
+   "commande": "python3 bannieres/outils/parcours.py 6", "params": "v3d=0",
+   "ok_si": "aller-retour identique[\\s\\S]*reprise jour \\d+[\\s\\S]*erreurs \\[\\] \\[\\]", "chiffres": "(reprise jour \\d+)", "delai_s": 600},
+  {"nom": "Scénarios siège, Graal, victoire",
+   "commande": "python3 bannieres/outils/scen.py", "params": "v3d=0",
+   "ok_si": "\"titre_fin\": \"Victoire[\\s\\S]*\"erreurs\": \\[\\]", "chiffres": "(\"ecran_pendant_siege\": \"\\w+\")"},
+  {"nom": "Singe téléphone carte 2D",
+   "commande": "python3 bannieres/outils/monkey.py 45 390 844 1", "env": {"V3D": "0"},
+   "ok_si": "erreurs \\[\\]", "chiffres": "(actions \\d+ .*jour \\d+)", "delai_s": 300},
+  {"nom": "Singe ordinateur carte 3D",
+   "commande": "python3 bannieres/outils/monkey.py 45 1280 800 2", "env": {"Q3D": "0"},
+   "ok_si": "erreurs \\[\\]", "chiffres": "(actions \\d+ .*jour \\d+)", "delai_s": 600, "complet": true},
+  {"nom": "Parcours 1 jour carte 3D",
+   "commande": "python3 bannieres/outils/parcours.py 1",
+   "ok_si": "aller-retour identique[\\s\\S]*reprise jour \\d+[\\s\\S]*erreurs \\[\\] \\[\\]", "delai_s": 600, "complet": true},
+  {"nom": "Captures contre references",
+   "commande": "rm -rf /tmp/verif-bannieres-capt && python3 bannieres/outils/capt.py /tmp/verif-bannieres-capt && python3 outils-communs/compare.py bannieres/references /tmp/verif-bannieres-capt /tmp/verif-bannieres-capt/planche.png --strict",
+   "chiffres": "(ALERTES \\d+ / \\d+)", "images": ["/tmp/verif-bannieres-capt/planche.png"], "delai_s": 900, "complet": true},
+  {"nom": "Page publiée hors ligne",
+   "commande": "python3 bannieres/outils/hors_ligne.py", "ok_si": "hors ligne OK.*erreurs \\[\\]"},
+  {"nom": "Banc avant/après",
+   "banc": "bannieres/outils/banc.json", "avant": "HEAD", "delai_s": 1200, "complet": true},
+  {"nom": "Poids de la page", "poids": "bannieres/build/bannieres.html", "max_mo": 16}
+ ]
+}

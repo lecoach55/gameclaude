@@ -103,7 +103,19 @@ async def page(nav,url,largeur=390,hauteur=780,stockage=None,acceleration=None,f
         js=';'.join(f"localStorage.setItem({k!r},{v!r})" for k,v in stockage.items());await pg.add_init_script(f"try{{localStorage.clear();{js}}}catch(e){{}}")
     if figer is not None:await figer_page(pg,figer)
     if acceleration:await pg.add_init_script("(()=>{const r=window.requestAnimationFrame.bind(window);window.requestAnimationFrame=cb=>r(t=>cb(t*%s));})()"%acceleration)
-    await pg.goto(url,timeout=180000);return pg
+    await pg.goto(ajouter_params(url),timeout=180000);return pg
+def ajouter_params(url,params=None):
+    """Ajoute à l'adresse les paramètres de la variable d'environnement ATELIER_PARAMS (ex. « v3d=0&q3d=0 ») : un robot propre au jeu
+    qui ouvre ses pages par atelier.page() se règle sans être modifié (ATELIER_PARAMS=v3d=0 python3 bannieres/outils/parcours.py 6).
+    Un paramètre déjà dans l'adresse est remplacé ; l'ancre (#…) reste à la fin."""
+    params=os.environ.get('ATELIER_PARAMS','') if params is None else params
+    params=params.strip().lstrip('?&')
+    if not params or url.startswith(('data:','about:','blob:','javascript:')):return url
+    base,_,ancre=url.partition('#');chemin,_,req=base.partition('?')
+    nouveaux=[p for p in params.split('&') if p]
+    cles={p.split('=',1)[0] for p in nouveaux}
+    garde=[p for p in req.split('&') if p and p.split('=',1)[0] not in cles]
+    return chemin+'?'+'&'.join(garde+nouveaux)+('#'+ancre if ancre else '')
 # Statistiques d'images au MÊME format que testkit.js (mesures réelles de Victor) : fps (moyenne hors pauses), bas1 (img/s du 1 % le plus lent),
 # pire (ms, hors pauses), n ; + pauses / pauseMax si des images > 1 s ET > 8× la médiane ont été écartées (onglet caché, chargement),
 # + lent:true si l'image médiane dépasse 125 ms (images > 1 s alors gardées : appareil très lent), + ms (ms/image moyen), med, p95.

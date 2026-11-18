@@ -48,7 +48,8 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; toutes les clés sa
        quand "occupe" est faux au moment même de la compilation : ceux qui gèlent l'écran ; doit être 0), compilation_ms (temps dans linkProgram/getProgramParameter :
        souvent faible, le pilote peut compiler au 1er dessin), pire_tache_ms. Avant/après : « plus lent » si programmes_en_jeu
        augmente, ou pire image en jeu +2×seuil ET +100 ms.
-  "chronos": {"rendu_ms": "render()"}   instructions chronométrées (moyenne de 10 exécutions, en ms) après les scènes
+  "chronos": {"rendu_ms": "render()"}   instructions chronométrées (moyenne de 10 exécutions, en ms) après les scènes ; avant/après :
+       « plus lent » seulement au-delà de 2×seuil, du bruit entre passes et de 0,3 ms, dans le même sens à chaque tour
   "seuil": 10                           % (défaut 10)
   "routes": {"https://exemple.cdn/lib/": "chemin/local/"}   adresses servies en local (routes.py ; chemins relatifs à la racine) ;
        par défaut Three.js sur jsDelivr/unpkg est TOUJOURS servi en local (copie téléchargée une fois) ; "routes": false pour couper
@@ -566,10 +567,11 @@ def fusion(passes):
             if 'infos' in ok[-1]:
                 m['infos'] = ok[-1]['infos']
             sc[s] = m
-        ch = {}
+        ch, chv = {}, {}
         for c in passes[0][an].get('chronos', {}):
             xs = [p[an]['chronos'].get(c) for p in passes if p[an]['chronos'].get(c) is not None]
             ch[c] = round(statistics.median(xs), 2) if xs else None
+            chv[c] = [p[an]['chronos'].get(c) for p in passes]  # valeur de chaque passe, dans l'ordre des tours (bruit, sens)
         gl = {}
         for g in passes[0][an].get('gels', {}):
             vals = [p[an].get('gels', {}).get(g, {}) for p in passes]
@@ -585,7 +587,7 @@ def fusion(passes):
                 m['infos'] = ok[-1]['infos']
             gl[g] = m
         ld = [p[an].get('chargement_ms') for p in passes if p[an].get('chargement_ms')]
-        r[an] = {'scenes': sc, 'chronos': ch, **({'gels': gl} if gl else {}), 'chargement_ms': round(statistics.median(ld)) if ld else None,
+        r[an] = {'scenes': sc, 'chronos': ch, **({'chronos_valeurs': chv} if chv else {}), **({'gels': gl} if gl else {}), 'chargement_ms': round(statistics.median(ld)) if ld else None,
                  'erreurs': sorted({e for p in passes for e in p[an]['erreurs']})}
     return r
 
@@ -627,8 +629,19 @@ def ecarts(avant, apres, seuil):
             va = avant[an].get('chronos', {}).get(c)
             if va and vb:
                 d = (vb - va) / va * 100
-                e = {'appareil': an, 'scene': 'chrono ' + c, 'avant_ms': va, 'apres_ms': vb, 'ecart_pct': round(d, 1), 'bruit_pct': None,
-                     'verdict': 'plus lent' if d > seuil * 2 else 'plus rapide' if d < -seuil * 2 else 'égal (bruit)'}
+                # chrono = 10 exécutions d'une fonction (souvent < 1 ms) : très bruité (JIT, ramasse-miettes). « Plus lent » seulement
+                # si l'écart dépasse 2×seuil ET le bruit mesuré entre passes ET 0,3 ms, et va dans le même sens à CHAQUE tour
+                # (avant : tour_ms 0,65 → 1,15 ms « plus lent +77 % » sur un code identique, C&L 18/11)
+                va_ = avant[an].get('chronos_valeurs', {}).get(c) or []
+                vb_ = apres[an].get('chronos_valeurs', {}).get(c) or []
+                paires = [(x, y) for x, y in zip(va_, vb_) if x is not None and y is not None] if len(va_) == len(vb_) else []
+                xa = [x for x in va_ if x is not None]; xb = [x for x in vb_ if x is not None]
+                bruit = max([(max(x) - min(x)) / max(1e-9, statistics.median(x)) * 100 for x in (xa, xb) if len(x) > 1] or [0])
+                lim = max(seuil * 2, min(bruit, seuil * 4))  # bruit plafonné : une passe perturbée ne cache pas tout
+                lent = d > lim and vb - va > 0.3 and all(y > x for x, y in paires)
+                rapide = d < -lim and va - vb > 0.3 and all(y < x for x, y in paires)
+                e = {'appareil': an, 'scene': 'chrono ' + c, 'avant_ms': va, 'apres_ms': vb, 'ecart_pct': round(d, 1), 'bruit_pct': round(bruit, 1) if bruit else None,
+                     'verdict': 'plus lent' if lent else 'plus rapide' if rapide else 'égal (bruit)'}
                 L.append(e)
                 if e['verdict'] == 'plus lent':
                     alertes.append(e)

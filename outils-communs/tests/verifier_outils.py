@@ -818,6 +818,87 @@ def _():
             raise RuntimeError(f'avant/après (code {r.returncode}, alertes {al}) : ' + r.stdout[-400:])
 
 
+
+@controle('verif.py : une commande par jeu (construction toujours lancée, statuts ok/réserve/échec/délai/sautée, étape bloquante, captures relues, rapport) + ATELIER_PARAMS')
+def _():
+    sys.path.insert(0, OC)
+    from atelier import ajouter_params
+    for u, attendu in (('i.html', 'i.html?v3d=0'), ('i.html?graine=1&v3d=1#h', 'i.html?graine=1&v3d=0#h')):
+        if ajouter_params(u, 'v3d=0') != attendu:
+            raise RuntimeError(f'ajouter_params({u!r}) = {ajouter_params(u, "v3d=0")!r}, attendu {attendu!r}')
+    # banc : un chrono bruité (code identique, tours à contre-sens) n'est plus « plus lent » ; un vrai ralentissement l'est
+    import banc as _banc
+    mk = lambda v: {'t': {'scenes': {}, 'chronos': {'tour_ms': statistics.median(v)}, 'chronos_valeurs': {'tour_ms': v}}}
+    import statistics
+    L, al = _banc.ecarts(mk([0.6, 0.7]), mk([1.3, 0.6]), 10)
+    if al:
+        raise RuntimeError(f'chrono bruité pris pour un ralentissement : {L}')
+    L, al = _banc.ecarts(mk([2.0, 2.1]), mk([4.0, 4.2]), 10)
+    if not al:
+        raise RuntimeError(f'vrai ralentissement de chrono non vu : {L}')
+    vf = os.path.join(OC, 'verif.py'); sc = os.path.join(OC, 'captures.py')
+    chr_ = os.path.join(RAC, 'bureau', 'retours-outils', 'chronos.jsonl')
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, 'jeu'))
+        shutil.copy(os.path.join(OC, 'tests', 'captures_factice.html'), os.path.join(d, 'jeu', 'index.html'))
+        vues = {'jeu': 'factice', 'dossier': os.path.join(d, 'jeu'), 'pret': 'window.pret', 'pret_ms': 50, 'images': 8, 'pas': 162,
+                'vues': [{'nom': 'pret', 'js': 'preparer()', 'occupe': 'window.occupe'}], 'appareils': {'petit': {'largeur': 200, 'hauteur': 220}}}
+        rv = os.path.join(d, 'vues.json'); json.dump(vues, open(rv, 'w'))
+        run(sys.executable, sc, rv, os.path.join(d, 'refs'), timeout=120)
+        marque = os.path.join(d, 'construit.txt')
+        sonde_params = "import sys;sys.path.insert(0,%r);from atelier import ajouter_params;print(ajouter_params('i.html?a=1'))" % OC
+        cfg = {'jeu': 'factice', 'construire': f'echo construit > {marque}', 'etapes': [
+            {'nom': 'Commande juste', 'commande': "python3 -c \"print('bot 77% sur 1000')\"", 'ok_si': '77%', 'chiffres': r'bot (\d+%)'},
+            {'nom': 'Parametres', 'commande': f'python3 -c "{sonde_params}"', 'params': 'v3d=0', 'ok_si': r'i\.html\?a=1&v3d=0'},
+            {'nom': 'Reserve', 'commande': 'echo rien', 'ok_si': 'introuvable', 'reserve': True},
+            {'nom': 'Trop long', 'commande': 'sleep 30', 'delai_s': 1, 'complet': True},
+            {'nom': 'Captures', 'captures': rv, 'comparer': os.path.join(d, 'refs')},
+            {'nom': 'Poids', 'poids': os.path.join(d, 'jeu', 'index.html'), 'max_mo': 0.0001},
+            {'nom': 'Bloquant', 'commande': 'exit 3', 'bloquant': True},
+            {'nom': 'Apres le bloquant', 'commande': 'echo jamais'}]}
+        rg = os.path.join(d, 'verif.json'); json.dump(cfg, open(rg, 'w'))
+        so = os.path.join(d, 'sortie')
+        r = subprocess.run([sys.executable, vf, rg, '--sortie', so, '--sans-chrono'], cwd=RAC, capture_output=True, text=True, timeout=240)
+        if r.returncode != 1:
+            raise RuntimeError(f'code {r.returncode} au lieu de 1 : ' + (r.stdout + r.stderr)[-400:])
+        v = {e['nom']: e for e in json.load(open(os.path.join(so, 'verif.json')))['etapes']}
+        attendu = {'Construction': 'ok', 'Commande juste': 'ok', 'Parametres': 'ok', 'Reserve': 'reserve', 'Trop long': 'saute', 'Captures': 'ok',
+                   'Poids': 'echec', 'Bloquant': 'echec', 'Apres le bloquant': 'saute'}
+        vu = {k: x['statut'] for k, x in v.items()}
+        if vu != attendu:
+            raise RuntimeError(f'statuts {vu}')
+        if not os.path.exists(marque) or '77%' not in v['Commande juste']['chiffres'] or '0 alerte(s) sur 1' not in v['Captures']['chiffres']:
+            raise RuntimeError(f"construction ou chiffres : {v['Commande juste']['chiffres']} / {v['Captures']['chiffres']}")
+        h = open(os.path.join(so, 'rapport.html'), encoding='utf-8').read()
+        if 'problème à regarder' not in h or '<img src="img_' not in h or 'Bloquant' not in h:
+            raise RuntimeError('rapport.html incomplet')
+        # --etapes : la construction est TOUJOURS lancée (sinon on vérifie l'ancienne page) ; délai dépassé = tué vite
+        os.remove(marque); t0 = time.time()
+        r = subprocess.run([sys.executable, vf, rg, '--sortie', so, '--sans-chrono', '--complet', '--etapes', 'trop'], cwd=RAC, capture_output=True, text=True, timeout=60)
+        v = {e['nom']: e['statut'] for e in json.load(open(os.path.join(so, 'verif.json')))['etapes']}
+        if r.returncode != 1 or v != {'Construction': 'ok', 'Trop long': 'delai'} or not os.path.exists(marque) or time.time() - t0 > 20:
+            raise RuntimeError(f'--etapes / délai : code {r.returncode}, {v}, {time.time()-t0:.0f} s')
+        # --etapes qui ne désigne aucune étape du jeu : code 2 (pas « tout est bon » sur la seule construction)
+        r = subprocess.run([sys.executable, vf, rg, '--sortie', so, '--sans-chrono', '--etapes', 'zzz'], cwd=RAC, capture_output=True, text=True, timeout=60)
+        if r.returncode != 2:
+            raise RuntimeError(f'--etapes sans correspondance : code {r.returncode}')
+        # sortie dans le dépôt (ex. le dossier des réglages <jeu>/outils) : refusée, rien d'effacé
+        r = subprocess.run([sys.executable, vf, rg, '--sortie', os.path.join(OC, 'tests'), '--sans-chrono'], cwd=RAC, capture_output=True, text=True, timeout=60)
+        if r.returncode != 2 or not os.path.exists(os.path.join(OC, 'tests', 'captures_factice.html')):
+            raise RuntimeError(f'sortie dans le dépôt acceptée (code {r.returncode})')
+        # expression invalide dans les réglages : code 2 avant de lancer quoi que ce soit
+        mauvais = dict(cfg, etapes=[{'nom': 'x', 'commande': 'true', 'chiffres': '('}]); rm_ = os.path.join(d, 'mauvais.json'); json.dump(mauvais, open(rm_, 'w'))
+        r = subprocess.run([sys.executable, vf, rm_, '--sortie', so, '--sans-chrono'], cwd=RAC, capture_output=True, text=True, timeout=60)
+        if r.returncode != 2 or 'invalide' not in r.stdout:
+            raise RuntimeError(f'regex invalide : code {r.returncode} ' + (r.stdout + r.stderr)[-200:])
+        # sortie qui ne vient pas de verif.py : jamais effacée
+        autre = os.path.join(d, 'autre'); os.makedirs(autre); open(os.path.join(autre, 'a.txt'), 'w').write('x')
+        r = subprocess.run([sys.executable, vf, rg, '--sortie', autre, '--sans-chrono'], cwd=RAC, capture_output=True, text=True, timeout=60)
+        if r.returncode != 2 or not os.path.exists(os.path.join(autre, 'a.txt')):
+            raise RuntimeError('dossier de sortie étranger effacé ou accepté')
+        if os.path.exists(chr_) and d in open(chr_, encoding='utf-8').read():  # (une autre conversation peut écrire au même moment)
+            raise RuntimeError('--sans-chrono a écrit dans chronos.jsonl')
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

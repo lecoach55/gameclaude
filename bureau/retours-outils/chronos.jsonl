@@ -171,3 +171,4 @@
 {"quand": "2026-11-19 17:24", "jeu": "outils", "etape": "verifier_outils --seulement blender", "commande": "python3 outils-communs/tests/verifier_outils.py --seulement blender", "secondes": 6.7, "code": 1}
 {"quand": "2026-11-19 17:30", "jeu": "outils", "etape": "verifier_outils (41 contrôles, chaîne Blender)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 332.2, "code": 1}
 {"quand": "2026-11-19 17:40", "jeu": "outils", "etape": "verifier_outils (41 contrôles, après relecture)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 323.4, "code": 0}
+{"quand": "2026-11-19 18:36", "jeu": "bannieres", "etape": "banc avant/après lumière", "commande": "python3 outils-communs/banc.py bannieres/outils/banc.json /tmp/claude-0/-home-claude-gameclaude/ef8ddeb3-a0de-539a-81bb-d59f27d90f8a/scratchpad/banc.json --avant HEAD --appareils mac@1,ordinateur --sa", "secondes": 421.1, "code": 0}

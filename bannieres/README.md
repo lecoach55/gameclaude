@@ -56,6 +56,13 @@ Three.js r160 (global `THREE`, avec RoomEnvironment) intégré à la page. Menu 
 - **Villes** : taverne et maisons de la Nécropole, de la Sylve et de la Horde avec leurs propres toits (ardoise sombre, cuivre, chaume) au lieu des tuiles rouges du Bastion ; lune réaliste (disque, halo, mers) au lieu du croissant.
 - **Interface** : icônes au trait Lucide (ISC) à la place des emoji des barres d'aventure et de combat ; polices Cinzel (titres) et Alegreya (texte) intégrées à la page (SIL OFL, `studio/ressources/polices`, ajoutées par `build.py`).
 
+## Lumière et ambiance (19/11/2026 au soir) — plan suivi dans `GRAPHISME_PLAN.md`
+- **Ciel HDRI** Poly Haven « Kloppenheim 06 (Pure Sky) » (CC0) : `outils/ressources/ciel_hdri.py [id] [u_soleil]` → `jeu/tex3d/ciel.jpg` (soleil écrêté et tourné vers `AMB.dir`, sol brun-vert sous l'horizon, valeurs ÷ `ECH_CIEL`). Dans `rendu3d.js`, `envAmb(R0)` en tire un PMREM par moteur de rendu, gardé en mémoire (ne pas le libérer) : éclairage d'ambiance et reflets sur la carte, en combat et en ville (sauf la nuit de la Nécropole, qui garde l'ancien ciel).
+- **`AMB`** : soleil de fin d'après-midi doré (≈ 38°, même côté partout), hémisphère froid, intensités et brume. Changer l'heure du jour = changer `AMB` et relancer `ciel_hdri.py` avec le bon azimut.
+- **Perspective aérienne** dans `brume()` : uniformes `U.haze` (couleur, force) et `U.hazeD` (début, fin en distance à la caméra), réglés par `placerCam` sur la carte et le temps du rendu dans `fondCombat` et `panoVille`, puis remis.
+- **`etalonner(canvas,…)`** : étalonnage des images rendues une seule fois (combat, obstacles détourés avec `alpha:1`, villes de jour) : filtre, chaleur côté soleil, froid à l'opposé, vignette.
+- Carte : vignette en calque CSS (`#vig3d`, aucun coût de rendu).
+
 ## Contenu ajouté la nuit du 15 au 16/11/2026
 Horde (4e faction, portraits Warrok), 28 créatures améliorées (habitations améliorées, amélioration des troupes en ville), le Graal (obélisques, carte au trésor, merveille ; option de victoire), sorts d'aventure (Vision lointaine, Portail de ville), semaine de la créature, créatures qui proposent de rejoindre le héros, combat rapide contre les proies faciles, perspective et cadavres en combat, effets d'éclair et de boule de feu, rivières, musique générative et bruitages repris de Valdragon.
 

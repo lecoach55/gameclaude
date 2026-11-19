@@ -8,17 +8,17 @@
 var R3=(()=>{
 const T=window.THREE;if(!T)return{ok:false};
 let ren=null,scene,cam,soleil,hemi,terrain,eau,fogTex,fogData,N=0,H=null,grp=null,decor=null,objets=new Map(),herosS=new Map(),fleches=null,anneau=null,croixG=null,env=null;
-const U={fog:{value:null},N:{value:1},t:{value:0},loin:{value:0}};
+const U={fog:{value:null},N:{value:1},t:{value:0},loin:{value:0},haze:{value:new T.Vector4(.36,.42,.52,0)},hazeD:{value:new T.Vector2(20,40)}};
 let PAN_A=.45,PAN_K=1.1;
 const C3={cible:new T.Vector3(10,0,10),dist:16,tang:.95,yaw:0};
 const S={pret:false,glb:{},qual:2};
 const RC=new T.Raycaster();const v2=new T.Vector2();
 // ---------- brouillard et ondulation : injectés dans les matériaux standard ----------
-function brume(m,opt={}){m.onBeforeCompile=sh=>{sh.uniforms.bsFog=U.fog;sh.uniforms.bsN=U.N;sh.uniforms.bsT=U.t;
+function brume(m,opt={}){m.onBeforeCompile=sh=>{sh.uniforms.bsFog=U.fog;sh.uniforms.bsN=U.N;sh.uniforms.bsT=U.t;sh.uniforms.bsHaze=U.haze;sh.uniforms.bsHazeD=U.hazeD;
   const tri=!!opt.tri;if(tri){sh.uniforms.bsEch={value:opt.ech||1};sh.uniforms.bsNeige={value:opt.neige??9};sh.uniforms.bsTexN={value:RES.tx.neige||null};}
   sh.vertexShader='varying vec2 vBsW;\nvarying vec3 vBsP;varying vec3 vBsNw;\nuniform float bsT;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n'+(opt.vent?'{vec4 w0=modelMatrix*vec4(0.,0.,0.,1.);\n#ifdef USE_INSTANCING\nw0=modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.);\n#endif\nfloat k=max(0.,position.y)*'+opt.vent+';transformed.x+=sin(bsT*1.6+w0.x*.7+w0.z*.5)*k;transformed.z+=cos(bsT*1.3+w0.x*.4)*k*.6;}':'')+(opt.onde?'transformed.z+=sin(bsT*1.2+position.x*1.3+position.y*.9)*.02;':''))
    .replace('#include <project_vertex>','#include <project_vertex>\n{vec4 bw=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nbw=instanceMatrix*bw;\n#endif\nbw=modelMatrix*bw;vBsW=bw.xz;vBsP=bw.xyz;'+(tri?'vec3 nn=objectNormal;\n#ifdef USE_INSTANCING\nnn=mat3(instanceMatrix)*nn;\n#endif\nvBsNw=normalize(mat3(modelMatrix)*nn);':'vBsNw=vec3(0.,1.,0.);')+'}');
-  sh.fragmentShader='varying vec2 vBsW;varying vec3 vBsP;varying vec3 vBsNw;uniform sampler2D bsFog;uniform float bsN;\n'+(tri?'uniform float bsEch;uniform float bsNeige;uniform sampler2D bsTexN;\n':'')+sh.fragmentShader.replace('#include <opaque_fragment>','#include <opaque_fragment>\n{float f=texture2D(bsFog,vBsW/bsN).r;gl_FragColor.rgb*=mix(.035,1.,f);}');
+  sh.fragmentShader='varying vec2 vBsW;varying vec3 vBsP;varying vec3 vBsNw;uniform sampler2D bsFog;uniform float bsN;uniform vec4 bsHaze;uniform vec2 bsHazeD;\n'+(tri?'uniform float bsEch;uniform float bsNeige;uniform sampler2D bsTexN;\n':'')+sh.fragmentShader.replace('#include <opaque_fragment>','#include <opaque_fragment>\n{float f=texture2D(bsFog,vBsW/bsN).r;gl_FragColor.rgb*=mix(.035,1.,f);float ah=bsHaze.a*f*smoothstep(bsHazeD.x,bsHazeD.y,length(vBsP-cameraPosition));gl_FragColor.rgb=mix(gl_FragColor.rgb,bsHaze.rgb,ah);}');
   if(tri)sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',`#ifdef USE_MAP
 {vec3 nw=normalize(vBsNw);vec3 an=pow(abs(nw),vec3(4.));an/=an.x+an.y+an.z;vec3 q=vBsP*bsEch;
  vec4 tc=${S.qual<=0?'texture2D(map,an.x>an.z?q.zy:q.xy)*(an.x+an.z)+texture2D(map,q.xz)*an.y':'texture2D(map,q.zy)*an.x+texture2D(map,q.xz)*an.y+texture2D(map,q.xy)*an.z'};
@@ -32,7 +32,7 @@ let ECH=3;// répétitions des textures par unité (carte 3, combat 1.4, ville .
 const MATS={};function mat(c,o={}){if(o.map===null)delete o.map;if(o.tri&&!RES.tx[o.tri])o=Object.assign({},o,{tri:null});if(o.tri)o=Object.assign({},o,{ech:(o.ech||1)*ECH});const k=c+JSON.stringify(o,(n,v)=>n==='map'?(v&&v.uuid):v);if(MATS[k])return MATS[k];const m=new T.MeshStandardMaterial(Object.assign({color:c,roughness:o.r??.85,metalness:o.m||0,flatShading:!!o.plat},o.map?{map:o.map}:{},o.tri?{map:RES.tx[o.tri]}:{}));if(o.em){m.emissive=new T.Color(o.em);m.emissiveIntensity=o.ei||1;}if(o.vc)m.vertexColors=true;if(o.transp){m.transparent=true;m.opacity=o.transp;}return MATS[k]=brume(m,o);}
 // ---------- ressources réalistes : textures Poly Haven (CC0) et arbres/rochers pré-rendus (imposteurs) ----------
 const RES={tx:{},img:{},pret:false,lay:null,atlas:null,imp:null};
-const NOMS_TX=['sol_herbe_n','sol_terre_n','sol_rude_n','sol_neige_n','sol_sable_n','sol_marais_n','sol_lave_n','sol_fond_n','sol_route_n','enduit','poutre','pave','mur3','ardoise2','sol_herbe','sol_terre','sol_rude','sol_neige','sol_sable','sol_marais','sol_lave','sol_fond','sol_route','roche','roche2','neige','mur','mur2','ardoise','tuile','chaume','bois','ecorce'];
+const NOMS_TX=['sol_herbe_n','sol_terre_n','sol_rude_n','sol_neige_n','sol_sable_n','sol_marais_n','sol_lave_n','sol_fond_n','sol_route_n','enduit','poutre','pave','mur3','ardoise2','sol_herbe','sol_terre','sol_rude','sol_neige','sol_sable','sol_marais','sol_lave','sol_fond','sol_route','roche','roche2','neige','mur','mur2','ardoise','tuile','chaume','bois','ecorce','ciel'];
 function srcRes(id,f){const el=document.getElementById(id);return el?'data:'+(f.endsWith('.webp')?'image/webp':'image/jpeg')+';base64,'+el.textContent.trim():f;}
 function chargerImg(src){return new Promise(r=>{const im=new Image();im.onload=()=>r(im);im.onerror=()=>r(null);im.src=src;});}
 let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
@@ -57,6 +57,16 @@ function envCiel(R0,haut,horiz,bas){const sc=new T.Scene();const g=new T.SphereG
  vertexShader:'varying vec3 vp;void main(){vp=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform vec3 a,b,c;varying vec3 vp;void main(){float y=vp.y;vec3 col=y>0.?mix(b,a,pow(y,.6)):mix(b,c,pow(-y,.4));gl_FragColor=vec4(col,1.);}'});
  sc.add(new T.Mesh(g,m));const s=new T.Mesh(new T.SphereGeometry(4,16,8),new T.MeshBasicMaterial({color:0xfff2d0}));s.position.set(-20,30,15);s.material.color.multiplyScalar(12);sc.add(s);
  const pm=new T.PMREMGenerator(R0);const t=pm.fromScene(sc,.02).texture;pm.dispose();g.dispose();m.dispose();return t;}
+// ---------- ambiance (19/11, axe « lumière ») : ciel HDRI Poly Haven kloppenheim_06_puresky (CC0) + lumière de fin d'après-midi dorée ----------
+// tex3d/ciel.jpg vient de outils/ressources/ciel_hdri.py (soleil écrêté, tourné du côté de AMB.dir, sol brun-vert sous l'horizon, valeurs ÷ ECH_CIEL).
+const ECH_CIEL=4;const AMB={dir:new T.Vector3(-.75,.62,.45).normalize(),sol:0xffd6a6,solI:3.0,hCiel:0xa9c2e6,hSol:0x5a4430,hI:.55,envI:.62*ECH_CIEL,haze:[.50,.52,.57]};
+const ENVS=new WeakMap();// un ciel préfiltré par moteur de rendu (carte / combats et villes), gardé : ne jamais le libérer
+function envAmb(R0){let e=ENVS.get(R0);if(e)return e;const im=RES.img.ciel;if(!im)return null;const t=new T.Texture(im);t.mapping=T.EquirectangularReflectionMapping;t.colorSpace=T.SRGBColorSpace;t.needsUpdate=true;
+ const pm=new T.PMREMGenerator(R0);e=pm.fromEquirectangular(t).texture;pm.dispose();t.dispose();ENVS.set(R0,e);return e;}
+// étalonnage des images rendues une seule fois (combat, ville) : contraste doux, couleurs un peu moins criardes, chaleur du soir côté soleil, vignette
+function etalonner(c,ox,oy,W,H,o={}){const g=c.getContext('2d');const w=c.width,h=c.height,k=w/(o.w||w);let o0=null;if(o.alpha){o0=mkC(w,h);o0.getContext('2d').drawImage(c,0,0);}g.save();g.filter=o.filtre||'contrast(1.05) saturate(.96)';g.globalCompositeOperation='copy';g.drawImage(c,0,0);g.filter='none';
+ g.globalCompositeOperation='soft-light';const cx=(-ox+W*(o.sx??.08))*k,cy=(-oy+H*(o.sy??.0))*k;const gr=g.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*1.1*k);gr.addColorStop(0,o.chaud||'rgba(255,190,110,.55)');gr.addColorStop(.6,'rgba(255,190,110,0)');gr.addColorStop(1,o.froid||'rgba(60,80,130,.35)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+ g.globalCompositeOperation='multiply';const vx=(-ox+W/2)*k,vy=(-oy+H*.48)*k;const vg=g.createRadialGradient(vx,vy,Math.min(W,H)*.45*k,vx,vy,Math.hypot(W,H)*.62*k);vg.addColorStop(0,'rgba(255,255,255,1)');vg.addColorStop(1,o.vignette||'rgba(178,164,150,1)');g.fillStyle=vg;g.fillRect(0,0,w,h);if(o.alpha&&o0){g.globalCompositeOperation='destination-in';g.drawImage(o0,0,0);}g.restore();}
 // ---------- relief ----------
 function hauteurs(){const c=G.carte;N=c.N;const SD=champSigne(c);const nz=bruit(G.graine*3+11);const R=S.qual>=2?4:3;const W=N*R+1;H=new Float32Array(W*W);
  const sd=(fx,fy)=>{fx=Math.max(0,Math.min(N-1.001,fx-.5));fy=Math.max(0,Math.min(N-1.001,fy-.5));const x0=Math.floor(fx),y0=Math.floor(fy),ax=fx-x0,ay=fy-y0,x1=Math.min(N-1,x0+1),y1=Math.min(N-1,y0+1);return SD[y0*N+x0]*(1-ax)*(1-ay)+SD[y0*N+x1]*ax*(1-ay)+SD[y1*N+x0]*(1-ax)*ay+SD[y1*N+x1]*ax*ay;};
@@ -85,7 +95,7 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
  terrain=new T.Mesh(g,RES.lay?matSol():(()=>{const tx=new T.CanvasTexture(V.sol);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=Math.min(8,ren.capabilities.getMaxAnisotropy());return brume(new T.MeshStandardMaterial({map:tx,roughness:.93,metalness:0}));})());terrain.receiveShadow=true;terrain.name='terrain';scene.add(terrain);
  // eau : plan brillant et légèrement transparent
  const ge=new T.PlaneGeometry(N+40,N+40,1,1);ge.rotateX(-Math.PI/2);ge.translate(N/2,-.1,N/2);
- const me=brume(new T.MeshStandardMaterial({color:0x1a4558,roughness:.05,metalness:.15,transparent:true,opacity:.9,envMapIntensity:1.3,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}),{cle:'eau',extra:sh=>{
+ const me=brume(new T.MeshStandardMaterial({color:0x1a4558,roughness:.05,metalness:.15,transparent:true,opacity:.9,envMapIntensity:.8,normalMap:texVagues(),normalScale:new T.Vector2(.35,.35)}),{cle:'eau',extra:sh=>{
   Object.assign(sh.uniforms,{bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsBr:{value:texBruitGL()}});
   sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+'uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;uniform sampler2D bsBr;uniform float bsT;\nvoid main() {')
    .replace('#include <color_fragment>',`#include <color_fragment>
@@ -387,7 +397,8 @@ function majHeros(){const vu=G.joueurs[vueJoueur()].vu;const ids=new Set();
  for(const [id,s] of herosS)if(!ids.has(id)){grp.remove(s);herosS.delete(id);}}
 // ---------- caméra ----------
 function placerCam(){const d=C3.dist;const t=C3.tang;cam.position.set(C3.cible.x,C3.cible.y+d*Math.sin(t),C3.cible.z+d*Math.cos(t));cam.lookAt(C3.cible);
- soleil.position.set(C3.cible.x-8,C3.cible.y+16,C3.cible.z+6);soleil.target.position.copy(C3.cible);soleil.target.updateMatrixWorld();const sc=soleil.shadow.camera;const e=Math.max(10,d*1.25);sc.left=-e;sc.right=e;sc.top=e;sc.bottom=-e;sc.updateProjectionMatrix();}
+ soleil.position.copy(AMB.dir).multiplyScalar(22).add(C3.cible);// soleil de fin d'après-midi (≈ 38° de haut), ombres longues
+ {const k=Math.min(1,Math.max(0,(d-16)/14));U.haze.value.set(AMB.haze[0],AMB.haze[1],AMB.haze[2],.16+.1*k);U.hazeD.value.set(d*.9,d*1.65);}soleil.target.position.copy(C3.cible);soleil.target.updateMatrixWorld();const sc=soleil.shadow.camera;const e=Math.max(10,d*1.25);sc.left=-e;sc.right=e;sc.top=e;sc.bottom=-e;sc.updateProjectionMatrix();}
 function borner3(){C3.cible.x=Math.max(0,Math.min(N,C3.cible.x));C3.cible.z=Math.max(0,Math.min(N+2,C3.cible.z));C3.dist=Math.max(5.5,Math.min(30,C3.dist));C3.cible.y=Math.max(0,h(C3.cible.x,C3.cible.z))*.5;}
 // ---------- API ----------
 const A={ok:true,actif:false};
@@ -397,12 +408,12 @@ const SURV={t0:0,l:[]};function surveiller(){if(S.fixe||S.choisie||S.banc||S.qua
  if(SURV.l.length>=90){const l=SURV.l.sort((a,b)=>a-b);const med=l[l.length>>1];SURV.l=[];if(med>27){A.qualite(S.qual-1);try{localStorage.setItem('bs-q3d',S.qual);}catch(e){}console.log('qualité 3D abaissée',S.qual,med);}}}
 A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart();
  if(!ren){try{ren=new T.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});}catch(e){A.ok=false;return false;}
-  ren.outputColorSpace=T.SRGBColorSpace;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1.02;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;}
+  ren.outputColorSpace=T.SRGBColorSpace;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1.16;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;}
  if(!IMP.complete)await IMP.decode().catch(()=>{});
  await chargerRes();PAN_A=C3.tang*.5;PAN_K=1/Math.cos(PAN_A);
  if(scene)A.vider();scene=new T.Scene();scene.background=new T.Color(0x0a0806);
- env=envCiel(ren,0x5a8ad0,0xd8e4ec,0x4a4232);scene.environment=env;scene.environmentIntensity=.55;
- hemi=new T.HemisphereLight(0xcfe0ff,0x3a3020,.55);scene.add(hemi);soleil=new T.DirectionalLight(0xffe8c8,2.1);soleil.castShadow=S.qual>=2;soleil.shadow.mapSize.set(2048,2048);soleil.shadow.bias=-.0006;soleil.shadow.normalBias=.02;scene.add(soleil);scene.add(soleil.target);
+ env=envAmb(ren);const hdr=!!env;if(!env)env=envCiel(ren,0x5a8ad0,0xd8e4ec,0x4a4232);scene.environment=env;scene.environmentIntensity=hdr?AMB.envI:.55;
+ hemi=new T.HemisphereLight(AMB.hCiel,AMB.hSol,AMB.hI);scene.add(hemi);soleil=new T.DirectionalLight(AMB.sol,AMB.solI);soleil.castShadow=S.qual>=2;soleil.shadow.mapSize.set(2048,2048);soleil.shadow.bias=-.0006;soleil.shadow.normalBias=.02;scene.add(soleil);scene.add(soleil.target);
  cam=new T.PerspectiveCamera(38,1,.1,200);
  N=G.carte.N;fogData=new Uint8Array(N*N);fogTex=new T.DataTexture(fogData,N,N,T.RedFormat);fogTex.magFilter=T.LinearFilter;fogTex.minFilter=T.LinearFilter;U.fog.value=fogTex;U.N.value=N;majBrume();
  construireTerrain();construireDecor();grp=new T.Group();scene.add(grp);objets.clear();herosS.clear();construireAides();
@@ -475,12 +486,14 @@ const BLANC=(()=>{const t=new T.DataTexture(new Uint8Array([255]),1,1,T.RedForma
 let CR=null;// rendu des combats (contexte partagé avec la carte quand elle existe)
 function rendu(){if(ren)return ren;if(CR)return CR;try{CR=new T.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:false});CR.outputColorSpace=T.SRGBColorSpace;CR.toneMapping=T.ACESFilmicToneMapping;CR.shadowMap.enabled=true;CR.shadowMap.type=T.PCFSoftShadowMap;}catch(e){CR=null;}return CR;}
 A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=C.terrain==='eau'?'herbe':C.terrain;const W=Math.round(geo.W);Hs=Math.round(Hs);
- const sc=new T.Scene();const fog0=U.fog.value,n0=U.N.value;U.fog.value=BLANC;U.N.value=1;
+ const sc=new T.Scene();const fog0=U.fog.value,n0=U.N.value;U.fog.value=BLANC;U.N.value=1;const hz0=U.haze.value.clone(),hd0=U.hazeD.value.clone();
  const lave=ter==='lave',neige=ter==='neige';
  sc.background=new T.Color(lave?0x2a0e0a:neige?0xc8d4e2:0x7aa0c8);
- const envC=envCiel(R0,0x5a8ad0,0xd8e4ec,0x4a4232);sc.environment=envC;sc.environmentIntensity=.3;
- sc.add(new T.HemisphereLight(0xdfe8ff,0x4a3a24,.8));const sun=new T.DirectionalLight(lave?0xffb890:0xffe8c8,2.2);sun.position.set(-9,14,12);sun.target.position.set(0,0,4);sc.add(sun,sun.target);
- sun.castShadow=!window.DBG_NOSH;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-22,right:22,top:20,bottom:-20,near:1,far:60});sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;sun.shadow.camera.updateProjectionMatrix();
+ const envH=envAmb(R0),envC=envH||envCiel(R0,0x5a8ad0,0xd8e4ec,0x4a4232);sc.environment=envC;sc.environmentIntensity=envH?AMB.envI*.85:.3;
+ // lumière de fin d'après-midi : soleil bas et doré du même côté que sur la carte, ciel froid en contre-partie, ombres longues et douces (rendu une seule fois : ombre fine)
+ sc.add(new T.HemisphereLight(AMB.hCiel,AMB.hSol,.75));const sun=new T.DirectionalLight(lave?0xffb890:0xffe2bc,2.9);sun.position.copy(AMB.dir).multiplyScalar(19).add(new T.Vector3(0,0,4));sun.target.position.set(0,0,4);sc.add(sun,sun.target);
+ {const dc=cam.position.distanceTo(new T.Vector3(0,0,3));U.haze.value.set(...(lave?[.30,.16,.10]:neige?[.55,.6,.68]:AMB.haze),lave?.2:.2);U.hazeD.value.set(dc*.92,dc*1.75);}
+ sun.castShadow=!window.DBG_NOSH;{const ms=R0.capabilities.maxTextureSize>=8192?4096:2048;sun.shadow.mapSize.set(ms,ms);}Object.assign(sun.shadow.camera,{left:-22,right:22,top:20,bottom:-20,near:1,far:60});sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;sun.shadow.camera.updateProjectionMatrix();
  if(lave){const l=new T.PointLight(0xff5a1a,40,30);l.position.set(0,3,-6);sc.add(l);}
  // sol : légère ondulation hors du champ, rives et collines au loin
  const nz=bruit(77);const gs=new T.PlaneGeometry(80,70,120,105);gs.rotateX(-Math.PI/2);gs.translate(0,0,-6);const p=gs.attributes.position;
@@ -509,20 +522,20 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
   sc.add(gr);obs.push([h,gr]);}
  // rendu
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure,cc=R0.getClearColor(new T.Color()),ca=R0.getClearAlpha();
- R0.setPixelRatio(dpr);R0.setSize(W,Hs,false);R0.toneMappingExposure=lave?1:.95;R0.shadowMap.enabled=true;R0.shadowMap.needsUpdate=true;
+ R0.setPixelRatio(dpr);R0.setSize(W,Hs,false);R0.toneMappingExposure=lave?1:1.15;R0.shadowMap.enabled=true;R0.shadowMap.needsUpdate=true;
  const out={fond:null,obst:new Map()};
- R0.render(sc,cam);out.fond=mkC(W*dpr,Hs*dpr);out.fond.getContext('2d').drawImage(R0.domElement,0,0);
+ R0.render(sc,cam);out.fond=mkC(W*dpr,Hs*dpr);out.fond.getContext('2d').drawImage(R0.domElement,0,0);const ETC={w:W,sx:-.1,sy:-.15,chaud:lave?'rgba(255,120,60,.35)':'rgba(255,200,140,.3)',filtre:lave?'contrast(1.06)':'contrast(1.06) saturate(1.06) hue-rotate(7deg)'};etalonner(out.fond,0,0,W,Hs,ETC);
  // obstacles détourés (redessinés dans l'ordre des rangées pour cacher les créatures derrière eux)
  sc.background=null;R0.setClearColor(0,0);const autres=[];sc.traverse(o=>{if(o.isMesh&&o!==msol&&!obs.some(([h,g])=>g===o.parent||g===o))autres.push(o);});
  for(const o of autres)o.visible=false;msol.visible=false;for(const [,g] of obs)g.visible=false;
  const bb=new T.Box3(),v=new T.Vector3();
  for(const [h,g] of obs){g.visible=true;bb.setFromObject(g);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let k=0;k<8;k++){v.set(k&1?bb.max.x:bb.min.x,k&2?bb.max.y:bb.min.y,k&4?bb.max.z:bb.min.z).project(cam);const sx=(v.x+1)/2*W,sy=(1-v.y)/2*Hs;x0=Math.min(x0,sx);x1=Math.max(x1,sx);y0=Math.min(y0,sy);y1=Math.max(y1,sy);}
   x0=Math.max(0,Math.floor(x0-2));y0=Math.max(0,Math.floor(y0-2));x1=Math.min(W,Math.ceil(x1+2));y1=Math.min(Hs,Math.ceil(y1+2));
-  if(x1>x0&&y1>y0){R0.render(sc,cam);const c=mkC((x1-x0)*dpr,(y1-y0)*dpr);c.getContext('2d').drawImage(R0.domElement,x0*dpr,y0*dpr,(x1-x0)*dpr,(y1-y0)*dpr,0,0,c.width,c.height);out.obst.set(h,{c,x:x0,y:y0,w:x1-x0,h:y1-y0});}
+  if(x1>x0&&y1>y0){R0.render(sc,cam);const c=mkC((x1-x0)*dpr,(y1-y0)*dpr);c.getContext('2d').drawImage(R0.domElement,x0*dpr,y0*dpr,(x1-x0)*dpr,(y1-y0)*dpr,0,0,c.width,c.height);etalonner(c,x0,y0,W,Hs,Object.assign({},ETC,{w:x1-x0,alpha:1}));out.obst.set(h,{c,x:x0,y:y0,w:x1-x0,h:y1-y0});}
   g.visible=false;}
  // remise en état du rendu de la carte
- R0.setClearColor(cc,ca);R0.toneMappingExposure=exp0;R0.setPixelRatio(dpr0);R0.setSize(sz.x,sz.y,false);U.fog.value=fog0;U.N.value=n0;
- sc.traverse(o=>{if(o.geometry&&o.geometry===gs)o.geometry.dispose();});if(ms.map)ms.map.dispose();ms.dispose();envC.dispose();
+ R0.setClearColor(cc,ca);R0.toneMappingExposure=exp0;R0.setPixelRatio(dpr0);R0.setSize(sz.x,sz.y,false);U.fog.value=fog0;U.N.value=n0;U.haze.value.copy(hz0);U.hazeD.value.copy(hd0);
+ sc.traverse(o=>{if(o.geometry&&o.geometry===gs)o.geometry.dispose();});if(ms.map)ms.map.dispose();ms.dispose();if(!envH)envC.dispose();if(sun.shadow.map)sun.shadow.map.dispose();
  return out;};
 
 // =========================================================
@@ -588,15 +601,20 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const asp=W/H;const port=asp<1.2;const fov=port?44:38;const cam=new T.PerspectiveCamera(fov,asp,.5,400);const camZ=port?23:22,camY=port?3.2:4.2,tgY=port?3.9:2.6;cam.position.set(0,camY,camZ);cam.lookAt(0,tgY,0);cam.updateMatrixWorld();
  const tf=Math.tan(fov*Math.PI/360);const pitch=Math.atan((camY-tgY)/camZ);const yh=.5-.5*Math.tan(pitch)/tf;// horizon (fraction de la hauteur)
  // ciel + montagnes lointaines peints (comme l'ancien panorama)
- const bg=mkC(W,H),g=bg.getContext('2d');const sky=g.createLinearGradient(0,0,0,H*yh);sky.addColorStop(0,nuit?'#141026':hd?'#c0603a':syl?'#5a9ad0':'#4a84c8');sky.addColorStop(1,nuit?'#4a3c60':hd?'#f8d090':syl?'#d8ecd0':'#f2dcb4');g.fillStyle=sky;g.fillRect(0,0,W,H);
+ const bg=mkC(W,H),g=bg.getContext('2d');const ciel=!nuit&&RES.img.ciel;const sky=g.createLinearGradient(0,0,0,H*yh);sky.addColorStop(0,nuit?'#141026':hd?'#c0603a':syl?'#5a9ad0':'#4a84c8');sky.addColorStop(1,nuit?'#4a3c60':hd?'#f8d090':syl?'#d8ecd0':'#f2dcb4');g.fillStyle=sky;g.fillRect(0,0,W,H);
  if(nuit){const lx=W*.8,ly=H*.12,lr=H*.032;const hl=g.createRadialGradient(lx,ly,lr*.8,lx,ly,lr*6);hl.addColorStop(0,'rgba(200,205,220,.28)');hl.addColorStop(1,'rgba(200,205,220,0)');g.fillStyle=hl;g.fillRect(lx-lr*6,ly-lr*6,lr*12,lr*12);
   const dl=g.createRadialGradient(lx-lr*.3,ly-lr*.3,lr*.1,lx,ly,lr);dl.addColorStop(0,'#e4e2d8');dl.addColorStop(1,'#b8b6ae');g.fillStyle=dl;g.beginPath();g.arc(lx,ly,lr,0,7);g.fill();g.fillStyle='rgba(120,120,128,.35)';for(const [a,b,c] of [[-.3,-.2,.35],[.25,.1,.28],[-.05,.35,.2],[.3,-.35,.15]]){g.beginPath();g.arc(lx+a*lr,ly+b*lr,c*lr,0,7);g.fill();}for(let k=0;k<60;k++){g.fillStyle='rgba(255,255,255,'+(.3+r.f()*.6)+')';g.fillRect(r.f()*W,r.f()*H*yh*.8,1.5,1.5);}}
+ else if(ciel){for(let k=0;k<9*32;k++)r.f();// même tirage que les nuages peints : le premier plan (arbres, rochers) reste placé à l'identique
+  // ciel photographié (HDRI Poly Haven) : bande au-dessus de l'horizon, nuages dorés du côté du soleil ; Horde : teinte de poussière, Sylve : plus vert
+  const im=RES.img.ciel,iw=im.width,ih=im.height,hb=H*yh+H*.04,sw=iw*.36,sh=Math.min(ih*.5,sw*hb/W);g.save();g.filter='brightness('+(hd?1.75:1.9)+') saturate('+(hd?.9:1.05)+')';g.drawImage(im,iw*.6,ih*.5-sh,sw,sh,0,0,W,hb);g.restore();
+  if(hd){g.save();g.globalCompositeOperation='color';g.fillStyle='rgba(205,105,55,.72)';g.fillRect(0,0,W,hb);g.globalCompositeOperation='multiply';g.fillStyle='rgba(250,190,140,.6)';g.fillRect(0,0,W,hb);g.restore();}else if(syl){g.save();g.globalCompositeOperation='soft-light';g.fillStyle='rgba(120,190,140,.4)';g.fillRect(0,0,W,hb);g.restore();}
+  const hz=g.createLinearGradient(0,H*yh*.55,0,hb);hz.addColorStop(0,'rgba(236,214,186,0)');hz.addColorStop(1,hd?'rgba(240,190,140,.75)':'rgba(236,214,186,.7)');g.fillStyle=hz;g.fillRect(0,0,W,hb);}
  else{g.save();g.filter='blur('+Math.round(H*.018)+'px)';for(let k=0;k<9;k++){const x=r.f()*W,y=H*(.04+r.f()*yh*.55),L=W*(.08+r.f()*.14);g.globalAlpha=.25+r.f()*.35;g.fillStyle='#fff';for(let j=0;j<7;j++){g.beginPath();g.ellipse(x+(r.f()-.5)*L,y+(r.f()-.5)*H*.02,L*(.18+r.f()*.2),H*(.012+r.f()*.02),0,0,7);g.fill();}}g.restore();}
  g.save();g.filter='blur('+Math.max(1,Math.round(H*.003))+'px)';for(let l=0;l<2;l++){g.fillStyle=nuit?['#3a3050','#2a2438'][l]:syl?['#8ab0a0','#5a8a64'][l]:hd?['#b88a6a','#8a6a4a'][l]:['#9aa8c0','#7a8aa4'][l];g.beginPath();g.moveTo(0,H*(yh+.05));for(let x=0;x<=W;x+=W/16)g.lineTo(x,H*(yh-.2+l*.08)+Math.sin(x/W*12+l*2+v.id)*H*.05+r.f()*H*.035);g.lineTo(W,H*(yh+.05));g.closePath();g.fill();}g.restore();
  const tb=new T.CanvasTexture(bg);tb.colorSpace=T.SRGBColorSpace;sc.background=tb;
- const haze=new T.Color(nuit?0x2a2438:syl?0x7a9a84:hd?0xa08060:0x8a98ac);sc.fog=new T.Fog(haze,35,95);
- const envC=envCiel(R0,0x5a8ad0,0xd8e4ec,0x4a4232);sc.environment=envC;sc.environmentIntensity=nuit?.12:.3;
- sc.add(new T.HemisphereLight(nuit?0x8a90c8:0xdfe8ff,nuit?0x1a1420:0x4a3a24,nuit?.45:.8));const sun=new T.DirectionalLight(nuit?0x9ab0ff:hd?0xffc890:0xffecd0,nuit?.9:2.2);sun.position.set(hd?-18:-10,hd?8:16,12);sun.target.position.set(0,0,-4);sc.add(sun,sun.target);
+ const haze=new T.Color(nuit?0x2a2438:ciel?(syl?0x9aa894:hd?0xb89070:0xa8a49c):syl?0x7a9a84:hd?0xa08060:0x8a98ac);sc.fog=new T.Fog(haze,ciel?30:35,ciel?90:95);const hz0=U.haze.value.clone();U.haze.value.w=0;
+ const envH=nuit?null:envAmb(R0),envC=envH||envCiel(R0,0x5a8ad0,0xd8e4ec,0x4a4232);sc.environment=envC;sc.environmentIntensity=envH?AMB.envI*.9:nuit?.12:.3;
+ sc.add(new T.HemisphereLight(nuit?0x8a90c8:ciel?AMB.hCiel:0xdfe8ff,nuit?0x1a1420:ciel?AMB.hSol:0x4a3a24,nuit?.45:ciel?.72:.8));const sun=new T.DirectionalLight(nuit?0x9ab0ff:hd?0xffc08a:ciel?AMB.sol:0xffecd0,nuit?.9:ciel?2.8:2.2);if(ciel)sun.position.set(hd?-17:-14,hd?8:10.5,11);else sun.position.set(hd?-18:-10,hd?8:16,12);sun.target.position.set(0,0,-4);sc.add(sun,sun.target);
  sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-30,right:30,top:25,bottom:-25,near:1,far:80});sun.shadow.bias=-.0005;sun.shadow.normalBias=.04;sun.shadow.camera.updateProjectionMatrix();
  // sol, chemin, arbres
  const terS=nuit||hd?'terre':'herbe';const reel=!!(RES.lay&&RES.atlas);const ts=reel?null:texSolCombat(terS);if(ts)ts.repeat.set(10,10);const gs=new T.PlaneGeometry(300,300,1,1).rotateX(-Math.PI/2);const ms=reel?matSolSimple(IDT[terS],SEC[terS],.22,.7):new T.MeshStandardMaterial({map:ts,roughness:.95,color:nuit?0x8a8078:0xffffff});if(reel&&nuit)ms.color.set(0x9a9088);if(reel&&hd)ms.color.set(0xc8b49c);const msol=new T.Mesh(gs,ms);msol.receiveShadow=true;sc.add(msol);
@@ -630,8 +648,8 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
    const tx=new T.CanvasTexture(spriteCreature(cre,256));tx.colorSpace=T.SRGBColorSpace;texV.push(tx);const mc=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xa8a8c0:0xf4f0ea});matV.push(mc);
    const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);pc.position.set(gr.position.x+u*.42*(gr.position.x>0?-1:1),.03,gr.position.z+u*1.0);pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;pc.userData.bidx=objs.length-1;{const sv=mkC(256,256),sg=sv.getContext('2d');sg.drawImage(spriteCreature(cre,256),0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,256,256);const st=new T.CanvasTexture(sv);texV.push(st);pc.userData.sil=st;}sc.add(pc);}}
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure;
- const mIb=MPI.bm,cIb=mIb&&mIb.color.getHex();if(mIb&&nuit)mIb.color.setRGB(.42,.44,.6);R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);if(mIb)mIb.color.setHex(cIb);
- const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);
+ const mIb=MPI.bm,cIb=mIb&&mIb.color.getHex();if(mIb&&nuit)mIb.color.setRGB(.42,.44,.6);R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:ciel?1.06:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);if(mIb)mIb.color.setHex(cIb);
+ const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);if(ciel)etalonner(c,0,0,W,H,{sx:-.05,sy:.1,chaud:hd?'rgba(255,170,90,.5)':'rgba(255,200,130,.45)',vignette:'rgba(180,166,152,1)'});
  // passe d'identifiants (19/11) : chaque bâtiment et sa créature dans une couleur unique, cachés par ce qui est devant → le clic ouvre exactement ce qu'on voit
  let ids=null;try{const noir=new T.MeshBasicMaterial({color:0,toneMapped:false,fog:false});const tmpM=[noir],sauv=[];const parK=new Map();
   const coulK=k=>new T.Color().setRGB((k+1)*10/255,200/255,0,T.SRGBColorSpace);
@@ -640,7 +658,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
   const ci=mkC(W,H),cx2=ci.getContext('2d',{willReadFrequently:true});cx2.drawImage(R0.domElement,0,0);const d=cx2.getImageData(0,0,W,H).data;const a=new Uint8Array(W*H);
   for(let i=0;i<W*H;i++){const g=d[i*4+1];if(g<194||g>206||d[i*4+2]>12)continue;const k=Math.round(d[i*4]/10)-1;if(k>=0&&k<objs.length&&Math.abs(d[i*4]-(k+1)*10)<=3)a[i]=k+1;}
   ids={W,H,a,bs:objs.map(o=>o[0])};}finally{for(const [o,m] of sauv)o.material=m;sc.background=bg0;sc.fog=fg0;R0.toneMapping=tm0;R0.shadowMap.enabled=sh0;tmpM.forEach(m=>m.dispose());}}catch(e){console.warn('pano ids',e);}
- R0.toneMappingExposure=exp0;R0.setPixelRatio(dpr0);R0.setSize(sz.x,sz.y,false);U.fog.value=fog0;U.N.value=n0;
+ R0.toneMappingExposure=exp0;R0.setPixelRatio(dpr0);R0.setSize(sz.x,sz.y,false);U.fog.value=fog0;U.N.value=n0;U.haze.value.copy(hz0);
  // zones cliquables + créatures devant leurs habitations (dessinées, comme sur la carte)
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};
  const tri=objs.slice().sort((a,b)=>a[1].position.z-b[1].position.z);
@@ -649,7 +667,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
   zones.push({b,x:x0,y:y0,w:x1-x0,h:y1-y0});}
  // drapeaux animés en 2D au sommet du château
  const drap=[];const fort=objs.find(o=>o[0]==='fort'||o[0]==='citadelle'||o[0]==='chateau');if(fort){const [b,gr,u]=fort;bb.setFromObject(gr);const [dx,dy]=pr(gr.position.x,bb.max.y,gr.position.z-1.6);drap.push([dx,Math.max(H*.12,dy)]);}
- sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});{const mi=Object.values(MPI);sc.traverse(o=>{if(o.isMesh&&mi.includes(o.material))o.geometry.dispose();});}GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
+ sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});{const mi=Object.values(MPI);sc.traverse(o=>{if(o.isMesh&&mi.includes(o.material))o.geometry.dispose();});}GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();if(!envH)envC.dispose();if(sun.shadow.map)sun.shadow.map.dispose();
  return{c,zones,drap,ids};};
 return A;})();
 R3.stats=()=>{const o={};const sc=R3._scene&&R3._scene();if(!sc)return o;sc.traverse(m=>{if(!m.isMesh)return;const g=m.geometry;const t=(g.index?g.index.count:g.attributes.position.count)/3*(m.isInstancedMesh?m.count:1);const k=m.isInstancedMesh?'inst':m.name||(m.parent&&m.parent.type)||'?';o[k]=(o[k]||0)+t;});return o;};

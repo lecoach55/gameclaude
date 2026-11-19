@@ -1,0 +1,14 @@
+Banc commun (outils-communs/banc.py --avant HEAD, 2 tours entrelacés, rendu logiciel) — passe lumière et ambiance du 19/11/2026 au soir
+appareil   scène                      avant     après    écart  bruit  verdict   (ms par image en moyenne, plus bas = mieux)
+mac@1      carte                     306.19    307.44    +0.4%    4 %  égal (bruit)
+mac@1      carte_dezoom_tout_vu      384.81    344.45   -10.5%   24 %  égal (bruit)
+mac@1      combat                      2.97      2.16   -27.3%   15 %  plus rapide
+mac@1      ville                       0.60      0.64    +6.7%   48 %  égal (bruit)
+ordinateur carte                    1068.74   1171.71    +9.6%    7 %  égal (bruit)
+ordinateur carte_dezoom_tout_vu     1149.49   1231.83    +7.2%    2 %  égal (bruit)
+ordinateur combat                      3.28      4.06   +23.8%   11 %  plus lent
+ordinateur ville                       0.82      0.76    -7.3%   10 %  égal (bruit)
+
+⚠ 1 mesure(s) plus lente(s) au-delà de 10 % et du bruit : ordinateur/combat +24 %
+écrit : /tmp/claude-0/-home-claude-gameclaude/ef8ddeb3-a0de-539a-81bb-d59f27d90f8a/scratchpad/banc.json
+durée : 421 s

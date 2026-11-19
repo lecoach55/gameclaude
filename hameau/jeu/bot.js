@@ -5,6 +5,8 @@ function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a
 function bot(S,opt){
   const {W,H,idx,inb,Z}=S;const h=S.hall,hx=h.x+1.5,hy=h.y+1.5;
   const pop=S.villagers.length;
+  // petits événements : le joueur attentif choisit selon ses réserves (les autres profils laissent le choix par défaut)
+  if(S.evt&&S.decide){const r=S.res,k=S.evt.k,ch={feu:0,loups:r.wood>=40?0:1,fievre:r.food>=pop*8&&r.wood>=30?0:1,orage:r.wood>=35?0:1,pelerins:r.food>=pop*10?0:1,gel:r.wood>=60?0:1}[k];if(ch!=null)S.decide(ch);}
   const free=i=>S.zone[i]===0&&S.terrain[i]===S.T_GRASS&&S.occ[i]<0;
   function nearestFree(cx,cy,pred,minD=0){let b=-1,bd=1e9;for(let i=0;i<S.N;i++){if(!pred(i))continue;const x=i%W,y=i/W|0;const d=Math.hypot(x+0.5-cx,y+0.5-cy);if(d<minD)continue;if(d<bd){bd=d;b=i;}}return b;}
   function paintAround(z,i,br){const r=(br-1)>>1,x0=i%W,y0=i/W|0;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const x=x0+dx,y=y0+dy;if(inb(x,y)&&S.zone[idx(x,y)]===0)S.paint(z,x,y,1);}}

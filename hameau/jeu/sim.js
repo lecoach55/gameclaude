@@ -21,6 +21,8 @@ const DEFAULTS={
   arrivees:'graine', arrKid:0.15, arrMin:16, arrMax:50,
   pasture:true, woolGrow:55, shearTime:3, woolYield:3, sheepPer:4, sheepBreed:45, sheepMax:30, sheepHay:0.12, clothWool:2, clothTime:6, clothUse:0.015, warmBonus:6, warmHeat:0.75,
   merchant:true, merchantStock:3,
+  // petits événements à décision (décision de Victor 18/11) : ≈ 1 par saison, pertes modérées et rattrapables ; evtRate 0 = aucun
+  events:true, evtRate:1, evtChance:0.75, evtStart:4, evtAt:0.35, evtWait:0.5, evtScale:1, evtMinPop:8,
   fert:true, fertUse:0.12, fertRegen:200, fertWinter:90, fertBase:0.62, fertGain:0.42, fallowMin:0.3, fallowOk:0.7
 };
 function hash2(x,y,s){let h=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul(s|0,1442695041);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
@@ -34,7 +36,7 @@ const P=Object.assign({},DEFAULTS,params||{});
 let R=rng||Math.random;
 const S={P,W,H,N,Z,T_GRASS,T_STONE,T_WATER,idx,inb,hash2,
   terrain:null,tree:null,stoneAmt:null,zone:null,traffic:null,fstate:null,fgrow:null,occ:null,reserved:null,unreach:null,elev:null,
-  buildings:[],bmap:new Map(),villagers:[],sheep:[],merchant:null,arr:'vague',vague:false,dlog:[],blog:[],fert:null,rest:null,res:null,fishAmt:null,time:0,happy:60,starving:false,seed:1,hall:null,
+  buildings:[],bmap:new Map(),villagers:[],sheep:[],merchant:null,evt:null,evH:[],evS:-1,arr:'vague',vague:false,dlog:[],blog:[],fert:null,rest:null,res:null,fishAmt:null,time:0,happy:60,starving:false,seed:1,hall:null,
   cold:false,noTools:false,variety:false,info:{fields:0,forestTrees:0,quarryStone:0,houseZone:0,marketZone:0,shopZone:0,fishZone:0,chapelZone:0,spot:true,jobs:{}},
   stats:{pathFails:0,pathCalls:0,coldTime:0,starveTime:0,idleTime:0,workTime:0,walkTime:0,haulDist:0,hauls:0,arrivals:0,departures:0,built:0,births:0,deaths:0,sheared:0,trades:0},
   milestones:new Set(),onEvent:null,version:0,hist:[],trend:{food:0,wood:0,stone:0,tools:0,fish:0,wool:0,clothes:0}};
@@ -539,7 +541,7 @@ function happinessTarget(){
   for(const b of S.buildings){if(b.type!=='house'||!b.built)continue;houses++;if(b.level>=2)l2++;if(mk.some(m=>Math.hypot(m.x-b.x,m.y-b.y)<=P.marketR))cov++;if(ch.some(m=>Math.hypot(m.x-b.x,m.y-b.y)<=P.chapelR))cc++;}
   let t=45+(S.starving?-35:12)+(S.cold?-20:0)+(S.noTools?-12:0)+(S.festT>S.time?P.festBonus:0)+(S.festGlow>S.time?P.festBonus*0.4:0);
   if(houses)t+=25*cov/houses+12*l2/houses+P.chapelBonus*cc/houses;
-  t+=P.varietyBonus*(S.varietyF||0);if(S.warm)t+=P.warmBonus;if(S.mourn>S.time)t-=4;
+  t+=P.varietyBonus*(S.varietyF||0);if(S.warm)t+=P.warmBonus;if(S.mourn>S.time)t-=4;for(const e of S.evH)if(e[0]>S.time)t+=e[1];
   if(pop>cap)t-=15;
   return clamp(t,0,100);
 }
@@ -593,6 +595,49 @@ function sheepUpdate(dt){
 }
 // ---- marchand ambulant ----
 const DEALS=[[{food:12},{tools:2}],[{wood:15},{stone:5}],[{stone:6},{food:14}],[{wool:4},{tools:2}],[{clothes:2},{stone:8}],[{food:20},{sheep:2}],[{fish:10},{tools:1}],[{tools:2},{food:16}],[{wood:12},{wool:4}],[{food:15},{clothes:2}],[{stone:5},{tools:1}],[{wood:10},{food:10}]];
+
+// ---- petits événements à décision (décision de Victor du 18/11) ----
+// Au plus un par saison (tirage déterministe à la graine : ne consomme pas le hasard de la simulation), à partir de la 2e année.
+// Deux choix chiffrés ; sans réponse avant la fin du délai, le choix par défaut (marqué) s'applique. Pertes en % plafonnées : toujours rattrapables.
+const pct=(r,f,cap)=>{const n=Math.min(cap,Math.floor((S.res[r]||0)*f*P.evtScale));S.res[r]=Math.max(0,(S.res[r]||0)-n);return n;};
+const pv=(r,f,cap)=>Math.min(cap,Math.floor((S.res[r]||0)*f*P.evtScale)),sur=r=>` (sur ${Math.round(S.res[r]||0)})`;
+const fix=(r,n)=>{n=Math.min(S.res[r]||0,Math.round(n*P.evtScale));S.res[r]-=n;return n;};
+const humeur=(v,saisons)=>{S.evH.push([S.time+P.seasonLen*saisons,Math.round(v*(v<0?P.evtScale:1))]);};
+const growing=()=>{let n=0;for(const i of zoneList(Z.field))if(S.fstate[i]===1&&S.fgrow[i]>0.15)n++;return n;};
+const EVTS={
+  feu:{ic:'🔥',titre:'Le feu a pris dans la grange !',ok:sea=>sea<=2,txt:()=>'Une étincelle de la forge, et le grenier fume. Que fait le village ?',
+    o:[{l:'Chaîne de seaux',d:()=>`−${pv('food',0.08,80)} 🍞${sur('food')} · 😓 bonheur −6 pendant ½ saison`,f:()=>{const n=pct('food',0.08,80);humeur(-6,0.5);return `Le feu est éteint : ${n} 🍞 perdus, les villageois sont épuisés`;}},
+       {l:'Protéger les maisons',d:()=>`−${pv('food',0.2,180)} 🍞${sur('food')}`,f:()=>{const n=pct('food',0.2,180);return `La grange a brûlé : ${n} 🍞 perdus, aucune maison touchée`;}}],def:0},
+  loups:{ic:'🐺',titre:'Des loups rôdent autour du troupeau',ok:sea=>sea>=2&&S.sheep.length>=3,txt:()=>`On les a vus à la lisière. ${S.sheep.length} moutons au pâturage.`,
+    o:[{l:'Organiser une battue',d:()=>`−${Math.min(Math.round(S.res.wood||0),Math.round(10*P.evtScale))} 🪵 (torches, pieux)`,f:()=>{const n=fix('wood',10);return `Les loups sont repoussés dans la forêt (−${n} 🪵)`;}},
+       {l:'Laisser faire',d:()=>`perdre ~${Math.max(1,Math.round(S.sheep.length*0.2*P.evtScale))} 🐑`,f:()=>{const k=Math.max(0,Math.min(S.sheep.length-1,Math.max(1,Math.round(S.sheep.length*0.2*P.evtScale))));if(!k)return 'Les loups sont repartis sans rien emporter';for(let q=0;q<k;q++)S.sheep.splice((S.sheep.length*hash2(S.seed|0,S.evtN|0,q+77))|0,1);return `Les loups ont emporté ${k} mouton${k>1?'s':''}`;}}],def:1},
+  fievre:{ic:'🤒',titre:'Une fièvre court dans le village',ok:sea=>(sea===3||sea===0)&&S.villagers.length>=12,txt:()=>'Plusieurs familles toussent et gardent le lit.',
+    o:[{l:'Remèdes de l’herboriste',d:()=>`−${pv('food',0.06,60)} 🍞 · −${Math.min(Math.round(S.res.wood||0),Math.round(8*P.evtScale))} 🪵`,f:()=>{const a=pct('food',0.06,60),b=fix('wood',8);return `Tisanes et bouillons : la fièvre recule (−${a} 🍞, −${b} 🪵)`;}},
+       {l:'Laisser passer',d:()=>`😷 bonheur −10 pendant une saison`,f:()=>{humeur(-10,1);return 'La fièvre suit son cours : le village est morose pour la saison';}}],def:1},
+  orage:{ic:'⛈️',titre:'Un orage de grêle menace les champs',ok:sea=>sea<=1&&growing()>=6,txt:()=>`${growing()} champs sont en pleine pousse.`,
+    o:[{l:'Couvrir de claies',d:()=>`−${Math.min(Math.round(S.res.wood||0),Math.round(12*P.evtScale))} 🪵`,f:()=>{const n=fix('wood',12);return `Les claies ont tenu : les champs sont saufs (−${n} 🪵)`;}},
+       {l:'Laisser passer',d:()=>`les champs perdent ~${Math.round(40*P.evtScale)} % de leur pousse`,f:()=>{let n=0;for(const i of zoneList(Z.field))if(S.fstate[i]===1){S.fgrow[i]*=1-0.4*P.evtScale;n++;}return `La grêle a couché les blés : ${n} champs reprennent leur pousse`;}}],def:1},
+  pelerins:{ic:'🧺',titre:'Des pèlerins demandent l’hospitalité',ok:sea=>sea<=2&&S.villagers.length>=10,txt:()=>'Une petite troupe fatiguée frappe à la porte du hall.',
+    o:[{l:'Les accueillir',d:()=>`−${pv('food',0.05,50)} 🍞${sur('food')} · 😊 bonheur +6 pendant une saison`,f:()=>{const n=pct('food',0.05,50);humeur(6,1);return `Les pèlerins repartent en chantant les louanges du village (−${n} 🍞)`;}},
+       {l:'Les éconduire',d:()=>'rien ne change',f:()=>'Les pèlerins reprennent la route'}],def:1},
+  gel:{ic:'🥶',titre:'Un gel terrible s’abat sur le hameau',ok:sea=>sea===3,txt:()=>'Le puits est pris et les murs se couvrent de givre.',
+    o:[{l:'Brûler plus de bois',d:()=>`−${pv('wood',0.12,90)} 🪵${sur('wood')}`,f:()=>{const n=pct('wood',0.12,90);return `On garde les âtres allumés jour et nuit (−${n} 🪵)`;}},
+       {l:'Se serrer autour du feu',d:()=>'🥶 bonheur −8 pendant ½ saison',f:()=>{humeur(-8,0.5);return 'On se serre sous les couvertures : le moral est bas';}}],def:1}
+};
+function evtUpdate(){
+  if(S.evH.length&&S.evH[0][0]<=S.time)S.evH=S.evH.filter(e=>e[0]>S.time);
+  if(S.evt){if(S.time>=S.evt.until)decide(S.evt.def,true);return;}
+  if(!P.events||!P.seasons||!(P.evtRate>0))return;const si=Math.floor(S.time/P.seasonLen);
+  if(si===S.evS||seasonProgress()<P.evtAt)return;S.evS=si;
+  if(si<P.evtStart||S.villagers.length<P.evtMinPop||hash2(S.seed|0,si,4242)>=P.evtChance*P.evtRate)return;
+  const sea=season(),R3=S.evRec||[],ok=Object.keys(EVTS).filter(k=>EVTS[k].ok(sea));let L=ok.filter(k=>!R3.includes(k));if(!L.length)L=ok.filter(k=>k!==S.evLast);if(!L.length)return;
+  const k=L[(hash2(S.seed|0,si,4343)*L.length)|0],E=EVTS[k];S.evtN=(S.evtN||0)+1;
+  S.evt={k,t0:S.time,until:S.time+P.seasonLen*P.evtWait,def:E.def,txt:E.txt()};emit('event',S.evt);
+}
+function evtView(){const e=S.evt;if(!e)return null;const E=EVTS[e.k];return {k:e.k,ic:E.ic,titre:E.titre,txt:e.txt,def:e.def,reste:Math.max(0,e.until-S.time),wait:P.seasonLen*P.evtWait,opts:E.o.map(o=>({l:o.l,d:o.d()}))};}
+function decide(i,auto){const e=S.evt;if(!e)return false;const E=EVTS[e.k];if(!E||!E.o[i]){S.evt=null;return false;}
+  const msg=E.o[i].f();S.evt=null;S.evLast=e.k;S.evRec=(S.evRec||[]).concat(e.k).slice(-3);S.stats.events=(S.stats.events||0)+1;if(auto)S.stats.evAuto=(S.stats.evAuto||0)+1;S.version++;
+  emit('toast',`${E.ic} ${auto?'(sans décision) ':''}${msg}`);emit('eventDone',{k:e.k,i,auto:!!auto});return true;}
 function merchantUpdate(){
   if(!P.merchant)return;const m=S.merchant;
   if(m&&S.time>m.until){S.merchant=null;emit('toast','🧳 Le marchand ambulant reprend la route');emit('merchantGone',{});}
@@ -611,7 +656,7 @@ function step(dt){
   S.time+=dt;festCheck();genUpdate(dt);sheepUpdate(dt);
   for(const v of S.villagers)stepVillager(v,dt);
   if((timers.env+=dt)>=0.5){envUpdate(timers.env);timers.env=0;}
-  if((timers.plan+=dt)>=1){timers.plan=0;planner();computeInfo();merchantUpdate();}
+  if((timers.plan+=dt)>=1){timers.plan=0;planner();computeInfo();merchantUpdate();evtUpdate();}
   if((timers.store+=dt)>=10){timers.store=0;storePlanner();}
   if((timers.decay+=dt)>=1){timers.decay=0;const tr=S.traffic;for(let i=0;i<N;i++)if(tr[i]>0)tr[i]*=P.trafficDecay;}
   if(S.starving)S.stats.starveTime+=dt;
@@ -672,7 +717,7 @@ function demolish(x,y){
 }
 function newGame(seed){
   alloc();S.seed=seed!=null?seed:(R()*1e9)|0;
-  S.buildings=[];S.bmap=new Map();S.villagers=[];S.sheep=[];S.merchant=null;S._lastSeaM=null;S.mourn=0;S.graves=0;S.vague=false;S.dlog=[];S.blog=[];nextVid=1;nextBid=1;nextSid=1;S.milestones.clear();
+  S.buildings=[];S.bmap=new Map();S.villagers=[];S.sheep=[];S.merchant=null;S._lastSeaM=null;S.evt=null;S.evH=[];S.evS=-1;S.evLast=null;S.evRec=[];S.evtN=0;S.mourn=0;S.graves=0;S.vague=false;S.dlog=[];S.blog=[];nextVid=1;nextBid=1;nextSid=1;S.milestones.clear();
   S.res={food:P.startFood,wood:0,stone:P.startStone,tools:0,fish:0,wool:0,clothes:0};S.time=0;S.happy=60;S.starving=false;
   for(const k in timers)timers[k]=0;demand.fill(0);
   for(const k in S.stats)S.stats[k]=0;S.hist=[];S.trend={food:0,wood:0,stone:0,tools:0,fish:0,wool:0,clothes:0};
@@ -691,7 +736,7 @@ function serialize(){
   return {v:3,seed:S.seed,time:S.time,happy:S.happy,res:S.res,nextBid,starving:S.starving,ms:[...S.milestones],
     terrain:Array.from(S.terrain),tree:r2(S.tree),stone:Array.from(S.stoneAmt),zone:Array.from(S.zone),traffic:r2(S.traffic),fstate:Array.from(S.fstate),fgrow:r2(S.fgrow),
     b:S.buildings.map(b=>({id:b.id,type:b.type,x:b.x,y:b.y,w:b.w,h:b.h,built:b.built,level:b.level,site:b.site?{need:{...b.site.need},have:{...b.site.have},prog:b.site.prog,asg:0}:null})),
-    vil:S.villagers.map(v=>[Math.round(v.x*10)/10,Math.round(v.y*10)/10,Math.round(v.age*100)/100,v.fem?1:0,v.name,v.skin]),sheep:S.sheep.map(a=>[Math.round(a.x*10)/10,Math.round(a.y*10)/10,Math.round(a.wool*100)/100,Math.round(a.age*100)/100]),merchant:S.merchant,fert:r2(S.fert),rest:Array.from(S.rest),mourn:S.mourn||0,graves:S.graves||0,arr:S.arr,vg:S.vague?1:0,vt:Math.round(S.vagueT0||0),dl:S.dlog.map(Math.round),bl:S.blog.map(Math.round),lastSeaM:S._lastSeaM,hist:S.hist.slice(-180).map(h=>({t:Math.round(h.t),food:Math.round(h.food),wood:Math.round(h.wood),stone:Math.round(h.stone),tools:Math.round(h.tools),pop:h.pop,happy:Math.round(h.happy)}))};
+    vil:S.villagers.map(v=>[Math.round(v.x*10)/10,Math.round(v.y*10)/10,Math.round(v.age*100)/100,v.fem?1:0,v.name,v.skin]),sheep:S.sheep.map(a=>[Math.round(a.x*10)/10,Math.round(a.y*10)/10,Math.round(a.wool*100)/100,Math.round(a.age*100)/100]),merchant:S.merchant,fert:r2(S.fert),rest:Array.from(S.rest),mourn:S.mourn||0,graves:S.graves||0,arr:S.arr,vg:S.vague?1:0,vt:Math.round(S.vagueT0||0),dl:S.dlog.map(Math.round),bl:S.blog.map(Math.round),lastSeaM:S._lastSeaM,evt:S.evt,evH:S.evH,evS:S.evS,evL:S.evLast||null,evR:S.evRec||[],evN:S.evtN||0,hist:S.hist.slice(-180).map(h=>({t:Math.round(h.t),food:Math.round(h.food),wood:Math.round(h.wood),stone:Math.round(h.stone),tools:Math.round(h.tools),pop:h.pop,happy:Math.round(h.happy)}))};
 }
 function deserialize(d){
   if(!d)return false;if(d.v!==3)return false;
@@ -704,6 +749,7 @@ function deserialize(d){
   if(!S.hall)return false;
   S.villagers=[];nextVid=1;for(const e of d.vil){if(e.length>2)spawnVillager(e[0],e[1],{age:e[2],fem:!!e[3],name:e[4],skin:e[5]});else spawnVillager(e[0],e[1]);}
   S.sheep=[];nextSid=1;for(const e of (d.sheep||[])){const a=spawnSheep(e[0],e[1],e[3]);a.wool=e[2];}S.merchant=d.merchant||null;S._lastSeaM=d.lastSeaM!=null?d.lastSeaM:null;S.mourn=d.mourn||0;S.graves=d.graves||0;S.arr=d.arr==='etale'?'etale':'vague';S.vague=!!d.vg&&S.arr==='vague';S.vagueT0=d.vt||0;S.dlog=(d.dl||[]).slice();S.blog=(d.bl||[]).slice();
+  S.evt=d.evt&&EVTS[d.evt.k]?d.evt:null;S.evH=Array.isArray(d.evH)?d.evH.slice():[];S.evS=d.evS!=null?d.evS:Math.floor(d.time/P.seasonLen);S.evLast=d.evL||null;S.evRec=Array.isArray(d.evR)?d.evR.slice(-3):[];S.evtN=d.evN||0;
   if(d.fert)S.fert.set(d.fert);if(d.rest)S.rest.set(d.rest);if(S.res.wool==null)S.res.wool=0;if(S.res.clothes==null)S.res.clothes=0;
   if(S.res.fish==null)S.res.fish=0;S.hist=d.hist||[];computeInfo();S.version++;return true;
 }
@@ -755,7 +801,7 @@ function advice0(){
   if(P.pasture&&S.sheep.length&&(res.wool||0)>=6&&!S.buildings.some(b=>b.type==='workshop'&&b.built))return {code:'workshop',text:'🧶 La laine s\'entasse : un Atelier en ferait des vêtements chauds'};
   return null;
 }
-Object.assign(S,{trade,sheepCap,isKid,isElder,isRetired,fishSpot,season,seasonProgress,growMul,advice,newGame,step,paint,demolish,capacity,serialize,deserialize,frontOf,computeInfo,happinessTarget});
+Object.assign(S,{decide,evtView,trade,sheepCap,isKid,isElder,isRetired,fishSpot,season,seasonProgress,growMul,advice,newGame,step,paint,demolish,capacity,serialize,deserialize,frontOf,computeInfo,happinessTarget});
 return S;
 }
 return {create,DEFAULTS,W,H,Z};

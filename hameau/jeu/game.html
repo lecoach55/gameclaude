@@ -27,6 +27,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#9fcbe6;font-family:-a
 @keyframes newtool{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 #rot{position:fixed;right:calc(env(safe-area-inset-right) + 8px);top:46%;display:flex;flex-direction:column;gap:8px}
 #rot button{width:42px;height:42px;border-radius:50%;border:0;background:rgba(18,26,18,.72);color:#fff;font-size:19px;font-family:inherit}
+#evt{display:none;box-sizing:border-box;position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 158px);transform:translateX(-50%);width:min(400px,calc(100vw - 24px));background:#f4ecdc;color:#3a2e20;border-radius:14px;padding:12px 14px 12px;box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:41;font-size:13.5px;line-height:1.45;pointer-events:auto}
+#evt .et{display:flex;gap:10px;align-items:center}#evt .et .ei{font-size:28px;line-height:1}#evt .et b{font-family:Georgia,'Times New Roman',serif;font-size:17px}#evt p{margin:6px 0 8px;opacity:.85}
+#evt .eo{display:flex;flex-direction:column;gap:6px}#evt .eo button{display:block;width:100%;min-height:44px;border:1px solid rgba(107,79,42,.35);border-radius:10px;background:#fff8ea;color:#3a2e20;text-align:left;padding:6px 10px;font-size:13.5px}
+#evt .eo button b{display:block;font-size:14px}#evt .eo button span{font-size:13px;opacity:.85}#evt .eo button em{font-style:normal;font-size:11.5px;opacity:.7;margin-left:6px}#evt .eo button.def{border-color:#6b4f2a}#evt .eb{height:4px;border-radius:2px;background:rgba(107,79,42,.18);margin-top:8px;overflow:hidden}#evt .eb i{display:block;height:100%;background:#6b4f2a}#evt small{display:block;margin-top:4px;font-size:11.5px;opacity:.7}
 #chron{display:none;box-sizing:border-box;position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 130px);transform:translateX(-50%);width:min(340px,calc(100vw - 24px));background:#f4ecdc;color:#3a2e20;border-radius:14px;padding:12px 16px 14px;box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:40;font-size:13.5px;line-height:1.5;pointer-events:auto}
 #chron .ct{display:flex;gap:10px;align-items:center;margin-bottom:6px}#chron .ct small{display:block;font-size:11.5px;opacity:.7;text-transform:uppercase;letter-spacing:.06em}#chron .ct b{font-family:Georgia,'Times New Roman',serif;font-size:18px}
 #chron ul{margin:4px 0 8px;padding-left:18px}#chron .cn{background:rgba(120,90,40,.1);border-radius:10px;padding:6px 10px;font-size:12.5px}#chron .cn span{opacity:.8}
@@ -233,6 +237,7 @@ svg.i{width:17px;height:17px;flex:0 0 auto;display:block}
   <div class="brand"><div class="logo"><svg class="i"><use href="#i-pause"/></svg></div><div><h1>Pause</h1><div class="sub" id="pStats"></div></div></div>
   <button class="primary" id="mResume">Reprendre</button>
   <div class="mg"><div class="ml">Qualité graphique</div><div class="opt"><button class="secondary" data-q="ultra">Ultra</button><button class="secondary" data-q="haute">Haute</button><button class="secondary" data-q="moyenne">Moyenne</button><button class="secondary" data-q="eco">Éco</button></div></div>
+  <div class="mg"><div class="ml">Petits événements</div><div class="opt"><button class="secondary" data-ev="1">Normaux</button><button class="secondary" data-ev="0.4">Rares</button><button class="secondary" data-ev="0">Aucun</button></div></div>
   <div class="mg"><div class="ml">Son</div><div class="opt"><button class="secondary" id="mSnd">Activé</button></div><input type="range" id="mVol" min="0" max="100" value="60"></div>
   <details><summary>Aide</summary><ul id="mHelp"></ul></details>
   <button class="secondary" id="mBug">🐞 Signaler un problème à Claude</button>
@@ -253,6 +258,7 @@ svg.i{width:17px;height:17px;flex:0 0 auto;display:block}
       <li>🐑 <b>Pâturage</b> : moutons → laine → vêtements chauds à l'atelier (bonheur, moins de bois l'hiver).</li>
       <li>👶 Les familles heureuses ont des <b>enfants</b> ; ils grandissent, travaillent, puis prennent leur retraite.</li>
       <li>🧳 Un <b>marchand</b> passe au marché au printemps et à l'automne : touche le marché pour échanger.</li>
+      <li>🎲 <b>Petits événements</b> (feu, loups, fièvre, orage…) : à toi de choisir ; sans réponse, le choix marqué s'applique. Réglables dans le menu pause.</li>
       <li>🍀 Les champs s'épuisent à force de récoltes et se reposent en <b>jachère</b> : prévois-en un peu plus.</li>
       <li>📦 Les <b>entrepôts</b> et les <b>chemins</b> apparaissent seuls là où on en a besoin.</li>
       <li>👆 Touche un bâtiment, un villageois ou un mouton (mode ✋) pour sa fiche · touche un conseil pour y aller.</li>
@@ -1621,7 +1627,7 @@ function tutoTick(){if(!TUTO.on)return;if(TSTEPS[TUTO.k].ok())tutoNext();}
 function tutoStart(){if(TUTO.done)return;TUTO.on=true;TUTO.k=0;tutoShow();}
 $('tSkip').onclick=()=>tutoEnd();
 // mode photo : masque l'interface, un toucher la fait revenir
-var photo=false;const HUD=['top','bottom','rot','advice','toasts','hint','panel'];
+var photo=false;const HUD=['top','bottom','rot','advice','toasts','hint','panel','evt'];
 $('rPhoto').onclick=e=>{e.stopPropagation();photo=true;for(const id of HUD){const el=$(id);if(el){el.dataset.pd=el.style.display;el.style.display='none';}}
   setTimeout(()=>{const back=()=>{photo=false;for(const id of HUD){const el=$(id);if(el)el.style.display=el.dataset.pd||'';}updateUI();window.removeEventListener('pointerdown',back,true);};window.addEventListener('pointerdown',back,true);},300);};
 /*CHARTE*/
@@ -1645,6 +1651,19 @@ function chronique(an,s0){const s=chSnap(),d=k=>Math.max(0,s[k]-s0[k]),dp=s.pop-
     ${nxt?`<div class="cn">Prochain titre : <b>${nxt.nom}</b> · ${nxt.obj.filter(o=>o.ok).length}/${nxt.obj.length} objectifs<br><span>${nxt.obj.filter(o=>!o.ok).map(o=>o.have+'/'+o.need+' '+o.txt).join(' · ')}</span></div>`:'<div class="cn">La charte de ville franche est acquise : le village est au sommet.</div>'}
     <button id="chOk">Continuer</button>`;
   el.style.display='block';clearTimeout(CH.t);CH.t=setTimeout(()=>{el.style.display='none';},15000);$('chOk').onclick=()=>{el.style.display='none';};}
+
+// ===== Petits événements à décision (décision de Victor 18/11) : carte à deux choix, choix par défaut à la fin du délai =====
+let EVR=1,EVSP=-1;try{const v=localStorage.getItem('hameau_evts');if(v!=null&&!isNaN(+v))EVR=+v;}catch(_){}S.P.evtRate=EVR;
+function evtCard(){let el=$('evt');const v=S.evtView&&S.evtView();
+  if(!v||TK.test||!started||photo){if(el)el.style.display='none';return;}
+  if(!el){el=document.createElement('div');el.id='evt';document.body.appendChild(el);}
+  if(el.dataset.k!==v.k+':'+(S.evtN||0)){el.dataset.k=v.k+':'+(S.evtN||0);
+    el.innerHTML=`<div class="et"><span class="ei">${v.ic}</span><b>${v.titre}</b></div><p>${v.txt}</p><div class="eo">${v.opts.map((o,i)=>`<button data-i="${i}" class="${i===v.def?'def':''}"><b>${o.l}${i===v.def?'<em>(par défaut)</em>':''}</b><span>${o.d}</span></button>`).join('')}</div><div class="eb"><i></i></div><small></small>`;
+    el.querySelectorAll('.eo button').forEach(b=>b.onclick=()=>{if(S.decide(+b.dataset.i)){SFX.tool();evtCard();updateUI();}});}
+  el.style.display='block';el.querySelector('.eb i').style.width=(100*v.reste/v.wait).toFixed(1)+'%';
+  el.querySelector('small').textContent=SPEEDS[speedIdx]===0?`En pause · sans décision : « ${v.opts[v.def].l} »`:`Sans décision dans ~${Math.ceil(v.reste/SPEEDS[speedIdx])} s : « ${v.opts[v.def].l} »`;}
+function syncEvtMenu(){document.querySelectorAll('#pause [data-ev]').forEach(b=>b.classList.toggle('on',+b.dataset.ev===EVR));}
+document.querySelectorAll('#pause [data-ev]').forEach(b=>b.onclick=()=>{if(TK.test)return;EVR=+b.dataset.ev;S.P.evtRate=EVR;try{localStorage.setItem('hameau_evts',String(EVR));}catch(_){}syncEvtMenu();});
 let panelOpen=false;$('pPop').onclick=()=>{panelOpen=!panelOpen;updateUI();};
 const NAMES={food:['🍞','pain'],wood:['🪵','bois'],stone:['🪨','pierre'],tools:['🔧','outils'],fish:['🐟','poisson'],wool:['🧶','laine'],clothes:['🧥','vêtements']};
 for(const [id,k] of [['pFood','food'],['pWood','wood'],['pStone','stone'],['pTools','tools'],['pFish','fish'],['pWool','wool'],['pCloth','clothes']]){const el=$(id);if(!el)continue;el.style.cursor='pointer';
@@ -1656,10 +1675,10 @@ for(const [id,k] of [['pFood','food'],['pWood','wood'],['pStone','stone'],['pToo
 const SND={on:true,vol:0.6};try{const o=JSON.parse(localStorage.getItem('hameau_snd')||'null');if(o)Object.assign(SND,o);}catch(_){}
 function syncPause(){document.querySelectorAll('#pause [data-q]').forEach(b=>b.classList.toggle('on',b.dataset.q===Q));$('mSnd').textContent=SND.on?'Activé':'Coupé';$('mSnd').classList.toggle('on',SND.on);$('mVol').value=Math.round(SND.vol*100);
   $('pStats').textContent=`${CH.rang>0?CHARTE_TITRES[CH.rang].nom+' · ':''}Jour ${Math.floor(S.time/DAY)+1} · ${S.villagers.length} habitant${S.villagers.length>1?'s':''} · ${(n=>n+' bâtiment'+(n>1?'s':''))(S.buildings.filter(b=>b.built).length)}`;}
-$('pMenu').onclick=()=>{started=false;syncPause();$('mHelp').innerHTML=document.querySelector('#overlay ul').innerHTML;$('pause').style.display='flex';};
+$('pMenu').onclick=()=>{started=false;evtCard();syncPause();syncEvtMenu();$('mHelp').innerHTML=document.querySelector('#overlay ul').innerHTML;$('pause').style.display='flex';};
 $('bTest').onclick=()=>lancerTest();
 $('mBug').onclick=async()=>{const b=$('mBug');b.disabled=true;b.textContent='Envoi…';$('pause').style.display='none';await new Promise(r=>setTimeout(r,400));const ok=await TK.signaler();$('pause').style.display='flex';b.disabled=false;b.textContent=ok?'✓ Envoyé à Claude':'Gardé sur cet appareil (hors ligne)';setTimeout(()=>b.textContent='🐞 Signaler un problème à Claude',2500);};
-$('mResume').onclick=()=>{$('pause').style.display='none';started=true;};
+$('mResume').onclick=()=>{$('pause').style.display='none';started=true;evtCard();};
 $('mNew').onclick=()=>{if(!confirm('Commencer une nouvelle carte ? Le village actuel sera perdu.'))return;$('pause').style.display='none';startNew();started=true;save();};
 document.querySelectorAll('#pause [data-q]').forEach(b=>b.onclick=()=>{choisirQ(b.dataset.q);syncPause();});
 $('mSnd').onclick=()=>{SND.on=!SND.on;try{localStorage.setItem('hameau_snd',JSON.stringify(SND));}catch(_){}syncPause();};
@@ -1697,6 +1716,8 @@ S.onEvent=(type,d)=>{
   if(type==='toast'){toast(d);SFX.toast();}
   else if(type==='built'){SFX[d.up?'up':'built']();const w=warp(d.x,d.y);pops.push({x:w[0],y:heightAt(d.x,d.y)+0.1,z:w[1],t:0});}
   else if(type==='fest'||type==='merchant')SFX.fest();
+  else if(type==='event'){EVSP=-1;if(speedIdx===1||speedIdx===2){EVSP=speedIdx;speedIdx=0;}SFX.toast();evtCard();}
+  else if(type==='eventDone'){if(EVSP>0&&speedIdx===0)speedIdx=EVSP;EVSP=-1;evtCard();}
   else if(type==='birth'){SFX.up();const w=warp(d.x,d.y);pops.push({x:w[0],y:heightAt(d.x,d.y)+0.1,z:w[1],t:0});}
   else if(type==='gain')floaters.push({x:d.x,z:d.y,t:0,s:d.items.map(([k,n])=>'+'+n+ICON[k]).join(' ')});
   else if(type==='terrain'){computeTileCols();dirty=true;}
@@ -1717,7 +1738,7 @@ function adviceOld(){
   if(S.noTools)return '🔧 Manque d\'outils : agrandis l\'Atelier ou la Carrière';
   return '';
 }
-function updateUI(){if(typeof photo!=='undefined'&&photo)return;tutoTick();
+function updateUI(){if(typeof photo!=='undefined'&&photo)return;tutoTick();evtCard();
   checkUnlocks();
   const pop=S.villagers.length,cap=S.capacity(),r=S.res;
   $('pPop').innerHTML=`${IC('pop','#bfe39a')}${pop}<small style="opacity:.6">/${cap}</small>`;
@@ -1876,7 +1897,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){cloudT=0;s
   if(v&&typeof v.s==='string'&&v.t>lt+5000&&!started){const ok=S.deserialize(JSON.parse(v.s));if(ok){localStorage.setItem(SAVE_KEY,v.s);localStorage.setItem(SAVE_KEY+'_t',String(v.t));afterWorld();buildFoam();$('bStart').textContent='Reprendre';$('bNew').style.display='block';toast('☁️ Partie récupérée depuis ton autre appareil');}}}catch(_){}})();
 // ===== Mode test (partie à part, jamais sauvegardée) : banc de mesure reproductible =====
 const TEST_SAVE=/*TESTSAVE*/null;
-async function lancerTest(){const Q0=Q;TK.qBanc=Q0;TK.prBanc=null;TK.modeTest();started=false;S.deserialize(TEST_SAVE);afterWorld();buildFoam();$('overlay').style.display='none';started=true;speedIdx=3;TUTO.on=false;$('tuto').style.display='none';
+async function lancerTest(){const Q0=Q;S.P.evtRate=0;TK.qBanc=Q0;TK.prBanc=null;TK.modeTest();started=false;S.deserialize(TEST_SAVE);afterWorld();buildFoam();$('overlay').style.display='none';started=true;speedIdx=3;TUTO.on=false;$('tuto').style.display='none';
   const place=(x,z,d,t)=>async()=>{cam.x=x;cam.z=z;cam.dist=d;cam.pitch=0.92;S.time=t;window.__rain=0;dirty=true;};
   const res=await TK.banc([{nom:'village jour',preparer:place(30,29,22,874)},{nom:'village nuit',preparer:place(30,29,22,893)},{nom:'hiver',preparer:place(30,29,22,300)},
     {nom:'vue large',preparer:place(28,28,60,874)},{nom:'gros plan',preparer:place(33,26,8,874)},{nom:'pluie',preparer:async()=>{await place(30,29,18,874)();window.__rain=1;}},{nom:'lac (reflets)',preparer:place(37,21,11,874)},

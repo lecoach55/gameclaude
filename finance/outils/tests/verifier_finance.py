@@ -194,6 +194,25 @@ def _():
         assert float(cible) == int(cible), f"{nom} : cible non arrondie ({cible})"
 
 
+@controle("la règle d'admission d'une nouvelle valeur est complète")
+def _():
+    a = REGLES["admission_nouvelle_valeur"]
+    assert len(a["conditions"]) == 4, a["conditions"]
+    assert a["plafond_lignes_cto"] == len(CIBLES), \
+        f"plafond {a['plafond_lignes_cto']} mais {len(CIBLES)} lignes cibles"
+    assert a["seuil_portefeuille_euros"] > 0
+    assert a["jamais_pour"], "la liste des faux motifs ne doit pas être vide"
+
+
+@controle("le CTO est déjà au plafond de lignes")
+def _():
+    # Rappel volontaire : tant que c'est vrai, une entrée se fait en remplacement.
+    a = REGLES["admission_nouvelle_valeur"]
+    assert len(CIBLES) == a["plafond_lignes_cto"], \
+        "si ce contrôle casse, c'est qu'une ligne est entrée ou sortie : " \
+        "vérifier que la règle d'admission a été respectée et mettre à jour CORRECTIONS.md"
+
+
 @controle("theses.json est lisible et complet")
 def _():
     t = vl.charger_theses()

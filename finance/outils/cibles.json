@@ -47,6 +47,24 @@
     "composantes": ["WPEA", "S&P 500"]
   },
 
+  "admission_nouvelle_valeur": {
+    "_lire": "Quand une nouvelle ligne peut entrer au CTO. Les QUATRE conditions doivent être réunies, sinon la réponse est non. Règle écrite le 19/11/2026 pour que la question cesse de se décider à l'impression. Une envie d'acheter n'est pas une condition.",
+    "conditions": [
+      "Le socle indiciel a atteint son objectif (voir objectif_socle). Avant, chaque euro a une meilleure destination que la dixième ligne.",
+      "Le portefeuille total atteint 5 000 €. En dessous, une ligne satellite ne peut pas atteindre un poids qui compte sans affamer les autres.",
+      "La ligne comble un manque réel que l'ETF monde ne donne pas déjà de façon significative. C'est la condition la plus souvent fatale : le MSCI World contient déjà presque tout.",
+      "Elle entre EN REMPLACEMENT d'une ligne existante, pas en addition : le CTO est plafonné à 9 lignes."
+    ],
+    "plafond_lignes_cto": 9,
+    "seuil_portefeuille_euros": 5000,
+    "jamais_pour": [
+      "un cours qui a beaucoup baissé",
+      "une actualité, une annonce ou une belle histoire",
+      "le fait qu'une valeur manque alors que l'ETF monde la contient déjà",
+      "l'envie de faire quelque chose un mois où le plan ne demande rien"
+    ]
+  },
+
   "etalon": {
     "_lire": "Étalon de mesure. Sans lui, « je suis à +0 » n'a pas de sens. À relever aux mêmes dates que le portefeuille, dans le point du dimanche.",
     "indice": "MSCI World",

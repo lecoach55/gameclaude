@@ -4,6 +4,25 @@ Ce qui a été changé, pourquoi, et quand. Une erreur de méthode qui n'est pas
 
 ---
 
+## 19/11/2026 — règle d'admission d'une nouvelle valeur
+
+**La question.** « Quand serait-il opportun d'inclure une nouvelle valeur au portefeuille ? » Elle est revenue plusieurs fois, et elle avait reçu à chaque fois une réponse d'appréciation plutôt qu'un critère. C'est exactement le genre de décision qui finit par se prendre sur une envie.
+
+**La règle, écrite dans `outils/cibles.json`.** Quatre conditions, toutes nécessaires :
+
+1. **Le socle indiciel a atteint son objectif de 50 %.** Au 17/11/2026 il est à 23 %. Tant que c'est le cas, chaque euro a une meilleure destination que la dixième ligne.
+2. **Le portefeuille atteint 5 000 €.** En dessous, une satellite ne peut pas atteindre un poids qui compte sans affamer les autres : neuf lignes sur 2 000 €, c'est déjà 200 € par ligne.
+3. **La ligne comble un manque réel que l'ETF monde ne donne pas déjà.** C'est la condition la plus souvent fatale, et la moins intuitive : le MSCI World contient déjà la quasi-totalité de ce qu'on pourrait vouloir ajouter, y compris le luxe européen.
+4. **Elle entre en remplacement, pas en addition.** Le CTO est plafonné à 9 lignes.
+
+**Les faux motifs**, écrits noir sur blanc parce que ce sont eux qui emportent la décision quand il n'y a pas de règle : un cours qui a beaucoup baissé, une actualité ou une belle histoire, une valeur « qui manque » alors que l'ETF la contient déjà, et l'envie de faire quelque chose un mois où le plan ne demande rien.
+
+**Les garde-fous.** Un contrôle vérifie que la règle a bien ses quatre conditions et que le plafond correspond au nombre de lignes cibles. Un second échoue si une ligne entre ou sort du CTO, pour forcer la vérification de la règle et une entrée dans ce journal.
+
+**Conséquence pour le luxe européen.** La surveillance reste ouverte, mais même si son déclencheur se produit, les conditions 1, 2 et 3 ne sont pas réunies — et la condition 3 ne le sera probablement jamais pour LVMH, qui est déjà dans le MSCI World. Le socle indiciel est, en pratique, la façon dont ce portefeuille achète le luxe.
+
+---
+
 ## 17/11/2026 — révision après un portefeuille à +0
 
 **Contexte.** Victor constate qu'il est à +0 après environ un an. Audit de tout ce qui avait été conseillé. Le +0 lui-même s'explique arithmétiquement (un quart du portefeuille versé 48 h avant une baisse de marché de 1,6 %, plus NVIDIA en recul) et n'est pas un échec de stratégie : sur douze mois, un portefeuille d'actions diversifié a environ une chance sur trois de finir plat. Mais l'audit a révélé quatre vraies erreurs de méthode.

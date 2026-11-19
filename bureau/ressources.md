@@ -83,3 +83,10 @@ Une ligne ici (besoin, référence, où), et si l'outil sert à plusieurs jeux, 
 - Accessible seulement depuis une conversation reliée au Mac, quand l'app Claude et Blender sont ouverts (une tâche planifiée dans le cloud ne le voit pas, sauf si elle exige l'ordinateur).
 - Lenteur : un rendu Eevee peut dépasser le délai de 80 s de l'outil (premier rendu = compilation des shaders) ; lancer le rendu, puis relire l'image avec `look(image=chemin)`.
 - Usages prévus : préparer des modèles et des rendus pour les jeux (personnage CC0 de Cage & Gloire, décors), exporter en GLB.
+
+## Blender dans le cloud (depuis le 19/11/2026) — à préférer au Mac
+`sh outils-communs/blender/installer.sh` installe Blender 5.0 (module Python `bpy`, PyPI) dans `/home/claude/bpyenv` en ≈ 1 min.
+Rendu Cycles sur processeur : figurine 512 px, 64 échantillons, débruitée ≈ 10 s. EEVEE ne marche pas (pas d'écran), utiliser Cycles.
+- `outils-communs/blender/rendu_studio.py modele.glb sortie.png [taille] [échantillons] [angle]` : rendu studio (lumière clé chaude + contre-jour froid, ombre de contact, fond transparent).
+- Usages : pré-rendus façon Heroes III (créatures, bâtiments, portraits), cuisson d'occlusion ambiante et d'éclairage dans les textures, nettoyage/décimation/réexport GLB pour Three.js.
+- Sources CC0 joignables depuis le cloud : GitHub (raw), Poly Haven (modèles, HDRI, textures). Le Blender du Mac reste pour regarder une scène avec Victor, pas pour calculer.

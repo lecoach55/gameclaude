@@ -23,7 +23,7 @@ function majVille(){const v=VI.v,p=G.joueurs[v.prop];const h=herosVille();
  $('vTaverne').disabled=!v.bat.taverne;$('vMarche').disabled=!v.bat.marche;$('vGuilde').disabled=!v.bat.guilde1;
  setTimeout(redimVille,0);}
 function brancherVille(){const cv=$('cvVille');
- const zoneSous=e=>{if(!VI||!VI.pano)return null;const r=cv.getBoundingClientRect();const x=(e.clientX-r.left)*VI.dpr,y=(e.clientY-r.top)*VI.dpr;let best=null;for(const z of VI.pano.zones)if(x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h&&(!best||z.y>best.y))best=z;return best;};
+ const zoneSous=e=>{if(!VI||!VI.pano)return null;const r=cv.getBoundingClientRect();const x=(e.clientX-r.left)*VI.dpr,y=(e.clientY-r.top)*VI.dpr;const I=VI.pano.ids;if(I){const k=I.a[Math.min(I.H-1,Math.max(0,Math.round(y)))*I.W+Math.min(I.W-1,Math.max(0,Math.round(x)))];if(k){const z=VI.pano.zones.find(z=>z.b===I.bs[k-1]);if(z)return z;}}let best=null;for(const z of VI.pano.zones)if(x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h&&(!best||z.y>best.y))best=z;return best;};
  cv.addEventListener('pointermove',e=>{if(!VI)return;VI.survol=zoneSous(e);});
  cv.addEventListener('pointerup',e=>{if(!VI)return;const z=zoneSous(e);if(z){SON.clic();clicBatiment(z.b);}});
  $('vQuitter').onclick=()=>{SON.clic();VI&&VI.fermer();};

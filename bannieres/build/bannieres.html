@@ -6401,14 +6401,22 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const P=v.fac==='sylve'?PM2:v.fac==='horde'?PB:PM;
  const ordre=Object.keys(PANO).filter(b=>v.bat[b]).filter(b=>!(b==='conseil'&&(v.bat.mairie))&&!(b==='mairie'&&v.bat.hotelville)&&!(b==='hotelville'&&v.bat.capitole)&&!(b==='fort'&&v.bat.citadelle)&&!(b==='citadelle'&&v.bat.chateau)&&!(b==='guilde1'&&v.bat.guilde2)&&!(b==='guilde2'&&v.bat.guilde3));
  const objs=[],texV=[],matV=[];const GCRV=new T.PlaneGeometry(1,1).translate(0,.396,0);for(const b of ordre){const z=ZV[b]??0;const fx=PANO[b][0];const L=vis(z);const u=(b==='fort'||b==='citadelle'||b==='chateau')?Math.min(26,L*.62):Math.min(UV[b]||2.4,PANO[b][2]*L*1.05);
-  const gr=fusionner(batiment3D(b,v,u,P,nuit));gr.position.set((fx-.5)*L*.94,0,z);if(b.startsWith('hab')||b==='taverne'||b==='marche'||b==='silo')gr.rotation.y=-(fx-.5)*.5;gr.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(gr);gr.updateMatrixWorld(true);gr.traverse(o=>{if(o.userData.face){const pq=o.parent.getWorldQuaternion(new T.Quaternion()).invert();o.quaternion.copy(pq.multiply(cam.quaternion));}});objs.push([b,gr,u]);
+  const gr=fusionner(batiment3D(b,v,u,P,nuit));gr.position.set((fx-.5)*L*.94,0,z);if(b.startsWith('hab')||b==='taverne'||b==='marche'||b==='silo')gr.rotation.y=-(fx-.5)*.5;gr.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(gr);gr.updateMatrixWorld(true);gr.traverse(o=>{if(o.userData.face){const pq=o.parent.getWorldQuaternion(new T.Quaternion()).invert();o.quaternion.copy(pq.multiply(cam.quaternion));}});gr.traverse(o=>{o.userData.bidx=objs.length;});objs.push([b,gr,u]);
   // créature devant son habitation (19/11) : panneau posé au sol dans la scène 3D (cachée par les bâtiments placés devant, au lieu de flotter par-dessus)
   if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const Sw=u*1.25;
    const tx=new T.CanvasTexture(spriteCreature(cre,256));tx.colorSpace=T.SRGBColorSpace;texV.push(tx);const mc=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xa8a8c0:0xf4f0ea});matV.push(mc);
-   const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);pc.position.set(gr.position.x+u*.42*(gr.position.x>0?-1:1),.03,gr.position.z+u*1.0);pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;sc.add(pc);}}
+   const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);pc.position.set(gr.position.x+u*.42*(gr.position.x>0?-1:1),.03,gr.position.z+u*1.0);pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;pc.userData.bidx=objs.length-1;{const sv=mkC(256,256),sg=sv.getContext('2d');sg.drawImage(spriteCreature(cre,256),0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,256,256);const st=new T.CanvasTexture(sv);texV.push(st);pc.userData.sil=st;}sc.add(pc);}}
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure;
  const mIb=MPI.bm,cIb=mIb&&mIb.color.getHex();if(mIb&&nuit)mIb.color.setRGB(.42,.44,.6);R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);if(mIb)mIb.color.setHex(cIb);
  const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);
+ // passe d'identifiants (19/11) : chaque bâtiment et sa créature dans une couleur unique, cachés par ce qui est devant → le clic ouvre exactement ce qu'on voit
+ let ids=null;try{const noir=new T.MeshBasicMaterial({color:0,toneMapped:false,fog:false});const tmpM=[noir],sauv=[];const parK=new Map();
+  const coulK=k=>new T.Color().setRGB((k+1)*10/255,200/255,0,T.SRGBColorSpace);
+  sc.traverse(o=>{if(!o.isMesh)return;const k=o.userData.bidx;let m=noir;if(k!==undefined){if(o.userData.sil){m=new T.MeshBasicMaterial({map:o.userData.sil,alphaTest:.5,toneMapped:false,fog:false,color:coulK(k)});tmpM.push(m);}else{m=parK.get(k);if(!m){m=new T.MeshBasicMaterial({color:coulK(k),toneMapped:false,fog:false,side:T.DoubleSide});parK.set(k,m);tmpM.push(m);}}}sauv.push([o,o.material]);o.material=m;});
+  const bg0=sc.background,fg0=sc.fog,tm0=R0.toneMapping,sh0=R0.shadowMap.enabled;sc.background=new T.Color(0);sc.fog=null;R0.toneMapping=T.NoToneMapping;R0.shadowMap.enabled=false;R0.render(sc,cam);
+  const ci=mkC(W,H),cx2=ci.getContext('2d',{willReadFrequently:true});cx2.drawImage(R0.domElement,0,0);const d=cx2.getImageData(0,0,W,H).data;const a=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++){const g=d[i*4+1];if(g<194||g>206||d[i*4+2]>12)continue;const k=Math.round(d[i*4]/10)-1;if(k>=0&&k<objs.length&&Math.abs(d[i*4]-(k+1)*10)<=3)a[i]=k+1;}
+  for(const [o,m] of sauv)o.material=m;sc.background=bg0;sc.fog=fg0;R0.toneMapping=tm0;R0.shadowMap.enabled=sh0;tmpM.forEach(m=>m.dispose());ids={W,H,a,bs:objs.map(o=>o[0])};}catch(e){console.warn('pano ids',e);}
  R0.toneMappingExposure=exp0;R0.setPixelRatio(dpr0);R0.setSize(sz.x,sz.y,false);U.fog.value=fog0;U.N.value=n0;
  // zones cliquables + créatures devant leurs habitations (dessinées, comme sur la carte)
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};
@@ -6419,7 +6427,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  // drapeaux animés en 2D au sommet du château
  const drap=[];const fort=objs.find(o=>o[0]==='fort'||o[0]==='citadelle'||o[0]==='chateau');if(fort){const [b,gr,u]=fort;bb.setFromObject(gr);const [dx,dy]=pr(gr.position.x,bb.max.y,gr.position.z-1.6);drap.push([dx,Math.max(H*.12,dy)]);}
  sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});{const mi=Object.values(MPI);sc.traverse(o=>{if(o.isMesh&&mi.includes(o.material))o.geometry.dispose();});}GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
- return{c,zones,drap};};
+ return{c,zones,drap,ids};};
 return A;})();
 R3.stats=()=>{const o={};const sc=R3._scene&&R3._scene();if(!sc)return o;sc.traverse(m=>{if(!m.isMesh)return;const g=m.geometry;const t=(g.index?g.index.count:g.attributes.position.count)/3*(m.isInstancedMesh?m.count:1);const k=m.isInstancedMesh?'inst':m.name||(m.parent&&m.parent.type)||'?';o[k]=(o[k]||0)+t;});return o;};
 
@@ -6639,7 +6647,7 @@ function majVille(){const v=VI.v,p=G.joueurs[v.prop];const h=herosVille();
  $('vTaverne').disabled=!v.bat.taverne;$('vMarche').disabled=!v.bat.marche;$('vGuilde').disabled=!v.bat.guilde1;
  setTimeout(redimVille,0);}
 function brancherVille(){const cv=$('cvVille');
- const zoneSous=e=>{if(!VI||!VI.pano)return null;const r=cv.getBoundingClientRect();const x=(e.clientX-r.left)*VI.dpr,y=(e.clientY-r.top)*VI.dpr;let best=null;for(const z of VI.pano.zones)if(x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h&&(!best||z.y>best.y))best=z;return best;};
+ const zoneSous=e=>{if(!VI||!VI.pano)return null;const r=cv.getBoundingClientRect();const x=(e.clientX-r.left)*VI.dpr,y=(e.clientY-r.top)*VI.dpr;const I=VI.pano.ids;if(I){const k=I.a[Math.min(I.H-1,Math.max(0,Math.round(y)))*I.W+Math.min(I.W-1,Math.max(0,Math.round(x)))];if(k){const z=VI.pano.zones.find(z=>z.b===I.bs[k-1]);if(z)return z;}}let best=null;for(const z of VI.pano.zones)if(x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h&&(!best||z.y>best.y))best=z;return best;};
  cv.addEventListener('pointermove',e=>{if(!VI)return;VI.survol=zoneSous(e);});
  cv.addEventListener('pointerup',e=>{if(!VI)return;const z=zoneSous(e);if(z){SON.clic();clicBatiment(z.b);}});
  $('vQuitter').onclick=()=>{SON.clic();VI&&VI.fermer();};

@@ -35,5 +35,22 @@
  "pause": [
   60,
   600
+ ],
+ "visiter": [
+  {
+   "nom": "combat 3D",
+   "si": "!!document.querySelector('#arene:not(.cache), #combat:not(.cache)')",
+   "aller": [
+    {
+     "js": "for(let w=0;w<40;w++){if(G.aJouer&&G.aJouer.length)break;Moteur.avancer();if(G.popup)Moteur.choisir(0);for(const o of [...G.offres])if(o.type==='combat')Moteur.accepterCombat(o.id);}rendre();if(G.aJouer.length)preCombat(G.aJouer[0]);"
+    },
+    {
+     "attendre": 300
+    },
+    "#bVoir"
+   ],
+   "apres": 30,
+   "encore": true
+  }
  ]
 }

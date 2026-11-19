@@ -54,6 +54,19 @@ Réglages (JSON, chemins relatifs au fichier de réglages) — seul « fichier �
                                       Three.js du CDN l'est toujours par défaut ; "routes": false pour couper
   "ordinateur": "1280x800", "telephone": "390x844"   formats d'écran
   "images": 2                         mode économe (3D lourde) : 2 images jouées après chaque action, temps figé entre deux
+  "visiter": [{"nom": "combat 3D", "si": "!document.getElementById('arene').classList.contains('cache')",
+               "aller": [{"js": "…"}, "#bVoir"], "apres": 40, "encore": false, "essais": 3, "delai": 20, "obligatoire": true}]
+                                      ÉTATS À ATTEINDRE (19/11, retour Cage : 1300 clics sans jamais entrer dans le combat 3D, sans que
+                                      rien ne le dise) : à chaque action le singe note s'il est dans l'état « si » (actions, secondes,
+                                      entrées, erreurs survenues dedans) ; s'il n'y est jamais allé après « apres » actions (défaut 40,
+                                      ou --actions/3), il y va par les étapes « aller » (temps réel le temps d'y aller ; « encore » :
+                                      y retourner chaque fois qu'il en est sorti depuis « apres » actions ; « essais » = forçages
+                                      ratés tolérés), puis continue au hasard. Les attentes du forçage sont bornées par --secondes.
+                                      Un état « obligatoire » (défaut) jamais atteint compte comme un échec (code 1), sauf si le run
+                                      a été trop court pour tenter d'y aller (avertissement). NB : « aller » qui fait avancer le jeu par
+                                      son moteur fausse la progression « etat » mesurée (le rapport le dit : forçages listés).
+Délais (19/11) : l'entrée, « pret » et les étapes « aller » attendent selon la charge de la machine (patience.py : 60 s × facteur
+  de charge, relu à l'échéance) — plus d'échec « pret » quand d'autres conversations chargent la machine.
 """
 import asyncio, json, os, random, re, sys, time
 from collections import Counter, defaultdict
@@ -64,6 +77,7 @@ HORLOGE = os.path.join(os.path.dirname(ICI), 'horloge.js')
 from atelier import serveur, ARGS  # noqa: E402
 from routes import brancher as brancher_routes, resume as resume_routes  # noqa: E402
 import verrou  # noqa: E402
+import patience  # noqa: E402
 from playwright.async_api import async_playwright  # noqa: E402
 from appareils import un_format, contexte, connus  # noqa: E402
 
@@ -134,10 +148,11 @@ async def faire(pg, pas, delai=20):
 
 
 async def entrer(pg, etapes, pret, delai=60):
+    """Étapes d'entrée puis condition « pret » ; délais adaptés à la charge de la machine (patience.py : 60 s × facteur)."""
     for pas in etapes or []:
-        await faire(pg, pas, delai=min(20, delai)); await pg.wait_for_timeout(150)
+        await faire(pg, pas, delai=patience.delai(min(20, delai))); await pg.wait_for_timeout(150)
     if pret:
-        await pg.wait_for_function(f"()=>{{try{{return !!({pret})}}catch(e){{return false}}}}", timeout=delai * 1000, polling=200)
+        await patience.attendre(pg, pret, delai, quoi='pret')
 
 
 async def val(pg, expr, defaut=None):
@@ -207,6 +222,41 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
     expr_ec = f"()=>{{try{{return String({R['ecran']})}}catch(e){{return '?'}}}}" if R.get('ecran') else "()=>window.__sonde?__sonde.ecran():'?'"
     offerts, deja, par_ecran = defaultdict(set), Counter(), Counter()   # couverture : boutons vus / touchés par écran
     ec = '?'; lentes = []; inatteignables = set()
+    # « visiter » : états à atteindre (combat 3D, siège, boutique…), comptés à chaque action et forcés par « aller » s'ils tardent
+    for v in (R.get('visiter') or []):
+        if not v.get('si'): raise SystemExit(f"réglage « visiter » : « si » manquant dans {v}")
+    VIS = [dict(v, nom=str(v.get('nom') or v['si'])[:40]) for v in (R.get('visiter') or [])]
+    for v in VIS:
+        v.update(_actions=0, _s=0.0, _entrees=0, _premiere=None, _dans=False, _forces=[], _erreurs=0, _dernier=0)
+    expr_vis = "()=>[" + ",".join(f"(()=>{{try{{return !!({v['si']})}}catch(e){{return false}}}})()" for v in VIS) + "]"
+    apres_def = max(5, max_actions // 3) if max_actions else 40
+    async def visites():
+        if not VIS: return []
+        try: return await pg.evaluate(expr_vis)
+        except Exception: return [False] * len(VIS)
+    def reste():
+        return secondes - (time.time() - t0)
+    async def forcer(v):
+        """Mène le jeu dans l'état v par ses étapes « aller » (temps réel le temps d'y aller), puis attend « si ».
+        Chaque attente est bornée par le temps restant du singe (--secondes) : un forçage qui échoue ne fait pas déborder le run."""
+        await temps_reel(True)
+        try:
+            for pas in v.get('aller', []):
+                await faire(pg, pas, delai=max(2, min(patience.delai(10), reste()))); await pg.wait_for_timeout(100)
+            await patience.attendre(pg, v['si'], max(2, min(float(v.get('delai', 20)), reste() / max(1, patience.facteur()))), quoi=v['nom'])
+            v['_forces'].append(f'action {n} : oui')
+            v['_entrees'] += 1; v['_dans'] = True
+            if v['_premiere'] is None: v['_premiere'] = n
+        except Exception as e:
+            v['_forces'].append(f'action {n} : échec ({str(e)[:120]})')
+        finally:
+            await temps_reel(False)
+        v['_dernier'] = n; journal.append('visiter ' + v['nom'])
+    for v in VIS:                                   # une expression « si » fautive est une erreur de réglage, pas « jamais atteinte »
+        try: await pg.evaluate(f"()=>!!({v['si']})")
+        except Exception as e:
+            if 'SyntaxError' in str(e) or 'Unexpected' in str(e): raise SystemExit(f"réglage « visiter » {v['nom']} : « si » illisible ({str(e)[:120]})")
+    dans_avant = []
     t0 = time.time()
     while time.time() - t0 < secondes and (not max_actions or n < max_actions):
         try:
@@ -218,6 +268,18 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
                     await temps_reel(False)
                     blocages.append({'quoi': 'relance impossible : ' + str(e)[:100], 'ecran': await val(pg, '__sonde.ecran()'), 'apres': list(journal), 'capture': ''})
                     if len(blocages) >= 5: break
+            if VIS:
+                dans_avant = await visites()
+                for v, oui in zip(VIS, dans_avant):
+                    if oui and not v['_dans']:
+                        v['_entrees'] += 1
+                        if v['_premiere'] is None: v['_premiere'] = n
+                    v['_dans'] = oui
+                    if oui: v['_dernier'] = n
+                    elif v.get('aller') and n - v['_dernier'] >= int(v.get('apres', apres_def)) and (v['_entrees'] == 0 or v.get('encore')) \
+                            and sum('échec' in x for x in v['_forces']) < int(v.get('essais', 3)) and reste() > 10:
+                        await forcer(v)
+                        dans_avant = await visites()                   # l'action qui suit compte dans l'état atteint
             av = await pg.evaluate(expr_emp)
             tout = await pg.evaluate("(o)=>__sonde.cibles(o)", {'sel': R.get('selecteur'), 'eviter': eviter, 'loin': True})
             c = [x for x in tout if not x['loin']]; loin = [x for x in tout if x['loin']]
@@ -317,6 +379,8 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
         except Exception:
             ap = None
         dt = time.time() - t_a - attente / 1000       # durée de l'action + relevés, sans la pause voulue
+        for v, oui in zip(VIS, dans_avant):
+            if oui: v['_actions'] += 1; v['_s'] += time.time() - t_a
         if action and dt > 0.4: lentes.append((round(dt * 1000), f'{ec} › {action}'))
         if ap is not None and ap == av:
             figees += 1
@@ -331,6 +395,10 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
                     try: await pg.screenshot(path=os.path.join(sortie, vues[cle]['capture']))
                     except Exception: pass
                 vues[cle]['fois'] += 1
+                for v, oui in zip(VIS, dans_avant):
+                    if oui:
+                        v['_erreurs'] += 1; vues[cle].setdefault('dans', [])
+                        if v['nom'] not in vues[cle]['dans']: vues[cle]['dans'].append(v['nom'])
             n_err = len(erreurs)
         if vides >= 30 or figees >= seuil_bloc:
             quoi = 'plus rien de cliquable' if vides >= 30 else f'{figees} actions sans aucun changement'
@@ -360,6 +428,11 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
     vus_n = sum(len(v) for v in offerts.values())
     touches_n = sum(1 for e, v in offerts.items() for b in v if deja[(e, b)])
     jamais = [f'{e} › {b}' for e, v in sorted(offerts.items(), key=lambda kv: -par_ecran[kv[0]]) for b in sorted(v) if not deja[(e, b)]]
+    visites_r = {v['nom']: {'vu': v['_entrees'] > 0, 'entrees': v['_entrees'], 'actions': v['_actions'], 'secondes': round(v['_s'], 1),
+                            'premiere_action': v['_premiere'], 'forcages': v['_forces'], 'erreurs': v['_erreurs'],
+                            'obligatoire': v.get('obligatoire', True) is not False,
+                            # jamais atteint SANS avoir pu essayer d'y aller (run trop court : moins de « apres » actions) = avertissement
+                            'non_tente': bool(v.get('aller')) and not v['_forces'] and v['_entrees'] == 0} for v in VIS}
     couverture = {'mode': 'explorateur' if couvrir else 'hasard', 'ecrans': len(offerts), 'boutons_vus': vus_n, 'boutons_touches': touches_n,
                   'pct': round(100 * touches_n / max(1, vus_n)), 'inatteignables': len(inatteignables),
                   'debordements_plafond': len(ecrans) >= 60, 'par_ecran': dict(par_ecran.most_common(30)), 'jamais_touches': jamais[:40]}
@@ -370,7 +443,7 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
             'boutons_jamais_efficaces': [f'{b} ({k}×)' for b, k in morts[:10]], 'couverture': couverture,
             'actions_lentes': [f'{ms} ms : {a}' for ms, a in sorted(lentes, reverse=True)[:8]],
             'plus_touches': touches_bouton.most_common(10), 'ecran': APPAREILS[nom]['viewport'],
-            'routes': {'servis': jr['servis'], 'manquants': jr['manquants'][:10]}}
+            'routes': {'servis': jr['servis'], 'manquants': jr['manquants'][:10]}, 'visites': visites_r}
 
 
 def format_ecran(t):
@@ -403,13 +476,18 @@ async def principal():
     json.dump(rap, open(os.path.join(sortie, 'singe.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     grave = 0
     for r in res:
-        g = len(r['erreurs']) + len(r['blocages']) + len(r['invariants']) + len(r['routes']['manquants']); grave += g
+        manques = [k for k, v in r['visites'].items() if v['obligatoire'] and not v['vu'] and not v.get('non_tente')]
+        g = len(r['erreurs']) + len(r['blocages']) + len(r['invariants']) + len(r['routes']['manquants']) + len(manques); grave += g
         print(f"{'ÉCHEC' if g else 'OK   '} {R['jeu']} · {r['appareil']} : {r['actions']} actions en {r['secondes']} s, {r['boutons_distincts']} boutons, "
               f"{r['ecrans_vus']} écrans · état {r['etat_debut']} → {r['etat_fin']} · {len(r['erreurs'])} erreur(s), {len(r['blocages'])} blocage(s), "
               f"{len(r['invariants'])} invariant(s) · clics sans effet {r['sans_effet_pct']} %")
         if r['routes']['servis'] or r['routes']['manquants']:
             print(f"   {resume_routes(dict(r['routes'], vides=0, refuses=0))}")
-        for e in r['erreurs'][:5]: print(f"   erreur ×{e['fois']} : {e['erreur'][:160]}  (après : {' → '.join(x for x in e['apres'][-3:] if x)}) [{e['capture']}]")
+        for e in r['erreurs'][:5]: print(f"   erreur ×{e['fois']} : {e['erreur'][:160]}  (après : {' → '.join(x for x in e['apres'][-3:] if x)}){' dans ' + ', '.join(e['dans']) if e.get('dans') else ''} [{e['capture']}]")
+        for k, v in r['visites'].items():
+            f = (' ; forcé : ' + ', '.join(v['forcages'])) if v['forcages'] else ''
+            print(f"   visite « {k} » : " + (f"✓ {v['entrees']} fois, {v['actions']} actions, {v['secondes']} s (dès l'action {v['premiere_action']}), {v['erreurs']} erreur(s){f}"
+                                         if v['vu'] else f"✗ jamais atteinte{' — forçage non tenté (moins de « apres » actions) : avertissement' if v.get('non_tente') else ' (obligatoire)' if v['obligatoire'] else ''}{f}"))
         for b in r['blocages'][:3]: print(f"   blocage : {b['quoi']} sur « {b['ecran']} » ; sous le doigt : {b['sous_le_doigt']} [{b['capture']}]")
         for x in r['sorties_du_jeu'][:3]: print(f'   sorti du jeu vers {x}')
         for k, v in list(r['invariants'].items())[:3]: print(f'   invariant ×{v} : {k}')

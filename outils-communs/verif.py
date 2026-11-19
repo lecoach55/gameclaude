@@ -228,6 +228,12 @@ def chiffres_singe(d):
             detail.append(f"{r.get('appareil')} invariant ×{v} : {k}")
         for k, v in list((r.get('debordements') or {}).items())[:3]:
             detail.append(f"{r.get('appareil')} coupé sur « {k} » : {v}")
+        for k, v in (r.get('visites') or {}).items():      # états à atteindre (« visiter », 19/11)
+            if v.get('vu'):
+                morceaux.append(f"{r.get('appareil')} « {k} » {v.get('actions')} actions")
+            else:
+                detail.append(f"{r.get('appareil')} « {k} » jamais atteint" + (' (forçage non tenté : run trop court)' if v.get('non_tente') else '')
+                              + (' ; forcé : ' + ', '.join(v.get('forcages') or []) if v.get('forcages') else ''))
     caps = sorted(os.path.join(d, f) for f in os.listdir(d) if f.endswith('_fin.png')) if os.path.isdir(d) else []
     return ' · '.join(morceaux), detail, caps
 

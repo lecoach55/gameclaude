@@ -1282,11 +1282,14 @@ def _():
             if r.returncode:
                 raise RuntimeError(f'banc --avant {rev} : code {r.returncode} ' + (r.stderr or r.stdout)[-300:])
             o = json.load(open(so))
-            verdicts[rev] = (o['ecarts'][0]['verdict'], o['avant_rev'], r.stdout)
+            verdicts[rev] = (o['ecarts'][0]['verdict'], o['avant_rev'], r.stdout, float(o['ecarts'][0].get('ecart_pct') or 0))
         if verdicts['arrivee'][0] != 'plus lent' or not verdicts['arrivee'][1].startswith('arrivee ' + arr[:7]):
             raise RuntimeError(f"arrivee : {verdicts['arrivee'][:2]} " + verdicts['arrivee'][2][-300:])
-        if verdicts['HEAD'][0] == 'plus lent' or "touchent déjà jeu/" not in verdicts['HEAD'][2]:
-            raise RuntimeError(f"HEAD : {verdicts['HEAD'][:2]} (avertissement attendu) " + verdicts['HEAD'][2][-300:])
+        # AVANT = APRÈS avec HEAD : sous charge (autres conversations), le bruit peut dépasser le seuil (retour du 19/11 : « plus lent »
+        # une fois sur 3). Le vrai ralentissement vaut +180-230 % : on n'échoue que si HEAD voit plus de la moitié de celui d'arrivee.
+        e_h, e_a = verdicts['HEAD'][3], verdicts['arrivee'][3]
+        if (verdicts['HEAD'][0] == 'plus lent' and e_h > max(60, e_a / 2)) or "touchent déjà jeu/" not in verdicts['HEAD'][2]:
+            raise RuntimeError(f"HEAD : {verdicts['HEAD'][:2]} {e_h:+.0f} % contre {e_a:+.0f} % (avertissement attendu) " + verdicts['HEAD'][2][-300:])
 
 
 POLICES_FACTICE = """<!doctype html><html><head><meta charset="utf-8">
@@ -1434,6 +1437,101 @@ def _():
         e = json.load(open(os.path.join(d, 'v', 'verif.json')))['etapes'][0]
         if r.returncode or e['statut'] != 'ok' or '@media 1' not in e['chiffres'] or not e.get('images'):
             raise RuntimeError(f"verif apercu : code {r.returncode} {e}")
+
+VISITE_JEU = """<!doctype html><meta charset=utf-8><body style="font:16px sans-serif">
+<div id=menu><button onclick="jour++;this.textContent='+1 jour ('+jour+')'">+1 jour</button>
+<button onclick="document.getElementById('bq').hidden=false;document.getElementById('menu').hidden=true">Boutique</button></div>
+<div id=bq hidden><p>Boutique</p><button onclick="document.getElementById('bq').hidden=true;document.getElementById('menu').hidden=false">Retour</button></div>
+<div id=arene hidden><p>Arène</p>""" + ''.join(f'<button onclick="if(window.CASSE)null.x;coups++">Coup {c}</button>' for c in 'ABCD') + """
+<button onclick="document.getElementById('arene').hidden=true;document.getElementById('menu').hidden=false">Quitter</button></div>
+<script>var jour=0,coups=0;function ouvrirArene(){document.getElementById('menu').hidden=true;document.getElementById('bq').hidden=true;document.getElementById('arene').hidden=false}</script>"""
+
+
+@controle("robots/singe.py « visiter » : état sans bouton (arène) forcé par « aller » puis compté (actions, secondes, erreurs survenues dedans), état atteint au hasard (boutique) sans forçage, état obligatoire jamais vu = échec (code 1), facultatif ou run trop court pour le forcer = signalé sans échec, « si » manquant refusé ; « encore » y retourne ; délai « pret » qui suit la charge (patience)")
+def _():
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, 'index.html'), 'w', encoding='utf-8').write(VISITE_JEU)
+        ar = {'nom': 'arène', 'si': "!document.getElementById('arene').hidden", 'aller': [{'js': 'ouvrirArene()'}], 'apres': 8, 'encore': True, 'essais': 5}
+        bq = {'nom': 'boutique', 'si': "!document.getElementById('bq').hidden"}
+        base = {'fichier': 'index.html', 'etat': 'jour', 'pause': [10, 30], 'hasard': 0, 'glisser': 0}
+        json.dump(dict(base, init='window.CASSE=1', visiter=[ar, bq, {'nom': 'coffre', 'si': 'window.coffre'}]), open(os.path.join(d, 's1.json'), 'w'))
+        out = run(sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 's1.json'), '--actions', '60', '--secondes', '60',
+                  '--appareils', 'ordinateur', '--sortie', os.path.join(d, 'o1'), '--sans-verrou', attendu=1, timeout=120)
+        a = json.load(open(os.path.join(d, 'o1', 'singe.json')))['appareils'][0]; v = a['visites']
+        pb = []
+        if not (v['arène']['vu'] and v['arène']['actions'] >= 2 and v['arène']['secondes'] >= 0 and v['arène']['forcages'][:1] == ['action 8 : oui']):
+            pb.append(f"arène {v['arène']}")
+        if not (v['boutique']['vu'] and not v['boutique']['forcages']): pb.append(f"boutique {v['boutique']}")
+        if v['coffre']['vu'] or not v['coffre']['obligatoire'] or 'coffre » : ✗ jamais atteinte (obligatoire)' not in out: pb.append(f"coffre {v['coffre']}")
+        if not any(e.get('dans') == ['arène'] for e in a['erreurs']) or v['arène']['erreurs'] < 1: pb.append(f"erreur dans l'arène non attribuée {a['erreurs'][:1]}")
+        if pb: raise RuntimeError('; '.join(pb) + ' ; ' + out[-300:])
+        # sans erreur, coffre facultatif, « encore » : code 0, l'arène revue après en être sortie, « pret » attendu (1,5 s) par patience
+        json.dump(dict(base, entree=[{'js': 'setTimeout(()=>window.ok=1,1500)'}], pret='window.ok',
+                       visiter=[dict(ar, apres=6), {'nom': 'coffre', 'si': 'window.coffre', 'obligatoire': False}]), open(os.path.join(d, 's2.json'), 'w'))
+        r = subprocess.run([sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 's2.json'), '--actions', '60', '--secondes', '60',
+                            '--appareils', 'ordinateur', '--sortie', os.path.join(d, 'o2'), '--sans-verrou'], capture_output=True, text=True, timeout=120,
+                           cwd=RAC, env=dict(os.environ, PATIENCE='1'))
+        a = json.load(open(os.path.join(d, 'o2', 'singe.json')))['appareils'][0] if os.path.exists(os.path.join(d, 'o2', 'singe.json')) else {}
+        v = a.get('visites', {})
+        if r.returncode or v.get('coffre', {}).get('vu') is not False or 'jamais atteinte' not in r.stdout or v['arène']['entrees'] < 2 \
+                or 'obligatoire)' in r.stdout:
+            raise RuntimeError(f"code {r.returncode} {v} " + (r.stdout + r.stderr)[-300:])
+        # run trop court pour tenter le forçage (10 actions < apres 50) : avertissement, pas d'échec ; « si » manquant = erreur de réglage
+        json.dump(dict(base, visiter=[dict(ar, apres=50)]), open(os.path.join(d, 's3.json'), 'w'))
+        out = run(sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 's3.json'), '--actions', '10', '--appareils', 'ordinateur',
+                  '--sortie', os.path.join(d, 'o3'), '--sans-verrou', timeout=90)
+        if 'forçage non tenté' not in out: raise RuntimeError('run court : ' + out[-300:])
+        json.dump(dict(base, visiter=[{'nom': 'x'}]), open(os.path.join(d, 's4.json'), 'w'))
+        r = subprocess.run([sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 's4.json'), '--actions', '3', '--sans-verrou'],
+                           capture_output=True, text=True, timeout=60, cwd=RAC)
+        if r.returncode == 0 or '« si » manquant' not in r.stdout + r.stderr: raise RuntimeError('si manquant : ' + (r.stdout + r.stderr)[-200:])
+
+
+@controle("patience.py : facteur = charge ÷ cœurs (1 à 6) × PATIENCE, délai adapté, attendre() réussit sous charge là où la base seule échoue, échéance reculée si la charge monte pendant l'attente, message d'échec qui dit base/charge/attendu ; ligne de commande")
+def _():
+    sys.path.insert(0, OC)
+    import patience as P
+    from playwright.sync_api import sync_playwright
+    vrai, env = P.charge, os.environ.get('PATIENCE')
+    try:
+        os.environ.pop('PATIENCE', None)
+        P.charge = lambda: (0.3, 2)
+        if P.facteur() != 1 or P.delai(60) != 60: raise RuntimeError(f'machine calme : {P.facteur()}')
+        P.charge = lambda: (5.0, 2)
+        if P.facteur() != 2.5 or P.delai(60) != 150: raise RuntimeError(f'charge 5/2 : {P.facteur()}')
+        P.charge = lambda: (80.0, 2)
+        if P.facteur() != 6: raise RuntimeError('plafond')
+        os.environ['PATIENCE'] = '2'; P.charge = lambda: (0.0, 2)
+        if P.facteur() != 2: raise RuntimeError('PATIENCE=2')
+        os.environ.pop('PATIENCE')
+        with sync_playwright() as p:
+            nav = p.chromium.launch(); pg = nav.new_page()
+            pg.set_content('<script>setTimeout(()=>window.ok1=1,1200)</script>')
+            P.charge = lambda: (0.0, 2)
+            try:
+                P.attendre_sync(pg, 'window.ok1', 0.5, quoi='prêt'); raise RuntimeError('base seule : aurait dû échouer')
+            except TimeoutError as e:
+                if 'base 0.5 s' not in str(e) or '« prêt »' not in str(e): raise RuntimeError('message : ' + str(e))
+            pg.set_content('<script>setTimeout(()=>window.ok2=1,1200)</script>')
+            P.charge = lambda: (8.0, 2)                    # charge 4 : 0,5 s × 4 = 2 s > 1,2 s
+            P.attendre_sync(pg, 'window.ok2', 0.5)
+            pg.set_content('<script>setTimeout(()=>window.ok3=1,1200)</script>')
+            vu = []
+            def montee():                                  # calme au départ, chargée à l'échéance : l'attente se prolonge
+                vu.append(1); return (0.0, 2) if len(vu) == 1 else (8.0, 2)
+            P.charge = montee
+            t = P.attendre_sync(pg, 'window.ok3', 0.5)
+            if not 1.0 < t < 2.5: raise RuntimeError(f'échéance reculée : {t} s')
+            nav.close()
+    finally:
+        P.charge = vrai
+        if env is None: os.environ.pop('PATIENCE', None)
+        else: os.environ['PATIENCE'] = env
+    o = run(sys.executable, os.path.join(OC, 'patience.py'))
+    if not o.startswith('facteur '): raise RuntimeError(o)
+    r = subprocess.run([sys.executable, os.path.join(OC, 'patience.py'), '10'], capture_output=True, text=True, env=dict(os.environ, PATIENCE='3'))
+    if float(r.stdout) < 30: raise RuntimeError('ligne de commande : ' + r.stdout)
+
 
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')

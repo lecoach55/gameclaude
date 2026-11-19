@@ -17,9 +17,9 @@ function travail(G, k) { return !!G.travaux && G.travaux[k] !== undefined; }
 function garnisonMax(G) { return travail(G, 'arsenal') ? 50 : 40; }
 // Mercenaires : sans ordre ; une compagnie sert 4 saisons puis s'en va, touche une solde (2 or par homme et par saison),
 // et chaque compagnie déjà sous contrat renchérit la suivante
-const MERC_N = 8, MERC_DUREE = 4, MERC_SOLDE = 2;
+const MERC_N = 8, MERC_DUREE = 4, MERC_SOLDE = 2, MERC_MAX = 12; // au plus 12 compagnies sous contrat ; chacune renchérit la suivante de 200 or
 function mercActifs(G) { return (G.mercs || []).reduce((s, m) => s + m.n, 0); }
-function prixMercenaires(G) { return 200 + 120 * (G.mercs || []).length; }
+function prixMercenaires(G) { return 200 + 200 * (G.mercs || []).length; }
 // Rançon de paix : acheter la fin d'une guerre (un ordre), prix selon l'armée adverse
 function prixRancon(G, m) { return Math.round(100 + 12 * troupesDe(G, m) + 3 * G.tour); }
 // Achat de vassaux : un seigneur voisin prête serment avec ses hommes (un ordre) ; plus le domaine est grand, plus c'est cher
@@ -218,6 +218,7 @@ function act(G, type, a = {}) {
   if (!p || p.o !== 'joueur') return fail('Province hors de votre domaine');
   const c = prixMercenaires(G); if (J.or < c) return fail(`Il faut ${c} or`);
   if (p.t >= garnisonMax(G)) return fail('Garnison déjà pleine');
+  if (G.mercs.length >= MERC_MAX) return fail(`Déjà ${MERC_MAX} compagnies sous contrat`);
   const n = Math.min(MERC_N, garnisonMax(G) - p.t); J.or -= c; p.t += n; G.mercs.push({ p: p.id, n, fin: G.tour + MERC_DUREE }); G.depenses.merc++; G.depenses.total += c;
   noter(G, `Une compagnie de ${n} mercenaires est engagée à ${p.nom} pour ${c} or.`, 'info');
   return { ok: true, msg: `${n} mercenaires rejoignent ${p.nom} pour ${MERC_DUREE} saisons (−${c} or, solde ${n * MERC_SOLDE} or par saison). La prochaine compagnie coûtera ${prixMercenaires(G)} or.` };
@@ -228,7 +229,7 @@ function act(G, type, a = {}) {
   case 'recruter': {
    if (!p || p.o !== 'joueur') return fail('Province hors de votre domaine');
    if (J.or < COUTS.recruter) return fail('Pas assez d’or');
-   const n = 4 + (p.bat.caserne ? 2 : 0) + (p.capitale ? 2 : 0) + (travail(G, 'arsenal') ? 2 : 0); J.or -= COUTS.recruter; p.t = Math.min(garnisonMax(G), p.t + n); p.loy = Math.max(0, p.loy - 3);
+   const n = 4 + (p.bat.caserne ? 2 : 0) + (p.capitale ? 2 : 0) + (travail(G, 'arsenal') ? 2 : 0); J.or -= COUTS.recruter; p.t = Math.max(p.t, Math.min(garnisonMax(G), p.t + n)); p.loy = Math.max(0, p.loy - 3);
    r = { ok: true, msg: `${n} hommes d’armes rejoignent la bannière à ${p.nom}.` }; break;
   }
   case 'batir': {
@@ -442,7 +443,16 @@ function finSaison(G) {
  G.saison = (G.saison + 1) % 4; if (G.saison === 0) G.an++; G.tour++;
  G.ordres = ordresMax(G); G.dejaBouge = {};
  // fin des contrats de mercenaires
- for (const c of G.mercs.slice()) if (G.tour >= c.fin) { G.mercs.splice(G.mercs.indexOf(c), 1); const q = prov(G, c.p); if (q && q.o === 'joueur') { const k = Math.min(c.n, q.t - 1); q.t -= k; if (k > 0) noter(G, `Leur contrat échu, ${k} mercenaires quittent ${q.nom}.`, 'info'); } }
+ // (province perdue : la compagnie est perdue avec elle ; sinon les hommes partent de la province d'embauche, puis des plus grosses garnisons s'ils ont été déplacés)
+ for (const c of G.mercs.slice()) {
+  const q = prov(G, c.p);
+  if (!q || q.o !== 'joueur') { G.mercs.splice(G.mercs.indexOf(c), 1); continue; }
+  if (G.tour < c.fin) continue;
+  G.mercs.splice(G.mercs.indexOf(c), 1);
+  let reste = c.n; const ordre = [q].concat(provincesDe(G, 'joueur').filter(x => x !== q).sort((a, b) => b.t - a.t));
+  for (const x of ordre) { if (reste <= 0) break; const k = Math.max(0, Math.min(reste, x.t - 1)); x.t -= k; reste -= k; }
+  noter(G, `Leur contrat échu, ${c.n - reste} mercenaires quittent ${q.nom}.`, 'info');
+ }
  J.prestige = Math.max(0, Math.round(J.prestige));
  verifierVictoire(G);
 }
@@ -530,11 +540,11 @@ function botDepenses(G, mes, front) {
  const J = G.maisons.joueur;
  // acheter un vassal si l'on garde une réserve
  const vs = G.provinces.filter(p => !vassalPossible(G, p)).map(p => ({ p, c: prixVassal(G, p) })).filter(x => x.c <= J.or - 150).sort((a, b) => a.c - b.c);
- if (vs.length) return act(G, 'vassal', { prov: vs[0].p.id });
+ if (vs.length) return act(G, 'vassal', { prov: vs[0].p.id }).ok;
  // grands travaux par ordre d'utilité
- for (const k of ['routes', 'chancellerie', 'arsenal', 'cathedrale', 'secrets']) if (!travail(G, k) && J.or >= GRANDS_TRAVAUX[k].cout + 250) return act(G, 'travaux', { k });
+ for (const k of ['routes', 'chancellerie', 'arsenal', 'cathedrale', 'secrets']) if (!travail(G, k) && J.or >= GRANDS_TRAVAUX[k].cout + 250) return act(G, 'travaux', { k }).ok;
  // racheter la paix face à plus fort que soi
- for (const m of IA_MAISONS) if (!G.maisons[m].elim && enGuerre(G, 'joueur', m) && troupesDe(G, m) > troupesDe(G, 'joueur') * .7 && J.or >= prixRancon(G, m) * 1.5) return act(G, 'rancon', { maison: m });
+ for (const m of IA_MAISONS) if (!G.maisons[m].elim && enGuerre(G, 'joueur', m) && troupesDe(G, m) > troupesDe(G, 'joueur') * .7 && J.or >= prixRancon(G, m) * 1.5) return act(G, 'rancon', { maison: m }).ok;
  return null;
 }
 function botRoyaume(G) {
@@ -563,7 +573,7 @@ function botRoyaume(G) {
   act(G, 'conseil');
  }
  // mercenaires (sans ordre) sur le front quand le trésor déborde
- if (BOT.depenses) for (let i = 0; i < 4 && front0(G).length && J.or >= prixMercenaires(G) * 3; i++) { const p = front0(G).sort((a, b) => a.t - b.t)[0]; if (!act(G, 'mercenaires', { prov: p.id }).ok) break; }
+ if (BOT.depenses) for (let i = 0; i < 4 && front0(G).length && J.or >= prixMercenaires(G) * 3 && G.mercs.length < MERC_MAX; i++) { const p = front0(G).sort((a, b) => a.t - b.t)[0]; if (!act(G, 'mercenaires', { prov: p.id }).ok) break; }
  // vendre le surplus
  for (const o of G.joueur.inventaire.splice(0)) J.or += Math.round(o.prix / 3);
 }

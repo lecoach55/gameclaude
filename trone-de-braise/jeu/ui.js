@@ -139,7 +139,8 @@ function panneau() {
   h += b('⚔️', 'Attaquer une voisine', 'Choisir la cible sur la carte', '1 ordre', 'attaquerDepuis', o && p.t > 1 && voisinsDe(p.id).some(id => prov(G, id).o !== 'joueur'), 'chaud');
   h += b('🚶', 'Déplacer des troupes', G.dejaBouge[p.id] ? 'Déjà en marche cette saison' : 'Vers une de vos provinces', 'gratuit', 'deplacer', p.t > 1 && !G.dejaBouge[p.id] && voisinsMiens.length > 0);
   h += b('🔨', 'Bâtir', 'Marché, caserne, temple, murailles', '', 'batir', o);
-  const pm = prixMercenaires(G); h += b('🗡️', `Engager ${Math.min(MERC_N, Math.max(0, garnisonMax(G) - p.t))} mercenaires`, `${MERC_DUREE} saisons, solde ${MERC_N * MERC_SOLDE} 🪙/saison · sans ordre`, `${nf(pm)} 🪙`, 'mercenaires', J.or >= pm && p.t < garnisonMax(G));
+  { const pm = prixMercenaires(G), nm = Math.min(MERC_N, Math.max(0, garnisonMax(G) - p.t)), plein = G.mercs.length >= MERC_MAX;
+   h += b('🗡️', nm ? `Engager ${nm} mercenaires` : 'Mercenaires : garnison pleine', plein ? `Déjà ${MERC_MAX} compagnies sous contrat` : `${MERC_DUREE} saisons · ${Math.round(nm * (MERC_SOLDE + .75))} 🪙/saison d’entretien · sans ordre`, nm && !plein ? `${nf(pm)} 🪙` : '', 'mercenaires', J.or >= pm && nm > 0 && !plein); }
  } else if (proche) {
   h += b('⚔️', 'Attaquer', `Depuis ${voisinsMiens.filter(q => q.t > 1).map(q => q.nom).join(', ') || '—'}`, '1 ordre', 'attaquer', o && voisinsMiens.some(q => q.t > 1), 'chaud');
   { const pq = vassalPossible(G, p), pv = prixVassal(G, p); h += b('🪙', 'Acheter le serment du seigneur', pq || `La province et ses ${p.t} hommes passent à vous`, pq ? '' : `${nf(pv)} 🪙`, 'vassal', o && !pq && J.or >= pv); }
@@ -386,10 +387,20 @@ function resumePartie(g) { const n = g.provinces.filter(p => p.o === 'joueur').l
 function collerSauvegarde() {
  const depuisAccueil = MODE === 'accueil';
  fenetre('Coller une sauvegarde', `<p>Collez ici le code obtenu avec « 📋 Copier la sauvegarde » sur un autre appareil.${TEST ? ' 🧪 Mode test : la partie collée ne sera pas sauvegardée.' : ''}</p><textarea id="codeColle" spellcheck="false" placeholder="{&quot;v&quot;:2, …}" style="width:100%;height:9em;font:12px ui-monospace,monospace;background:#0b0f1a;color:#e8dcc0;border:1px solid #5a4a2a;border-radius:6px;padding:6px;box-sizing:border-box"></textarea><p id="codeErr" style="color:#f0a8a0;min-height:1.2em;margin:.4em 0 0"></p>`, [
-  { t: '✔ Vérifier et charger', cls: 'or', f: () => {
+  { t: '✔ Vérifier et charger', cls: 'or', f: async () => {
    const r = lireCodeSauvegarde($('#codeColle').value); if (r.err) { $('#codeErr').textContent = r.err; return; }
    const charger = () => { let g; try { g = restaurer(JSON.stringify(r.g)); } catch (e) { $('#codeErr') && ($('#codeErr').textContent = 'Code illisible : ' + e.message); return; } fermer(); if (depuisAccueil) TEST = false; G = g; UI.sel = null; sauver(); entrerRoyaume(); toast('Partie chargée ✓' + (TEST ? ' (mode test : non sauvegardée)' : ''), 3500); };
-   const enCours = G && MODE !== 'accueil' ? G : (lireLocal() ? (() => { try { return JSON.parse(lireLocal().s); } catch (e) { return null; } })() : null);
+   // partie qui sera écrasée : celle en cours, sinon la plus récente entre cet appareil et la sauvegarde en ligne « partie » (lue avant de décider)
+   let enCours = G && MODE !== 'accueil' ? G : null;
+   if (!enCours) {
+    const bt = $('#fen .pied .btn'); if (bt) bt.disabled = true; // pas de double attente
+    $('#codeErr').textContent = 'Vérification de la sauvegarde en ligne…';
+    const l = lireLocal(); let d = null; try { d = await Promise.race([NUAGE.charger(), new Promise(r => setTimeout(() => r('delai'), 12000))]); } catch (e) { }
+    if (!$('#codeColle')) return; // fenêtre fermée pendant l'attente : on n'en fait rien
+    if (d === 'delai') { if (bt) bt.disabled = false; fenetre('Sauvegarde en ligne injoignable', `<p>La sauvegarde en ligne n’a pas répondu : impossible de vérifier si une partie y existe déjà.</p><p>Charger quand même la partie collée ?<br>${resumePartie(r.g)}</p><p style="color:#f0a8a0">Une éventuelle partie en ligne serait remplacée.</p>`, [{ t: 'Charger quand même', cls: 'or', f: charger }, { t: 'Annuler', f: fermer }]); return; }
+    const s = d && (!l || d.t > l.t) ? d.s : l ? l.s : null; try { enCours = s ? JSON.parse(s) : null; } catch (e) { enCours = null; }
+    $('#codeErr').textContent = '';
+   }
    if (!enCours) return charger();
    fenetre('Remplacer la partie ?', `<p>La partie collée :<br>${resumePartie(r.g)}</p><p>remplacera ${TEST ? 'la partie de test' : 'la partie en cours'} :<br>${resumePartie(enCours)}</p>${TEST ? '' : '<p style="color:#f0a8a0">Celle-ci sera effacée de cet appareil et de la sauvegarde en ligne. Pour la garder, copiez d’abord son code (☰ → 📋 Copier la sauvegarde).</p>'}`, [{ t: 'Remplacer', cls: 'or', f: charger }, { t: 'Annuler', f: fermer }]);
   } },
@@ -402,10 +413,10 @@ function fenetreTresor() {
  const J = G.maisons.joueur, o = G.ordres > 0;
  const vs = G.provinces.filter(p => !vassalPossible(G, p)).map(p => ({ p, c: prixVassal(G, p) })).sort((a, b) => a.c - b.c);
  const guerres = IA_MAISONS.filter(m => !G.maisons[m].elim && enGuerre(G, 'joueur', m));
- let h = `<p>Trésor : <b>${nf(Math.round(J.or))} 🪙</b> · revenus ${nf(revenus(G, 'joueur'))} − entretien ${nf(entretien(G, 'joueur'))} par saison${mercActifs(G) ? ` (dont solde des mercenaires ${nf(mercActifs(G) * MERC_SOLDE)})` : ''} · ${G.ordres} ordre${G.ordres > 1 ? 's' : ''}</p>`;
+ let h = `<p>Trésor : <b>${nf(Math.round(J.or))} 🪙</b> · revenus ${nf(revenus(G, 'joueur'))} − entretien ${nf(entretien(G, 'joueur'))} par saison${mercActifs(G) ? ` (dont solde des mercenaires ${nf(mercActifs(G) * MERC_SOLDE)})` : ''} · ${G.ordres ? `${G.ordres} ordre${G.ordres > 1 ? 's' : ''}` : 'aucun ordre (boutons grisés jusqu’à la prochaine saison)'}</p>`;
  h += `<h4 style="color:var(--or2);font-weight:400;margin:10px 0 4px">🏗️ Grands travaux <small style="color:#a98">— une fois chacun, pour tout le domaine, un ordre</small></h4><div class="travaux">`;
  for (const k in GRANDS_TRAVAUX) { const T = GRANDS_TRAVAUX[k], fait = travail(G, k); h += `<div class="trl${fait ? ' fait' : ''}"><span class="tic">${T.ic}</span><div class="ttx"><b>${T.nom}</b><small>${T.d}</small></div>${fait ? '<span class="etiq a">bâti</span>' : `<button class="btn petit" data-tr="${k}" ${o && J.or >= T.cout ? '' : 'disabled'}>${nf(T.cout)} 🪙</button>`}</div>`; }
- h += `</div><h4 style="color:var(--or2);font-weight:400;margin:12px 0 4px">🗡️ Mercenaires <small style="color:#a98">— depuis le panneau d’une de vos provinces, sans ordre</small></h4><p class="rel" style="margin:0">${G.mercs.length ? G.mercs.map(c => `${c.n} hommes à ${esc(prov(G, c.p).nom)} (encore ${c.fin - G.tour} saison${c.fin - G.tour > 1 ? 's' : ''})`).join(' · ') : 'Aucune compagnie sous contrat.'} Prochaine compagnie : <b>${nf(prixMercenaires(G))} 🪙</b> pour ${MERC_N} hommes, ${MERC_DUREE} saisons.</p>`;
+ h += `</div><h4 style="color:var(--or2);font-weight:400;margin:12px 0 4px">🗡️ Mercenaires <small style="color:#a98">— depuis le panneau d’une de vos provinces, sans ordre</small></h4><p class="rel" style="margin:0">${G.mercs.length ? G.mercs.map(c => `${c.n} hommes à ${esc(prov(G, c.p).nom)} (encore ${c.fin - G.tour} saison${c.fin - G.tour > 1 ? 's' : ''})`).join(' · ') : 'Aucune compagnie sous contrat.'} ${G.mercs.length >= MERC_MAX ? `Au plus ${MERC_MAX} compagnies à la fois.` : `Prochaine compagnie : <b>${nf(prixMercenaires(G))} 🪙</b> pour ${MERC_N} hommes, ${MERC_DUREE} saisons (${MERC_SOLDE + .75} 🪙 par homme et par saison).`}</p>`;
  h += `<h4 style="color:var(--or2);font-weight:400;margin:12px 0 4px">🪙 Serments à acheter <small style="color:#a98">— provinces voisines, un ordre</small></h4><p class="rel" style="margin:0">${vs.length ? vs.slice(0, 6).map(x => `<button class="btn petit" data-vs="${x.p.id}" ${o && J.or >= x.c ? '' : 'disabled'}>${esc(x.p.nom)} (${x.p.t} ⚔️) — ${nf(x.c)} 🪙</button>`).join(' ') : 'Aucun seigneur voisin ne vend son serment (pas de capitale, pas en guerre, relation ≥ 0, jamais la dernière terre d’une maison).'}</p>`;
  if (guerres.length) h += `<h4 style="color:var(--or2);font-weight:400;margin:12px 0 4px">💰 Rançons de paix <small style="color:#a98">— un ordre, paix assurée</small></h4><p class="rel" style="margin:0">${guerres.map(m => `<button class="btn petit" data-rc="${m}" ${o && J.or >= prixRancon(G, m) ? '' : 'disabled'}>${esc(G.maisons[m].nom)} — ${nf(prixRancon(G, m))} 🪙</button>`).join(' ')}</p>`;
  fenetre('Le Trésor', h, [{ t: 'Fermer', f: fermer }], false, true);

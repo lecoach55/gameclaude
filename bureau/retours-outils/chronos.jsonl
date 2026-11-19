@@ -163,3 +163,4 @@
 {"quand": "2026-11-19 13:36", "jeu": "outils", "etape": "verifier_outils --modifies fichiers:banc.py", "commande": "python3 outils-communs/tests/verifier_outils.py --modifies fichiers:banc.py", "secondes": 193.5, "code": 0}
 {"quand": "2026-11-19 13:41", "jeu": "outils", "etape": "verifier_outils (final, après relecture)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 316.3, "code": 1}
 {"quand": "2026-11-19 13:58", "jeu": "outils", "etape": "verifier_outils (final 40, captures figées)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 320.1, "code": 0}
+{"quand": "2026-11-19 13:56", "jeu": "bannieres", "etape": "capt avant", "commande": "python3 bannieres/outils/capt.py /tmp/claude-0/-home-claude-gameclaude/9a388245-bddb-502f-9f96-4779a9969bc4/scratchpad/avant", "secondes": 174.3, "code": 0}

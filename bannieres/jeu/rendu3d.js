@@ -493,7 +493,7 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
  // lumière de fin d'après-midi : soleil bas et doré du même côté que sur la carte, ciel froid en contre-partie, ombres longues et douces (rendu une seule fois : ombre fine)
  sc.add(new T.HemisphereLight(AMB.hCiel,AMB.hSol,.75));const sun=new T.DirectionalLight(lave?0xffb890:0xffe2bc,2.9);sun.position.copy(AMB.dir).multiplyScalar(19).add(new T.Vector3(0,0,4));sun.target.position.set(0,0,4);sc.add(sun,sun.target);
  {const dc=cam.position.distanceTo(new T.Vector3(0,0,3));U.haze.value.set(...(lave?[.30,.16,.10]:neige?[.55,.6,.68]:AMB.haze),lave?.2:.2);U.hazeD.value.set(dc*.92,dc*1.75);}
- sun.castShadow=!window.DBG_NOSH;{const ms=R0.capabilities.maxTextureSize>=8192?4096:2048;sun.shadow.mapSize.set(ms,ms);}Object.assign(sun.shadow.camera,{left:-22,right:22,top:20,bottom:-20,near:1,far:60});sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;sun.shadow.camera.updateProjectionMatrix();
+ sun.castShadow=!window.DBG_NOSH;{const ms=S.qual>=2&&R0.capabilities.maxTextureSize>=8192?4096:2048;sun.shadow.mapSize.set(ms,ms);}Object.assign(sun.shadow.camera,{left:-22,right:22,top:20,bottom:-20,near:1,far:60});sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;sun.shadow.camera.updateProjectionMatrix();
  if(lave){const l=new T.PointLight(0xff5a1a,40,30);l.position.set(0,3,-6);sc.add(l);}
  // sol : légère ondulation hors du champ, rives et collines au loin
  const nz=bruit(77);const gs=new T.PlaneGeometry(80,70,120,105);gs.rotateX(-Math.PI/2);gs.translate(0,0,-6);const p=gs.attributes.position;
@@ -538,6 +538,10 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
  sc.traverse(o=>{if(o.geometry&&o.geometry===gs)o.geometry.dispose();});if(ms.map)ms.map.dispose();ms.dispose();if(!envH)envC.dispose();if(sun.shadow.map)sun.shadow.map.dispose();
  return out;};
 
+// remise en état garantie des réglages partagés avec la carte, même si un rendu unique échoue (relecture du 19/11)
+function abri(f){return(...a)=>{const R0=rendu();const st=R0&&{fog:U.fog.value,n:U.N.value,hz:U.haze.value.clone(),hd:U.hazeD.value.clone(),dpr:R0.getPixelRatio(),sz:R0.getSize(new T.Vector2()),exp:R0.toneMappingExposure,cc:R0.getClearColor(new T.Color()),ca:R0.getClearAlpha(),tm:R0.toneMapping,sh:R0.shadowMap.enabled};
+ try{return f(...a);}catch(e){if(st){U.fog.value=st.fog;U.N.value=st.n;U.haze.value.copy(st.hz);U.hazeD.value.copy(st.hd);R0.setPixelRatio(st.dpr);R0.setSize(st.sz.x,st.sz.y,false);R0.toneMappingExposure=st.exp;R0.setClearColor(st.cc,st.ca);R0.toneMapping=st.tm;R0.shadowMap.enabled=st.sh;}throw e;}};}
+A.fondCombat=abri(A.fondCombat);
 // =========================================================
 // VILLE EN 3D : panorama rendu une fois (à chaque construction), mêmes zones cliquables que l'ancien dessin.
 // =========================================================
@@ -669,5 +673,6 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const drap=[];const fort=objs.find(o=>o[0]==='fort'||o[0]==='citadelle'||o[0]==='chateau');if(fort){const [b,gr,u]=fort;bb.setFromObject(gr);const [dx,dy]=pr(gr.position.x,bb.max.y,gr.position.z-1.6);drap.push([dx,Math.max(H*.12,dy)]);}
  sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});{const mi=Object.values(MPI);sc.traverse(o=>{if(o.isMesh&&mi.includes(o.material))o.geometry.dispose();});}GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();if(!envH)envC.dispose();if(sun.shadow.map)sun.shadow.map.dispose();
  return{c,zones,drap,ids};};
+A.panoVille=abri(A.panoVille);
 return A;})();
 R3.stats=()=>{const o={};const sc=R3._scene&&R3._scene();if(!sc)return o;sc.traverse(m=>{if(!m.isMesh)return;const g=m.geometry;const t=(g.index?g.index.count:g.attributes.position.count)/3*(m.isInstancedMesh?m.count:1);const k=m.isInstancedMesh?'inst':m.name||(m.parent&&m.parent.type)||'?';o[k]=(o[k]||0)+t;});return o;};

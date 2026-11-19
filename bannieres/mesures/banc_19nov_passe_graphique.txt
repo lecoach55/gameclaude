@@ -1,0 +1,28 @@
+--avant arrivee : début du chantier « grande passe graphique (bêtes 3D, carte, villes, combats) » (commit 660e048, 2026-11-19 13:52) ; 3 commit(s) du chantier sur bannieres/ comptés dans l'APRÈS
+  révision 660e048ef4ec3d6e9211021007bd321db643746d extraite en 0.6 s (dépôt complet)
+Banc bannieres · 3 scènes · ordinateur · 2 tour(s) · temps figé, préparation réelle : coût réel par image, GPU compris
+mesures au fil de l'eau : /tmp/banc-bannieres.partiel.json
+  tour 1/2 · avant
+    ordinateur carte              1460.34 ms/img     0.7 img/s  1 % bas    0.3  pire 3189.1 ms   [1/12, reste ≈ 8 min 34 s]
+    ordinateur combat                4.09 ms/img   244.5 img/s  1 % bas   87.7  pire   13.4 ms   [2/12, reste ≈ 4 min 24 s]
+    ordinateur ville                 0.93 ms/img  1070.5 img/s  1 % bas  500.0  pire    2.2 ms   [3/12, reste ≈ 2 min 59 s]
+  tour 1/2 · apres
+    ordinateur carte              1380.50 ms/img     0.7 img/s  1 % bas    0.3  pire 2864.9 ms   [4/12, reste ≈ 3 min 25 s]
+    ordinateur combat                4.35 ms/img   230.1 img/s  1 % bas   95.2  pire   11.2 ms   [5/12, reste ≈ 2 min 32 s]
+    ordinateur ville                 1.17 ms/img   855.3 img/s  1 % bas  277.8  pire    3.7 ms   [6/12, reste ≈ 1 min 56 s]
+  tour 2/2 · apres
+    ordinateur carte              1404.11 ms/img     0.7 img/s  1 % bas    0.4  pire 2831.8 ms   [7/12, reste ≈ 1 min 54 s]
+    ordinateur combat                4.68 ms/img   213.5 img/s  1 % bas   70.9  pire   14.5 ms   [8/12, reste ≈ 1 min 23 s]
+    ordinateur ville                 1.08 ms/img   928.1 img/s  1 % bas  277.8  pire    5.9 ms   [9/12, reste ≈ 57 s]
+  tour 2/2 · avant
+    ordinateur carte              1461.04 ms/img     0.7 img/s  1 % bas    0.3  pire 3022.9 ms   [10/12, reste ≈ 43 s]
+    ordinateur combat                4.63 ms/img   215.9 img/s  1 % bas  142.9  pire    7.5 ms   [11/12, reste ≈ 20 s]
+    ordinateur ville                 1.08 ms/img   925.2 img/s  1 % bas  357.1  pire    5.9 ms   [12/12]
+
+appareil   scène                      avant     après    écart  bruit  verdict   (ms par image en moyenne, plus bas = mieux)
+ordinateur carte                    1460.69   1392.31    -4.7%    2 %  égal (bruit)
+ordinateur combat                      4.36      4.52    +3.7%   12 %  égal (bruit)
+ordinateur ville                       1.01      1.12   +10.9%   15 %  égal (bruit)
+
+Aucun ralentissement au-delà de 10 % et du bruit.
+durée : 232 s

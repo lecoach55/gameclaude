@@ -189,7 +189,7 @@ function ouvrirFiche(h){V.porTmp=h;const st=['att','def','pou','con'];
 // ---------- éditeur d'armées (fiches, échanges, villes) ----------
 function editeurArmees(el,listes,onChange){let sel=null;
  const rendre=()=>{el.innerHTML=listes.map((l,li)=>`<div class="arm-ligne" style="margin:4px 0"><div class="arm-tit" style="color:#5a3a10">${esc(l.titre)}</div><div class="slots">${l.armee.map((s,k)=>`<div class="slot ${sel&&sel.l===li&&sel.k===k?'sel':''} ${s?'':'vide'}" data-l="${li}" data-k="${k}">${s?`<canvas width="72" height="72" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')}</div></div>`).join('')
-  +`<div class="btns" style="margin-top:4px"><button class="btn petit" id="edDiv" ${sel?'':'disabled'}>✂ Diviser</button><button class="btn petit" id="edInfo" ${sel?'':'disabled'}>ℹ Détails</button><button class="btn petit" id="edRenv" ${sel?'':'disabled'}>✕ Renvoyer</button></div>`;
+  +`<div class="btns" style="margin-top:4px"><button class="btn petit" id="edDiv" ${sel?'':'disabled'}>✂ Diviser</button><button class="btn petit" id="edInfo" ${sel?'':'disabled'}><svg class="ico pt"><use href="#i-info"/></svg>Détails</button><button class="btn petit" id="edRenv" ${sel?'':'disabled'}><svg class="ico pt"><use href="#i-x"/></svg>Renvoyer</button></div>`;
   peindreCanvasRes(el);
   el.querySelectorAll('.slot').forEach(d=>d.onclick=()=>tap(+d.dataset.l,+d.dataset.k));
   const bd=el.querySelector('#edDiv'),bi=el.querySelector('#edInfo'),br=el.querySelector('#edRenv');

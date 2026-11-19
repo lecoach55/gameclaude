@@ -586,7 +586,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-30,right:30,top:25,bottom:-25,near:1,far:80});sun.shadow.bias=-.0005;sun.shadow.normalBias=.04;sun.shadow.camera.updateProjectionMatrix();
  // sol, chemin, arbres
  const terS=nuit||hd?'terre':'herbe';const reel=!!(RES.lay&&RES.atlas);const ts=reel?null:texSolCombat(terS);if(ts)ts.repeat.set(10,10);const gs=new T.PlaneGeometry(300,300,1,1).rotateX(-Math.PI/2);const ms=reel?matSolSimple(IDT[terS],SEC[terS],.22,.7):new T.MeshStandardMaterial({map:ts,roughness:.95,color:nuit?0x8a8078:0xffffff});if(reel&&nuit)ms.color.set(0x9a9088);if(reel&&hd)ms.color.set(0xc8b49c);const msol=new T.Mesh(gs,ms);msol.receiveShadow=true;sc.add(msol);
- const ch=new T.Mesh(new T.PlaneGeometry(2.6,40).rotateX(-Math.PI/2),reel?matSolSimple(8,2,.3,.4):new T.MeshStandardMaterial({color:nuit?0x6a5a4a:0xc8a878,roughness:1,transparent:true,opacity:.85}));ch.position.set(0,.02,8);ch.receiveShadow=true;sc.add(ch);
+ const ch=new T.Mesh(new T.PlaneGeometry(2.6,40).rotateX(-Math.PI/2),reel?matSolSimple(8,2,.3,.4):new T.MeshStandardMaterial({color:nuit?0x6a5a4a:0xc8a878,roughness:1,transparent:true,opacity:.85}));ch.position.set(0,.02,8);if(reel&&hd)ch.material.color.set(0xd8b48c);ch.receiveShadow=true;sc.add(ch);
  const vis=z=>2*(camZ-z)*tf*asp;// largeur visible à la profondeur z
  const mV=mat(0xffffff,{vc:1,r:.82}),mP=mat(0xffffff,{vc:1,r:.95});
  const ty=()=>nuit?'mort':syl?(r.f()<.6?'sapin':'feuillu'):hd?(r.f()<.4?'mort':'feuillu'):(r.f()<.3?'sapin':'feuillu');
@@ -596,8 +596,8 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  for(let k=0;k<16;k++){const z=-12+r.f()*20;const sd=r.f()<.5?-1:1;arbre(sd*vis(z)*(.44+r.f()*.1),z,3.5+r.f()*2);}
  for(let k=0;k<10;k++){const z=-2+r.f()*12;const x=(r.f()-.5)*vis(z)*.9;if(Math.abs(x)<2)continue;if(reel){const o=planImp('b','roc_'+'abcd'[k%4],.22+r.f()*.25,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}continue;}const o=new T.Mesh(geoRocher(k%5,terS),mP);o.position.set(x,0,z);o.scale.setScalar(.6+r.f()*.6);o.castShadow=true;sc.add(o);}
  // premier plan (19/11) : massifs et rochers aux deux coins pour cadrer la scène comme un tableau, touffes éparses sur le terrain vide
- if(reel){const fg=nuit?['desert_b','desert_c','roc_d','jeune_b']:hd?['desert_a','arbuste_a','roc_d','desert_c']:['buisson_a','arbuste_a','arbuste_b','arbuste_c'];
-  for(const sd of [-1,1])for(let k=0;k<6;k++){const z=8.6+r.f()*3.2;const nm=fg[r.i(0,3)];const x=sd*vis(z)*(.36+r.f()*.16);const o=planImp('b',nm,(nm.startsWith('roc')?.5:1.1)+r.f()*.9,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}}
+ if(reel){const fg=nuit?['desert_b','desert_c','roc_d','jeune_b']:hd?['desert_a','arbuste_a','roc_d','desert_c']:['buisson_a','arbuste_b','buisson_a','roc_d'];
+  for(const sd of [-1,1])for(let k=0;k<6;k++){const z=8.6+r.f()*3.2;const nm=fg[r.i(0,3)];const x=sd*vis(z)*(.36+r.f()*.16);const o=planImp('b',nm,(nm.startsWith('roc')?.6:1.4)+r.f()*1.1,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}}
   for(let k=0;k<22;k++){const z=-1+r.f()*11;const x=(r.f()-.5)*vis(z)*.95;if(Math.abs(x)<2.2)continue;const nm=fg[r.i(1,3)];const o=planImp('b',nm.startsWith('roc')?'arbuste_c':nm,.28+r.f()*.35,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}}}
  // place pavée, puits, tonneaux, caisses et lanternes (accessoires photographiés)
  if(reel&&v.fac!=='horde'){ECH=.55;const pl=new T.Mesh(new T.CircleGeometry(4.2,40).rotateX(-Math.PI/2),mat(0xc8c0b4,{tri:'pave',r:.95,ech:.9}));pl.position.set(0,.025,4.5);pl.scale.set(1.25,1,.8);pl.receiveShadow=true;sc.add(pl);
@@ -616,7 +616,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
    const tx=new T.CanvasTexture(spriteCreature(cre,256));tx.colorSpace=T.SRGBColorSpace;texV.push(tx);const mc=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xa8a8c0:0xf4f0ea});matV.push(mc);
    const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);pc.position.set(gr.position.x+u*.42*(gr.position.x>0?-1:1),.03,gr.position.z+u*1.0);pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;sc.add(pc);}}
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure;
- R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);
+ const mIb=MPI.bm,cIb=mIb&&mIb.color.getHex();if(mIb&&nuit)mIb.color.setRGB(.42,.44,.6);R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);if(mIb)mIb.color.setHex(cIb);
  const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);
  R0.toneMappingExposure=exp0;R0.setPixelRatio(dpr0);R0.setSize(sz.x,sz.y,false);U.fog.value=fog0;U.N.value=n0;
  // zones cliquables + créatures devant leurs habitations (dessinées, comme sur la carte)

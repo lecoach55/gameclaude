@@ -22,7 +22,7 @@ def _arg(opt, defaut=None):
     return sys.argv[i + 1] if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--') else defaut
 
 
-DOSSIERS_OUTILS = ('outils-communs', 'outils-communs/robots', 'bureau/outils')
+DOSSIERS_OUTILS = ('outils-communs', 'outils-communs/robots', 'outils-communs/blender', 'bureau/outils')
 
 
 def _outils_communs():
@@ -31,7 +31,7 @@ def _outils_communs():
     for base in DOSSIERS_OUTILS:
         d = os.path.join(RAC, base)
         for f in sorted(os.listdir(d)) if os.path.isdir(d) else ():
-            if f.endswith(('.py', '.js', '.html')) and os.path.isfile(os.path.join(d, f)):
+            if f.endswith(('.py', '.js', '.html', '.sh')) and os.path.isfile(os.path.join(d, f)):
                 out[f'{base}/{f}'] = os.path.splitext(f)[0]
     return out
 
@@ -40,7 +40,7 @@ def _mentionne(texte, stem, nom=''):
     """Le contrôle (ou l'outil) se sert-il de l'outil `stem` ? Nom de fichier (stem.py/.js/.html), import Python, ou nom de
     contrôle qui commence par l'outil (« sonde : … »). Un simple mot ne suffit pas : routes.preparer() n'est pas preparer.py."""
     s = re.escape(stem)
-    return bool(re.search(rf'(?<![\w.-]){s}\.(py|js|html)(?!\w)', texte)
+    return bool(re.search(rf'(?<![\w.-]){s}\.(py|js|html|sh)(?!\w)', texte)
                 or re.search(rf'^\s*from\s+{s}\s+import\b', texte, re.M)
                 or re.search(rf'^\s*import\s+(?:[\w.]+(?:\s+as\s+\w+)?\s*,\s*)*{s}\b', texte, re.M)
                 or re.match(rf'(robots/)?{s}\b', nom))
@@ -1789,6 +1789,153 @@ def _():
         open(os.path.join(d, 'package.json'), 'w').write('{"dependencies":{"x":"1","y":"2"}}')
         os.utime(os.path.join(d, 'package.json'), (t - 60, t - 60))
         if P.a_jour(d): raise RuntimeError('dépendance y absente : vu à jour')
+
+
+_FIXTURE_BLENDER = r"""
+import bpy, math, sys
+bpy.ops.wm.read_homefile(use_empty=True)
+sortie, sorte = sys.argv[1], sys.argv[2]
+def boite(nom, loc, dim):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=loc); o = bpy.context.object; o.name = nom; o.scale = dim
+    bpy.ops.object.transform_apply(scale=True); return o
+if sorte == 'table':      # plateau sur 4 pieds : le dessous du plateau et le pied des pieds sont dans l'ombre
+    ps = [boite('plateau', (0, 0, 1.0), (2, 1.2, .1))] + [boite(f'pied{i}', (x, y, .5), (.1, .1, 1)) for i, (x, y) in enumerate([(-.9, -.5), (.9, -.5), (-.9, .5), (.9, .5)])]
+    ps.append(boite('sol', (0, 0, -.025), (3, 2, .05)))
+    for o in ps: o.select_set(True)
+elif sorte == 'noeud':    # décor animé par son nœud (pas de squelette) : action « Attack » sur l'objet
+    o = boite('caisse', (0, 0, .5), (1, 1, 1)); o.animation_data_create()
+    act = bpy.data.actions.new('Attack'); o.animation_data.action = act
+    for f, z in ((1, .5), (20, 1.5)):
+        o.location.z = z; o.keyframe_insert('location', frame=f)
+    o.select_set(True)
+else:                     # bête : corps long sur x, tête plus haute en +x, pattes ; un os, actions Idle et Attaque
+    ps = [boite('corps', (0, 0, .6), (1.6, .5, .4)), boite('tete', (.95, 0, .95), (.4, .35, .35))] + \
+         [boite(f'patte{i}', (x, y, .2), (.12, .12, .4)) for i, (x, y) in enumerate([(-.6, -.18), (.6, -.18), (-.6, .18), (.6, .18)])]
+    for o in ps: o.select_set(True)
+    bpy.context.view_layer.objects.active = ps[0]; bpy.ops.object.join(); corps = bpy.context.object
+    bpy.ops.object.armature_add(location=(0, 0, 0)); ar = bpy.context.object
+    corps.select_set(True); ar.select_set(True); bpy.context.view_layer.objects.active = ar
+    bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+    pb = ar.pose.bones[0]; pb.rotation_mode = 'XYZ'
+    for nom, ang in (('Idle', 0), ('Attaque', 50)):
+        act = bpy.data.actions.new(nom); ar.animation_data_create(); ar.animation_data.action = act
+        for f, a in ((1, 0), (20, ang)):
+            pb.rotation_euler = (0, math.radians(a), 0); pb.keyframe_insert('rotation_euler', frame=f)
+        tr = ar.animation_data.nla_tracks.new(); tr.strips.new(nom, 1, act)
+        ar.animation_data.action = None
+    bpy.ops.object.select_all(action='SELECT')
+bpy.ops.export_scene.gltf(filepath=sortie, export_format='GLB', export_animations=True, export_animation_mode='ACTIONS')
+"""
+
+
+def _bpy():
+    """Python de Blender (bpy) : installé par outils-communs/blender/installer.sh s'il manque (≈ 40 s, une fois par machine)."""
+    py = os.environ.get('BPY_PYTHON', '/home/claude/bpyenv/bin/python')
+    if not (os.path.isfile(py) and subprocess.run([py, '-c', 'import bpy'], capture_output=True).returncode == 0):
+        r = subprocess.run(['sh', os.path.join(OC, 'blender', 'installer.sh'), os.path.dirname(os.path.dirname(py))],
+                           capture_output=True, text=True, timeout=600)
+        if r.returncode:
+            raise RuntimeError('installer.sh (Blender) en échec : ' + (r.stderr or r.stdout)[-300:])
+    return py
+
+
+def _glb_json(chemin):
+    import struct
+    b = open(chemin, 'rb').read()
+    n = struct.unpack('<I', b[12:16])[0]
+    return json.loads(b[20:20 + n])
+
+
+@controle("blender/installer.sh, planche_sprites.py, cuire_ao.py, planche_avant_apres.py, apercu_three.py, rendu_studio.py : chaîne Blender de Bannières — poses prises dans les animations du modèle (Attaque ≠ Idle) ou remplacées (chute sur le flanc), regard deviné, images au cadre exact ; occlusion cuite dans COLOR_0 (dessous du plateau sombre), animations gardées, vue par Three.js ; planche avant/après dossier/sprites3d.js, créature absente = code 2 ; mauvaises options = code 2")
+def _():
+    from PIL import Image, ImageChops
+    py = _bpy()
+    BL = os.path.join(OC, 'blender')
+    with tempfile.TemporaryDirectory() as d:
+        fx = os.path.join(d, 'fixture.py'); open(fx, 'w').write(_FIXTURE_BLENDER)
+        for sorte in ('bete', 'table', 'noeud'):
+            run(py, fx, os.path.join(d, sorte + '.glb'), sorte, timeout=120)
+        out = os.path.join(d, 'spr')
+        o = run(py, os.path.join(BL, 'planche_sprites.py'), os.path.join(d, 'bete.glb'), out, '--id', 'bete', '--format', '64x48',
+                '--unites', '2.4', '--poses', 'idle:2,atk:2,die:1', '--echantillons', '4', '--directions', '2', timeout=180)
+        info = json.load(open(os.path.join(out, 'bete.json')))
+        if info['animations'] != {'idle': 'Idle', 'atk': 'Attaque', 'die': 'remplacement'}:
+            raise RuntimeError(f"animations choisies : {info['animations']}")
+        if info['avant'] != 'x' or info['pxu'] != 20.0:
+            raise RuntimeError(f"regard {info['avant']} (attendu x), pxu {info['pxu']} (attendu 20.0)")
+        ims = {n: Image.open(os.path.join(out, f'bete_{n}.png')) for n in ('idle0', 'idle1', 'atk1', 'die0', 'dir0', 'dir1')}
+        for n, im in ims.items():
+            if im.size != (64, 48) or im.mode != 'RGBA' or not im.split()[3].getbbox():
+                raise RuntimeError(f'image {n} : {im.size} {im.mode}, vide={not im.split()[3].getbbox()}')
+        def diff(a, b):
+            return sum(ImageChops.difference(ims[a].split()[3], ims[b].split()[3]).histogram()[40:])
+        if diff('idle0', 'atk1') < 30 or diff('idle0', 'dir1') < 30:
+            raise RuntimeError(f"attaque ou 2e direction identique au repos ({diff('idle0', 'atk1')}, {diff('idle0', 'dir1')} px)")
+        bi, bd = ims['idle0'].split()[3].getbbox(), ims['die0'].split()[3].getbbox()
+        if not (bd[3] - bd[1]) < (bi[3] - bi[1]) * .9:
+            raise RuntimeError(f'chute de remplacement non couchée : hauteur {bd[3] - bd[1]} contre {bi[3] - bi[1]} debout')
+        r = subprocess.run([py, os.path.join(BL, 'planche_sprites.py'), os.path.join(d, 'bete.glb'), out, '--anim', 'atk=Absente'],
+                           capture_output=True, text=True, timeout=120)
+        if r.returncode == 0 or 'Absente' not in r.stdout + r.stderr:
+            raise RuntimeError('--anim atk=Absente accepté en silence')
+        o = run(py, os.path.join(BL, 'planche_sprites.py'), os.path.join(d, 'noeud.glb'), out, '--id', 'noeud', '--format', '32x32',
+                '--poses', 'atk:1', '--echantillons', '2', '--flotte', '.5', timeout=120)
+        jn = json.load(open(os.path.join(out, 'noeud.json')))
+        if jn['animations'] != {'atk': 'remplacement'} or not jn['animations_ignorees'] or 'sans squelette' not in o:
+            raise RuntimeError(f"animation de nœud prise pour une animation de squelette : {jn['animations']} {jn['animations_ignorees']}")
+        r = subprocess.run([py, os.path.join(BL, 'planche_sprites.py'), 'x.glb', out, '--format', '64'], capture_output=True, text=True)
+        if r.returncode != 2:
+            raise RuntimeError(f'--format 64 : code {r.returncode} (attendu 2)')
+        # occlusion
+        ao = os.path.join(d, 'table_ao.glb')
+        run(py, os.path.join(BL, 'cuire_ao.py'), os.path.join(d, 'table.glb'), ao, '--echantillons', '16', timeout=180)
+        ia = json.load(open(ao + '.json'))['occlusion']
+        if not (ia['min'] < .6 and ia['moyenne'] < .97 and ia['part_assombrie'] > .05):
+            raise RuntimeError(f'occlusion trop faible sous le plateau : {ia}')
+        g = _glb_json(ao)
+        if not all('COLOR_0' in pr['attributes'] for m in g['meshes'] for pr in m['primitives']):
+            raise RuntimeError('COLOR_0 absent du GLB cuit')
+        run(py, os.path.join(BL, 'cuire_ao.py'), os.path.join(d, 'bete.glb'), os.path.join(d, 'bete_ao.glb'), '--echantillons', '4', timeout=180)
+        if len(_glb_json(os.path.join(d, 'bete_ao.glb')).get('animations', [])) < 2:
+            raise RuntimeError('animations perdues par cuire_ao.py')
+        r = subprocess.run([py, os.path.join(BL, 'cuire_ao.py'), ao, ao], capture_output=True, text=True)
+        if r.returncode != 2:
+            raise RuntimeError('sortie = entrée acceptée')
+        # Three.js voit les couleurs de sommets
+        o = run(sys.executable, os.path.join(BL, 'apercu_three.py'), ao, os.path.join(d, 'table.glb'), os.path.join(d, 'ap.png'), '--taille', '160', timeout=180)
+        if _glb_json(ao).get('materials'):
+            raise RuntimeError('matériau de cuisson laissé dans le GLB (aspect changé dans Three.js)')
+        lg = [l for l in o.splitlines() if 'luminance' in l]
+        if len(lg) != 2 or 'sommets oui' not in lg[0]:
+            raise RuntimeError('apercu_three : ' + o[-300:])
+        la, lb = (float(l.rsplit('luminance', 1)[1]) for l in lg)
+        if not la < lb - 1:
+            raise RuntimeError(f'occlusion invisible dans Three.js : luminance {la} (cuit) contre {lb} (brut)')
+        # planche avant/après : dossier ↔ sprites3d.js fabriqué ici
+        import base64, io
+        fr = [Image.open(os.path.join(out, f'bete_{n}.png')) for n in ('idle0', 'idle1', 'atk0', 'atk1', 'die0')]
+        sh = Image.new('RGBA', (64 * 5, 48))
+        for k, im in enumerate(fr):
+            sh.alpha_composite(im, (64 * k, 0))
+        buf = io.BytesIO(); sh.save(buf, 'WEBP', lossless=True)
+        js = os.path.join(d, 'sprites3d.js')
+        open(js, 'w').write("'use strict';\nvar SPR3D=" + json.dumps({'bete': {'w': 64, 'h': 48, 'ax': 32, 'ay': 40, 'n': {'idle': 2, 'atk': 2, 'die': 1}, 'pxu': 20.0,
+                            'img': 'data:image/webp;base64,' + base64.b64encode(buf.getvalue()).decode()}}) + ';\n')
+        o = run(sys.executable, os.path.join(BL, 'planche_avant_apres.py'), js, out, os.path.join(d, 'pl.png'), '--id', 'bete')
+        lg = [l for l in o.splitlines() if l.startswith('bete')]
+        if len(lg) != 2 or 'idle×2 atk×2 die×1' not in lg[0] or 'idle×2 atk×2 die×1' not in lg[1]:
+            raise RuntimeError('planche_avant_apres : ' + o[-300:])
+        if Image.open(os.path.join(d, 'pl.png')).size[0] < 5 * 64:
+            raise RuntimeError('planche trop petite')
+        run(sys.executable, os.path.join(BL, 'planche_avant_apres.py'), js, out, os.path.join(d, 'pl2.png'), '--id', 'bete,inconnue', attendu=2)
+        shutil.copy(os.path.join(out, 'bete_idle0.png'), os.path.join(out, 'bete_garou_idle0.png'))   # autre créature au préfixe commun
+        o = run(sys.executable, os.path.join(BL, 'planche_avant_apres.py'), out, out, os.path.join(d, 'pl3.png'), '--id', 'bete')
+        if 'garou' in o or 'idle×2 ' not in o:
+            raise RuntimeError('images de « bete_garou » mêlées à « bete » : ' + o[-200:])
+        run(sys.executable, os.path.join(BL, 'planche_avant_apres.py'), out, out, os.path.join(d, 'pl4.png'), '--fond', 'violet', attendu=2)
+        run(py, os.path.join(BL, 'rendu_studio.py'), os.path.join(d, 'table.glb'), os.path.join(d, 'studio.png'), '64', '4', timeout=120)
+        if Image.open(os.path.join(d, 'studio.png')).size != (64, 64):
+            raise RuntimeError('rendu_studio.py : image absente ou mauvaise taille')
 
 
 if '--reseau' in sys.argv:

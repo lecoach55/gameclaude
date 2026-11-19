@@ -8,4 +8,4 @@ if [ -x "$ENV/bin/python" ] && "$ENV/bin/python" -c "import bpy" 2>/dev/null; th
 command -v uv >/dev/null || pip install -q uv --break-system-packages
 uv venv -q -p 3.11 "$ENV"
 uv pip install -q -p "$ENV/bin/python" bpy
-"$ENV/bin/python" -c "import bpy;print('Blender',bpy.app.version_string,'prêt :',sys.executable)" 2>/dev/null || "$ENV/bin/python" -c "import bpy,sys;print('Blender',bpy.app.version_string,'prêt :',sys.executable)"
+"$ENV/bin/python" -c "import bpy,sys;print('Blender',bpy.app.version_string,'prêt :',sys.executable)"

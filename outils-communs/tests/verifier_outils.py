@@ -1,21 +1,173 @@
 #!/usr/bin/env python3
 """Contrôle des outils communs : à lancer avant de pousser une modification d'outil.
-usage : python3 outils-communs/tests/verifier_outils.py [--reseau]
-Chaque contrôle est rapide (quelques secondes) et dit OK / ÉCHEC avec la raison. Code de sortie 1 si un contrôle échoue.
---reseau ajoute les contrôles qui appellent Poly Haven (phget, catalogue)."""
-import os, re, sys, subprocess, tempfile, time, json, shutil, importlib.util
+usage : python3 outils-communs/tests/verifier_outils.py [--reseau] [--modifies [RÉF]] [--seulement MOTIF] [--liste]
+Chaque contrôle dit OK / ÉCHEC avec la raison. Code de sortie 1 si un contrôle échoue.
+--reseau        ajoute les contrôles qui appellent Poly Haven (phget, catalogue).
+--modifies [R]  pendant la mise au point : seulement les contrôles qui se servent d'un outil changé depuis R (défaut :
+                origin/main, fichiers non commités compris ; « fichiers:banc.py,sonde.js » = liste donnée à la main), ou d'un outil qui l'importe (atelier.py changé → banc, captures, singe… aussi),
+                plus les contrôles dont le texte a changé dans ce fichier. La passe COMPLÈTE (sans option) reste due avant de pousser.
+--seulement M   seulement les contrôles dont le nom contient M (expression régulière, sans casse).
+--liste         affiche les contrôles qui seraient lancés (et pourquoi), sans rien lancer."""
+import ast, os, re, sys, subprocess, tempfile, time, json, shutil, importlib.util, inspect
 
 RAC = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+OC = os.path.join(RAC, 'outils-communs')
+
+
+def _arg(opt, defaut=None):
+    """Valeur qui suit `opt` (si elle ne commence pas par --), defaut si l'option est seule, None si absente."""
+    if opt not in sys.argv:
+        return None
+    i = sys.argv.index(opt)
+    return sys.argv[i + 1] if i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith('--') else defaut
+
+
+DOSSIERS_OUTILS = ('outils-communs', 'outils-communs/robots', 'bureau/outils')
+
+
+def _outils_communs():
+    """Fichiers d'outils suivis par le vérificateur : chemin relatif à la racine → nom d'outil (sonde.py et sonde.js → « sonde »)."""
+    out = {}
+    for base in DOSSIERS_OUTILS:
+        d = os.path.join(RAC, base)
+        for f in sorted(os.listdir(d)) if os.path.isdir(d) else ():
+            if f.endswith(('.py', '.js', '.html')) and os.path.isfile(os.path.join(d, f)):
+                out[f'{base}/{f}'] = os.path.splitext(f)[0]
+    return out
+
+
+def _mentionne(texte, stem, nom=''):
+    """Le contrôle (ou l'outil) se sert-il de l'outil `stem` ? Nom de fichier (stem.py/.js/.html), import Python, ou nom de
+    contrôle qui commence par l'outil (« sonde : … »). Un simple mot ne suffit pas : routes.preparer() n'est pas preparer.py."""
+    s = re.escape(stem)
+    return bool(re.search(rf'(?<![\w.-]){s}\.(py|js|html)(?!\w)', texte)
+                or re.search(rf'^\s*from\s+{s}\s+import\b', texte, re.M)
+                or re.search(rf'^\s*import\s+(?:[\w.]+(?:\s+as\s+\w+)?\s*,\s*)*{s}\b', texte, re.M)
+                or re.match(rf'(robots/)?{s}\b', nom))
+
+
+def _dependances(chemin, stems):
+    """Outils dont dépend VRAIMENT un outil Python : modules importés, et fichiers d'outil chargés par leur nom exact
+    (chaîne « sonde.js », « …/banc.py ») ; docstrings, commentaires et messages d'aide ne comptent pas."""
+    if not chemin.endswith('.py'):
+        return set()
+    try:
+        arbre = ast.parse(open(chemin, encoding='utf-8').read())
+    except (OSError, SyntaxError, ValueError):
+        return set()
+    out = set()
+    for n in ast.walk(arbre):
+        if isinstance(n, ast.Import):
+            out |= {a.name.split('.')[0] for a in n.names}
+        elif isinstance(n, ast.ImportFrom) and n.module:
+            out.add(n.module.split('.')[0])
+        elif isinstance(n, ast.Constant) and isinstance(n.value, str):
+            m = re.fullmatch(r'(?:.*/)?([\w-]+)\.(?:py|js|html)', n.value)
+            if m:
+                out.add(m.group(1))
+    return out & stems - {os.path.splitext(os.path.basename(chemin))[0]}
+
+
+def _blocs_controles(src):
+    """Texte de chaque contrôle d'une version du vérificateur : nom → bloc (décorateur + corps)."""
+    out = {}
+    for m in re.finditer(r"^@controle\((.+?)\)\s*\n(.*?)(?=^@controle\(|^if '--reseau'|\Z)", src, re.S | re.M):
+        try:
+            out[ast.literal_eval(m.group(1))] = m.group(0)
+        except (ValueError, SyntaxError):
+            out[m.group(1)] = m.group(0)
+    return out
+
+
+def selection_modifies(ref, verbeux=False):
+    """(stems retenus, contrôles changés, raisons) pour --modifies : fichiers changés depuis ref + ceux qui les importent."""
+    if ref.startswith('fichiers:'):   # liste explicite (essais du vérificateur lui-même) : fichiers:a.py,b.py
+        connus = {os.path.basename(c): c for c in _outils_communs()}
+        changes = {c if '/' in c else connus.get(c, f'outils-communs/{c}') for c in ref[9:].split(',') if c}
+    else:
+        r = subprocess.run(['git', 'diff', '--name-only', ref, '--'], cwd=RAC, capture_output=True, text=True)
+        if r.returncode:
+            raise SystemExit(f'--modifies : référence git inconnue « {ref} » ({r.stderr.strip()[:200]})')
+        changes = set(r.stdout.split())
+        r = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'], cwd=RAC, capture_output=True, text=True)
+        changes |= set(r.stdout.split())
+    par_chemin = _outils_communs()
+    graines = {par_chemin[c] for c in changes if c in par_chemin}
+    # fichier d'outil changé mais inconnu (supprimé, renommé, autre extension) : on ne sait pas quoi viser → tout lancer
+    orphelins = sorted(c for c in changes if os.path.dirname(c) in DOSSIERS_OUTILS and c not in par_chemin
+                       and not c.endswith(('.md', '.txt', '.json')))
+    if orphelins:
+        return None, set(), {'*': 'fichier(s) sans outil connu : ' + ', '.join(orphelins)}
+    tests = {c for c in changes if c.startswith('outils-communs/tests/') and not c.endswith('verifier_outils.py')}
+    for t in tests:  # page factice changée → contrôles qui la nomment
+        graines.add(os.path.splitext(os.path.basename(t))[0])
+    tous = set(par_chemin.values())
+    deps = {}
+    for rel, stem in par_chemin.items():
+        deps.setdefault(stem, set()).update(_dependances(os.path.join(RAC, rel), tous))
+    retenus, raisons, file = set(graines), {s: 'modifié' for s in graines}, list(graines)
+    while file:  # fermeture : un outil qui en importe (ou en charge) un changé est touché aussi
+        s = file.pop()
+        for autre, d in deps.items():
+            if autre not in retenus and s in d:
+                retenus.add(autre); raisons[autre] = f'utilise {s}'; file.append(autre)
+    blocs_changes = set()
+    if 'outils-communs/tests/verifier_outils.py' in changes:
+        r = subprocess.run(['git', 'show', f'{ref}:outils-communs/tests/verifier_outils.py'], cwd=RAC, capture_output=True, text=True)
+        avant = _blocs_controles(r.stdout) if r.returncode == 0 else {}
+        maintenant = _blocs_controles(open(os.path.abspath(__file__), encoding='utf-8').read())
+        blocs_changes = {nom for nom, b in maintenant.items() if avant.get(nom) != b}
+    return retenus, blocs_changes, raisons
+
+
+SELECTION = None   # None = tout ; sinon fonction(nom, source) → raison (str) ou None
+_MOTIF = _arg('--seulement')
+if '--modifies' in sys.argv:
+    _ref = _arg('--modifies', 'origin/main')
+    _stems, _blocs, _raisons = selection_modifies(_ref)
+    if _stems is None:
+        print(f"--modifies {_ref} : {_raisons['*']} → passe COMPLÈTE", flush=True)
+        _stems = None
+    else:
+        print(f"--modifies {_ref} : outils touchés = {', '.join(f'{s} ({_raisons[s]})' for s in sorted(_stems)) or 'aucun'}"
+              f"{f' ; contrôles changés : {len(_blocs)}' if _blocs else ''}", flush=True)
+
+    def _sel_modifies(nom, src, _s=_stems, _b=_blocs):
+        if nom in _b:
+            return 'contrôle changé'
+        for s in sorted(_s):
+            if _mentionne(src, s, nom):
+                return s
+        return None
+    if _stems is not None:
+        SELECTION = _sel_modifies
+if '--seulement' in sys.argv and not _MOTIF:
+    print('--seulement : motif manquant (ex. --seulement "^banc")', file=sys.stderr)
+    sys.exit(2)
+if _MOTIF:
+    _prec = SELECTION
+    SELECTION = lambda nom, src, _p=_prec: (re.search(_MOTIF, nom, re.I) and (_p(nom, src) if _p else 'motif')) or None
+SAUTES = []
 # verrou du banc propre au vérificateur : un vrai banc en cours (15 min sur Hameau) ne le bloque pas, et il ne bloque pas ce banc
 os.environ['BANC_VERROU'] = os.path.join(tempfile.gettempdir(), f'banc-verificateur-{os.getpid()}.verrou')
 # un vrai robot d'un jeu qui tourne à côté (hors verrou) ne doit pas faire attendre les bancs du vérificateur (contrôle dédié plus bas)
 os.environ.setdefault('VERROU_NAVIGATEURS', '0')
-OC = os.path.join(RAC, 'outils-communs')
 RES = []
 
 
 def controle(nom):
     def deco(f):
+        if SELECTION is not None or '--liste' in sys.argv:
+            try:
+                src = inspect.getsource(f)
+            except (OSError, TypeError):
+                src = ''
+            raison = SELECTION(nom, src) if SELECTION is not None else 'tout'
+            if not raison or '--liste' in sys.argv:
+                if raison:
+                    print(f'  lancé  {nom[:110]}  [{raison}]')
+                SAUTES.append(nom)
+                return f
         t0 = time.time()
         try:
             f(); RES.append((nom, True, '', time.time() - t0))
@@ -764,7 +916,7 @@ def _():
         shutil.rmtree(jeu, ignore_errors=True); shutil.rmtree(copie, ignore_errors=True)
 
 
-@controle("captures.py : vues en JSON reproductibles (2 séries identiques), « occupe » attendu (avant : délai fixe = image de préparation), 🐞 caché, références JPEG ½ sans fausse alerte, --avant-dossier voit un changement (--strict code 1 sur alerte seule), vue en échec isolée, erreur JS au chargement rapportée, sortie nettoyée sans toucher aux fichiers étrangers ; compare.py apparie .jpg/.png (png d'abord), ignore planche_*")
+@controle("captures.py : vues en JSON reproductibles (2 séries identiques, animation CSS figée au temps 0 même machine chargée), « occupe » attendu (avant : délai fixe = image de préparation), 🐞 caché, références JPEG ½ sans fausse alerte, --avant-dossier voit un changement (--strict code 1 sur alerte seule), vue en échec isolée, erreur JS au chargement rapportée, sortie nettoyée sans toucher aux fichiers étrangers ; compare.py apparie .jpg/.png (png d'abord), ignore planche_*")
 def _():
     import numpy as np
     from PIL import Image
@@ -788,6 +940,11 @@ def _():
         px = lambda f, xy: tuple(Image.open(os.path.join(o1, f)).convert('RGB').getpixel(xy))
         if px('pret.png', (5, 5))[1] < 150 or px('sans_occupe.png', (5, 5))[0] < 150:
             raise RuntimeError(f"occupe non attendu : pret {px('pret.png', (5, 5))}, sans_occupe {px('sans_occupe.png', (5, 5))}")
+        # animation CSS infinie figée EXACTEMENT au temps 0 (carré droit) : avant le 19/11, pause en attente → ≈ 3° de rotation,
+        # plus ou moins selon la charge (vue « instable » 2 fois sur 8 sous charge, échec de ce contrôle 2 passes sur 6)
+        jaune = sum(1 for xx in range(0, 70) for yy in range(140, 200) if px('pret.png', (xx, yy)) == (255, 204, 0))
+        if jaune != 1600 or px('pret.png', (10, 150)) != (255, 204, 0):
+            raise RuntimeError(f'animation CSS pas figée au temps 0 : {jaune} px du carré droit sur 1600')
         if px('pret.png', (180, 200)) != px('pret.png', (130, 200)) or px('pret.png', (66, 10)) == (0, 255, 0):
             raise RuntimeError(f"bouton 🐞 ou voyant 🧪 de testkit visible sur la capture : {px('pret.png', (180, 200))} {px('pret.png', (66, 10))}")
         # références légères : JPEG à ½ ; la série PNG comparée à elles ne sonne pas
@@ -1139,11 +1296,23 @@ def _():
         open(os.path.join(av, 'p.html'), 'w').write(open(src).read().replace('filter:blur(30px) drop-shadow(0 0 40px #000)', '').replace('i<120', 'i<4'))
         cfg['scenes'] = [x for x in cfg['scenes'] if x['nom'] in ('rien', 'peindre')]
         json.dump(cfg, open(reg, 'w'))
-        r = subprocess.run([sys.executable, sb, reg, sortie, '--avant-page', os.path.join(av, 'p.html'), '--tours', '2', '--strict'],
-                           capture_output=True, text=True, timeout=240)
-        e = {x['scene']: x['verdict'] for x in json.load(open(sortie))['ecarts']}
-        if r.returncode != 1 or e.get('peindre') != 'plus lent' or e.get('rien', '').startswith('plus'):
-            raise RuntimeError(f'avant/après : code {r.returncode}, verdicts {e} ' + r.stdout[-300:])
+        vus = []
+        for essai in range(2):  # machine chargée (2 cœurs, autre conversation) : bruit > écart réel (+130 % jugé « égal (bruit) »,
+            # 1 passe sur 3 le 19/11) → un 2e essai ; un dessin NON compté donne ≈ 0 % aux deux essais et échoue toujours
+            if os.path.exists(sortie):
+                os.remove(sortie)   # un 2e essai qui planterait ne doit pas relire les verdicts du 1er
+            r = subprocess.run([sys.executable, sb, reg, sortie, '--avant-page', os.path.join(av, 'p.html'), '--tours', '2', '--strict'],
+                               capture_output=True, text=True, timeout=240)
+            e = {x['scene']: x['verdict'] for x in json.load(open(sortie))['ecarts']} if os.path.exists(sortie) else {'sortie': 'absente'}
+            vus.append(f'code {r.returncode}, verdicts {e}')
+            if r.returncode == 1 and e.get('peindre') == 'plus lent' and not e.get('rien', '').startswith('plus'):
+                break
+            if 'bruit' not in e.get('peindre', '') and 'bruit' not in e.get('rien', '') and not e.get('rien', '').startswith('plus'):
+                break   # verdict net mais faux sur le dessin : pas de 2e essai (« rien » plus lent = forcément du bruit : même action vide)
+        else:
+            raise RuntimeError('avant/après (2 essais) : ' + ' / '.join(vus) + ' ' + r.stdout[-300:])
+        if not (r.returncode == 1 and e.get('peindre') == 'plus lent' and not e.get('rien', '').startswith('plus')):
+            raise RuntimeError('avant/après : ' + ' / '.join(vus) + ' ' + r.stdout[-300:])
 
 
 ROBOT_HORS_VERROU = """import asyncio, sys
@@ -1533,6 +1702,95 @@ def _():
     if float(r.stdout) < 30: raise RuntimeError('ligne de commande : ' + r.stdout)
 
 
+@controle("verifier_outils.py --modifies / --seulement / --liste : un outil changé → ses contrôles et ceux des outils qui l'importent ou le chargent (banc.py → captures, profil3d, verif ; sonde.js → atelier → singe), pas les autres (polices.py → ses 2 + hors_ligne, ni banc ni singe) ; docstrings et routes.preparer() ignorés ; référence inconnue = erreur ; passe complète inchangée")
+def _():
+    V = os.path.abspath(__file__)
+
+    def liste(*a):
+        r = subprocess.run([sys.executable, V, '--liste', *a], cwd=RAC, capture_output=True, text=True, timeout=60)
+        if r.returncode:
+            raise RuntimeError(f"{' '.join(a)} → code {r.returncode} : {(r.stderr or r.stdout)[-300:]}")
+        lances = [l.split('lancé', 1)[1].strip() for l in r.stdout.splitlines() if l.startswith('  lancé')]
+        return ([x for x in lances if not x.startswith('verifier_outils.py')] if a else lances), r.stdout   # ce contrôle-ci nomme tous les outils
+    tout, _o = liste()
+    if len(tout) != len(_blocs_controles(open(V, encoding='utf-8').read())):
+        raise RuntimeError(f'--liste seul : {len(tout)} contrôles listés')
+    b, o = liste('--modifies', 'fichiers:banc.py')
+    noms = ' | '.join(b)
+    for doit in ('banc.py : avant/après', 'captures.py : vues', 'profil3d.py', 'verif.py : une commande'):
+        if doit not in noms: raise RuntimeError(f'banc.py changé : « {doit} » non lancé ({len(b)} lancés)')
+    for pas in ('polices.py', 'patience.py', 'bureau.py : état', 'robots/singe.py « visiter »'):
+        if any(x.startswith(pas) for x in b): raise RuntimeError(f'banc.py changé : « {pas} » lancé à tort')
+    if 'verif (utilise banc)' not in o: raise RuntimeError('raison absente : ' + o[:200])
+    p, _o = liste('--modifies', 'fichiers:polices.py')
+    if len(p) != 3 or not any(x.startswith("hors_ligne.py") for x in p) or any(x.startswith(("banc", "robots/singe")) for x in p):
+        raise RuntimeError(f'polices.py changé : {len(p)} lancés {p}')
+    sd, _o = liste('--modifies', 'fichiers:sonde.js')
+    if not any(x.startswith('robots/singe.py') for x in sd) or not any(x.startswith('atelier.py') for x in sd):
+        raise RuntimeError('sonde.js changé : atelier/singe non lancés')
+    pr, _o = liste('--modifies', 'fichiers:preparer.py')   # « routes.preparer() » / « preparer: » dans d'autres contrôles ignorés
+    if len(pr) != 1 or not pr[0].startswith('preparer.py'): raise RuntimeError(f'preparer.py changé : {pr}')
+    tk, _o = liste('--modifies', 'fichiers:testkit.js')
+    if not any(x.startswith('maj_testkit.py') for x in tk) or any(x.startswith('polices') for x in tk):
+        raise RuntimeError(f'testkit.js changé : {tk}')
+    so, o = liste('--modifies', 'fichiers:outils-communs/sonde.py')   # sonde.py ET sonde.js : même outil « sonde »
+    if not any(x.startswith('atelier.py') for x in so): raise RuntimeError(f'sonde.py changé : {len(so)} lancés ({o[:150]})')
+    tt, o = liste('--modifies', 'fichiers:outils-communs/disparu.py')   # outil supprimé/inconnu : tout
+    if 'COMPLÈTE' not in o or len(tt) < len(tout) - 1: raise RuntimeError(f'outil inconnu : {len(tt)} lancés')
+    r = subprocess.run([sys.executable, V, '--seulement', '--liste'], cwd=RAC, capture_output=True, text=True, timeout=60)
+    if r.returncode != 2: raise RuntimeError(f'--seulement sans motif : code {r.returncode}')
+    s1, _o = liste('--seulement', '^patience')
+    if len(s1) != 1: raise RuntimeError(f'--seulement ^patience : {s1}')
+    s2, _o = liste('--modifies', 'fichiers:banc.py', '--seulement', 'profil3d')
+    if len(s2) != 1: raise RuntimeError(f'--modifies + --seulement : {s2}')
+    r = subprocess.run([sys.executable, V, '--modifies', 'pas-une-ref-xyz', '--liste'], cwd=RAC, capture_output=True, text=True, timeout=60)
+    if r.returncode == 0 or 'inconnue' not in r.stderr + r.stdout: raise RuntimeError('référence inconnue acceptée')
+    av = 'x = 1\n' + '@controle(\'a.py : un\')\ndef _():\n    pass\n\n\n@controle("b.py : deux")\ndef _():\n    pass\n'
+    ap = av.replace('    pass\n\n\n@controle("b', '    run(1)\n\n\n@controle("b')
+    a1, a2 = _blocs_controles(av), _blocs_controles(ap)
+    if set(a1) != {'a.py : un', 'b.py : deux'} or {n for n in a2 if a1.get(n) != a2[n]} != {'a.py : un'}:
+        raise RuntimeError(f'contrôles changés mal repérés : {list(a1)}')
+
+
+@controle("preparer.py : socle vérifié sans rien installer (--verifier --json), jamais « playwright install », jeu inconnu signalé, option inconnue = code 2, dossiers npm trouvés (apps Electron à part), node_modules à jour / absent / plus vieux que package.json")
+def _():
+    src = open(os.path.join(OC, 'preparer.py'), encoding='utf-8').read()
+    if re.search(r"playwright['\"]?\s*,\s*['\"]install|playwright install chromium", src.replace('« playwright install »', '')):
+        raise RuntimeError('preparer.py lance « playwright install »')
+    r = subprocess.run([sys.executable, os.path.join(OC, 'preparer.py'), '--verifier', '--json'], cwd=RAC, capture_output=True, text=True, timeout=120)
+    j = json.loads(r.stdout.strip().splitlines()[-1])
+    etapes = {l['etape']: l['etat'] for l in j['lignes']}
+    for e in ('python3', 'node', 'Chromium (Playwright)', 'Three.js r160 (cache commun)', 'paquets Node communs'):
+        if e not in etapes: raise RuntimeError(f'étape absente : {e} ({list(etapes)})')
+    if etapes['Chromium (Playwright)'] != 'ok': raise RuntimeError('Chromium non lancé : ' + r.stdout[-300:])
+    if r.returncode != (0 if j['pret'] else 1): raise RuntimeError(f'code {r.returncode} pour pret={j["pret"]}')
+    if any(l['etat'] == 'fait' for l in j['lignes']): raise RuntimeError('--verifier a installé quelque chose')
+    r = subprocess.run([sys.executable, os.path.join(OC, 'preparer.py'), 'jeu-qui-n-existe-pas', '--verifier'], cwd=RAC, capture_output=True, text=True, timeout=120)
+    if r.returncode != 1 or 'dossier inconnu' not in r.stdout: raise RuntimeError('jeu inconnu : ' + r.stdout[-200:])
+    r = subprocess.run([sys.executable, os.path.join(OC, 'preparer.py'), '--bidule'], cwd=RAC, capture_output=True, text=True, timeout=30)
+    if r.returncode != 2: raise RuntimeError(f'option inconnue : code {r.returncode}')
+    spec = importlib.util.spec_from_file_location('preparer_t', os.path.join(OC, 'preparer.py'))
+    P = importlib.util.module_from_spec(spec); spec.loader.exec_module(P)
+    rel = lambda ds: sorted(os.path.relpath(d, RAC) for d in ds)
+    if rel(P.dossiers_npm('cage-et-gloire', False)) != ['cage-et-gloire']: raise RuntimeError(rel(P.dossiers_npm('cage-et-gloire', False)))
+    if rel(P.dossiers_npm('president-de-club', False)) != []: raise RuntimeError('app Electron prise sans --electron')
+    if rel(P.dossiers_npm('president-de-club', True)) != ['president-de-club/outils/app-bureau']: raise RuntimeError('--electron')
+    if 'valdragon' not in P.jeux_du_depot() or 'bureau' in P.jeux_du_depot(): raise RuntimeError(P.jeux_du_depot())
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, 'package.json'), 'w').write('{"dependencies":{"x":"1"}}')
+        if P.a_jour(d): raise RuntimeError('sans node_modules : vu à jour')
+        os.makedirs(os.path.join(d, 'node_modules', 'x'))
+        open(os.path.join(d, 'node_modules', 'x', 'package.json'), 'w').write('{}')
+        open(os.path.join(d, 'node_modules', '.package-lock.json'), 'w').write('{}')
+        if not P.a_jour(d): raise RuntimeError('node_modules complet : vu périmé')
+        t = time.time() + 30; os.utime(os.path.join(d, 'package.json'), (t, t))
+        if P.a_jour(d): raise RuntimeError('package.json plus récent : vu à jour')
+        os.utime(os.path.join(d, 'package.json'), (t - 60, t - 60))
+        open(os.path.join(d, 'package.json'), 'w').write('{"dependencies":{"x":"1","y":"2"}}')
+        os.utime(os.path.join(d, 'package.json'), (t - 60, t - 60))
+        if P.a_jour(d): raise RuntimeError('dépendance y absente : vu à jour')
+
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():
@@ -1550,5 +1808,17 @@ shutil.rmtree(os.environ['BANC_VERROU'] + '.qui', ignore_errors=True)
 ok = sum(1 for r in RES if r[1])
 for nom, bon, err, d in RES:
     print(f"{'OK    ' if bon else 'ÉCHEC '} {nom} ({d:.1f} s){'' if bon else ' — ' + err}")
-print(f'\n{ok}/{len(RES)} contrôles réussis')
+if '--liste' in sys.argv:
+    print(f'\n--liste : rien n\'a été lancé.')
+    sys.exit(0)
+if SELECTION is not None:
+    print(f'\n{ok}/{len(RES)} contrôles réussis — {len(SAUTES)} sautés (sélection{" --modifies" if "--modifies" in sys.argv else ""}'
+          f'{" --seulement" if _MOTIF else ""}) : la passe complète reste due avant de pousser.')
+    if not RES and '--modifies' in sys.argv and _stems:
+        print('Des outils ont changé mais aucun contrôle ne s\'en sert : en ajouter un (code 3).')
+        sys.exit(3)
+    if not RES:
+        print('Aucun outil changé : rien à vérifier en ciblé.')
+else:
+    print(f'\n{ok}/{len(RES)} contrôles réussis')
 sys.exit(0 if ok == len(RES) else 1)

@@ -21,7 +21,8 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | `phget.py` | textures et modèles Poly Haven (CC0), avec l'en-tête nécessaire. |
 | `verif.py` | **vérification commune avant publication** (18/11) : `python3 outils-communs/verif.py <jeu>/outils/verif.json [--complet]` = construction + tests du jeu (commandes avec `ok_si`/`echec_si`) + captures, singe, banc communs (`--strict`) + poids, en série, rapport HTML (planches, chiffres, détails des échecs), code 1 si échec ; réserves (`"reserve": true`) ; budget 10 min ; durées notées dans chronos.jsonl. Prêts : couronnes-et-lignees (rapide 3,8 min, complet 4,6 min), bannieres (rapide 1,8 min). |
 | `atelier.py` · `ATELIER_PARAMS` | (18/11) `ATELIER_PARAMS=v3d=0 python3 <jeu>/outils/<robot>.py` : paramètres ajoutés à l'adresse de toute page ouverte par `atelier.page()` sans toucher au robot (Bannières `parcours.py` en 2D : 3 jours en 13 s contre ≈ 110 s PAR jour en 3D logiciel). Clé `"params"` d'une étape de `verif.json`. |
-| `tests/verifier_outils.py` | contrôle de non-régression des outils communs |
+| `tests/verifier_outils.py` | contrôle de non-régression des outils communs ; `--modifies` = seulement les contrôles des outils changés et de ceux qui les importent (mise au point : 13 s à 3 min au lieu de 5,4 min), `--seulement`, `--liste` |
+| `preparer.py` | poste prêt en une commande : socle, Chromium lancé, caches Three.js + jsdom commun, `npm ci` des jeux (`tout` : 10 s neuf, 0,6 s ensuite) |
 | `planche_modeles.py` + `.html` | planche-contact de modèles 3D (taille, triangles). |
 
 ## Par besoin

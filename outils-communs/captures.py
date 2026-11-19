@@ -57,8 +57,11 @@ MASQUER_TK = """()=>{for(const e of document.querySelectorAll('body *')){const s
  const t=(e.textContent||'').trim();if(t==='🐞'||/^Signaler un probl/.test(e.title||'')||(t.startsWith('🧪')&&t.length<80))e.style.setProperty('visibility','hidden','important');}}"""
 # Animations CSS : finish() (fin atteinte, animationend déclenché plus tôt : reproductible) ; infinies : remises au début et en pause
 # (elles le restent pour les vues suivantes de la même page).
+# Animation infinie : pause() PUIS currentTime=0. Dans l'autre ordre, la pause est « en attente » jusqu'à l'image suivante et
+# l'animation tourne encore une image (≈ 3° pour un carré qui tourne en 1,3 s), et plus ou moins selon la charge : la vue
+# « instable » 2 fois sur 8 sous charge (19/11). Ainsi, temps exactement 0 à chaque série.
 FIGER_ANIM = """()=>{let n=0;for(const a of (document.getAnimations?document.getAnimations():[])){try{const t=a.effect&&a.effect.getTiming?a.effect.getTiming():{};
- if(t.iterations===Infinity){a.currentTime=0;a.pause();}else a.finish();n++;}catch(e){try{a.pause();}catch(_){}}}return n;}"""
+ if(t.iterations===Infinity){a.pause();a.currentTime=0;}else a.finish();n++;}catch(e){try{a.pause();}catch(_){}}}return n;}"""
 COND = "()=>{try{return !!(%s)}catch(e){return false}}"
 EXT = ('.png', '.jpg', '.jpeg', '.webp')  # mêmes extensions que compare.py
 DELAI_EVAL = 300  # s : un appel JS (images jouées, condition) qui ne rend pas la main (boucle infinie du jeu) arrête la vue au lieu de tout bloquer

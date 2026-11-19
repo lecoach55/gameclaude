@@ -636,10 +636,10 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  let ids=null;try{const noir=new T.MeshBasicMaterial({color:0,toneMapped:false,fog:false});const tmpM=[noir],sauv=[];const parK=new Map();
   const coulK=k=>new T.Color().setRGB((k+1)*10/255,200/255,0,T.SRGBColorSpace);
   sc.traverse(o=>{if(!o.isMesh)return;const k=o.userData.bidx;let m=noir;if(k!==undefined){if(o.userData.sil){m=new T.MeshBasicMaterial({map:o.userData.sil,alphaTest:.5,toneMapped:false,fog:false,color:coulK(k)});tmpM.push(m);}else{m=parK.get(k);if(!m){m=new T.MeshBasicMaterial({color:coulK(k),toneMapped:false,fog:false,side:T.DoubleSide});parK.set(k,m);tmpM.push(m);}}}sauv.push([o,o.material]);o.material=m;});
-  const bg0=sc.background,fg0=sc.fog,tm0=R0.toneMapping,sh0=R0.shadowMap.enabled;sc.background=new T.Color(0);sc.fog=null;R0.toneMapping=T.NoToneMapping;R0.shadowMap.enabled=false;R0.render(sc,cam);
+  const bg0=sc.background,fg0=sc.fog,tm0=R0.toneMapping,sh0=R0.shadowMap.enabled;sc.background=new T.Color(0);sc.fog=null;R0.toneMapping=T.NoToneMapping;R0.shadowMap.enabled=false;try{R0.render(sc,cam);
   const ci=mkC(W,H),cx2=ci.getContext('2d',{willReadFrequently:true});cx2.drawImage(R0.domElement,0,0);const d=cx2.getImageData(0,0,W,H).data;const a=new Uint8Array(W*H);
   for(let i=0;i<W*H;i++){const g=d[i*4+1];if(g<194||g>206||d[i*4+2]>12)continue;const k=Math.round(d[i*4]/10)-1;if(k>=0&&k<objs.length&&Math.abs(d[i*4]-(k+1)*10)<=3)a[i]=k+1;}
-  for(const [o,m] of sauv)o.material=m;sc.background=bg0;sc.fog=fg0;R0.toneMapping=tm0;R0.shadowMap.enabled=sh0;tmpM.forEach(m=>m.dispose());ids={W,H,a,bs:objs.map(o=>o[0])};}catch(e){console.warn('pano ids',e);}
+  ids={W,H,a,bs:objs.map(o=>o[0])};}finally{for(const [o,m] of sauv)o.material=m;sc.background=bg0;sc.fog=fg0;R0.toneMapping=tm0;R0.shadowMap.enabled=sh0;tmpM.forEach(m=>m.dispose());}}catch(e){console.warn('pano ids',e);}
  R0.toneMappingExposure=exp0;R0.setPixelRatio(dpr0);R0.setSize(sz.x,sz.y,false);U.fog.value=fog0;U.N.value=n0;
  // zones cliquables + créatures devant leurs habitations (dessinées, comme sur la carte)
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};

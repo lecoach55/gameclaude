@@ -82,6 +82,7 @@ RAC = os.path.dirname(ICI)
 sys.path.insert(0, ICI)
 from atelier import MESURE_JS, ARGS, ARGS_SANS_PLAFOND, HORLOGE  # noqa: E402
 from routes import brancher as brancher_routes  # noqa: E402
+from appareils import resoudre as resoudre_appareils  # noqa: E402
 import profil3d  # noqa: E402
 
 # Mode « figé » (défaut) : horloge.js fige le temps et le hasard ; le banc joue lui-même chaque image et chronomètre son coût réel
@@ -1069,9 +1070,10 @@ def main(argv):
         gels = [g for g in gels if g['nom'] in voulu]
     if not scenes and not gels:
         sys.exit('aucune scène ne correspond : ' + (o['scenes'] or o['gels'] or '(réglages sans "scenes" ni "gels")'))
-    appareils = cfg.get('appareils') or APPAREILS_DEFAUT
-    if o['appareils']:
-        appareils = {k: v for k, v in appareils.items() if k in o['appareils'].split(',')}
+    try:  # formats communs (appareils.py) : --appareils mac,mac-large@1 même absents des réglages ; nom inconnu = erreur (avant : banc vide)
+        appareils = resoudre_appareils(cfg.get('appareils'), o['appareils'], APPAREILS_DEFAUT)
+    except ValueError as e:
+        sys.exit(f'banc.py : {e}')
     jeu = cfg.get('jeu') or os.path.basename(os.path.dirname(os.path.dirname(reg)))
     o['avant'], etiquette_avant = resoudre_avant(o['avant'], jeu, lambda m: print(m, flush=True))
     avec_avant = bool(o['avant'] or o['avant_dossier'] or o['avant_page'])

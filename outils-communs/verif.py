@@ -29,6 +29,8 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; les commandes sont 
     {"nom": "Poids de la page", "poids": "x/build/index.html", "max_mo": 16}       page publiée (réserve au-delà de 97 %)
     {"nom": "Hors ligne", "hors_ligne": "x/build/index.html", "args": ["--pret", "window.G"]}   page construite (ou réglages .json),
           réseau coupé : démarre-t-elle, requêtes externes, polices de repli (hors_ligne.py, lancé avec --strict)
+    {"nom": "Fenêtres du Mac", "apercu": "x/outils/banc.json"}   la page dans les vraies fenêtres du Mac de Victor (appareils.py :
+          449×670 à 912×755 @2) : planche, règles @media actives (disposition téléphone ?), Mpx des canvas, contenus coupés, erreurs
   clés communes : "complet": true (seulement avec --complet) · "delai_s": 600 · "env": {"V3D": "0"} · "params": "v3d=0" (ajouté à
           l'adresse des pages ouvertes par atelier.page() : robots propres au jeu, parcours.py, monkey.py…) · "args": [...] (options
           en plus pour l'outil commun) · "reserve": true (un échec devient une RÉSERVE : signalé, sans faire échouer la vérification ;
@@ -48,9 +50,9 @@ RAC = os.path.dirname(ICI)
 sys.path.insert(0, ICI)
 import verrou  # noqa: E402
 OUTILS = {'captures': os.path.join(ICI, 'captures.py'), 'singe': os.path.join(ICI, 'robots', 'singe.py'), 'banc': os.path.join(ICI, 'banc.py'),
-          'hors_ligne': os.path.join(ICI, 'hors_ligne.py')}
+          'hors_ligne': os.path.join(ICI, 'hors_ligne.py'), 'apercu': os.path.join(ICI, 'appareils.py')}
 MARQUE = '.verif-sortie'  # posé dans chaque sortie : seul un dossier qui le porte peut être effacé
-TYPES = ('commande', 'captures', 'singe', 'banc', 'poids', 'hors_ligne')
+TYPES = ('commande', 'captures', 'singe', 'banc', 'poids', 'hors_ligne', 'apercu')
 
 
 def lire_args(argv):
@@ -243,6 +245,22 @@ def chiffres_hors_ligne(fj):
     return c, det
 
 
+def chiffres_apercu(fj):
+    d = lire_json(fj)
+    if not d:
+        return 'pas de rapport apercu.json', [], []
+    morceaux, det = [], []
+    for n, r in (d.get('formats') or {}).items():
+        act = r.get('actives') or []
+        morceaux.append(f"{n} {r.get('mpx', '?')} Mpx" + (f" @media {len(act)}" if act else '') + (' ERREUR' if r.get('erreurs') else ''))
+        if act:
+            det.append(f"{n} ({r.get('format')}) : @media actives {', '.join(act)}")
+        if r.get('coupes'):
+            det.append(f"{n} : {r['coupes']} contenu(s) coupé(s) : {r.get('coupes_detail', '')}")
+        det += [f'{n} erreur : {x}' for x in (r.get('erreurs') or [])[:3]]
+    return ' · '.join(morceaux), det, [d['planche']] if d.get('planche') and os.path.exists(d['planche']) else []
+
+
 def chiffres_banc(fj):
     b = lire_json(fj) or {}
     detail = []
@@ -294,7 +312,9 @@ def une_etape(e, o, sortie):
         affiche = cmd
     else:
         cmd = [sys.executable, OUTILS[t], e[t]]
-        if t == 'captures':
+        if t == 'apercu':
+            cmd = [sys.executable, OUTILS[t], 'apercu', e[t], '--sortie', d, '--json', os.path.join(d, 'apercu.json')]
+        elif t == 'captures':
             cmd += [d, '--strict']
             avant = o['avant'] if (o['avant'] and e.get('avant')) else e.get('avant')
             if avant:
@@ -360,6 +380,8 @@ def une_etape(e, o, sortie):
         res['chiffres'], res['detail'], res['images'] = chiffres_banc(os.path.join(d, 'banc.json'))
     elif t == 'hors_ligne':
         res['chiffres'], res['detail'] = chiffres_hors_ligne(os.path.join(d, 'hors_ligne.json'))
+    elif t == 'apercu':
+        res['chiffres'], res['detail'], res['images'] = chiffres_apercu(os.path.join(d, 'apercu.json'))
     if e.get('chiffres'):
         vals = re.findall(e['chiffres'], out)
         if vals:

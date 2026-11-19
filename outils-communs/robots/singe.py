@@ -12,6 +12,8 @@ Verrou machine (verrou.py, 18/11) : le singe passe avec les autres robots mais j
   (les « clics sans effet » peuvent monter).
 --ordinateur / --telephone LxH : format d'écran (défaut 1366x860 et 390x844 ; le studio prend 1280x800) ; aussi en réglage
   "ordinateur": "1280x800". Le téléphone est toujours tactile (has_touch, is_mobile), l'ordinateur toujours à la souris.
+--appareils accepte aussi les formats communs d'appareils.py (19/11) : --appareils mac,telephone (fenêtre réelle du Mac de Victor,
+  483×755 @2 ; mac-etroit, mac-moyen, mac-large, mac@1, 1000x700@2…).
 Three.js chargé sur jsDelivr/unpkg (bloqués dans le bac à sable) : servi en local par outils-communs/routes.py (réglage "routes").
 --actions N : s'arrête après N actions (au plus --secondes) — essais reproductibles quelle que soit la vitesse de la machine.
 --couvrir (ou "couvrir": true) : mode EXPLORATEUR — touche d'abord les boutons jamais touchés sur l'écran affiché
@@ -63,6 +65,7 @@ from atelier import serveur, ARGS  # noqa: E402
 from routes import brancher as brancher_routes, resume as resume_routes  # noqa: E402
 import verrou  # noqa: E402
 from playwright.async_api import async_playwright  # noqa: E402
+from appareils import un_format, contexte, connus  # noqa: E402
 
 APPAREILS = {'telephone': dict(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True, device_scale_factor=1),
              'ordinateur': dict(viewport={'width': 1366, 'height': 860}, device_scale_factor=1)}
@@ -385,7 +388,11 @@ async def principal():
     sortie = o['sortie'] or os.path.join('/tmp', 'singe-' + R['jeu']); os.makedirs(sortie, exist_ok=True)
     res = []
     for nom in o['appareils'].split(','):
-        if nom.strip().replace('é', 'e') not in APPAREILS: raise SystemExit(f"appareil inconnu : {nom.strip()} (telephone, ordinateur)")
+        nom = nom.strip().replace('é', 'e')
+        if nom in APPAREILS: continue
+        f = un_format(nom)  # formats communs (appareils.py) : mac, mac-large, mac@1, 1000x700@2…
+        if f is None: raise SystemExit(f"appareil inconnu : {nom} (telephone, ordinateur, ou format commun : {connus()})")
+        APPAREILS[nom] = contexte(f)
     # verrou machine (verrou.py) : avec les autres robots, jamais pendant un banc (il fausserait ses mesures)
     with verrou.tenir('robot', f"singe {R['jeu']}", True, float(o['attente_max'] or 1800), actif=not o['sans_verrou']):
         async with async_playwright() as p:

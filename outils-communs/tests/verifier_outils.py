@@ -1374,6 +1374,67 @@ def _():
             raise RuntimeError(f"verif : code {r.returncode}, {e.get('statut')} « {e.get('chiffres')} »")
 
 
+APERCU_JEU = """<!doctype html><meta name=viewport content="width=device-width"><style>body{margin:0;background:#223;color:#eee;font:16px sans-serif}
+#c{width:100%;height:300px;display:block}.l{display:flex;gap:8px}@media (max-width:600px){.l{flex-direction:column}}</style>
+<div class=l><b>A</b><b>B</b></div><canvas id=c></canvas><p id=e></p>
+<script>const c=document.getElementById('c');c.width=c.clientWidth*devicePixelRatio;c.height=300*devicePixelRatio;
+window.PRET=1;document.getElementById('e').textContent=innerWidth+'x'+innerHeight+'@'+devicePixelRatio;</script>"""
+
+
+@controle("appareils.py : formats communs du Mac (483×755 @2…) ; anciens réglages inchangés ; --appareils mac dans banc/captures/singe/hors_ligne même absent des réglages ; nom inconnu = erreur (avant : banc vide en silence) ; aperçu : @media actives, Mpx des canvas, planche, étape verif")
+def _():
+    sys.path.insert(0, OC)
+    import appareils as A
+    if A.resoudre(None, 'mac', {}) != {'mac': {'largeur': 483, 'hauteur': 755, 'dpr': 2}}:
+        raise RuntimeError(f"mac : {A.resoudre(None, 'mac', {})}")
+    vieux = {'ordinateur': {'largeur': 1280, 'hauteur': 800, 'cpu': 1}}
+    if A.resoudre(vieux) != vieux or A.resoudre(None, None, {'telephone': {'largeur': 390}}) != {'telephone': {'largeur': 390}}:
+        raise RuntimeError('anciens réglages modifiés')
+    r = A.resoudre({'o': 'mac-large@1', 'p': {'comme': 'mac', 'cpu': 4}}, 'p,o,1000x700@2')
+    if r != {'p': {'largeur': 483, 'hauteur': 755, 'dpr': 2, 'cpu': 4}, 'o': {'largeur': 912, 'hauteur': 755, 'dpr': 1}, '1000x700@2': {'largeur': 1000, 'hauteur': 700, 'dpr': 2}}:
+        raise RuntimeError(f'comme / @1 / format libre : {r}')
+    try:
+        A.resoudre(vieux, 'zzz'); raise RuntimeError('nom inconnu accepté')
+    except ValueError:
+        pass
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, 'index.html'), 'w').write(APERCU_JEU)
+        base = {'jeu': 'factice', 'dossier': d, 'page': 'index.html', 'pret': 'window.PRET', 'appareils': {'telephone': {}}}
+        # banc : --appareils mac@1 absent des réglages → mesuré au bon format ; nom inconnu → erreur claire
+        rb = os.path.join(d, 'banc.json'); json.dump(dict(base, scenes=[{'nom': 's', 'attente_ms': 50, 'duree_ms': 300, 'infos': "innerWidth+'x'+innerHeight+'@'+devicePixelRatio"}]), open(rb, 'w'))
+        run(sys.executable, os.path.join(OC, 'banc.py'), rb, os.path.join(d, 'b.json'), '--appareils', 'mac@1,telephone', '--sans-verrou', timeout=120)
+        b = json.load(open(os.path.join(d, 'b.json')))['appareils']
+        if list(b) != ['mac@1', 'telephone'] or b['mac@1']['scenes']['s'].get('infos') != '483x755@1':
+            raise RuntimeError(f"banc --appareils mac@1 : {list(b)} {b.get('mac@1', {}).get('scenes')}")
+        r = subprocess.run([sys.executable, os.path.join(OC, 'banc.py'), rb, '--appareils', 'zzz', '--sans-verrou'], capture_output=True, text=True, timeout=60)
+        if r.returncode == 0 or 'appareil inconnu' not in r.stderr:
+            raise RuntimeError('banc --appareils zzz : ' + (r.stdout + r.stderr)[-200:])
+        # captures : image à dpr 2
+        rc = os.path.join(d, 'vues.json'); json.dump(dict(base, vues=[{'nom': 'v'}]), open(rc, 'w'))
+        run(sys.executable, os.path.join(OC, 'captures.py'), rc, os.path.join(d, 'c'), '--appareils', 'mac', '--sans-verrou', timeout=120)
+        from PIL import Image
+        if Image.open(os.path.join(d, 'c', 'v.png')).size != (966, 1510):
+            raise RuntimeError(f"captures mac : {Image.open(os.path.join(d, 'c', 'v.png')).size}")
+        # hors ligne --ecran mac ; singe --appareils mac
+        run(sys.executable, os.path.join(OC, 'hors_ligne.py'), os.path.join(d, 'index.html'), '--ecran', 'mac', '--secondes', '0.3', '--sans-verrou')
+        json.dump({'fichier': 'index.html', 'pret': 'window.PRET', 'pause': [10, 20]}, open(os.path.join(d, 'singe.json'), 'w'))
+        run(sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 'singe.json'), '--secondes', '5', '--actions', '3', '--appareils', 'mac',
+            '--sortie', os.path.join(d, 's'), '--sans-verrou', timeout=120)
+        sa = json.load(open(os.path.join(d, 's', 'singe.json')))['appareils'][0]
+        if sa['ecran'] != {'width': 483, 'height': 755}:
+            raise RuntimeError(f"singe mac : {sa['ecran']}")
+        # aperçu : à 483 px la règle max-width:600px est active, à 912 non ; canvas 912×300 @2 = 1,09 Mpx ; planche
+        run(sys.executable, os.path.join(OC, 'appareils.py'), 'apercu', os.path.join(d, 'index.html'), '--formats', 'mac,mac-large', '--secondes', '0.2',
+            '--sortie', os.path.join(d, 'a'), '--sans-verrou', timeout=120)
+        ap = json.load(open(os.path.join(d, 'a', 'apercu.json')))['formats']
+        if ap['mac']['actives'] != ['(max-width: 600px)'] or ap['mac-large']['actives'] or ap['mac-large']['mpx'] != 1.09 or not os.path.exists(os.path.join(d, 'a', 'planche.png')):
+            raise RuntimeError(f"aperçu : {ap}")
+        vj = os.path.join(d, 'verif.json'); json.dump({'jeu': 'factice', 'etapes': [{'nom': 'Mac', 'apercu': os.path.join(d, 'index.html'), 'args': ['--formats', 'mac', '--secondes', '0.2', '--sans-verrou']}]}, open(vj, 'w'))
+        r = subprocess.run([sys.executable, os.path.join(OC, 'verif.py'), vj, '--sortie', os.path.join(d, 'v'), '--sans-chrono'], capture_output=True, text=True, timeout=180, cwd=RAC)
+        e = json.load(open(os.path.join(d, 'v', 'verif.json')))['etapes'][0]
+        if r.returncode or e['statut'] != 'ok' or '@media 1' not in e['chiffres'] or not e.get('images'):
+            raise RuntimeError(f"verif apercu : code {r.returncode} {e}")
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

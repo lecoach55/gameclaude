@@ -7,7 +7,8 @@ usage :
                                                                      "fichier" ou "dossier"+"page", "construire", "stockage", "pret", "entree"
 options : --pret "window.G&&G.ok" (condition JS de démarrage, sinon celle des réglages, sinon : document chargé)
           --entree "demarrer()" · --secondes 6 (attente après le démarrage : chargements tardifs, polices)
-          --ecran 1280x800 (défaut : ordinateur 1280×800, cible de Victor) · --telephone (390×844 tactile)
+          --ecran 1280x800 (défaut : ordinateur 1280×800 ; aussi un format commun d'appareils.py : --ecran mac = 483×755 @2,
+            la vraie fenêtre de Victor dans l'app Claude ; --ecran telephone = 390×780 à la souris) · --telephone (390×844 tactile)
           --tolerer hote1,hote2 (adresses externes admises : la page a un repli) · --json sortie.json · --strict · --construire
           --polices (détail de toutes les familles vues) · --sans-verrou · --attente-max 1800
           --ignorer-console "motif" (expression régulière : console.error voulus hors ligne, ex. « nuage absent »)
@@ -158,9 +159,13 @@ async def verifier(o):
         nav = await p.chromium.launch()
         if o['telephone']:
             ctx = await nav.new_context(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True, device_scale_factor=1)
-        else:
-            L, H = (int(x) for x in o['ecran'].lower().split('x'))
-            ctx = await nav.new_context(viewport={'width': L, 'height': H})
+        else:  # --ecran 1280x800, ou format commun d'appareils.py (mac, mac-large, 1000x700@2…)
+            from appareils import un_format, contexte, connus
+            f = un_format(o['ecran'])
+            if f is None:
+                await nav.close()
+                print(f"hors_ligne.py : --ecran illisible : {o['ecran']} (LxH ou {connus()})", file=sys.stderr); return 2, {}
+            ctx = await nav.new_context(**contexte(f))
 
         async def route(r):
             u = r.request.url

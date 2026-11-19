@@ -148,3 +148,7 @@
 {"quand": "2026-11-19 01:32", "jeu": "outils", "etape": "verifier_outils (contrôles 32→35)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 290.4, "code": 0}
 {"quand": "2026-11-19 01:39", "jeu": "outils", "etape": "verifier_outils (après relecture)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 339.9, "code": 1}
 {"quand": "2026-11-19 01:44", "jeu": "outils", "etape": "verifier_outils (final)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 284.1, "code": 0}
+{"quand": "2026-11-19 05:19", "jeu": "outils", "etape": "apercu sedes-petri (4 formats Mac)", "commande": "python3 outils-communs/appareils.py apercu sedes-petri/jeu/index.html --sortie /tmp/apercu-sedes", "secondes": 14.5, "code": 0}
+{"quand": "2026-11-19 05:20", "jeu": "outils", "etape": "apercu trone (banc.json, 4 formats Mac)", "commande": "python3 outils-communs/appareils.py apercu trone-de-braise/outils/banc.json", "secondes": 14.6, "code": 0}
+{"quand": "2026-11-19 05:22", "jeu": "outils", "etape": "banc sedes --appareils mac (nouveau)", "commande": "python3 outils-communs/banc.py sedes-petri/outils/banc.json /tmp/claude-0/-home-claude-gameclaude/0bda342d-5d02-5103-bc65-0832e6163227/scratchpad/new_b.json --appareils mac", "secondes": 5.6, "code": 0}
+{"quand": "2026-11-19 05:27", "jeu": "outils", "etape": "verifier_outils (36 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 289.8, "code": 1}

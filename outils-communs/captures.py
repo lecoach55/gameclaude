@@ -49,6 +49,7 @@ import banc as B  # noqa: E402  (lieu, construire, extraire, servir… : mêmes 
 import verrou as V  # noqa: E402
 from atelier import ARGS, HORLOGE  # noqa: E402
 from routes import brancher as brancher_routes  # noqa: E402
+from appareils import resoudre as resoudre_appareils  # noqa: E402
 
 APPAREILS_DEFAUT = {'telephone': {'largeur': 390, 'hauteur': 780, 'dpr': 1}}
 # Bouton 🐞 et voyant 🧪 de testkit.js (z-index 9999 en ligne) : le voyant devient « 🧪 60 img/s · pire 17 ms » après 500 ms.
@@ -344,11 +345,10 @@ def main(argv):
     noms = [v['nom'] for v in vues]
     if len(set(noms)) != len(noms):
         sys.exit('captures.py : deux vues portent le même nom')
-    appareils = cfg.get('appareils') or APPAREILS_DEFAUT
-    if o['appareils']:
-        appareils = {k: v for k, v in appareils.items() if k in o['appareils'].split(',')}
-        if not appareils:
-            sys.exit('captures.py : aucun appareil ne correspond à ' + o['appareils'])
+    try:  # formats communs (appareils.py) : --appareils mac,mac-large même absents des réglages
+        appareils = resoudre_appareils(cfg.get('appareils'), o['appareils'], APPAREILS_DEFAUT)
+    except ValueError as e:
+        sys.exit(f'captures.py : {e}')
     fmt = (o['format'] or cfg.get('format', 'png')).lower().replace('jpeg', 'jpg')
     if fmt not in ('png', 'jpg'):
         sys.exit('captures.py : --format png ou jpg')

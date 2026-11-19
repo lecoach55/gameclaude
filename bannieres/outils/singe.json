@@ -1,0 +1,87 @@
+{
+ "_note": "Singe commun (outils-communs/robots/singe.py) pour Bannières, sur la VERSION CONSTRUITE (python3 bannieres/jeu/build.py avant). Remplace monkey.py : mode économe 3D (1 image = 250 ms de jeu par action, ACCEL=6 comme monkey.py), états à visiter combat 3D et ville (héros recréé s'il est mort). Qualité 3D basse (≈ 3,5 fois plus d'actions) : ajouter \"requete\": \"?q3d=0\" ; carte 2D : \"requete\": \"?v3d=0\".",
+ "jeu": "bannieres",
+ "fichier": "../build/bannieres.html",
+ "ordinateur": "1280x800",
+ "images": 1,
+ "stockage": {
+  "bs-rapide": "0"
+ },
+ "entree": [
+  "#bTest",
+  {
+   "js": "ACCEL=6"
+  }
+ ],
+ "pret": "typeof ECRAN!=='undefined' && ECRAN==='aventure' && typeof G!=='undefined' && !!G",
+ "eviter": [
+  "Signaler",
+  "Mesurer",
+  "Banc",
+  "Nouvelle partie",
+  "Effacer",
+  "Abandonner",
+  "Mode test",
+  "Recommencer"
+ ],
+ "selecteur": ".btn,[data-v],[data-i]",
+ "priorites": [
+  {
+   "motif": "Fin du tour|Tour suivant|D’accord|Fermer|Terminer|Combat rapide",
+   "poids": 0.25
+  }
+ ],
+ "etat": "ECRAN+' · jour '+(G&&G.jour)",
+ "ecran": "(()=>{const ms=document.querySelectorAll('body > .modal');if(ms.length){const h=ms[ms.length-1].querySelector('h2,h3');return 'fenêtre '+(h?h.textContent.trim().slice(0,24):'')}return ECRAN})()",
+ "invariants": "(()=>{const b=[];if(typeof G==='undefined'||!G)return b;for(const p of G.joueurs)for(const k in p.res)if(!isFinite(p.res[k])||p.res[k]<0)b.push('ressource '+k+' = '+p.res[k]);for(const h of G.heros)for(const s of h.armee||[])if(s&&!(s.n>0))b.push('pile vide '+h.nom);return b;})()",
+ "relance": {
+  "si": "ECRAN==='accueil' || (G&&G.fini)",
+  "entree": [
+   {
+    "js": "document.querySelectorAll('body > .modal').forEach(m=>m.remove())"
+   },
+   "#bTest",
+   {
+    "attendre": 800
+   },
+   {
+    "js": "ACCEL=6"
+   }
+  ]
+ },
+ "pause": [
+  60,
+  300
+ ],
+ "visiter": [
+  {
+   "nom": "combat 3D",
+   "si": "ECRAN==='combat' && !!CB",
+   "aller": [
+    {
+     "js": "for(let k=0;k<6;k++){const ms=document.querySelectorAll('body > .modal');if(!ms.length)break;const m=ms[ms.length-1];const bs=[...m.querySelectorAll('.fen > .btns .btn')];const b=bs.find(x=>/Fermer|Annuler|Reprendre|Terminer|D’accord/.test(x.textContent))||bs[bs.length-1];if(b)b.click();else m.remove();}if(typeof VI!=='undefined'&&VI&&ECRAN==='ville')VI.fermer();let h=herosDe(0)[0];if(!h){const v=villesDe(0)[0];if(v){h=creerHeros('chevalier',0,v.x,v.y,true);index();}}const ms=G.objs.filter(o=>o.t==='monstre');if(h&&ms.length){ms.sort((a,b)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(b.x-h.x,b.y-h.y));combatMonstre(h,ms[0],true);}"
+    },
+    {
+     "attendre": 500
+    },
+    {
+     "js": "const b=[...document.querySelectorAll('body > .modal .btn')].find(x=>/Mener la bataille|Les combattre/.test(x.textContent));if(b)b.click();"
+    }
+   ],
+   "apres": 25,
+   "encore": true
+  },
+  {
+   "nom": "ville",
+   "si": "ECRAN==='ville' && !!VI",
+   "aller": [
+    {
+     "js": "for(let k=0;k<6;k++){const ms=document.querySelectorAll('body > .modal');if(!ms.length)break;const m=ms[ms.length-1];const bs=[...m.querySelectorAll('.fen > .btns .btn')];const b=bs.find(x=>/Fermer|Annuler|Reprendre|Terminer|D’accord/.test(x.textContent))||bs[bs.length-1];if(b)b.click();else m.remove();}if(ECRAN==='aventure')ouvrirVille(villesDe(0)[0]);"
+    }
+   ],
+   "apres": 35,
+   "encore": true
+  }
+ ],
+ "pas": 250
+}

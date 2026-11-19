@@ -774,7 +774,7 @@ def resume_mesure(m):
     return t
 
 
-async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu, partiel=None, gels=(), profil=None):
+async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu, partiel=None, gels=(), profil=None, veille=None, budget_calme=0.0, refaites=None):
     """versions = [(nom, base, page)] ; tours entrelacés A B B A A B… Renvoie {nom: [passes]} (une passe = {appareil: résultat}).
     partiel = fichier JSON réécrit après CHAQUE scène (mesures déjà faites, progression, temps restant estimé)."""
     from playwright.async_api import async_playwright
@@ -791,6 +791,17 @@ async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu
             if echecs[cle] >= 2:  # un échec isolé peut venir d'une machine chargée ; deux de suite : la version ne démarre pas
                 abandon[cle] = str(e)[:300]
     encours = {}
+    budget = [float(budget_calme or 0)]  # secondes d'attente encore permises pour les navigateurs hors verrou (veille, 19/11 soir)
+    refaites = refaites if refaites is not None else []  # passes et gels refaits (rempli pour l'appelant)
+
+    async def calme(quoi):
+        """Avant chaque passe et chaque gel : si un robot HORS VERROU tourne (veille), attendre sa fin (dans le budget)."""
+        if veille is not None and budget[0] > 0 and veille.actifs:
+            w = await asyncio.to_thread(veille.attendre_calme, budget[0], f'banc ({quoi})', lambda m: print('    ' + m, flush=True))
+            budget[0] -= w
+
+    def perturbee(t_debut):
+        return veille.vus_depuis(t_debut) if veille is not None else []
 
     def au_fil(nom_scene, res):
         fait[0] += 1
@@ -827,28 +838,53 @@ async def mesurer_versions(cfg, versions, appareils, scenes, tours, plafond, cpu
                                      **({'gels': {g['nom']: {'erreur': e} for g in gels}} if gels else {})}
                         fait[0] = f0 + len(scenes) + len(gels)
                         continue
-                    try:
-                        passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu, au_fil, profil) if scenes else {'scenes': {}, 'chronos': {}, 'erreurs': []}
-                    except Exception as e:  # jeu jamais prêt, erreur dans « entree »… : la passe est notée en erreur, le banc continue
-                        err = f'passe {nom}/{an} : {str(e)[:250]}'
-                        print('    ERREUR ' + err, flush=True)
-                        passe[an] = {'scenes': {s['nom']: {'erreur': str(e)[:300]} for s in scenes}, 'chronos': {}, 'erreurs': [err]}
-                        fait[0] = f0 + len(scenes)  # scènes de la passe ratée comptées comme faites (estimation du reste)
-                        noter_echec((nom, an), e)
+                    for essai in (0, 1):  # veille (19/11 soir) : une passe pendant laquelle un robot hors verrou a tourné est refaite une fois
+                        if scenes:
+                            await calme(f'{nom}/{an}')
+                        t_p = time.time()
+                        try:
+                            passe[an] = await une_passe(nav, cfg, base, page, an, a, scenes, cpu, au_fil, profil) if scenes else {'scenes': {}, 'chronos': {}, 'erreurs': []}
+                        except Exception as e:  # jeu jamais prêt, erreur dans « entree »… : la passe est notée en erreur, le banc continue
+                            err = f'passe {nom}/{an} : {str(e)[:250]}'
+                            print('    ERREUR ' + err, flush=True)
+                            passe[an] = {'scenes': {s['nom']: {'erreur': str(e)[:300]} for s in scenes}, 'chronos': {}, 'erreurs': [err]}
+                            fait[0] = f0 + len(scenes)  # scènes de la passe ratée comptées comme faites (estimation du reste)
+                            noter_echec((nom, an), e)
+                            break
+                        vus = perturbee(t_p) if scenes else []
+                        if vus and essai == 0 and budget[0] > 0:
+                            print(f"    ↻ {an} : navigateur(s) HORS VERROU actifs pendant cette passe ({_verrou.resume_navigateurs(vus)}) : mesure faussée, passe refaite après leur fin", flush=True)
+                            refaites.append(f'{nom}/{an} tour {t + 1}'); fait[0] = f0
+                            continue
+                        if vus:
+                            passe[an]['hors_verrou'] = _verrou.resume_navigateurs(vus)
+                        break
                     if gels:
                         passe[an]['gels'] = {}
                         for g in gels:
                             if (nom, an) in abandon:
                                 passe[an]['gels'][g['nom']] = {'erreur': abandon[(nom, an)]}
                             else:
-                                try:
-                                    r = await une_passe_gel(nav, cfg, base, page, a, g, cpu)
+                                for essai in (0, 1):  # veille (19/11 soir) : gel refait une fois si un robot hors verrou a tourné pendant
+                                    await calme(f"{nom}/{an} gel {g['nom']}")
+                                    t_p = time.time()
+                                    try:
+                                        r = await une_passe_gel(nav, cfg, base, page, a, g, cpu)
+                                    except Exception as e:
+                                        passe[an]['gels'][g['nom']] = {'erreur': str(e)[:300]}
+                                        passe[an]['erreurs'].append(f"gel {g['nom']} : {str(e)[:200]}")
+                                        noter_echec((nom, an), e)
+                                        break
+                                    vus = perturbee(t_p)
+                                    if vus and essai == 0 and budget[0] > 0:
+                                        print(f"    ↻ {an} gel {g['nom']} : navigateur(s) HORS VERROU actifs pendant le gel ({_verrou.resume_navigateurs(vus)}) : gel refait après leur fin", flush=True)
+                                        refaites.append(f"{nom}/{an} gel {g['nom']} tour {t + 1}")
+                                        continue
+                                    if vus:
+                                        r['hors_verrou'] = _verrou.resume_navigateurs(vus)
                                     passe[an]['erreurs'] += [x for x in r.pop('erreurs') if x not in passe[an]['erreurs']]
                                     passe[an]['gels'][g['nom']] = r
-                                except Exception as e:
-                                    passe[an]['gels'][g['nom']] = {'erreur': str(e)[:300]}
-                                    passe[an]['erreurs'].append(f"gel {g['nom']} : {str(e)[:200]}")
-                                    noter_echec((nom, an), e)
+                                    break
                             print(f"    {an:10s} gel {g['nom'][:14]:14s} {resume_gel(passe[an]['gels'][g['nom']])}" + au_fil('gel ' + g['nom'], passe[an]), flush=True)
         await nav.close()
     return out
@@ -1007,7 +1043,7 @@ def tableau(L):
     for e in L:
         br = f"{e['bruit_pct']:.0f} %" if e.get('bruit_pct') is not None else '  -'
         pe = f"   (programmes compilés en jeu {e['programmes_en_jeu'][0]} → {e['programmes_en_jeu'][1]})" if e.get('programmes_en_jeu') else ''
-        t.append(f"{e['appareil']:10s} {e['scene'][:22]:22s} {e['avant_ms']:9.2f} {e['apres_ms']:9.2f} {e['ecart_pct']:+7.1f}% {br:>6s}  {e['verdict']}{pe}")
+        t.append(f"{e['appareil']:10s} {e['scene'][:22]:22s} {e['avant_ms']:9.2f} {e['apres_ms']:9.2f} {e['ecart_pct']:+7.1f}% {br:>6s}  {e['verdict']}{' — DOUTEUX (robot hors verrou pendant la mesure)' if e.get('douteux') else ''}{pe}")
     if any(e.get('action') for e in L):
         t.append('(action = ms par action jusqu\'à l\'affichage, vide déduit)')
     if any(e['scene'].startswith('gel ') for e in L):
@@ -1098,6 +1134,16 @@ def main(argv):
     verrou, attente_verrou = (None, 0) if o['sans_verrou'] else verrouiller(attente_max=float(o['attente_max'] or 1800), attente_navigateurs=att_nav)
     nav_debut = (getattr(verrou, 'navigateurs', None) or {}) if verrou else {}
     nav_fin = []
+    # veille (19/11 soir) : navigateurs hors verrou relevés EN CONTINU ; le banc attend leur fin entre deux passes et refait une fois
+    # une passe ou un gel pendant lequel l'un d'eux a tourné (budget d'attente = --attente-navigateurs ; VERROU_VEILLE=0 : sans veille)
+    try:
+        budget_calme = att_nav if att_nav is not None else float(os.environ.get('VERROU_NAVIGATEURS') or 600)
+    except ValueError:
+        budget_calme = 600.0
+    # attente déjà faite au départ (verrouiller) comptée dans le budget ; abandonnée une fois (actifs restants) = plus d'attente
+    budget_calme = 0.0 if nav_debut.get('restants') else max(0.0, budget_calme - float(nav_debut.get('attendu_s') or 0))
+    veille = _verrou.Veille() if verrou and os.environ.get('VERROU_VEILLE', '1') != '0' else None
+    refaites = []
     t0 = time.time()
     serveurs, tmp = [], None
     ch0 = charge()
@@ -1141,7 +1187,8 @@ def main(argv):
             versions = [('avant', b_av, p_av)] + versions
         print(f"{'Profil 3D' if profil is not None else 'Banc'} {jeu} · {len(scenes)} scènes{f' + {len(gels)} gel(s) en temps réel' if gels else ''} · {', '.join(appareils)} · {tours} tour(s) · {'' if not scenes else ('temps figé, préparation réelle' if cfg.get('preparation') == 'reelle' else 'temps figé') + ' : coût réel par image, GPU compris' if cfg.get('mode', 'fige') == 'fige' else ('temps réel, plafond 60 img/s' if o['plafond'] else 'temps réel sans plafond')}", flush=True)
         print(f'mesures au fil de l\'eau : {partiel}', flush=True)
-        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu'], partiel, gels, profil))
+        brut = asyncio.run(mesurer_versions(cfg, versions, appareils, scenes, tours, o['plafond'], o['cpu'], partiel, gels, profil,
+                                            veille=veille, budget_calme=budget_calme, refaites=refaites))
     except PageAbsente as e:  # page absente : rien à mesurer, on le dit tout de suite (avant : 180 s d'attente par passe)
         print('banc : ' + str(e), flush=True)
         return 2
@@ -1150,6 +1197,8 @@ def main(argv):
             nav_fin = [n for n in _verrou.navigateurs(1.0) if n['actif']] if verrou else []
         except Exception:
             nav_fin = []
+        if veille is not None:
+            veille.arreter()
         if verrou:
             verrou.close()
         for s in serveurs:
@@ -1159,10 +1208,29 @@ def main(argv):
     meta = {'jeu': jeu, 'date': datetime.datetime.now().isoformat(timespec='seconds'), 'plafond': o['plafond'], 'tours': tours,
             'cpu': o['cpu'], 'duree_s': round(time.time() - t0), 'charge': {'debut': ch0, 'fin': charge(), **({'heritee': True} if attente_verrou > 1 else {})},
             'attente_verrou_s': round(attente_verrou), **_nav_meta(nav_debut, nav_fin), **({'drapeaux': ['--run-all-compositor-stages-before-draw']} if any(x.get('action') for x in scenes) else {})}
+    perturbes = [(v, an, g, x) for v, ps in brut.items() for p in ps for an, pa in p.items()
+                 for g, x in ([(None, pa.get('hors_verrou'))] + [(g, r.get('hors_verrou')) for g, r in (pa.get('gels') or {}).items()]) if x]
+    pendant = sorted({f"{v}/{an}{' gel ' + g if g else ''} : {x}" for v, an, g, x in perturbes})
+    # (appareil, scène) perturbés : une passe perturbée = ses scènes (pas ses gels, mesurés à part) ; un gel = « gel <nom> »
+    douteux = {(an, 'gel ' + g) for v, an, g, x in perturbes if g} | {(an, sc) for v, ps in brut.items() for p in ps for an, pa in p.items()
+                                                                   if pa.get('hors_verrou') for sc in list(pa.get('scenes') or {}) + ['chrono ' + c for c in pa.get('chronos') or {}]}
+
+    def marquer(L):
+        for e in L:
+            if (e.get('appareil'), e.get('scene')) in douteux and e.get('verdict') in ('plus lent', 'plus rapide'):
+                e['douteux'] = True  # verdict inchangé (lu par verif.py et d'autres) ; signalé dans le tableau
+    if refaites:
+        meta['passes_refaites'] = refaites
+        print(f"\n↻ {len(refaites)} passe(s)/gel(s) refait(s) : un robot HORS VERROU tournait pendant la mesure ({', '.join(refaites[:6])})", flush=True)
+    if pendant:
+        meta.setdefault('navigateurs_hors_verrou', {})['pendant'] = pendant
+        print(f"⚠ mesures encore faites avec un robot HORS VERROU actif (budget d'attente épuisé) : {' | '.join(pendant[:4])} ;"
+              " écarts « DOUTEUX » : refaire le banc quand la machine est calme (verrou.py etat)", flush=True)
     code = 0
     if avec_avant:
         av, ap = fusion(brut['avant']), fusion(brut['apres'])
         L, al = ecarts(av, ap, seuil)
+        marquer(L)
         out = {**meta, 'avant_rev': etiquette_avant or o['avant_dossier'] or o['avant_page'], 'avant': av, 'apres': ap, 'ecarts': L}
         print('\n' + tableau(L))
         if al:
@@ -1175,6 +1243,7 @@ def main(argv):
         out = {**meta, 'appareils': ap, **({'profil': True} if profil is not None else {})}
         if o['reference']:
             L, al = ecarts(charger_sortie(o['reference']), ap, seuil)
+            marquer(L)
             out['ecarts'] = L
             print('\nComparaison à la référence (autre minute : prudence) :\n' + tableau(L))
             code = 1 if (o['strict'] and al) else 0

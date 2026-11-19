@@ -4,12 +4,17 @@
 usage : python3 outils-communs/robots/singe.py <jeu>/outils/singe.json [--secondes 60] [--graine 1]
                 [--appareils telephone,ordinateur] [--sortie dossier] [--fichier page.html] [--couvrir] [--actions N]
                 [--ordinateur 1280x800] [--telephone 360x740] [--sans-verrou] [--attente-max 1800]
+                [--images N] [--pas MS] [--requete "?q3d=0"]
+--requete Q (19/11 soir) : remplace le réglage "requete" (ex. qualité 3D basse pour un singe rapide) sans copier le fichier de réglages.
 Verrou machine (verrou.py, 18/11) : le singe passe avec les autres robots mais jamais pendant un banc ; il attend sa fin en le disant.
 --images N (ou "images": N) : mode ÉCONOME pour la 3D lourde (rendu logiciel à plusieurs secondes par image) — horloge.js fige
   le temps après l'entrée et le singe ne joue que N images après chaque action (au lieu de laisser le jeu dessiner en continu
   pendant que les relevés attendent) ; chargement, entrée et relances restent en temps réel. Hameau : 4 → 39 actions en 2×45 s.
   Entre deux actions les minuteries du jeu n'avancent que de N × 16 ms : une animation d'interface de 300 ms demande ≈ 20 actions
   (les « clics sans effet » peuvent monter).
+--pas MS (ou "pas": MS, 19/11 soir) : temps de jeu par image jouée en mode économe (défaut 16,7 ms). Avec "pas": 150, 2 images
+  = 0,3 s de jeu par action au lieu de 33 ms : déplacements, tours de l'IA et animations avancent sans dessiner plus d'images
+  (Bannières 3D : la fin de tour ne finissait jamais avec 16,7 ms). Une animation qui lit performance.now() saute alors des étapes.
 --ordinateur / --telephone LxH : format d'écran (défaut 1366x860 et 390x844 ; le studio prend 1280x800) ; aussi en réglage
   "ordinateur": "1280x800". Le téléphone est toujours tactile (has_touch, is_mobile), l'ordinateur toujours à la souris.
 --appareils accepte aussi les formats communs d'appareils.py (19/11) : --appareils mac,telephone (fenêtre réelle du Mac de Victor,
@@ -90,7 +95,7 @@ def args():
     if not a or a[0].startswith('-'):
         print(__doc__); sys.exit(2)
     o = {'reglages': a[0], 'secondes': 60, 'graine': 1, 'appareils': 'telephone,ordinateur', 'sortie': None, 'fichier': None, 'couvrir': False, 'actions': 0,
-         'ordinateur': None, 'telephone': None, 'images': None,
+         'ordinateur': None, 'telephone': None, 'images': None, 'pas': None, 'requete': None,
          'attente_max': None, 'sans_verrou': False}
     i = 1
     while i < len(a):
@@ -196,6 +201,7 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
                              % ';'.join(f"localStorage.setItem({json.dumps(k)},{json.dumps(v if isinstance(v, str) else json.dumps(v))})" for k, v in sto.items()))
     if R.get('init'): await pg.add_init_script(R['init'])
     econome = int(R.get('_images') or 0)           # mode économe : horloge figée entre les actions, N images jouées après chacune
+    pas_img = float(R.get('_pas') or 1000 / 60)     # temps de jeu par image jouée (« pas », ms) : > 16,7 = animations accélérées
     if econome:
         await pg.add_init_script(f"window.__HORLOGE_GRAINE={int(graine)};window.__HORLOGE_REEL=1;")
         await pg.add_init_script(path=HORLOGE)
@@ -370,7 +376,7 @@ async def un_appareil(p, R, nom, secondes, graine, sortie, couvrir=False, max_ac
         n += 1; journal.append(action); journal = journal[-6:]
         attente = rng.randint(int(pause[0]), int(pause[1]))
         if econome:                                    # les images de jeu ne tournent que maintenant (pas pendant les relevés)
-            try: await pg.evaluate('(n)=>{if(!window.__horloge)return;__horloge.reel(false);__horloge.coulant(true);__horloge.avancer(n,1000/60)}', econome)  # refigé aussi après un rechargement
+            try: await pg.evaluate('([n,p])=>{if(!window.__horloge)return;__horloge.reel(false);__horloge.coulant(true);__horloge.avancer(n,p)}', [econome, pas_img])  # refigé aussi après un rechargement
             except Exception: pass
             attente = min(attente, 60)
         await pg.wait_for_timeout(attente)
@@ -455,6 +461,12 @@ def format_ecran(t):
 async def principal():
     o = args(); R = charger(o)
     R['_images'] = int(o['images'] if o['images'] is not None else R.get('images', 0) or 0)
+    if o['requete'] is not None: R['requete'] = o['requete']
+    brut_pas = o['pas'] if o['pas'] is not None else R.get('pas', 1000 / 60)
+    try: R['_pas'] = float(brut_pas)
+    except (TypeError, ValueError): raise SystemExit(f"--pas {brut_pas!r} : un nombre de ms, entre 1 et 2000 ms de temps de jeu par image")
+    if not 1 <= R['_pas'] <= 2000: raise SystemExit(f"--pas {R['_pas']} : entre 1 et 2000 ms de temps de jeu par image")
+    if R['_pas'] != 1000 / 60 and not R['_images']: print('⚠ --pas / « pas » sans --images / « images » (mode économe) : sans effet', flush=True)
     for nom in ('telephone', 'ordinateur'):
         f = o[nom] or R.get(nom)
         if f: APPAREILS[nom] = dict(APPAREILS[nom], viewport=format_ecran(f))

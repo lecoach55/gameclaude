@@ -219,6 +219,64 @@ def attendre_navigateurs(attente_max=None, nom='banc', dire=print):
         navs = navigateurs()
 
 
+class Veille:
+    """Veille de fond (19/11 soir, retour Bannières 19/11 : un singe et des essais de sous-agents lancés PENDANT un banc de gels l'ont
+    faussé, +113 % au lieu de −6 %) : un fil relève les navigateurs hors verrou ACTIFS en continu (orphelins exclus : ils sont
+    signalés au départ et ne s'arrêteront pas seuls). Le banc s'en sert pour attendre le calme ENTRE deux passes et pour refaire
+    une passe pendant laquelle un robot a tourné. Coût : lecture de /proc toutes les ≈ 2,5 s (négligeable).
+        v = Veille(); … t0 = time.time(); <mesure> ; v.vus_depuis(t0) → navigateurs actifs vus pendant la mesure ; v.arreter()"""
+
+    def __init__(self, echantillon=2.0, pause=0.5):
+        import threading
+        self.echantillon, self.pause = echantillon, pause
+        self.actifs, self.journal, self.releves = [], [], 0   # journal : [(instant, [navigateurs actifs])] (relevés non calmes seulement)
+        self._stop = threading.Event()
+        self._fil = threading.Thread(target=self._boucle, name='veille-navigateurs', daemon=True)
+        self._fil.start()
+
+    def _boucle(self):
+        while not self._stop.is_set():
+            t = time.time()
+            try:
+                n = [x for x in navigateurs(self.echantillon) if x['actif'] and not x.get('orphelin')]
+            except Exception:
+                n = []
+            self.actifs = n; self.releves += 1
+            if n:
+                self.journal.append((t, n)); del self.journal[:-500]
+            self._stop.wait(self.pause)
+
+    def vus_depuis(self, t0):
+        """Navigateurs hors verrou vus actifs depuis l'instant t0 (un par pid, cpu le plus haut)."""
+        par = {}
+        for t, navs in list(self.journal):
+            if t + self.echantillon >= t0:
+                for n in navs:
+                    if n['pid'] not in par or (n['cpu'] or 0) > (par[n['pid']]['cpu'] or 0):
+                        par[n['pid']] = n
+        return list(par.values())
+
+    def attendre_calme(self, attente_max, nom='banc', dire=print):
+        """Bloquant : attend 2 relevés calmes de suite, au plus attente_max s. Renvoie les secondes attendues."""
+        t, dit = time.time(), 0.0
+        if not self.actifs:
+            return 0.0
+        while time.time() - t < attente_max:
+            if not dit or time.time() - dit >= 60:
+                dire(f"⏳ {nom} : {len(self.actifs)} navigateur(s) HORS VERROU actifs ({resume_navigateurs(self.actifs)}) ; mesure suspendue"
+                     f" jusqu'à leur fin ({_duree(time.time() - t)} / {_duree(attente_max)})")
+                dit = time.time()
+            r0 = self.releves
+            while self.releves < r0 + 2 and time.time() - t < attente_max:
+                time.sleep(0.2)
+            if not self.vus_depuis(time.time() - self.echantillon - self.pause - 0.5) and not self.actifs:
+                return time.time() - t
+        return time.time() - t
+
+    def arreter(self):
+        self._stop.set()
+
+
 def _dire(mode, nom, attend):
     d = _chemins()[2]
     os.makedirs(d, exist_ok=True)

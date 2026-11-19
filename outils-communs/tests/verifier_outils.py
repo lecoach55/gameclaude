@@ -1656,6 +1656,90 @@ def _():
         if r.returncode == 0 or '« si » manquant' not in r.stdout + r.stderr: raise RuntimeError('si manquant : ' + (r.stdout + r.stderr)[-200:])
 
 
+PAS_JEU = """<!doctype html><meta charset=utf-8><body><button onclick="window.n=(window.n||0)+1">Plus</button><button onclick="window.m=1">Autre</button>
+<script>window.tv=0;window.q=location.search;(function f(){window.tv=performance.now();requestAnimationFrame(f)})();</script>"""
+
+
+@controle("robots/singe.py --pas / « pas » (19/11 soir, retour Bannières : fin de tour jamais finie en mode économe) : temps de jeu par image jouée (pas 250 → ≥ 150 ms de jeu par action, défaut ≤ 40), --requete remplace le réglage, pas absurde refusé")
+def _():
+    with tempfile.TemporaryDirectory() as d:
+        open(os.path.join(d, 'index.html'), 'w').write(PAS_JEU)
+        json.dump({'fichier': 'index.html', 'pret': 'window.tv>=0', 'etat': '[Math.round(window.tv),window.q]', 'pause': [10, 20], 'hasard': 0, 'glisser': 0,
+                   'images': 1, 'requete': '?a'}, open(os.path.join(d, 's.json'), 'w'))
+        res = {}
+        for nom, extra in (('defaut', []), ('pas', ['--pas', '250', '--requete', '?q3d=0'])):
+            run(sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 's.json'), '--actions', '12', '--secondes', '40',
+                '--appareils', 'ordinateur', '--sortie', os.path.join(d, nom), '--sans-verrou', *extra, timeout=90)
+            a = json.load(open(os.path.join(d, nom, 'singe.json')))['appareils'][0]
+            res[nom] = ((a['etat_fin'][0] - a['etat_debut'][0]) / max(1, a['actions']), a['etat_fin'][1], a['actions'])
+        if not (res['pas'][0] >= 150 and res['defaut'][0] <= 40 and res['pas'][2] >= 10):
+            raise RuntimeError(f"temps de jeu par action (ms) : défaut {res['defaut']}, --pas 250 {res['pas']}")
+        if res['defaut'][1] != '?a' or res['pas'][1] != '?q3d=0':
+            raise RuntimeError(f"--requete : {res}")
+        r = subprocess.run([sys.executable, os.path.join(OC, 'robots', 'singe.py'), os.path.join(d, 's.json'), '--pas', '0', '--sans-verrou'],
+                           capture_output=True, text=True, timeout=60, cwd=RAC)
+        if r.returncode == 0 or 'entre 1 et 2000' not in r.stdout + r.stderr:
+            raise RuntimeError('--pas 0 accepté : ' + (r.stdout + r.stderr)[-200:])
+
+
+@controle("banc.py veille (19/11 soir, retour Bannières : singe lancé PENDANT un banc de gels → +113 % au lieu de −6 %) : robot hors verrou démarré en pleine mesure → passe suspendue puis REFAITE après sa fin (passes_refaites, rien « pendant ») ; --attente-navigateurs 0 → pas d'attente, passe notée « pendant » et écart DOUTEUX ; Veille ignore ses propres navigateurs")
+def _():
+    env = dict(os.environ, BANC_VERROU=os.path.join(tempfile.gettempdir(), f'verrou-veille-{os.getpid()}.verrou'))
+    env.pop('VERROU_NAVIGATEURS', None); env.pop('VERROU_VEILLE', None)
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, 'j')); open(os.path.join(d, 'j', 'index.html'), 'w').write(BANC_JEU.replace('TRAVAIL', '100000'))
+        cfg = {'jeu': 'factice', 'dossier': os.path.join(d, 'j'), 'page': 'index.html', 'pret': 'window.pret', 'pret_ms': 100, 'images': 400,
+               'scenes': [{'nom': f's{i}', 'attente_ms': 300} for i in range(10)]}
+        reg = os.path.join(d, 'banc.json'); json.dump(cfg, open(reg, 'w'))
+        rob = os.path.join(d, 'robot_du_jeu.py'); open(rob, 'w').write(ROBOT_HORS_VERROU)
+        bilans = {}
+        for cas, extra in (('attend', []), ('zero', ['--attente-navigateurs', '0'])):
+            sortie = os.path.join(d, cas + '.json'); partiel = sortie + '.partiel.json'
+            pr = subprocess.Popen([sys.executable, os.path.join(OC, 'banc.py'), reg, sortie, *extra], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+            t0 = time.time()
+            while not os.path.exists(partiel) and pr.poll() is None and time.time() - t0 < 60:
+                time.sleep(0.1)
+            time.sleep(1.0)   # en pleine passe (10 scènes × 400 images ≈ 15 s)
+            rb = subprocess.Popen([sys.executable, rob, '14', 'occupe'], stdout=subprocess.PIPE, text=True, env=env)
+            try:
+                out = pr.communicate(timeout=240)[0]
+            finally:
+                rb.kill(); rb.wait()
+            r = json.load(open(sortie)) if os.path.exists(sortie) else {}
+            bilans[cas] = (out, r)
+        out, r = bilans['attend']
+        if not r.get('passes_refaites') or '↻' not in out or (r.get('navigateurs_hors_verrou') or {}).get('pendant') or 'suspendue' not in out:
+            raise RuntimeError('robot en pleine mesure : passe non refaite ou encore notée « pendant » : ' + out[-500:])
+        out, r = bilans['zero']
+        if r.get('passes_refaites') or not (r.get('navigateurs_hors_verrou') or {}).get('pendant') or 'DOUTEUX' not in out:
+            raise RuntimeError('--attente-navigateurs 0 : passe refaite ou robot non noté « pendant » : ' + out[-500:])
+    # écart DOUTEUX dans le tableau (verdict lui-même inchangé : verif.py le lit)
+    sys.path.insert(0, OC)
+    import banc as B_
+    t = B_.tableau([{'appareil': 'mac', 'scene': 'gel x', 'avant_ms': 1, 'apres_ms': 2, 'ecart_pct': 100, 'bruit_pct': None, 'verdict': 'plus lent', 'douteux': True}])
+    if 'plus lent — DOUTEUX' not in t:
+        raise RuntimeError('tableau : ' + t)
+    # la veille d'un processus ne compte pas ses propres navigateurs
+    import verrou as V_
+    from playwright.sync_api import sync_playwright
+    v = V_.Veille(echantillon=0.5, pause=0.1)
+    try:
+        with sync_playwright() as pw:
+            b = pw.chromium.launch(); pg = b.new_page(); pg.set_content('<script>var x=0;(function f(){for(var i=0;i<3e6;i++)x+=i%7;setTimeout(f,0)})()</script>')
+            t0 = time.time(); time.sleep(2.5)
+            if v.vus_depuis(t0):
+                raise RuntimeError('Veille : propre navigateur compté hors verrou ' + str(v.vus_depuis(t0)))
+            b.close()
+    finally:
+        v.arreter()
+    for x in ('', '.file'):
+        try:
+            os.remove(env['BANC_VERROU'] + x)
+        except OSError:
+            pass
+    shutil.rmtree(env['BANC_VERROU'] + '.qui', ignore_errors=True)
+
+
 @controle("patience.py : facteur = charge ÷ cœurs (1 à 6) × PATIENCE, délai adapté, attendre() réussit sous charge là où la base seule échoue, échéance reculée si la charge monte pendant l'attente, message d'échec qui dit base/charge/attendu ; ligne de commande")
 def _():
     sys.path.insert(0, OC)

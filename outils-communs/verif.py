@@ -279,7 +279,10 @@ def chiffres_banc(fj):
         nav = b.get('navigateurs_hors_verrou')
         if nav:  # robot d'un jeu lancé hors verrou pendant la mesure (verrou.py, 18/11 soir) : chiffres à prendre avec prudence
             morceaux[0] += ' · ⚠ navigateurs hors verrou actifs pendant la mesure'
-            detail.append('navigateurs hors verrou : ' + ', '.join(sorted({x.get('lanceur', '?') for x in (nav.get('debut') or []) + (nav.get('fin') or [])})))
+            detail.append('navigateurs hors verrou : ' + ', '.join(sorted({x.get('lanceur', '?') for x in (nav.get('debut') or []) + (nav.get('fin') or [])}
+                                                                         | set(nav.get('pendant') or []))))  # « pendant » : veille du banc (19/11 soir)
+        if b.get('passes_refaites'):
+            detail.append('passes refaites (robot hors verrou pendant la mesure) : ' + ', '.join(b['passes_refaites']))
         return morceaux[0], detail, []
     sc = []
     for an, v in (b.get('appareils') or {}).items():

@@ -6,6 +6,8 @@ Outils de l'analyse du portefeuille de Victor, pour que chaque séance reprenne 
 
 **À lire avant de toucher aux règles : [`CORRECTIONS.md`](CORRECTIONS.md)** — ce qui a été corrigé, pourquoi, et quels garde-fous l'empêchent de revenir.
 
+**Avant de proposer une nouvelle ligne : [`ETUDE_NOUVELLE_VALEUR.md`](ETUDE_NOUVELLE_VALEUR.md)** — l'étude est faite, les deux routes sont identifiées et le critère de départage est écrit. Ne pas la refaire ; la mettre à jour.
+
 ## Les outils
 
 ### `outils/cibles.json` — la source unique de vérité

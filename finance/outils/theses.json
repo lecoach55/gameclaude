@@ -113,13 +113,28 @@
       "maj": "2026-11-17"
     },
     "remplacement-nvidia": {
-      "statut": "Bloqué : il manque le motif de la vente (volatilité ? valorisation ? envie de tout passer au PEA ?). Le motif détermine le remplaçant.",
-      "candidats": {
-        "ASML": "Éligible PEA, monopole EUV, mais valorisation élevée et prix d'une action très élevé pour un versement mensuel de quelques centaines d'euros.",
-        "SAP": "Éligible PEA, logiciel d'entreprise, croissance plus lente mais moins volatile.",
-        "ETF MSCI World": "Le plus simple : ne pas remplacer, verser la part NVIDIA sur le socle indiciel du PEA."
+      "statut": "Résolu quant au remplaçant (étude du 19/11/2026, ETUDE_NOUVELLE_VALEUR.md) : il n'y a pas de remplaçant à chercher, le produit d'une vente irait au socle indiciel. ASML et SAP échouent à la condition 3 d'admission, étant déjà dans le MSCI World. Reste à clarifier le motif de la vente, qui change le calendrier mais plus le remplaçant.",
+      "suivre": ["motif de la vente à demander à Victor : volatilité, valorisation, ou bascule au PEA"],
+      "maj": "2026-11-19"
+    },
+    "prochaine-ligne": {
+      "statut": "Étudiée le 19/11/2026 (ETUDE_NOUVELLE_VALEUR.md). La prochaine ligne sera un ETF marchés émergents, seul manque structurel incontestable : le MSCI World n'en contient aucun. Aucune action ne passe la condition 3. Porte fermée tant que le socle indiciel n'a pas atteint 50 % — vers fin 2027 au rythme actuel.",
+      "routes": {
+        "A": "Ajouter PAEEM (FR0013412020, 0,30 %, 893 M€, part ~34 €) à côté de WPEA, dosé à 10-12 %. Coût combiné ~0,21 %/an, pondération pilotable. Friction : part à 34 € sans fractions.",
+        "B": "Router les versements vers GPEA (FR0014017NX3, MSCI ACWI, 0,30 %, 86 M€, part ~5 €), sans rien vendre. Plus simple, part idéale pour les parts entières, mais quatre mois d'historique seulement."
       },
-      "maj": "2026-11-17"
+      "critere_de_depart": "À l'ouverture de la porte : si GPEA dépasse 300 M€ d'encours avec un écart de suivi inférieur à 0,15 pt/an, route B ; sinon route A.",
+      "suivre": [
+        "encours et écart de suivi de GPEA",
+        "présence de GPEA au catalogue PEA de Trade Republic (contradiction entre sources, à vérifier dans l'application, recherche par intitulé)",
+        "part du socle indiciel (portefeuille.py socle) : c'est la condition déclenchante"
+      ],
+      "maj": "2026-11-19"
+    },
+    "redondance-sp500": {
+      "statut": "Anomalie repérée le 19/11/2026 : l'ETF S&P 500 du CTO recouvre largement l'ETF monde du PEA, le MSCI World étant à ~70 % américain. Double exposition aux États-Unis, dont une part dans l'enveloppe la plus taxée. À traiter par les versements, pas par une vente. Plus conséquent que la question de la dixième ligne.",
+      "suivre": ["un ETF S&P 500 éligible PEA existe à 0,12 % : FR0011871128"],
+      "maj": "2026-11-19"
     }
   }
 }

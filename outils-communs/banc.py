@@ -990,8 +990,10 @@ def ecarts(avant, apres, seuil):
             tp = [(x, y) for x, y in zip(a.get('valeurs') or [], b.get('valeurs') or []) if x is not None and y is not None]
             t_plus = d > 2 * seuil and vb - va > 100 and all(y > x for x, y in tp)
             t_moins = d < -2 * seuil and va - vb > 100 and all(y < x for x, y in tp)
-            verdict = ('plus lent' if prog_plus else 'plus rapide' if prog_moins else
-                       'plus lent' if t_plus and pb >= pa else 'plus rapide' if t_moins and pb <= pa else 'égal (bruit)')
+            # le temps net (chaque tour, +2×seuil et +100 ms) prime : moins de programmes mais un gel 2× plus long reste « plus lent »
+            # (19/11, Bannières entree_combat 3420 → 7292 ms, programmes 4 → 1 : était annoncé « plus rapide »)
+            verdict = ('plus lent' if t_plus or (prog_plus and not t_moins) else
+                       'plus rapide' if t_moins or prog_moins else 'égal (bruit)')
             e = {'appareil': an, 'scene': 'gel ' + g, 'avant_ms': va, 'apres_ms': vb, 'ecart_pct': round(d, 1), 'bruit_pct': None,
                  'programmes_en_jeu': [pa, pb], 'verdict': verdict}
             L.append(e)

@@ -59,7 +59,7 @@ function envCiel(R0,haut,horiz,bas){const sc=new T.Scene();const g=new T.SphereG
  const pm=new T.PMREMGenerator(R0);const t=pm.fromScene(sc,.02).texture;pm.dispose();g.dispose();m.dispose();return t;}
 // ---------- ambiance (19/11, axe « lumière ») : ciel HDRI Poly Haven kloppenheim_06_puresky (CC0) + lumière de fin d'après-midi dorée ----------
 // tex3d/ciel.jpg vient de outils/ressources/ciel_hdri.py (soleil écrêté, tourné du côté de AMB.dir, sol brun-vert sous l'horizon, valeurs ÷ ECH_CIEL).
-const ECH_CIEL=4;const AMB={dir:new T.Vector3(-.75,.62,.45).normalize(),sol:0xffd6a6,solI:3.0,hCiel:0xa9c2e6,hSol:0x5a4430,hI:.55,envI:.62*ECH_CIEL,haze:[.50,.52,.57]};
+const ECH_CIEL=4;const AMB={dir:new T.Vector3(-.75,.62,.45).normalize(),sol:0xffe2c0,solI:3.0,hCiel:0xa9c2e6,hSol:0x5a4430,hI:.70,envI:.62*ECH_CIEL,haze:[.60,.60,.62]};
 const ENVS=new WeakMap();// un ciel préfiltré par moteur de rendu (carte / combats et villes), gardé : ne jamais le libérer
 function envAmb(R0){let e=ENVS.get(R0);if(e)return e;const im=RES.img.ciel;if(!im)return null;const t=new T.Texture(im);t.mapping=T.EquirectangularReflectionMapping;t.colorSpace=T.SRGBColorSpace;t.needsUpdate=true;
  const pm=new T.PMREMGenerator(R0);e=pm.fromEquirectangular(t).texture;pm.dispose();t.dispose();ENVS.set(R0,e);return e;}
@@ -398,7 +398,7 @@ function majHeros(){const vu=G.joueurs[vueJoueur()].vu;const ids=new Set();
 // ---------- caméra ----------
 function placerCam(){const d=C3.dist;const t=C3.tang;cam.position.set(C3.cible.x,C3.cible.y+d*Math.sin(t),C3.cible.z+d*Math.cos(t));cam.lookAt(C3.cible);
  soleil.position.copy(AMB.dir).multiplyScalar(22).add(C3.cible);// soleil de fin d'après-midi (≈ 38° de haut), ombres longues
- {const k=Math.min(1,Math.max(0,(d-16)/14));U.haze.value.set(AMB.haze[0],AMB.haze[1],AMB.haze[2],.16+.1*k);U.hazeD.value.set(d*.9,d*1.65);}soleil.target.position.copy(C3.cible);soleil.target.updateMatrixWorld();const sc=soleil.shadow.camera;const e=Math.max(10,d*1.25);sc.left=-e;sc.right=e;sc.top=e;sc.bottom=-e;sc.updateProjectionMatrix();}
+ {const k=Math.min(1,Math.max(0,(d-16)/14));U.haze.value.set(AMB.haze[0],AMB.haze[1],AMB.haze[2],.08+.06*k);U.hazeD.value.set(d*.9,d*1.65);}soleil.target.position.copy(C3.cible);soleil.target.updateMatrixWorld();const sc=soleil.shadow.camera;const e=Math.max(10,d*1.25);sc.left=-e;sc.right=e;sc.top=e;sc.bottom=-e;sc.updateProjectionMatrix();}
 function borner3(){C3.cible.x=Math.max(0,Math.min(N,C3.cible.x));C3.cible.z=Math.max(0,Math.min(N+2,C3.cible.z));C3.dist=Math.max(5.5,Math.min(30,C3.dist));C3.cible.y=Math.max(0,h(C3.cible.x,C3.cible.z))*.5;}
 // ---------- API ----------
 const A={ok:true,actif:false};
@@ -408,7 +408,7 @@ const SURV={t0:0,l:[]};function surveiller(){if(S.fixe||S.choisie||S.banc||S.qua
  if(SURV.l.length>=90){const l=SURV.l.sort((a,b)=>a-b);const med=l[l.length>>1];SURV.l=[];if(med>27){A.qualite(S.qual-1);try{localStorage.setItem('bs-q3d',S.qual);}catch(e){}console.log('qualité 3D abaissée',S.qual,med);}}}
 A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart();
  if(!ren){try{ren=new T.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});}catch(e){A.ok=false;return false;}
-  ren.outputColorSpace=T.SRGBColorSpace;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1.16;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;}
+  ren.outputColorSpace=T.SRGBColorSpace;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1.26;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;}
  if(!IMP.complete)await IMP.decode().catch(()=>{});
  await chargerRes();PAN_A=C3.tang*.5;PAN_K=1/Math.cos(PAN_A);
  if(scene)A.vider();scene=new T.Scene();scene.background=new T.Color(0x0a0806);
@@ -491,7 +491,7 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
  sc.background=new T.Color(lave?0x2a0e0a:neige?0xc8d4e2:0x7aa0c8);
  const envH=envAmb(R0),envC=envH||envCiel(R0,0x5a8ad0,0xd8e4ec,0x4a4232);sc.environment=envC;sc.environmentIntensity=envH?AMB.envI*.85:.3;
  // lumière de fin d'après-midi : soleil bas et doré du même côté que sur la carte, ciel froid en contre-partie, ombres longues et douces (rendu une seule fois : ombre fine)
- sc.add(new T.HemisphereLight(AMB.hCiel,AMB.hSol,.75));const sun=new T.DirectionalLight(lave?0xffb890:0xffe2bc,2.9);sun.position.copy(AMB.dir).multiplyScalar(19).add(new T.Vector3(0,0,4));sun.target.position.set(0,0,4);sc.add(sun,sun.target);
+ sc.add(new T.HemisphereLight(AMB.hCiel,AMB.hSol,.75));const sun=new T.DirectionalLight(lave?0xffb890:0xffe8cc,2.9);sun.position.copy(AMB.dir).multiplyScalar(19).add(new T.Vector3(0,0,4));sun.target.position.set(0,0,4);sc.add(sun,sun.target);
  {const dc=cam.position.distanceTo(new T.Vector3(0,0,3));U.haze.value.set(...(lave?[.30,.16,.10]:neige?[.55,.6,.68]:AMB.haze),lave?.2:.2);U.hazeD.value.set(dc*.92,dc*1.75);}
  sun.castShadow=!window.DBG_NOSH;{const ms=S.qual>=2&&R0.capabilities.maxTextureSize>=8192?4096:2048;sun.shadow.mapSize.set(ms,ms);}Object.assign(sun.shadow.camera,{left:-22,right:22,top:20,bottom:-20,near:1,far:60});sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;sun.shadow.camera.updateProjectionMatrix();
  if(lave){const l=new T.PointLight(0xff5a1a,40,30);l.position.set(0,3,-6);sc.add(l);}
@@ -522,9 +522,9 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
   sc.add(gr);obs.push([h,gr]);}
  // rendu
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure,cc=R0.getClearColor(new T.Color()),ca=R0.getClearAlpha();
- R0.setPixelRatio(dpr);R0.setSize(W,Hs,false);R0.toneMappingExposure=lave?1:1.15;R0.shadowMap.enabled=true;R0.shadowMap.needsUpdate=true;
+ R0.setPixelRatio(dpr);R0.setSize(W,Hs,false);R0.toneMappingExposure=lave?1:1.24;R0.shadowMap.enabled=true;R0.shadowMap.needsUpdate=true;
  const out={fond:null,obst:new Map()};
- R0.render(sc,cam);out.fond=mkC(W*dpr,Hs*dpr);out.fond.getContext('2d').drawImage(R0.domElement,0,0);const ETC={w:W,sx:-.1,sy:-.15,chaud:lave?'rgba(255,120,60,.35)':'rgba(255,200,140,.3)',filtre:lave?'contrast(1.06)':'contrast(1.06) saturate(1.06) hue-rotate(7deg)'};etalonner(out.fond,0,0,W,Hs,ETC);
+ R0.render(sc,cam);out.fond=mkC(W*dpr,Hs*dpr);out.fond.getContext('2d').drawImage(R0.domElement,0,0);const ETC={w:W,sx:-.1,sy:-.15,chaud:lave?'rgba(255,120,60,.35)':'rgba(255,200,140,.18)',filtre:'contrast(1.06)'};etalonner(out.fond,0,0,W,Hs,ETC);
  // obstacles détourés (redessinés dans l'ordre des rangées pour cacher les créatures derrière eux)
  sc.background=null;R0.setClearColor(0,0);const autres=[];sc.traverse(o=>{if(o.isMesh&&o!==msol&&!obs.some(([h,g])=>g===o.parent||g===o))autres.push(o);});
  for(const o of autres)o.visible=false;msol.visible=false;for(const [,g] of obs)g.visible=false;
@@ -610,9 +610,9 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
   const dl=g.createRadialGradient(lx-lr*.3,ly-lr*.3,lr*.1,lx,ly,lr);dl.addColorStop(0,'#e4e2d8');dl.addColorStop(1,'#b8b6ae');g.fillStyle=dl;g.beginPath();g.arc(lx,ly,lr,0,7);g.fill();g.fillStyle='rgba(120,120,128,.35)';for(const [a,b,c] of [[-.3,-.2,.35],[.25,.1,.28],[-.05,.35,.2],[.3,-.35,.15]]){g.beginPath();g.arc(lx+a*lr,ly+b*lr,c*lr,0,7);g.fill();}for(let k=0;k<60;k++){g.fillStyle='rgba(255,255,255,'+(.3+r.f()*.6)+')';g.fillRect(r.f()*W,r.f()*H*yh*.8,1.5,1.5);}}
  else if(ciel){for(let k=0;k<9*32;k++)r.f();// même tirage que les nuages peints : le premier plan (arbres, rochers) reste placé à l'identique
   // ciel photographié (HDRI Poly Haven) : bande au-dessus de l'horizon, nuages dorés du côté du soleil ; Horde : teinte de poussière, Sylve : plus vert
-  const im=RES.img.ciel,iw=im.width,ih=im.height,hb=H*yh+H*.04,sw=iw*.36,sh=Math.min(ih*.5,sw*hb/W);g.save();g.filter='brightness('+(hd?1.75:1.9)+') saturate('+(hd?.9:1.05)+')';g.drawImage(im,iw*.6,ih*.5-sh,sw,sh,0,0,W,hb);g.restore();
+  const im=RES.img.ciel,iw=im.width,ih=im.height,hb=H*yh+H*.04,sw=iw*.36,sh=Math.min(ih*.5,sw*hb/W);g.save();g.filter=hd?'brightness(1.75) saturate(.9)':'brightness(1.45) saturate(1.15)';g.drawImage(im,iw*.6,ih*(hd?.5:.42)-sh,sw,sh,0,0,W,hb);g.restore();
   if(hd){g.save();g.globalCompositeOperation='color';g.fillStyle='rgba(205,105,55,.72)';g.fillRect(0,0,W,hb);g.globalCompositeOperation='multiply';g.fillStyle='rgba(250,190,140,.6)';g.fillRect(0,0,W,hb);g.restore();}else if(syl){g.save();g.globalCompositeOperation='soft-light';g.fillStyle='rgba(120,190,140,.4)';g.fillRect(0,0,W,hb);g.restore();}
-  const hz=g.createLinearGradient(0,H*yh*.55,0,hb);hz.addColorStop(0,'rgba(236,214,186,0)');hz.addColorStop(1,hd?'rgba(240,190,140,.75)':'rgba(236,214,186,.7)');g.fillStyle=hz;g.fillRect(0,0,W,hb);}
+  const hz=g.createLinearGradient(0,H*yh*.55,0,hb);hz.addColorStop(0,'rgba(236,214,186,0)');hz.addColorStop(1,hd?'rgba(240,190,140,.75)':'rgba(236,214,186,.45)');g.fillStyle=hz;g.fillRect(0,0,W,hb);}
  else{g.save();g.filter='blur('+Math.round(H*.018)+'px)';for(let k=0;k<9;k++){const x=r.f()*W,y=H*(.04+r.f()*yh*.55),L=W*(.08+r.f()*.14);g.globalAlpha=.25+r.f()*.35;g.fillStyle='#fff';for(let j=0;j<7;j++){g.beginPath();g.ellipse(x+(r.f()-.5)*L,y+(r.f()-.5)*H*.02,L*(.18+r.f()*.2),H*(.012+r.f()*.02),0,0,7);g.fill();}}g.restore();}
  g.save();g.filter='blur('+Math.max(1,Math.round(H*.003))+'px)';for(let l=0;l<2;l++){g.fillStyle=nuit?['#3a3050','#2a2438'][l]:syl?['#8ab0a0','#5a8a64'][l]:hd?['#b88a6a','#8a6a4a'][l]:['#9aa8c0','#7a8aa4'][l];g.beginPath();g.moveTo(0,H*(yh+.05));for(let x=0;x<=W;x+=W/16)g.lineTo(x,H*(yh-.2+l*.08)+Math.sin(x/W*12+l*2+v.id)*H*.05+r.f()*H*.035);g.lineTo(W,H*(yh+.05));g.closePath();g.fill();}g.restore();
  const tb=new T.CanvasTexture(bg);tb.colorSpace=T.SRGBColorSpace;sc.background=tb;

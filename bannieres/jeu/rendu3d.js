@@ -585,7 +585,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  sc.add(new T.HemisphereLight(nuit?0x8a90c8:0xdfe8ff,nuit?0x1a1420:0x4a3a24,nuit?.45:.8));const sun=new T.DirectionalLight(nuit?0x9ab0ff:hd?0xffc890:0xffecd0,nuit?.9:2.2);sun.position.set(hd?-18:-10,hd?8:16,12);sun.target.position.set(0,0,-4);sc.add(sun,sun.target);
  sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-30,right:30,top:25,bottom:-25,near:1,far:80});sun.shadow.bias=-.0005;sun.shadow.normalBias=.04;sun.shadow.camera.updateProjectionMatrix();
  // sol, chemin, arbres
- const terS=nuit?'terre':hd?'rude':'herbe';const reel=!!(RES.lay&&RES.atlas);const ts=reel?null:texSolCombat(terS);if(ts)ts.repeat.set(10,10);const gs=new T.PlaneGeometry(300,300,1,1).rotateX(-Math.PI/2);const ms=reel?matSolSimple(IDT[terS],SEC[terS],.22,.7):new T.MeshStandardMaterial({map:ts,roughness:.95,color:nuit?0x8a8078:0xffffff});if(reel&&nuit)ms.color.set(0x9a9088);const msol=new T.Mesh(gs,ms);msol.receiveShadow=true;sc.add(msol);
+ const terS=nuit||hd?'terre':'herbe';const reel=!!(RES.lay&&RES.atlas);const ts=reel?null:texSolCombat(terS);if(ts)ts.repeat.set(10,10);const gs=new T.PlaneGeometry(300,300,1,1).rotateX(-Math.PI/2);const ms=reel?matSolSimple(IDT[terS],SEC[terS],.22,.7):new T.MeshStandardMaterial({map:ts,roughness:.95,color:nuit?0x8a8078:0xffffff});if(reel&&nuit)ms.color.set(0x9a9088);if(reel&&hd)ms.color.set(0xc8b49c);const msol=new T.Mesh(gs,ms);msol.receiveShadow=true;sc.add(msol);
  const ch=new T.Mesh(new T.PlaneGeometry(2.6,40).rotateX(-Math.PI/2),reel?matSolSimple(8,2,.3,.4):new T.MeshStandardMaterial({color:nuit?0x6a5a4a:0xc8a878,roughness:1,transparent:true,opacity:.85}));ch.position.set(0,.02,8);ch.receiveShadow=true;sc.add(ch);
  const vis=z=>2*(camZ-z)*tf*asp;// largeur visible à la profondeur z
  const mV=mat(0xffffff,{vc:1,r:.82}),mP=mat(0xffffff,{vc:1,r:.95});
@@ -595,6 +595,10 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  for(let k=0;k<70;k++){const z=-17-r.f()*22;arbre((r.f()-.5)*vis(z)*1.1,z,4+r.f()*3);}
  for(let k=0;k<16;k++){const z=-12+r.f()*20;const sd=r.f()<.5?-1:1;arbre(sd*vis(z)*(.44+r.f()*.1),z,3.5+r.f()*2);}
  for(let k=0;k<10;k++){const z=-2+r.f()*12;const x=(r.f()-.5)*vis(z)*.9;if(Math.abs(x)<2)continue;if(reel){const o=planImp('b','roc_'+'abcd'[k%4],.22+r.f()*.25,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}continue;}const o=new T.Mesh(geoRocher(k%5,terS),mP);o.position.set(x,0,z);o.scale.setScalar(.6+r.f()*.6);o.castShadow=true;sc.add(o);}
+ // premier plan (19/11) : massifs et rochers aux deux coins pour cadrer la scène comme un tableau, touffes éparses sur le terrain vide
+ if(reel){const fg=nuit?['desert_b','desert_c','roc_d','jeune_b']:hd?['desert_a','arbuste_a','roc_d','desert_c']:['buisson_a','arbuste_a','arbuste_b','arbuste_c'];
+  for(const sd of [-1,1])for(let k=0;k<6;k++){const z=8.6+r.f()*3.2;const nm=fg[r.i(0,3)];const x=sd*vis(z)*(.36+r.f()*.16);const o=planImp('b',nm,(nm.startsWith('roc')?.5:1.1)+r.f()*.9,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}}
+  for(let k=0;k<22;k++){const z=-1+r.f()*11;const x=(r.f()-.5)*vis(z)*.95;if(Math.abs(x)<2.2)continue;const nm=fg[r.i(1,3)];const o=planImp('b',nm.startsWith('roc')?'arbuste_c':nm,.28+r.f()*.35,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}}}
  // place pavée, puits, tonneaux, caisses et lanternes (accessoires photographiés)
  if(reel&&v.fac!=='horde'){ECH=.55;const pl=new T.Mesh(new T.CircleGeometry(4.2,40).rotateX(-Math.PI/2),mat(0xc8c0b4,{tri:'pave',r:.95,ech:.9}));pl.position.set(0,.025,4.5);pl.scale.set(1.25,1,.8);pl.receiveShadow=true;sc.add(pl);
   const ch2=new T.Mesh(new T.PlaneGeometry(2.4,22).rotateX(-Math.PI/2),mat(0xc8c0b4,{tri:'pave',r:.95,ech:.9}));ch2.position.set(0,.02,-3);ch2.receiveShadow=true;sc.add(ch2);
@@ -605,8 +609,12 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  // bâtiments
  const P=v.fac==='sylve'?PM2:v.fac==='horde'?PB:PM;
  const ordre=Object.keys(PANO).filter(b=>v.bat[b]).filter(b=>!(b==='conseil'&&(v.bat.mairie))&&!(b==='mairie'&&v.bat.hotelville)&&!(b==='hotelville'&&v.bat.capitole)&&!(b==='fort'&&v.bat.citadelle)&&!(b==='citadelle'&&v.bat.chateau)&&!(b==='guilde1'&&v.bat.guilde2)&&!(b==='guilde2'&&v.bat.guilde3));
- const objs=[];for(const b of ordre){const z=ZV[b]??0;const fx=PANO[b][0];const L=vis(z);const u=(b==='fort'||b==='citadelle'||b==='chateau')?Math.min(26,L*.62):Math.min(UV[b]||2.4,PANO[b][2]*L*1.05);
-  const gr=fusionner(batiment3D(b,v,u,P,nuit));gr.position.set((fx-.5)*L*.94,0,z);if(b.startsWith('hab')||b==='taverne'||b==='marche'||b==='silo')gr.rotation.y=-(fx-.5)*.5;gr.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(gr);gr.updateMatrixWorld(true);gr.traverse(o=>{if(o.userData.face){const pq=o.parent.getWorldQuaternion(new T.Quaternion()).invert();o.quaternion.copy(pq.multiply(cam.quaternion));}});objs.push([b,gr,u]);}
+ const objs=[],texV=[],matV=[];const GCRV=new T.PlaneGeometry(1,1).translate(0,.396,0);for(const b of ordre){const z=ZV[b]??0;const fx=PANO[b][0];const L=vis(z);const u=(b==='fort'||b==='citadelle'||b==='chateau')?Math.min(26,L*.62):Math.min(UV[b]||2.4,PANO[b][2]*L*1.05);
+  const gr=fusionner(batiment3D(b,v,u,P,nuit));gr.position.set((fx-.5)*L*.94,0,z);if(b.startsWith('hab')||b==='taverne'||b==='marche'||b==='silo')gr.rotation.y=-(fx-.5)*.5;gr.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(gr);gr.updateMatrixWorld(true);gr.traverse(o=>{if(o.userData.face){const pq=o.parent.getWorldQuaternion(new T.Quaternion()).invert();o.quaternion.copy(pq.multiply(cam.quaternion));}});objs.push([b,gr,u]);
+  // créature devant son habitation (19/11) : panneau posé au sol dans la scène 3D (cachée par les bâtiments placés devant, au lieu de flotter par-dessus)
+  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const Sw=u*1.25;
+   const tx=new T.CanvasTexture(spriteCreature(cre,256));tx.colorSpace=T.SRGBColorSpace;texV.push(tx);const mc=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xa8a8c0:0xf4f0ea});matV.push(mc);
+   const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);pc.position.set(gr.position.x+u*.42*(gr.position.x>0?-1:1),.03,gr.position.z+u*1.0);pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;sc.add(pc);}}
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure;
  R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);
  const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);
@@ -615,12 +623,11 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};
  const tri=objs.slice().sort((a,b)=>a[1].position.z-b[1].position.z);
  for(const [b,gr,u] of tri){bb.setFromObject(gr);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let k=0;k<8;k++){const [sx,sy]=pr(k&1?bb.max.x:bb.min.x,k&2?bb.max.y:bb.min.y,k&4?bb.max.z:bb.min.z);x0=Math.min(x0,sx);x1=Math.max(x1,sx);y0=Math.min(y0,sy);y1=Math.max(y1,sy);}
-  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const [bx,by]=pr(gr.position.x+u*.35,0,gr.position.z+u*.65);const [bx2]=pr(gr.position.x+u*.35+u,0,gr.position.z+u*.65);const S=Math.max(24,Math.abs(bx2-bx)*1.25);
-   cg.drawImage(spriteCreature(cre,Math.round(S)),bx-S*.5,by-S*.9);x1=Math.max(x1,bx+S*.4);y1=Math.max(y1,by);}
+  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const cx=gr.position.x+u*.42*(gr.position.x>0?-1:1),cz=gr.position.z+u*1.0;const [bx,by]=pr(cx,0,cz);const [bx2]=pr(cx+u,0,cz);const S=Math.max(24,Math.abs(bx2-bx)*1.25);x1=Math.max(x1,bx+S*.4);y1=Math.max(y1,by);}
   zones.push({b,x:x0,y:y0,w:x1-x0,h:y1-y0});}
  // drapeaux animés en 2D au sommet du château
  const drap=[];const fort=objs.find(o=>o[0]==='fort'||o[0]==='citadelle'||o[0]==='chateau');if(fort){const [b,gr,u]=fort;bb.setFromObject(gr);const [dx,dy]=pr(gr.position.x,bb.max.y,gr.position.z-1.6);drap.push([dx,Math.max(H*.12,dy)]);}
- sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
+ sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
  return{c,zones,drap};};
 return A;})();
 R3.stats=()=>{const o={};const sc=R3._scene&&R3._scene();if(!sc)return o;sc.traverse(m=>{if(!m.isMesh)return;const g=m.geometry;const t=(g.index?g.index.count:g.attributes.position.count)/3*(m.isInstancedMesh?m.count:1);const k=m.isInstancedMesh?'inst':m.name||(m.parent&&m.parent.type)||'?';o[k]=(o[k]||0)+t;});return o;};

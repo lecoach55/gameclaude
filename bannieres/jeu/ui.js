@@ -145,7 +145,7 @@ function majUI(){if(!G||ECRAN!=='aventure')return;const j=vueJoueur();const p=G.
  $('listeVilles').querySelectorAll('[data-v]').forEach(e=>e.onclick=()=>{const v=G.oi[+e.dataset.v];if(V.sel&&V.sel.t==='ville'&&V.sel.id===v.id&&!V.occupe)ouvrirVille(v);else{V.sel={t:'ville',id:v.id};centrer(v.x,v.y);majUI();}});
  // fiche sélection
  const f=$('ficheSel');const h=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):null;const v=V.sel&&V.sel.t==='ville'?G.oi[V.sel.id]:null;
- if(h&&h.j===j){f.innerHTML=`<div class="ligne"><b>${esc(h.nom)}</b><span>niv. ${h.niv}</span></div><div class="ligne"><span>🐎 ${h.mp}/${mvtMax(h)}</span><span>✨ ${h.mana}/${manaMax(h)}</span><span>⚔${statH(h,'att')} 🛡${statH(h,'def')}</span></div>`+miniArmee(h.armee);}
+ if(h&&h.j===j){f.innerHTML=`<div class="ligne"><b>${esc(h.nom)}</b><span>niv. ${h.niv}</span></div><div class="ligne"><span><svg class="ico pi" title="Mouvement"><use href="#i-footprints"/></svg>${h.mp}/${mvtMax(h)}</span><span><svg class="ico pi" title="Mana"><use href="#i-flame"/></svg>${h.mana}/${manaMax(h)}</span><span><svg class="ico pi" title="Attaque"><use href="#i-sword"/></svg>${statH(h,'att')} <svg class="ico pi" title="Défense"><use href="#i-shield"/></svg>${statH(h,'def')}</span></div>`+miniArmee(h.armee);}
  else if(v){f.innerHTML=`<div class="ligne"><b>${esc(v.nom)}</b><span>+${revenuVille(v)} or</span></div>`+miniArmee(v.garn);}
  else f.innerHTML=`<div style="opacity:.7">${p.nom} — ${FAC[p.fac].nom}</div>`;
  peindreCanvasRes(f);

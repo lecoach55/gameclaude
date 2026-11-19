@@ -141,5 +141,7 @@ h1 span{color:#e8b850;font-style:italic}
 
 /* icônes au trait (Lucide, ISC) à la place des emoji — 19/11 */
 .ico{width:24px;height:24px;stroke:#f2d48a;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7));pointer-events:none}
+.ico.pi{width:14px;height:14px;vertical-align:-2px;margin-right:3px;stroke-width:2}
+.ico.pt{width:17px;height:17px;vertical-align:-3px;margin-right:6px}
 .ib:disabled .ico{stroke:#9a8a6a}
 .ib.fin .ico{stroke:#fff4d8}

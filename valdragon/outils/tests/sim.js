@@ -3,6 +3,8 @@ const fs=require('fs');new Function(fs.readFileSync(__dirname+'/core.js','utf8')
 if(process.env.BAL)Object.assign(VD.BAL,JSON.parse(process.env.BAL));
 const[,,S0='1',N='10',OUT='out.json',FMAX='16',BMAX='160']=process.argv;
 const MIST=+(process.env.MIST||.08);
+const VARS=process.env.VARS||'r';let SEED=0;const ORD=process.env.ORD?process.env.ORD.split(','):null;// ORD=frappe,soin,tir : ordre des talents du bot
+const VARK=process.env.VARK?process.env.VARK.split(','):null;
 function mkStats(){const s={floors:{},cur:null,battles:[],wipesL:[],use:{},dealt:{},kos:0,items:[0,0,0,0]};
  s.floorStart=f=>{if(!s.floors[f])s.floors[f]={f,att:0,wipes:0,battles:0,rounds:0,kos:0,lvl:VD.P.lvl,pots:0,gold:VD.P.gold,minhp:1};s.floors[f].att++;s.cur=s.floors[f];};
  s.battleStart=B=>{s.b={f:VD.F,boss:B.boss,n:B.foes.length,elite:!!B.pack.elite,rounds:0,kos:0,minhp:1};};
@@ -35,13 +37,16 @@ function manage(){const P=VD.P;
  while(P.pot.soin<4&&VD.buy('soin'));if(P.pot.phenix<1)VD.buy('phenix');if(P.pot.elixir<1)VD.buy('elixir');
  let g=0;while(P.gold>VD.prices().gamble*1.5&&g<3){const h=P.heroes[g%3];const slots=['arme','armure','bijou'].sort((a,b)=>VD.power(h.eq[a])-VD.power(h.eq[b]));const it=VD.gamble(slots[0],h.cls);if(!it)break;if(VD.canEquip(h,it)&&VD.power(it)>VD.power(h.eq[it.s]))VD.equip(h,it);g++;}if(!process.env.NOUP){let n=0;while(n<6){let best=null;P.heroes.forEach(h=>['arme','armure','bijou'].forEach(sl=>{const it=h.eq[sl];if(it&&(it.up||0)<VD.UPMAX){const c=VD.upCost(it);if(!best||c<best.c)best={h,sl,c};}}));if(!best||P.gold<best.c+VD.prices().soin*3)break;VD.upgrade(best.h,best.sl);n++;}}
  P.bag.slice().forEach(it=>VD.sell(it));
- const order=[['guerrier','fendoir'],['mage','feu'],['rodeuse','volee'],['mage','soin'],['guerrier','frappe'],['rodeuse','tir']];let i=0;
- while(P.heroes.some(h=>h.spts>0)&&i<80){const[c,k]=order[i%order.length];VD.talent(P.heroes.find(h=>h.cls===c),k);i++;}VD.calcAll();}
+ const order=ORD?ORD.map(k=>[VD.SK[k].c,k]):[['guerrier','fendoir'],['mage','feu'],['rodeuse','volee'],['mage','soin'],['guerrier','frappe'],['rodeuse','tir']];let i=0;
+ while(P.heroes.some(h=>h.spts>0)&&i<80){const[c,k]=order[i%order.length];VD.talent(P.heroes.find(h=>h.cls===c),k);i++;}
+ // variantes (rang 3) : VARS=none (aucune, comme avant), a, b, r (une sur deux selon la graine, défaut)
+ if(VD.varDue&&VARS!=='none')for(const h of P.heroes)for(const k of VD.varDue(h)){if(VARK&&!VARK.includes(k))continue;let w=VARS;if(w!=='a'&&w!=='b'){let x=SEED*31;for(const ch of k)x=(x*33+ch.charCodeAt(0))>>>0;w=(x>>>3)%2?'a':'b';}VD.chooseVar(h,k,w);}
+ VD.calcAll();}
 function battle(){const B=VD.B;let n=0;while(!B.over&&n<2000){n++;if(B.wait==='hero'){const[k,ti]=choose(B.cur);if(!VD.heroAct(k,ti||0)){VD.heroAct(B.cur.cls==='guerrier'?'frappe':B.cur.cls==='mage'?'trait':'tir',VD.B.foes.indexOf(alive(VD.B.foes)[0]));}}
  else if(B.wait==='foe')VD.foeTurn();else break;
  const hs=VD.P.heroes;const m=Math.min(...hs.map(h=>h.dead?0:h.hp/h.s.mhp));if(VD.stats.b)VD.stats.b.minhp=Math.min(VD.stats.b.minhp,m);}
  const st=VD.stats;st.b.rounds=B.round;st.b.res=B.over;st.battles.push(st.b);if(st.cur){st.cur.battles++;st.cur.rounds+=B.round;}return B.over;}
-function play(seed){Math.random=(function(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}})(seed*7919+13);
+function play(seed){SEED=seed;Math.random=(function(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}})(seed*7919+13);
  VD.stats=mkStats();const st=VD.stats;VD.newGame(null,seed);let nb=0,wall=null;
  while(VD.F<=+FMAX&&nb<+BMAX){manage();let wiped=false;
   const targets=[...VD.obj.filter(o=>o.t!=='brk'),...VD.E.filter(e=>!e.boss)].sort(()=>Math.random()-.5);const boss=VD.E.find(e=>e.boss);if(boss)targets.push(boss);

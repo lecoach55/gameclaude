@@ -43,6 +43,30 @@ const SK={
  volee:{n:'Volée',c:'rodeuse',l:1,cost:25,cd:0,tg:'all',d:'4 flèches sur des ennemis au hasard (50 % chacune).'},
  marque:{n:'Marque du chasseur',c:'rodeuse',l:3,cost:15,cd:3,tg:'foe',d:'La cible subit +30 % de dégâts pendant 3 tours.'},
  fatal:{n:'Tir fatal',c:'rodeuse',l:7,cost:40,cd:4,tg:'foe',d:'220 %, coup critique garanti.'}};
+/* variantes : au rang 3 (rk ≥ 2), choix définitif d'une variante sur deux (décision de Victor, 18/11) */
+const VRANK=2;
+const VAR={
+ frappe:{a:{n:'Coup lourd',d:'+12 % de dégâts, mais ne rend que 5 énergie.'},b:{n:'Second souffle',d:'Rend 16 énergie, mais −10 % de dégâts.'}},
+ provoc:{a:{n:'Défi',d:'La provocation dure 3 tours, mais coûte 18 énergie.'},b:{n:'Cri de ralliement',d:'Aldric récupère aussi 6 % de sa vie.'}},
+ fendoir:{a:{n:'Fendoir ardent',d:'Les ennemis touchés brûlent 2 tours (plus fort avec Cendrebraise), mais 45 % au lieu de 55 %.'},b:{n:'Fendoir sourd',d:'15 % de chances d’étourdir chaque ennemi (pas les grands dragons), mais 45 % au lieu de 55 %.'}},
+ rempart:{a:{n:'Rempart d’airain',d:'−50 % de dégâts au lieu de −40 %, mais recharge 5 tours.'},b:{n:'Rempart vivifiant',d:'Soigne aussi le groupe de 5 % de sa vie.'}},
+ execution:{a:{n:'Bourreau',d:'Double dégâts sous 40 % de vie au lieu de 30 %.'},b:{n:'Coup d’opportunité',d:'Coûte 25 énergie au lieu de 35.'}},
+ trait:{a:{n:'Trait perçant',d:'+15 % de dégâts, mais ne rend que 4 énergie.'},b:{n:'Trait siphon',d:'Rend 13 énergie, mais −10 % de dégâts.'}},
+ feu:{a:{n:'Brasier',d:'Brûlure 50 % plus forte, mais 60 % au lieu de 70 %.'},b:{n:'Déflagration',d:'85 % au lieu de 70 %, mais brûlure d’un seul tour.'}},
+ soin:{a:{n:'Soin puissant',d:'+15 % de soin, mais coûte 22 énergie.'},b:{n:'Soin purifiant',d:'Retire aussi brûlure, poison, faiblesse et ralentissement.'}},
+ givre:{a:{n:'Givre perçant',d:'+12 % de dégâts, mais coûte 26 énergie.'},b:{n:'Givre vif',d:'Coûte 18 énergie au lieu de 22, mais −15 % de dégâts.'}},
+ barriere:{a:{n:'Barrière épaisse',d:'Absorbe 25 % de plus.'},b:{n:'Barrière partagée',d:'Protège tout le groupe à 40 % de la valeur, mais coûte 36 énergie.'}},
+ meteore:{a:{n:'Pluie ardente',d:'Les ennemis touchés brûlent 2 tours.'},b:{n:'Météore concentré',d:'Coûte 40 énergie au lieu de 50.'}},
+ tir:{a:{n:'Tir appuyé',d:'+15 % de dégâts, mais ne rend que 6 énergie.'},b:{n:'Tir rapide',d:'Rend 16 énergie, mais −10 % de dégâts.'}},
+ poison:{a:{n:'Venin',d:'Poison 30 % plus fort.'},b:{n:'Venin affaiblissant',d:'La cible inflige −25 % de dégâts pendant 2 tours.'}},
+ volee:{a:{n:'Pluie de flèches',d:'5 flèches à 40 % au lieu de 4 à 50 %, plus de chances de toucher tout le monde.'},b:{n:'Volée empoisonnée',d:'Chaque flèche a 20 % de chances d’empoisonner, mais 40 % au lieu de 50 %.'}},
+ marque:{a:{n:'Marque profonde',d:'+40 % de dégâts subis au lieu de +30 %, mais coûte 22 énergie.'},b:{n:'Marque durable',d:'Dure 4 tours.'}},
+ fatal:{a:{n:'Tir mortel',d:'250 % au lieu de 220 %.'},b:{n:'Tir vif',d:'Recharge 3 tours au lieu de 4.'}}};
+const vv=(h,k)=>(h.vr&&h.vr[k])||'';
+function varDue(h){return CLS_SK[h.cls].filter(k=>VAR[k]&&(h.rk[k]||0)>=VRANK&&!vv(h,k));}
+function chooseVar(h,k,v){if(!VAR[k]||!VAR[k][v]||SK[k].c!==h.cls||(h.rk[k]||0)<VRANK||vv(h,k))return false;if(!h.vr)h.vr={};h.vr[k]=v;return true;}
+function cdOf(h,k){const c=SK[k].cd;if(!c)return 0;const v=vv(h,k);if(k==='fatal'&&v==='b')return c-1;if(k==='rempart'&&v==='a')return c+1;return c;}
+function skDesc(h,k){const s=SK[k],v=vv(h,k);return s.d+(v?' ◆ '+VAR[k][v].n+' : '+VAR[k][v].d:'');}
 const CLS_SK={guerrier:['frappe','provoc','fendoir','rempart','execution'],mage:['trait','feu','soin','givre','barriere','meteore'],rodeuse:['tir','poison','volee','marque','fatal']};
 
 /* ---------- objets ---------- */
@@ -118,7 +142,7 @@ function track(B,e){const sc=B.sc,add=(h,v,k)=>{if(!h||h.side!=='h'||!(v>0))retu
   case'absorb':if(e.u.side==='h'){const m=G.P.heroes.find(h=>h.cls==='mage'&&!h.dead);add(m,e.v*.7,'util');add(e.u,e.v*.3,'tank');}break;
   case'die':if(e.u.side==='e'){const k=B.lastBy.get(e.u);add(k,e.u.mhp*.3,'kill');}break;}}
 
-function mkHero(cls){const C=CLASSES[cls];return{cls,n:C.n,t:C.t,eq:{arme:baseItem('arme',cls,1,0),armure:baseItem('armure',cls,1,cls==='guerrier'?1:0),bijou:null},rk:{},cdn:{},side:'h',st:{},lvl:1,xp:0,spts:0};}
+function mkHero(cls){const C=CLASSES[cls];return{cls,n:C.n,t:C.t,eq:{arme:baseItem('arme',cls,1,0),armure:baseItem('armure',cls,1,cls==='guerrier'?1:0),bijou:null},rk:{},vr:{},cdn:{},side:'h',st:{},lvl:1,xp:0,spts:0};}
 function newParty(){const p={x:0,y:0,r:.34,lvl:1,xp:0,gold:0,pot:{soin:BAL.startPot,elixir:1,phenix:1},bag:[],floor:1,best:1,wins:0,wipes:0,spts:0,bless:null,
  heroes:[mkHero('guerrier'),mkHero('mage'),mkHero('rodeuse')]};p.heroes.forEach(h=>{h.eq.arme.rar=0;h.eq.armure.rar=0;});return p;}
 const xpNext=l=>Math.round(BAL.xpBase*Math.pow(l,BAL.xpExp));
@@ -134,7 +158,7 @@ function stats(h){const C=CLASSES[h.cls],L=(h.lvl||1)-1,a={};Object.keys(AFF).fo
  s.pdmg=a.pdmg;s.res=Math.min(50,a.res);s.dmin=dmin;s.dmax=dmax;s.u=u;s.cm=u.critx?2.5:1.6;s.dr=u.dr?.15:0;s.mf=a.mf;s.gf=a.gf;
  if(u.scale){s.str+=5;s.mag+=5;s.def+=5;s.spd+=2;}
  s.pow=(dmin+dmax)/2+s[C.main]*.8;h.s=s;return s;}
-function calcAll(){if(G.P.heroes.some(h=>h.lvl===undefined))migrate();G.P.heroes.forEach(h=>{stats(h);if(h.hp===undefined){h.hp=h.s.mhp;h.en=h.s.men;}h.hp=Math.min(h.hp,h.s.mhp);h.en=Math.min(h.en,h.s.men);});
+function calcAll(){if(G.P.heroes.some(h=>h.lvl===undefined))migrate();G.P.heroes.forEach(h=>{if(!h.vr)h.vr={};stats(h);if(h.hp===undefined){h.hp=h.s.mhp;h.en=h.s.men;}h.hp=Math.min(h.hp,h.s.mhp);h.en=Math.min(h.en,h.s.men);});
  G.mf=G.P.heroes.reduce((s,h)=>s+h.s.mf,0);G.gf=G.P.heroes.reduce((s,h)=>s+h.s.gf,0);}
 function skillsOf(h){return CLS_SK[h.cls].filter(k=>SK[k].l<=h.lvl);}
 
@@ -248,8 +272,8 @@ function hit(src,tgt,mult,o={}){if(tgt.dead)return 0;const B=G.B;let raw;
  if(src.side==='h'){const s=src.s;raw=o.mag?(s.mag*1.15+(s.dmin+s.dmax)/2*.6):(rr(s.dmin,s.dmax)+s.str*.8);raw*=mult*(1+s.pdmg/100)*(B.bless==='fureur'?1.3:1);}
  else{raw=src.atk*mult*rr(.85,1.15)*(src.st.weak>0?.75:1)*(src.p2?1.25:1);}
  let crit=false;if(src.side==='h'&&(o.crit||R()*100<src.s.crit)){crit=true;raw*=src.s.cm;}
- if(tgt.st.mark>0)raw*=1.3;
- if(tgt.side==='h'){if(tgt.guard)raw*=.5;if(B.rampart)raw*=.6;raw*=(1-tgt.s.dr)*(1-tgt.s.res/100)*(B.bless==='bastion'?.75:1);}
+ if(tgt.st.mark>0)raw*=tgt.markM||1.3;
+ if(tgt.side==='h'){if(tgt.guard)raw*=.5;if(B.rampart)raw*=B.rampart===1?.6:B.rampart;raw*=(1-tgt.s.dr)*(1-tgt.s.res/100)*(B.bless==='bastion'?.75:1);}
  const def=tgt.side==='h'?tgt.s.def*(tgt.st.defup>0?1.5:1):tgt.def;raw*=o.mag?80/(80+def*.5):BAL.defK/(BAL.defK+def);
  const v=Math.max(1,Math.round(raw));emit({t:'hit',src,u:tgt,v,crit,el:o.el||'phys'});dmgRaw(tgt,v,o.el);
  if(src.side==='h'&&src.s.ll&&!o.mag){src.hp=Math.min(src.s.mhp,src.hp+v*src.s.ll/100);}
@@ -261,7 +285,7 @@ function checkEnd(){const B=G.B;if(!alive(B.foes).length){win();return true;}if(
 function endTurn(){if(checkEnd())return;next();}
 /* héros */
 function canUse(h,k){const s=SK[k];if(!s||s.c!==h.cls||s.l>h.lvl)return false;if((h.cdn[k]||0)>0)return false;return h.en>=cost(h,k);}
-function cost(h,k){if(k==='fendoir'&&h.s.u.freecleave)return 0;return SK[k].cost;}
+function cost(h,k){if(k==='fendoir'&&h.s.u.freecleave)return 0;const v=vv(h,k);if(v==='b'&&k==='execution')return 25;if(v==='b'&&k==='meteore')return 40;if(v==='a'&&k==='soin')return 22;if(v==='a'&&k==='provoc')return 18;if(v==='b'&&k==='barriere')return 36;if(v==='b'&&k==='givre')return 18;if(v==='a'&&k==='marque')return 22;if(v==='a'&&k==='givre')return 26;return SK[k].cost;}
 const rk=(h,k)=>1+.08*(h.rk[k]||0);
 function heroAct(k,ti){const B=G.B,h=B.cur;if(!B||B.wait!=='hero'||B.over)return false;
  if(k==='defend'){h.guard=1;h.en=Math.min(h.s.men,h.en+15);emit({t:'act',u:h,n:'Défense'});log(`${h.n} se met en garde.`);B.wait=null;endTurn();return true;}
@@ -274,25 +298,26 @@ function heroAct(k,ti){const B=G.B,h=B.cur;if(!B||B.wait!=='hero'||B.over)return
   B.wait=null;endTurn();return true;}
  if(!canUse(h,k))return false;const s=SK[k],foes=alive(B.foes);let t=null;
  if(s.tg==='foe'){t=B.foes[ti];if(!t||t.dead)return false;}if(s.tg==='ally'){t=G.P.heroes[ti];if(!t||t.dead)return false;}
- h.en-=cost(h,k);if(s.cd)h.cdn[k]=s.cd;emit({t:'act',u:h,n:s.n,k,tgt:t});if(G.stats)G.stats.use(k);
- const R1=rk(h,k);
+ h.en-=cost(h,k);if(s.cd)h.cdn[k]=cdOf(h,k);emit({t:'act',u:h,n:s.n,k,tgt:t});if(G.stats)G.stats.use(k);
+ const R1=rk(h,k),V=vv(h,k);
  switch(k){
-  case'frappe':hit(h,t,1*R1);h.en=Math.min(h.s.men,h.en+10);if(h.s.u.burnhit&&!t.dead){t.st.burn=3;t.burnV=h.s.str*.35;}log(`${h.n} frappe ${t.n}.`);break;
-  case'provoc':h.st.taunt=2;h.st.defup=2;emit({t:'status',u:h,s:'taunt'});log(`${h.n} provoque les ennemis !`);break;
-  case'fendoir':foes.forEach(f=>{hit(h,f,.55*R1);if(h.s.u.burnhit&&!f.dead){f.st.burn=3;f.burnV=h.s.str*.35;}});log(`${h.n} balaie ses ennemis.`);break;
-  case'rempart':B.rampart=1;emit({t:'status',u:h,s:'rampart'});log(`${h.n} lève le Rempart : le groupe est protégé.`);break;
-  case'execution':hit(h,t,1.8*R1*(t.hp/t.mhp<.3?2:1));log(`${h.n} tente une exécution sur ${t.n}.`);break;
-  case'trait':hit(h,t,1*R1,{mag:1,el:'arcane'});h.en=Math.min(h.s.men,h.en+8);log(`${h.n} lance un trait arcanique.`);break;
-  case'feu':{const m=.7*R1*(h.s.u.fireup?1.5:1);foes.forEach(f=>{hit(h,f,m,{mag:1,el:'fire'});if(!f.dead){f.st.burn=3;f.burnV=h.s.mag*.3*(h.s.u.fireup?2:1);}});log(`${h.n} déchaîne une boule de feu !`);break;}
-  case'soin':heal(t,(t.s.mhp*.3+h.s.mag*1.2)*R1);log(`${h.n} soigne ${t.n}.`);break;
-  case'givre':{const ts=h.s.u.iceall?foes:[t];ts.forEach(f=>{hit(h,f,1.4*R1*(h.s.u.iceall?.7:1),{mag:1,el:'ice'});if(!f.dead){if(f.boss){f.st.slow=2;emit({t:'status',u:f,s:'slow'});}else{f.st.gel=1;emit({t:'status',u:f,s:'gel'});if(f.charge){f.charge=null;log(`L’incantation de ${f.n} est brisée !`);}}}});log(`${h.n} projette une lance de givre.`);break;}
-  case'barriere':t.st.shield=(t.st.shield||0)+Math.round((t.s.mhp*.25+h.s.mag*2)*R1);emit({t:'status',u:t,s:'shield'});log(`${h.n} protège ${t.n} d’une barrière.`);break;
-  case'meteore':foes.forEach(f=>hit(h,f,1.6*R1,{mag:1,el:'fire'}));log(`${h.n} fait pleuvoir des météores !`);break;
-  case'tir':hit(h,t,1*R1);h.en=Math.min(h.s.men,h.en+10);log(`${h.n} décoche une flèche.`);break;
-  case'poison':hit(h,t,.7*R1);if(!t.dead){t.st.poison=3;t.poisV=Math.min((t.poisV||0)+h.s.str*.45*R1,h.s.str*1.35*R1);emit({t:'status',u:t,s:'poison'});}log(`${h.n} empoisonne ${t.n}.`);break;
-  case'volee':{const n=h.s.u.volley6?6:4;for(let i=0;i<n;i++){const a=alive(B.foes);if(!a.length)break;hit(h,pk(a),.5*R1);}log(`${h.n} lâche une volée de flèches.`);break;}
-  case'marque':t.st.mark=3;emit({t:'status',u:t,s:'mark'});log(`${h.n} marque ${t.n}.`);break;
-  case'fatal':hit(h,t,2.2*R1,{crit:1});log(`${h.n} vise le cœur de ${t.n}.`);break;}
+  case'frappe':hit(h,t,(V==='a'?1.12:V==='b'?.9:1)*R1);h.en=Math.min(h.s.men,h.en+(V==='b'?16:V==='a'?5:10));if(h.s.u.burnhit&&!t.dead){t.st.burn=3;t.burnV=h.s.str*.35;}log(`${h.n} frappe ${t.n}.`);break;
+  case'provoc':h.st.taunt=V==='a'?3:2;if(V==='b')heal(h,h.s.mhp*.06);h.st.defup=2;emit({t:'status',u:h,s:'taunt'});log(`${h.n} provoque les ennemis !`);break;
+  case'fendoir':foes.forEach(f=>{hit(h,f,(V?.45:.55)*R1);if(h.s.u.burnhit&&!f.dead){f.st.burn=3;f.burnV=h.s.str*(V==='a'?.5:.35);}else if(V==='a'&&!f.dead){const bv=h.s.str*.2;if(!(f.st.burn>0&&f.burnV>bv))f.burnV=bv;f.st.burn=Math.max(f.st.burn||0,2);}
+   if(V==='b'&&!f.dead&&!f.boss&&R()<.15){f.st.stun=1;emit({t:'status',u:f,s:'stun'});if(f.charge){f.charge=null;log(`L’attaque de ${f.n} est brisée !`);}}});log(`${h.n} balaie ses ennemis.`);break;
+  case'rempart':B.rampart=V==='a'?.5:.6;if(V==='b')alive(G.P.heroes).forEach(x=>heal(x,x.s.mhp*.05));emit({t:'status',u:h,s:'rampart'});log(`${h.n} lève le Rempart : le groupe est protégé.`);break;
+  case'execution':hit(h,t,1.8*R1*(t.hp/t.mhp<(V==='a'?.4:.3)?2:1));log(`${h.n} tente une exécution sur ${t.n}.`);break;
+  case'trait':hit(h,t,(V==='a'?1.15:V==='b'?.9:1)*R1,{mag:1,el:'arcane'});h.en=Math.min(h.s.men,h.en+(V==='b'?13:V==='a'?4:8));log(`${h.n} lance un trait arcanique.`);break;
+  case'feu':{const m=.7*R1*(h.s.u.fireup?1.5:1)*(V==='a'?60/70:V==='b'?85/70:1);foes.forEach(f=>{hit(h,f,m,{mag:1,el:'fire'});if(!f.dead){f.st.burn=V==='b'?1:3;f.burnV=h.s.mag*.3*(h.s.u.fireup?2:1)*(V==='a'?1.5:1);}});log(`${h.n} déchaîne une boule de feu !`);break;}
+  case'soin':heal(t,(t.s.mhp*.3+h.s.mag*1.2)*R1*(V==='a'?1.15:1));if(V==='b'){let c=0;for(const x of['burn','poison','weak','slow'])if(t.st[x]>0){t.st[x]=0;c++;}if(t.poisV)t.poisV=0;if(c)emit({t:'status',u:t,s:'clean'});}log(`${h.n} soigne ${t.n}.`);break;
+  case'givre':{const ts=h.s.u.iceall?foes:[t];ts.forEach(f=>{hit(h,f,1.4*R1*(h.s.u.iceall?.7:1)*(V==='a'?1.12:V==='b'?.85:1),{mag:1,el:'ice'});if(!f.dead){if(f.boss){f.st.slow=2;emit({t:'status',u:f,s:'slow'});}else{f.st.gel=1;emit({t:'status',u:f,s:'gel'});if(f.charge){f.charge=null;log(`L’incantation de ${f.n} est brisée !`);}}}});log(`${h.n} projette une lance de givre.`);break;}
+  case'barriere':if(V==='b')alive(G.P.heroes).forEach(x=>{x.st.shield=(x.st.shield||0)+Math.round((x.s.mhp*.25+h.s.mag*2)*R1*.4);emit({t:'status',u:x,s:'shield'});});else{t.st.shield=(t.st.shield||0)+Math.round((t.s.mhp*.25+h.s.mag*2)*R1*(V==='a'?1.25:1));emit({t:'status',u:t,s:'shield'});}log(V==='b'?`${h.n} entoure le groupe d’une barrière.`:`${h.n} protège ${t.n} d’une barrière.`);break;
+  case'meteore':foes.forEach(f=>{hit(h,f,1.6*R1,{mag:1,el:'fire'});if(V==='a'&&!f.dead){const bv=h.s.mag*.3;if(!(f.st.burn>0&&f.burnV>bv))f.burnV=bv;f.st.burn=Math.max(f.st.burn||0,2);}});log(`${h.n} fait pleuvoir des météores !`);break;
+  case'tir':hit(h,t,(V==='a'?1.15:V==='b'?.9:1)*R1);h.en=Math.min(h.s.men,h.en+(V==='b'?16:V==='a'?6:10));log(`${h.n} décoche une flèche.`);break;
+  case'poison':hit(h,t,.7*R1);if(!t.dead){const pm=V==='a'?1.3:1;t.st.poison=3;t.poisV=Math.min((t.poisV||0)+h.s.str*.45*R1*pm,h.s.str*1.35*R1*pm);emit({t:'status',u:t,s:'poison'});if(V==='b'){t.st.weak=Math.max(t.st.weak||0,2);emit({t:'status',u:t,s:'weak'});}}log(`${h.n} empoisonne ${t.n}.`);break;
+  case'volee':{const n=(h.s.u.volley6?6:4)+(V==='a'?1:0);for(let i=0;i<n;i++){const a=alive(B.foes);if(!a.length)break;const f=pk(a);hit(h,f,(V?.4:.5)*R1);if(V==='b'&&!f.dead&&R()<.2){f.st.poison=Math.max(f.st.poison||0,3);f.poisV=Math.min((f.poisV||0)+h.s.str*.3,h.s.str*1.35);emit({t:'status',u:f,s:'poison'});}}log(`${h.n} lâche une volée de flèches.`);break;}
+  case'marque':t.st.mark=V==='b'?4:3;t.markM=V==='a'?1.4:1.3;emit({t:'status',u:t,s:'mark'});log(`${h.n} marque ${t.n}.`);break;
+  case'fatal':hit(h,t,(V==='a'?2.5:2.2)*R1,{crit:1});log(`${h.n} vise le cœur de ${t.n}.`);break;}
  B.wait=null;endTurn();return true;}
 /* ennemis : intentions annoncées */
 function pickTarget(e,mode){const hs=alive(G.P.heroes);const tt=hs.find(h=>h.st.taunt>0);if(tt&&mode!=='aoe')return tt;
@@ -371,7 +396,7 @@ function gamble(slot,cls){const P=G.P,p=prices().gamble;if(P.gold<p||P.bag.lengt
 function talent(h,k){if(h.spts<=0||SK[k].c!==h.cls||SK[k].l>h.lvl)return false;h.rk[k]=(h.rk[k]||0)+1;h.spts--;syncLvl();return true;}
 
 function newGame(party,seed){if(seed!==undefined)R=mulberry(seed);else R=Math.random;G.P=party||newParty();G.ev=[];G.time=0;calcAll();if(!party)G.P.heroes.forEach(h=>{h.hp=h.s.mhp;h.en=h.s.men;});startFloor(G.P.floor||1);}
-Object.assign(G,{xpNextH,syncLvl,upgrade,upCost,UPMAX,startBattle,newGame,step,startFloor,descend,heroAct,foeTurn,closeBattle,canUse,cost,skillsOf,preview,equip,unequip,sell,sellJunk,buy,gamble,talent,calcAll,power,val,xpNext,prices,canEquip,
+Object.assign(G,{xpNextH,syncLvl,upgrade,upCost,UPMAX,startBattle,newGame,step,startFloor,descend,heroAct,foeTurn,closeBattle,canUse,cost,cdOf,skillsOf,skDesc,varDue,chooseVar,VAR,VRANK,preview,equip,unequip,sell,sellJunk,buy,gamble,talent,calcAll,power,val,xpNext,prices,canEquip,
  at,solid,los,dist,mkItem,rollRar,alive,setUID:n=>{UID=n;},getUID:()=>UID,
  RAR,SLOTS,AFF,UNIQ,MON,BIOMES,BOSSES,SHRINES,ELITE,CLASSES,SK,CLS_SK});
 root.VD=G;

@@ -104,7 +104,7 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
  if(CB.flashEcran&&now-CB.flashEcran<180/ACCEL){g.fillStyle=`rgba(220,235,255,${.35*(1-(now-CB.flashEcran)/(180/ACCEL))})`;g.fillRect(0,0,G2.W,G2.H+60);}
  // héros
  for(let k=0;k<2;k++){const s=C.cotes[k];if(!s.heros)continue;const x=k?G2.W-58:8,y=8;g.drawImage(portrait(s.heros,64),x,y,50,50);g.font='12px Palatino,Georgia,serif';g.textAlign=k?'right':'left';g.lineWidth=3;g.strokeStyle='#000';const tx=k?x-4:x+56;
-  g.strokeText(s.heros.nom,tx,y+16);g.fillStyle='#f6d77a';g.fillText(s.heros.nom,tx,y+16);g.strokeText(`◆ ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);g.fillStyle='#9ad0ff';g.fillText(`◆ ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);}}
+  g.strokeText(s.heros.nom,tx,y+16);g.fillStyle='#f6d77a';g.fillText(s.heros.nom,tx,y+16);g.strokeText(`Mana ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);g.fillStyle='#9ad0ff';g.fillText(`Mana ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);}}
 function etat3D(q,now){const e=CB.anim3d&&CB.anim3d[q.id];if(q.n<=0||(e&&e.a==='die')){const t=e?Math.min(1,(now-e.t0)/500):1;return['die',Math.min(2,Math.floor(t*3))];}
  if(e&&now-e.t0<e.d){const t=(now-e.t0)/e.d;return[e.a,Math.floor(t*(e.a==='hit'?2:4))];}return['idle',Math.floor((now/260+q.id*1.7))%4];}
 // largeur réellement peinte (fraction du cadre), mesurée une fois par créature : une pile ne déborde pas de 1,6 hexagone

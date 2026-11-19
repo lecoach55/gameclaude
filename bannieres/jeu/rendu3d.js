@@ -623,11 +623,11 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};
  const tri=objs.slice().sort((a,b)=>a[1].position.z-b[1].position.z);
  for(const [b,gr,u] of tri){bb.setFromObject(gr);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let k=0;k<8;k++){const [sx,sy]=pr(k&1?bb.max.x:bb.min.x,k&2?bb.max.y:bb.min.y,k&4?bb.max.z:bb.min.z);x0=Math.min(x0,sx);x1=Math.max(x1,sx);y0=Math.min(y0,sy);y1=Math.max(y1,sy);}
-  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const cx=gr.position.x+u*.42*(gr.position.x>0?-1:1),cz=gr.position.z+u*1.0;const [bx,by]=pr(cx,0,cz);const [bx2]=pr(cx+u,0,cz);const S=Math.max(24,Math.abs(bx2-bx)*1.25);x1=Math.max(x1,bx+S*.4);y1=Math.max(y1,by);}
+  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const cx=gr.position.x+u*.42*(gr.position.x>0?-1:1),cz=gr.position.z+u*1.0;const [bx,by]=pr(cx,0,cz);const [bx2]=pr(cx+u,0,cz);const S=Math.max(24,Math.abs(bx2-bx)*1.25);if(gr.position.x>0)x0=Math.min(x0,bx-S*.5);else x1=Math.max(x1,bx+S*.5);y1=Math.max(y1,by);}
   zones.push({b,x:x0,y:y0,w:x1-x0,h:y1-y0});}
  // drapeaux animés en 2D au sommet du château
  const drap=[];const fort=objs.find(o=>o[0]==='fort'||o[0]==='citadelle'||o[0]==='chateau');if(fort){const [b,gr,u]=fort;bb.setFromObject(gr);const [dx,dy]=pr(gr.position.x,bb.max.y,gr.position.z-1.6);drap.push([dx,Math.max(H*.12,dy)]);}
- sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
+ sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});{const mi=Object.values(MPI);sc.traverse(o=>{if(o.isMesh&&mi.includes(o.material))o.geometry.dispose();});}GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
  return{c,zones,drap};};
 return A;})();
 R3.stats=()=>{const o={};const sc=R3._scene&&R3._scene();if(!sc)return o;sc.traverse(m=>{if(!m.isMesh)return;const g=m.geometry;const t=(g.index?g.index.count:g.attributes.position.count)/3*(m.isInstancedMesh?m.count:1);const k=m.isInstancedMesh?'inst':m.name||(m.parent&&m.parent.type)||'?';o[k]=(o[k]||0)+t;});return o;};

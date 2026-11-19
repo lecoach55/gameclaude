@@ -6400,11 +6400,11 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};
  const tri=objs.slice().sort((a,b)=>a[1].position.z-b[1].position.z);
  for(const [b,gr,u] of tri){bb.setFromObject(gr);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let k=0;k<8;k++){const [sx,sy]=pr(k&1?bb.max.x:bb.min.x,k&2?bb.max.y:bb.min.y,k&4?bb.max.z:bb.min.z);x0=Math.min(x0,sx);x1=Math.max(x1,sx);y0=Math.min(y0,sy);y1=Math.max(y1,sy);}
-  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const cx=gr.position.x+u*.42*(gr.position.x>0?-1:1),cz=gr.position.z+u*1.0;const [bx,by]=pr(cx,0,cz);const [bx2]=pr(cx+u,0,cz);const S=Math.max(24,Math.abs(bx2-bx)*1.25);x1=Math.max(x1,bx+S*.4);y1=Math.max(y1,by);}
+  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const cx=gr.position.x+u*.42*(gr.position.x>0?-1:1),cz=gr.position.z+u*1.0;const [bx,by]=pr(cx,0,cz);const [bx2]=pr(cx+u,0,cz);const S=Math.max(24,Math.abs(bx2-bx)*1.25);if(gr.position.x>0)x0=Math.min(x0,bx-S*.5);else x1=Math.max(x1,bx+S*.5);y1=Math.max(y1,by);}
   zones.push({b,x:x0,y:y0,w:x1-x0,h:y1-y0});}
  // drapeaux animés en 2D au sommet du château
  const drap=[];const fort=objs.find(o=>o[0]==='fort'||o[0]==='citadelle'||o[0]==='chateau');if(fort){const [b,gr,u]=fort;bb.setFromObject(gr);const [dx,dy]=pr(gr.position.x,bb.max.y,gr.position.z-1.6);drap.push([dx,Math.max(H*.12,dy)]);}
- sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
+ sc.traverse(o=>{if(o.geometry===gs)o.geometry.dispose();});{const mi=Object.values(MPI);sc.traverse(o=>{if(o.isMesh&&mi.includes(o.material))o.geometry.dispose();});}GCRV.dispose();texV.forEach(t=>t.dispose());matV.forEach(m=>m.dispose());if(ts)ts.dispose();ms.dispose();tb.dispose();envC.dispose();
  return{c,zones,drap};};
 return A;})();
 R3.stats=()=>{const o={};const sc=R3._scene&&R3._scene();if(!sc)return o;sc.traverse(m=>{if(!m.isMesh)return;const g=m.geometry;const t=(g.index?g.index.count:g.attributes.position.count)/3*(m.isInstancedMesh?m.count:1);const k=m.isInstancedMesh?'inst':m.name||(m.parent&&m.parent.type)||'?';o[k]=(o[k]||0)+t;});return o;};
@@ -6518,7 +6518,7 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
  if(CB.flashEcran&&now-CB.flashEcran<180/ACCEL){g.fillStyle=`rgba(220,235,255,${.35*(1-(now-CB.flashEcran)/(180/ACCEL))})`;g.fillRect(0,0,G2.W,G2.H+60);}
  // héros
  for(let k=0;k<2;k++){const s=C.cotes[k];if(!s.heros)continue;const x=k?G2.W-58:8,y=8;g.drawImage(portrait(s.heros,64),x,y,50,50);g.font='12px Palatino,Georgia,serif';g.textAlign=k?'right':'left';g.lineWidth=3;g.strokeStyle='#000';const tx=k?x-4:x+56;
-  g.strokeText(s.heros.nom,tx,y+16);g.fillStyle='#f6d77a';g.fillText(s.heros.nom,tx,y+16);g.strokeText(`◆ ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);g.fillStyle='#9ad0ff';g.fillText(`◆ ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);}}
+  g.strokeText(s.heros.nom,tx,y+16);g.fillStyle='#f6d77a';g.fillText(s.heros.nom,tx,y+16);g.strokeText(`Mana ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);g.fillStyle='#9ad0ff';g.fillText(`Mana ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);}}
 function etat3D(q,now){const e=CB.anim3d&&CB.anim3d[q.id];if(q.n<=0||(e&&e.a==='die')){const t=e?Math.min(1,(now-e.t0)/500):1;return['die',Math.min(2,Math.floor(t*3))];}
  if(e&&now-e.t0<e.d){const t=(now-e.t0)/e.d;return[e.a,Math.floor(t*(e.a==='hit'?2:4))];}return['idle',Math.floor((now/260+q.id*1.7))%4];}
 // largeur réellement peinte (fraction du cadre), mesurée une fois par créature : une pile ne déborde pas de 1,6 hexagone
@@ -6819,7 +6819,7 @@ function majUI(){if(!G||ECRAN!=='aventure')return;const j=vueJoueur();const p=G.
  $('listeVilles').querySelectorAll('[data-v]').forEach(e=>e.onclick=()=>{const v=G.oi[+e.dataset.v];if(V.sel&&V.sel.t==='ville'&&V.sel.id===v.id&&!V.occupe)ouvrirVille(v);else{V.sel={t:'ville',id:v.id};centrer(v.x,v.y);majUI();}});
  // fiche sélection
  const f=$('ficheSel');const h=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):null;const v=V.sel&&V.sel.t==='ville'?G.oi[V.sel.id]:null;
- if(h&&h.j===j){f.innerHTML=`<div class="ligne"><b>${esc(h.nom)}</b><span>niv. ${h.niv}</span></div><div class="ligne"><span><svg class="ico pi" title="Mouvement"><use href="#i-footprints"/></svg>${h.mp}/${mvtMax(h)}</span><span><svg class="ico pi" title="Mana"><use href="#i-flame"/></svg>${h.mana}/${manaMax(h)}</span><span><svg class="ico pi" title="Attaque"><use href="#i-sword"/></svg>${statH(h,'att')} <svg class="ico pi" title="Défense"><use href="#i-shield"/></svg>${statH(h,'def')}</span></div>`+miniArmee(h.armee);}
+ if(h&&h.j===j){f.innerHTML=`<div class="ligne"><b>${esc(h.nom)}</b><span>niv. ${h.niv}</span></div><div class="ligne"><span title="Mouvement"><svg class="ico pi" aria-label="Mouvement"><title>Mouvement</title><use href="#i-footprints"/></svg>${h.mp}/${mvtMax(h)}</span><span title="Mana"><svg class="ico pi" aria-label="Mana"><title>Mana</title><use href="#i-flame"/></svg>${h.mana}/${manaMax(h)}</span><span title="Attaque"><svg class="ico pi" aria-label="Attaque"><title>Attaque</title><use href="#i-sword"/></svg>${statH(h,'att')} <svg class="ico pi" aria-label="Défense"><title>Défense</title><use href="#i-shield"/></svg>${statH(h,'def')}</span></div>`+miniArmee(h.armee);}
  else if(v){f.innerHTML=`<div class="ligne"><b>${esc(v.nom)}</b><span>+${revenuVille(v)} or</span></div>`+miniArmee(v.garn);}
  else f.innerHTML=`<div style="opacity:.7">${p.nom} — ${FAC[p.fac].nom}</div>`;
  peindreCanvasRes(f);

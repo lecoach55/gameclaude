@@ -41,6 +41,7 @@ function initAccueil() {
  $('#bContinuer').onclick = () => { const s = braises.nuage && $('#bContinuer').dataset.nuage ? braises.nuage : lireLocal().s; G = restaurer(s); entrerRoyaume(); };
  $('#bNouvelle').onclick = () => { initCreation(); montrer('creation'); };
  $('#bAide').onclick = aide;
+ $('#bColler').onclick = collerSauvegarde;
  $('#bTest').onclick = () => { TEST = true; if (TK) TK.modeTest(); G = nouvellePartie({ classe: 'chevalier', nom: 'Testeur' }); G.evts = []; entrerRoyaume(); toast('🧪 Mode test : rien n’est sauvegardé. ☰ → ▶ Banc de mesure.'); };
 }
 function aide() {
@@ -48,7 +49,8 @@ function aide() {
  <p><b>Le but</b> — Tenir <b>Haute-Braise</b> (♛) et au moins <b>10 provinces</b> pour être couronné. Mariez-vous, ayez des héritiers : quand votre souverain meurt, son enfant reprend le flambeau avec l’armurerie familiale.</p>
  <p><b>Les donjons</b> — Combat en temps réel. <b>Clic gauche</b> : se déplacer / attaquer la cible (maintenir). <b>ZQSD / WASD / flèches</b> : se déplacer (le clic attaque alors vers le curseur). <b>Maj + clic</b> : attaquer sur place. <b>1 2 3 4</b> ou <b>clic droit</b> (compétence 1) : compétences. <b>Espace</b> : potion. <b>E</b> : descendre. <b>I</b> : sac, <b>K</b> : compétences, <b>Échap</b> : pause. Les cercles rouges au sol annoncent une attaque : sortez-en !</p>
  <p><b>Le butin compte</b> — Objets magiques (bleus), rares (jaunes), légendaires (orange) : certains légendaires agissent aussi sur le royaume (+1 ordre, +25 % d’impôts, un dé de plus en attaque…). Revendez le reste à l’armurerie pour payer vos armées.</p>
- <p><b>Le mal revient</b> — Un donjon nettoyé rend sa province prospère, mais ses créatures reviennent quelques saisons plus tard, plus fortes.</p>`, [{ t: 'Compris', f: fermer }]);
+ <p><b>Le mal revient</b> — Un donjon nettoyé rend sa province prospère, mais ses créatures reviennent quelques saisons plus tard, plus fortes.</p>
+ <p><b>L’or des donjons</b> — 💰 Trésor : grands travaux (routes, cathédrale, arsenal, chancellerie…), serments de seigneurs voisins à acheter (la province passe à vous), rançons de paix ; depuis vos provinces, des mercenaires sans dépenser d’ordre. Tout coûte de plus en plus cher : choisissez.</p>`, [{ t: 'Compris', f: fermer }]);
 }
 
 /* ---------- création ---------- */
@@ -137,8 +139,10 @@ function panneau() {
   h += b('⚔️', 'Attaquer une voisine', 'Choisir la cible sur la carte', '1 ordre', 'attaquerDepuis', o && p.t > 1 && voisinsDe(p.id).some(id => prov(G, id).o !== 'joueur'), 'chaud');
   h += b('🚶', 'Déplacer des troupes', G.dejaBouge[p.id] ? 'Déjà en marche cette saison' : 'Vers une de vos provinces', 'gratuit', 'deplacer', p.t > 1 && !G.dejaBouge[p.id] && voisinsMiens.length > 0);
   h += b('🔨', 'Bâtir', 'Marché, caserne, temple, murailles', '', 'batir', o);
+  const pm = prixMercenaires(G); h += b('🗡️', `Engager ${Math.min(MERC_N, Math.max(0, garnisonMax(G) - p.t))} mercenaires`, `${MERC_DUREE} saisons, solde ${MERC_N * MERC_SOLDE} 🪙/saison · sans ordre`, `${nf(pm)} 🪙`, 'mercenaires', J.or >= pm && p.t < garnisonMax(G));
  } else if (proche) {
   h += b('⚔️', 'Attaquer', `Depuis ${voisinsMiens.filter(q => q.t > 1).map(q => q.nom).join(', ') || '—'}`, '1 ordre', 'attaquer', o && voisinsMiens.some(q => q.t > 1), 'chaud');
+  { const pq = vassalPossible(G, p), pv = prixVassal(G, p); h += b('🪙', 'Acheter le serment du seigneur', pq || `La province et ses ${p.t} hommes passent à vous`, pq ? '' : `${nf(pv)} 🪙`, 'vassal', o && !pq && J.or >= pv); }
   if (p.o !== 'rebelles') h += b('🕯️', 'Fomenter une révolte', 'Complot : réduit la garnison', '3 🕯️', 'revolte', o && J.influence >= 3);
  }
  if (!mien && p.o !== 'rebelles') h += b('🤝', 'Diplomatie', `Maison ${M.nom}`, '', 'diplo');
@@ -150,7 +154,9 @@ function panneau() {
  el.querySelectorAll('button[data-a]').forEach(bt => bt.onclick = () => { SON('clic'); actionProv(p, bt.dataset.a); });
 }
 function actionProv(p, a) {
- if (a === 'recruter') { const r = act(G, 'recruter', { prov: p.id }); toast(r.msg); SON('tambour'); apres(); }
+ if (a === 'mercenaires') { const r = act(G, 'mercenaires', { prov: p.id }); toast(r.msg, 4200); if (r.ok) SON('tambour'); apres(); }
+ else if (a === 'vassal') { const c = prixVassal(G, p); confirmer(`Payer ${nf(c)} or pour que le seigneur de ${p.nom} vous prête serment avec ses ${p.t} hommes ? (un ordre${p.o !== 'rebelles' ? `, la maison ${G.maisons[p.o].nom} le prendra mal` : ''})`, () => { const r = act(G, 'vassal', { prov: p.id }); toast(r.msg, 4200); if (r.ok) SON('victoire'); apres(); }); }
+ else if (a === 'recruter') { const r = act(G, 'recruter', { prov: p.id }); toast(r.msg); SON('tambour'); apres(); }
  else if (a === 'deplacer') { UI.mode = 'deplacer'; UI.de = p.id; UI.amis = voisinsDe(p.id).filter(id => prov(G, id).o === 'joueur'); UI.cibles = null; toast('Choisissez la province de destination (Échap pour annuler)'); }
  else if (a === 'attaquerDepuis') { UI.mode = 'attaque'; UI.de = p.id; UI.cibles = voisinsDe(p.id).filter(id => prov(G, id).o !== 'joueur'); UI.amis = null; toast('Choisissez la province à attaquer'); }
  else if (a === 'attaquer') { const src = voisinsDe(p.id).map(id => prov(G, id)).filter(q => q.o === 'joueur' && q.t > 1).sort((x, y) => y.t - x.t); fenetreAttaque(src, p); }
@@ -338,14 +344,14 @@ function fenetreMaisons(focus) {
   const g = enGuerre(G, 'joueur', m), al = J.alliance[m];
   const b = (t, a, ok) => `<button class="btn petit" data-m="${m}" data-a="${a}" ${ok ? '' : 'disabled'}>${t}</button>`;
   html += `<div class="mais" ${focus === m ? 'style="border-color:var(--or)"' : ''}>${blason(m, 40)}<div><span class="nomm">${esc(M.nom)}</span> ${etatMaison(m)}<br><span class="rel">« ${esc(M.devise)} » · ${M.chef ? esc(M.chef.nom + ' ' + (M.chef.surnom || '')) + ', ' + M.chef.age + ' ans' : ''}${M.chef && M.chef.roi ? ' — roi' : ''}<br>${provincesDe(G, m).length} provinces · ${troupesDe(G, m)} troupes · relation <b>${relTxt(M.rel.joueur)}</b> (${Math.round(M.rel.joueur)})</span></div>
-   <div class="acts">${b('🎁 Présents 50🪙', 'presents', o && J.or >= 50)}${!g && !al ? b('🤝 Alliance', 'alliance', o) : ''}${!G.joueur.conjoint && !g ? b('💍 Mariage', 'mariage', o) : ''}${g ? b('🕊️ Paix', 'paix', o) : b('⚔️ Guerre', 'guerre', o)}${b('🪙 Voler (2🕯️)', 'vol', o && J.influence >= 2)}${b('🗡️ Assassiner (6🕯️)', 'assassinat', o && J.influence >= 6)}</div></div>`;
+   <div class="acts">${b('🎁 Présents 50🪙', 'presents', o && J.or >= 50)}${!g && !al ? b('🤝 Alliance', 'alliance', o) : ''}${!G.joueur.conjoint && !g ? b('💍 Mariage', 'mariage', o) : ''}${g ? b('🕊️ Paix', 'paix', o) + b(`💰 Rançon de paix ${nf(prixRancon(G, m))}🪙`, 'rancon', o && J.or >= prixRancon(G, m)) : b('⚔️ Guerre', 'guerre', o)}${b('🪙 Voler (2🕯️)', 'vol', o && J.influence >= 2)}${b('🗡️ Assassiner (6🕯️)', 'assassinat', o && J.influence >= 6)}</div></div>`;
  }
  html += '</div>';
  fenetre('Les grandes maisons', html, [{ t: 'Fermer', f: fermer }], false, true);
  $('#fen').querySelectorAll('[data-m]').forEach(bt => bt.onclick = () => {
   const m = bt.dataset.m, a = bt.dataset.a; SON('clic');
   const go = () => { const r = ['vol', 'assassinat'].includes(a) ? act(G, 'complot', { type: a, maison: m }) : act(G, a, { maison: m }); toast(r.msg, 4000); sauver(); majBarre(); fenetreMaisons(m); };
-  if (a === 'guerre' || a === 'assassinat') confirmer(a === 'guerre' ? `Déclarer la guerre à la maison ${G.maisons[m].nom} ?` : `Faire assassiner ${G.maisons[m].chef.nom} ? (38 % de réussite, risque d’être découvert)`, go); else go();
+  if (a === 'rancon') confirmer(`Payer ${nf(prixRancon(G, m))} or à la maison ${G.maisons[m].nom} pour qu’elle signe la paix ? (un ordre, paix assurée)`, go); else if (a === 'guerre' || a === 'assassinat') confirmer(a === 'guerre' ? `Déclarer la guerre à la maison ${G.maisons[m].nom} ?` : `Faire assassiner ${G.maisons[m].chef.nom} ? (38 % de réussite, risque d’être découvert)`, go); else go();
  });
 }
 $('#bChron').onclick = fenetreChronique;
@@ -358,6 +364,7 @@ $('#bMenu').onclick = () => fenetre('Menu', `<p>${TEST ? '🧪 Mode test : rien 
  { t: '🐞 Signaler un problème à Claude', f: async () => { fermer(); if (!TK) return toast('Trousse de test indisponible'); const ok = await TK.signaler(); toast(ok ? 'Signalement envoyé ✓' : 'Signalement enregistré sur cet appareil'); } },
  ...(TEST ? [{ t: '▶ Banc de mesure (fluidité)', f: () => { fermer(); banc(); } }] : []),
  { t: '📋 Copier la sauvegarde', f: copierSauvegarde },
+ { t: '📥 Coller une sauvegarde', f: collerSauvegarde },
  { t: '🏠 Retour à l’écran titre', f: () => { fermer(); sauver(); initAccueil(); montrer('accueil'); } },
 ]);
 // Code de sauvegarde à copier (remplace l'ancien lien de téléchargement, inopérant dans le visualiseur d'artefact ; aucune capacité « downloads ») — lecture seule : ne touche ni à tdb-v1 ni à « partie »
@@ -367,6 +374,45 @@ function copierSauvegarde() {
   { t: '📋 Copier', cls: 'or', f: async () => { const ta = $('#codeSauv'); let ok = false; try { await navigator.clipboard.writeText(code); ok = true; } catch (e) { try { ta.focus(); ta.select(); ta.setSelectionRange(0, code.length); ok = document.execCommand('copy'); } catch (_) { } } toast(ok ? 'Code copié ✓' : 'Code sélectionné : copiez-le à la main'); } },
   { t: 'Fermer', f: fermer }]);
  const ta = $('#codeSauv'); ta.value = code; try { ta.select(); ta.setSelectionRange(0, code.length); } catch (e) { }
+}
+// Coller une sauvegarde (décision de Victor du 17/11) : recoller le code de « Copier la sauvegarde » sur un autre appareil.
+// Même format (JSON de la partie) ; vérifié avant tout ; confirmation avant d'écraser ; complété par completer() via restaurer().
+function lireCodeSauvegarde(txt) {
+ let g; try { g = JSON.parse(String(txt || '').trim()); } catch (e) { return { err: 'Ce texte n’est pas un code de sauvegarde (copiez-le en entier, de la première accolade à la dernière).' }; }
+ if (!g || typeof g !== 'object' || !g.joueur || !g.joueur.heros || !g.maisons || !g.maisons.joueur || !Array.isArray(g.provinces) || g.provinces.length !== PROVINCES.length || typeof g.tour !== 'number') return { err: 'Ce code ne ressemble pas à une partie du Trône de Braise.' };
+ return { g };
+}
+function resumePartie(g) { const n = g.provinces.filter(p => p.o === 'joueur').length; return `<b>${esc(g.joueur.heros.nom)}</b> d’${esc(g.maisons.joueur.nom)} — ${SAISONS[g.saison] || ''} ${g.an}, ${n} province${n > 1 ? 's' : ''}, ${nf(Math.round(g.maisons.joueur.or))} or, niveau ${g.joueur.heros.niveau}`; }
+function collerSauvegarde() {
+ const depuisAccueil = MODE === 'accueil';
+ fenetre('Coller une sauvegarde', `<p>Collez ici le code obtenu avec « 📋 Copier la sauvegarde » sur un autre appareil.${TEST ? ' 🧪 Mode test : la partie collée ne sera pas sauvegardée.' : ''}</p><textarea id="codeColle" spellcheck="false" placeholder="{&quot;v&quot;:2, …}" style="width:100%;height:9em;font:12px ui-monospace,monospace;background:#0b0f1a;color:#e8dcc0;border:1px solid #5a4a2a;border-radius:6px;padding:6px;box-sizing:border-box"></textarea><p id="codeErr" style="color:#f0a8a0;min-height:1.2em;margin:.4em 0 0"></p>`, [
+  { t: '✔ Vérifier et charger', cls: 'or', f: () => {
+   const r = lireCodeSauvegarde($('#codeColle').value); if (r.err) { $('#codeErr').textContent = r.err; return; }
+   const charger = () => { let g; try { g = restaurer(JSON.stringify(r.g)); } catch (e) { $('#codeErr') && ($('#codeErr').textContent = 'Code illisible : ' + e.message); return; } fermer(); if (depuisAccueil) TEST = false; G = g; UI.sel = null; sauver(); entrerRoyaume(); toast('Partie chargée ✓' + (TEST ? ' (mode test : non sauvegardée)' : ''), 3500); };
+   const enCours = G && MODE !== 'accueil' ? G : (lireLocal() ? (() => { try { return JSON.parse(lireLocal().s); } catch (e) { return null; } })() : null);
+   if (!enCours) return charger();
+   fenetre('Remplacer la partie ?', `<p>La partie collée :<br>${resumePartie(r.g)}</p><p>remplacera ${TEST ? 'la partie de test' : 'la partie en cours'} :<br>${resumePartie(enCours)}</p>${TEST ? '' : '<p style="color:#f0a8a0">Celle-ci sera effacée de cet appareil et de la sauvegarde en ligne. Pour la garder, copiez d’abord son code (☰ → 📋 Copier la sauvegarde).</p>'}`, [{ t: 'Remplacer', cls: 'or', f: charger }, { t: 'Annuler', f: fermer }]);
+  } },
+  { t: 'Annuler', f: fermer }]);
+ setTimeout(() => { try { $('#codeColle').focus(); } catch (e) { } }, 50);
+}
+// Le Trésor : où passe l'or (grands travaux, mercenaires sous contrat, serments à acheter, rançons de paix)
+$('#bTresor').onclick = fenetreTresor;
+function fenetreTresor() {
+ const J = G.maisons.joueur, o = G.ordres > 0;
+ const vs = G.provinces.filter(p => !vassalPossible(G, p)).map(p => ({ p, c: prixVassal(G, p) })).sort((a, b) => a.c - b.c);
+ const guerres = IA_MAISONS.filter(m => !G.maisons[m].elim && enGuerre(G, 'joueur', m));
+ let h = `<p>Trésor : <b>${nf(Math.round(J.or))} 🪙</b> · revenus ${nf(revenus(G, 'joueur'))} − entretien ${nf(entretien(G, 'joueur'))} par saison${mercActifs(G) ? ` (dont solde des mercenaires ${nf(mercActifs(G) * MERC_SOLDE)})` : ''} · ${G.ordres} ordre${G.ordres > 1 ? 's' : ''}</p>`;
+ h += `<h4 style="color:var(--or2);font-weight:400;margin:10px 0 4px">🏗️ Grands travaux <small style="color:#a98">— une fois chacun, pour tout le domaine, un ordre</small></h4><div class="travaux">`;
+ for (const k in GRANDS_TRAVAUX) { const T = GRANDS_TRAVAUX[k], fait = travail(G, k); h += `<div class="trl${fait ? ' fait' : ''}"><span class="tic">${T.ic}</span><div class="ttx"><b>${T.nom}</b><small>${T.d}</small></div>${fait ? '<span class="etiq a">bâti</span>' : `<button class="btn petit" data-tr="${k}" ${o && J.or >= T.cout ? '' : 'disabled'}>${nf(T.cout)} 🪙</button>`}</div>`; }
+ h += `</div><h4 style="color:var(--or2);font-weight:400;margin:12px 0 4px">🗡️ Mercenaires <small style="color:#a98">— depuis le panneau d’une de vos provinces, sans ordre</small></h4><p class="rel" style="margin:0">${G.mercs.length ? G.mercs.map(c => `${c.n} hommes à ${esc(prov(G, c.p).nom)} (encore ${c.fin - G.tour} saison${c.fin - G.tour > 1 ? 's' : ''})`).join(' · ') : 'Aucune compagnie sous contrat.'} Prochaine compagnie : <b>${nf(prixMercenaires(G))} 🪙</b> pour ${MERC_N} hommes, ${MERC_DUREE} saisons.</p>`;
+ h += `<h4 style="color:var(--or2);font-weight:400;margin:12px 0 4px">🪙 Serments à acheter <small style="color:#a98">— provinces voisines, un ordre</small></h4><p class="rel" style="margin:0">${vs.length ? vs.slice(0, 6).map(x => `<button class="btn petit" data-vs="${x.p.id}" ${o && J.or >= x.c ? '' : 'disabled'}>${esc(x.p.nom)} (${x.p.t} ⚔️) — ${nf(x.c)} 🪙</button>`).join(' ') : 'Aucun seigneur voisin ne vend son serment (pas de capitale, pas en guerre, relation ≥ 0, jamais la dernière terre d’une maison).'}</p>`;
+ if (guerres.length) h += `<h4 style="color:var(--or2);font-weight:400;margin:12px 0 4px">💰 Rançons de paix <small style="color:#a98">— un ordre, paix assurée</small></h4><p class="rel" style="margin:0">${guerres.map(m => `<button class="btn petit" data-rc="${m}" ${o && J.or >= prixRancon(G, m) ? '' : 'disabled'}>${esc(G.maisons[m].nom)} — ${nf(prixRancon(G, m))} 🪙</button>`).join(' ')}</p>`;
+ fenetre('Le Trésor', h, [{ t: 'Fermer', f: fermer }], false, true);
+ const F = $('#fen'), refaire = r => { toast(r.msg, 4200); if (r.ok) SON('tambour'); apres(); fenetreTresor(); };
+ F.querySelectorAll('[data-tr]').forEach(bt => bt.onclick = () => { const T = GRANDS_TRAVAUX[bt.dataset.tr]; confirmer(`Lancer les travaux : ${T.nom} pour ${nf(T.cout)} or ? (un ordre)`, () => refaire(act(G, 'travaux', { k: bt.dataset.tr }))); });
+ F.querySelectorAll('[data-vs]').forEach(bt => bt.onclick = () => { const p = prov(G, bt.dataset.vs); confirmer(`Payer ${nf(prixVassal(G, p))} or pour le serment du seigneur de ${p.nom} ? (un ordre)`, () => refaire(act(G, 'vassal', { prov: p.id }))); });
+ F.querySelectorAll('[data-rc]').forEach(bt => bt.onclick = () => { const m = bt.dataset.rc; confirmer(`Payer ${nf(prixRancon(G, m))} or à la maison ${G.maisons[m].nom} pour la paix ? (un ordre)`, () => refaire(act(G, 'rancon', { maison: m }))); });
 }
 addEventListener('keydown', e => { if (MODE === 'royaume' && e.code === 'Escape') { if ($('#voile').classList.contains('on')) return; UI.mode = null; UI.cibles = null; UI.amis = null; } });
 

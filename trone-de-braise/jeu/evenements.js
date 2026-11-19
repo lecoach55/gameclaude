@@ -309,6 +309,16 @@ const EVTS = {
    { t: 'Ce ne sont que des racontars', f: G => '' },
   ],
   apres: (G, e, X) => X.resultat === 'victoire' ? `La cache regorgeait d’or. ${gainOr(G, 90)}.` : 'Rien que des rats et des coups.' },
+ // Rançon (v6, décision du 18/11) : le prix suit la richesse du joueur — l'or des donjons attire les ravisseurs
+ otage: { titre: 'Une lettre scellée de noir', poids: 1.5, cond: G => G.tour >= 6 && (G.joueur.conjoint || G.joueur.enfants.length) && G.maisons.joueur.or >= 300,
+  ctx: G => { const Jo = G.joueur, c = Jo.enfants.length && (!Jo.conjoint || chance(.6)) ? pick(Jo.enfants) : Jo.conjoint; const g = IA_MAISONS.filter(m => !G.maisons[m].elim && enGuerre(G, 'joueur', m)); return { nom: c.nom, sexe: c.sexe, par: g.length ? pick(g) : null, rancon: Math.max(150, Math.round(G.maisons.joueur.or * .3 / 10) * 10) }; },
+  texte: (G, e) => `${e.par ? `Des cavaliers de la maison ${mN(G, e.par)}` : 'Une bande de routiers'} ont enlevé ${e.nom} sur la route de ${uneProv(G).nom}. La lettre est brève : ${e.rancon} pièces d’or, ou vous ne ${e.sexe === 'f' ? 'la' : 'le'} reverrez pas avant longtemps. Ils savent ce que contient votre trésor.`,
+  choix: (G, e) => [
+   { t: `Payer la rançon (−${e.rancon} or)`, cond: G => G.maisons.joueur.or >= e.rancon, f: G => { G.maisons.joueur.or -= e.rancon; G.depenses.total += e.rancon; for (const p of mesProv(G)) p.loy = Math.min(100, p.loy + 5); if (e.par) changeRel(G, 'joueur', e.par, -10); return `${e.nom} vous est rendu${e.sexe === 'f' ? 'e saine et sauve' : ' sain et sauf'}. Le peuple loue votre cœur.`; } },
+   { t: 'Mener vous-même le sauvetage (combat d’un étage)', cond: G => peutCombattre(G), f: G => ({ msg: '', combat: { type: pick(['egouts', 'catacombes', 'mine']), niveau: Math.max(1, heros(G).niveau), etages: 1, nom: 'Le repaire des ravisseurs' } }) },
+   { t: 'Refuser de céder (−12 prestige, −10 loyauté partout)', f: G => { for (const p of mesProv(G)) p.loy = Math.max(0, p.loy - 10); return `On murmure que vous tenez plus à votre or qu’à votre sang. ${gainPrest(G, -12)}. ${e.nom} s’évade au bout d’un an, amaigri${e.sexe === 'f' ? 'e' : ''}.`; } },
+  ],
+  apres: (G, e, X) => { if (X.resultat === 'victoire') return `${e.nom} est libre ! ${gainPrest(G, 8)}.`; const c = Math.min(G.maisons.joueur.or, Math.round(e.rancon * 1.5)); G.maisons.joueur.or -= c; G.depenses.total += c; return `Le sauvetage a échoué : les ravisseurs exigent désormais ${c} or, et vous payez.`; } },
 };
 
 function tirerEvenements(G) {

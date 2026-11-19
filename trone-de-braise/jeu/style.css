@@ -307,3 +307,12 @@ body.tact .niv{display:none}
 #chargement3d .cle3d{font-size:44px;animation:souffle3d 1.6s ease-in-out infinite}
 @keyframes souffle3d{50%{transform:scale(1.12);filter:drop-shadow(0 0 12px #ff7a2a)}}
 @media (prefers-reduced-motion:reduce){#chargement3d .cle3d{animation:none}}
+
+/* Trésor (v6) : grands travaux en lignes compactes */
+.travaux{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.travaux .trl{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid rgba(217,174,79,.25);border-radius:8px;background:rgba(12,17,24,.55)}
+.travaux .trl.fait{opacity:.7;border-color:rgba(120,170,110,.45)}
+.travaux .tic{font-size:22px;flex:none}
+.travaux .ttx{flex:1;min-width:0;line-height:1.25}.travaux .ttx b{font-family:'Grenze Gotisch',serif;font-weight:400;color:var(--or2);font-size:16px;display:block}.travaux .ttx small{color:#bba;font-size:12px}
+.travaux .btn{flex:none}
+@media (max-width:640px){.travaux{grid-template-columns:1fr}}

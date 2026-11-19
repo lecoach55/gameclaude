@@ -145,3 +145,6 @@
 {"quand": "2026-11-18 20:38", "jeu": "bannieres", "etape": "verif · Page publiée hors ligne", "commande": "python3 bannieres/outils/hors_ligne.py", "secondes": 13.1, "code": 0}
 {"quand": "2026-11-18 21:36", "jeu": "cage-et-gloire", "etape": "captures arène après correctifs", "commande": "python3 outils-communs/captures.py cage-et-gloire/outils/vues_arene.json /tmp/cga5 --construire", "secondes": 281.2, "code": 0}
 {"quand": "2026-11-18 21:57", "jeu": "outils", "etape": "verifier_outils (32 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 284.5, "code": 0}
+{"quand": "2026-11-19 01:32", "jeu": "outils", "etape": "verifier_outils (contrôles 32→35)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 290.4, "code": 0}
+{"quand": "2026-11-19 01:39", "jeu": "outils", "etape": "verifier_outils (après relecture)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 339.9, "code": 1}
+{"quand": "2026-11-19 01:44", "jeu": "outils", "etape": "verifier_outils (final)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 284.1, "code": 0}

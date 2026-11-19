@@ -52,7 +52,7 @@ Le relevé automatique de tous les outils, jeu par jeu, est dans `python3 bureau
 | **Décors 3D légers** | `valdragon/outils/ressources/pack_phprops.mjs`, `simp_kit.mjs` | imposteurs `bannieres/outils/studio3d/imposteur.py` |
 | **Portraits / sprites pré-rendus en 3D** | `bannieres/outils/studio/portraits.py` + `pack_portraits.py` (`jeu/sprites3d.js`) | |
 | **Personnages animés Mixamo** | `valdragon/outils/ressources/fbx61.py` (FBX 6.1) | `cage-et-gloire/outils/prep_xbot.mjs` (mannequin Xbot) |
-| **Polices intégrées (hors ligne), icônes au trait, palettes du studio** | `studio/ressources/` (README) : `polices/polices.py medieval|medieval-sombre|moderne` (CSS base64, OFL), `icones/studio.svg` (48 icônes Lucide, ISC, pour remplacer les emoji), `palettes.css` (4 familles) | revue artistique du 16/11 |
+| **Polices intégrées (hors ligne), icônes au trait, palettes du studio** | **`outils-communs/polices.py <page construite>`** (19/11 : intègre les polices Google de la page, Fontsource + studio, toute famille) et **`outils-communs/hors_ligne.py <page>`** (page sans réseau : requêtes externes, polices de repli, erreurs) ; `studio/ressources/` (README) : `polices/polices.py medieval|medieval-sombre|moderne` (CSS base64, OFL), `icones/studio.svg` (48 icônes Lucide, ISC, pour remplacer les emoji), `palettes.css` (4 familles) | revue artistique du 16/11 |
 | **Planche de tous les jeux** (couleurs dominantes, luminance, saturation) | `studio/ressources/planche_studio.py` | |
 | **Musique générative** | `bannieres/jeu/sons.js` (venue de Valdragon) | |
 

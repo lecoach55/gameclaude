@@ -1289,6 +1289,91 @@ def _():
             raise RuntimeError(f"HEAD : {verdicts['HEAD'][:2]} (avertissement attendu) " + verdicts['HEAD'][2][-300:])
 
 
+POLICES_FACTICE = """<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+<style>/* @import url('https://fonts.googleapis.com/css2?family=Inter'); */h1{font-family:'Cinzel',serif;font-weight:700}p{font-family:'Cinzel',serif;font-weight:500}</style></head>
+<body><h1>Le Trône</h1><p>Évêques, cœurs et « guillemets »</p><script>window.PRET=1;var lien='<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400" rel="stylesheet">';</script></body></html>"""
+
+
+@controle('polices.py : adresses Google lues (ital/wght, plages variables, ancienne API)')
+def _():
+    spec = importlib.util.spec_from_file_location('polices', os.path.join(OC, 'polices.py'))
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    f = m.lire_adresse('css2', 'family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Cinzel+Decorative:wght@700&family=IM+Fell+English:ital@0;1&display=swap')
+    attendu = [('EB Garamond', [400, 600], {0, 1}, None), ('Cinzel Decorative', [700], {0}, None), ('IM Fell English', [400], {0, 1}, None)]
+    if [(x['nom'], x['poids'], x['italiques'], x['plage']) for x in f] != attendu:
+        raise RuntimeError(f'css2 : {f}')
+    v = m.lire_adresse('css2', 'family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800')[0]
+    if v['plage'] != (400, 800) or not {'opsz', 'wdth'} <= v['axes']:
+        raise RuntimeError(f'variable : {v}')
+    v = m.lire_adresse('css2', 'family=Fraunces:opsz,wght@9..144,400;9..144,600')[0]
+    if v['poids'] != [400, 600] or '_plage' not in v['axes']:  # opsz en plage → paquet variable
+        raise RuntimeError(f'opsz : {v}')
+    if f[0]['couples'] != [(0, 400), (0, 600), (1, 400)]:  # pas de produit croisé (600 italique non demandé)
+        raise RuntimeError(f"couples : {f[0]['couples']}")
+    a = m.lire_adresse('css', 'family=Roboto:400,700italic|Open+Sans')
+    if [(x['nom'], x['poids'], x['italiques']) for x in a] != [('Roboto', [400, 700], {0, 1}), ('Open Sans', [400], {0})]:
+        raise RuntimeError(f'ancienne API : {a}')
+
+
+@controle('polices.py : lien Google remplacé par des @font-face intégrés (sans réseau), --verifier, famille introuvable = page intacte')
+def _():
+    with tempfile.TemporaryDirectory() as d:
+        pg = os.path.join(d, 'p.html'); open(pg, 'w').write(POLICES_FACTICE)
+        run(sys.executable, os.path.join(OC, 'polices.py'), pg, '--verifier', attendu=1)
+        out = run(sys.executable, os.path.join(OC, 'polices.py'), pg, '--hors-ligne')
+        h = open(pg).read()
+        if h.count('data:font/woff2;base64,') != 2 or 'preconnect' in h or 'Cinzel' not in out or '<link href="https' in h.split('<script>')[0]:
+            raise RuntimeError('remplacement incomplet : ' + out[-300:])
+        # lien dans une chaîne JS et @import en commentaire CSS : jamais touchés (avant : chaîne JS coupée → erreur de syntaxe)
+        if POLICES_FACTICE.split('<script>')[1] != h.split('<script>')[1] or "/* @import url('https://fonts.googleapis.com/css2?family=Inter'); */" not in h:
+            raise RuntimeError('script ou commentaire modifié')
+        if 'dans un <script>' not in run(sys.executable, os.path.join(OC, 'polices.py'), pg, '--verifier', attendu=1):
+            raise RuntimeError('--verifier : lien du script non signalé')
+        open(pg, 'w').write(h.replace("var lien='<link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400\" rel=\"stylesheet\">';", ''))
+        run(sys.executable, os.path.join(OC, 'polices.py'), pg, '--verifier')
+        run(sys.executable, os.path.join(OC, 'polices.py'), pg)  # deuxième passage : rien à faire, code 0
+        p2 = os.path.join(d, 'q.html'); src = POLICES_FACTICE.replace('Cinzel:wght@500;700', 'Police+Inexistante+Zz:wght@400')
+        open(p2, 'w').write(src)
+        env_home = dict(os.environ, HOME=d)  # cache vide, et --hors-ligne : aucun npm
+        r = subprocess.run([sys.executable, os.path.join(OC, 'polices.py'), p2, '--hors-ligne'], capture_output=True, text=True, env=env_home, cwd=RAC)
+        if r.returncode != 3 or open(p2).read() != src:
+            raise RuntimeError(f'famille introuvable : code {r.returncode}, page modifiée ? {open(p2).read() != src}')
+
+
+@controle('hors_ligne.py : réseau coupé → requête Google et police de repli vues ; après polices.py : 0 externe, police chargée ; erreur JS = code 1')
+def _():
+    with tempfile.TemporaryDirectory() as d:
+        pg = os.path.join(d, 'p.html'); open(pg, 'w').write(POLICES_FACTICE)
+        js = os.path.join(d, 'r.json')
+        run(sys.executable, os.path.join(OC, 'hors_ligne.py'), pg, '--pret', 'window.PRET', '--secondes', '1', '--json', js, '--strict', '--sans-verrou', attendu=1)
+        r = json.load(open(js))
+        if 'fonts.googleapis.com' not in r['externes'] or r['polices_repli'] != ['Cinzel'] or r['erreurs'] or not r['pret']:
+            raise RuntimeError(f"avant : externes {list(r['externes'])} repli {r['polices_repli']} erreurs {r['erreurs']}")
+        run(sys.executable, os.path.join(OC, 'hors_ligne.py'), pg, '--secondes', '1', '--sans-verrou')  # sans --strict : réserve seulement
+        run(sys.executable, os.path.join(OC, 'polices.py'), pg, '--hors-ligne')
+        run(sys.executable, os.path.join(OC, 'hors_ligne.py'), pg, '--pret', 'window.PRET', '--secondes', '1', '--json', js, '--strict', '--sans-verrou')
+        r = json.load(open(js))
+        if r['externes'] or r['polices_repli'] or r['polices_chargees'] != ['Cinzel']:
+            raise RuntimeError(f"après : externes {list(r['externes'])} repli {r['polices_repli']} chargées {r['polices_chargees']}")
+        pm = os.path.join(d, 'm.html'); open(pm, 'w').write('<p>x</p><script src="absent.js"></script><img src="absent.png">')
+        run(sys.executable, os.path.join(OC, 'hors_ligne.py'), pm, '--secondes', '1', '--sans-verrou', '--json', js, attendu=1)  # fichier local manquant
+        if len([e for e in json.load(open(js))['erreurs'] if 'introuvable' in e]) != 2:
+            raise RuntimeError(f"fichiers locaux manquants : {json.load(open(js))['erreurs']}")
+        pe = os.path.join(d, 'e.html'); open(pe, 'w').write('<p>x</p><script>window.PRET=1;setTimeout(()=>nexistepas(),10)</script>')
+        run(sys.executable, os.path.join(OC, 'hors_ligne.py'), pe, '--secondes', '1', '--sans-verrou', attendu=1)
+        # étape "hors_ligne" de verif.py : chiffres repris dans le rapport
+        vj = os.path.join(d, 'verif.json'); json.dump({'jeu': 'factice', 'etapes': [{'nom': 'Hors ligne', 'hors_ligne': pe, 'args': ['--secondes', '1', '--sans-verrou']}]}, open(vj, 'w'))
+        sortie = os.path.join(d, 'sortie')
+        r = subprocess.run([sys.executable, os.path.join(OC, 'verif.py'), vj, '--sortie', sortie, '--sans-chrono'], capture_output=True, text=True, timeout=180, cwd=RAC)
+        v = json.load(open(os.path.join(sortie, 'verif.json')))
+        e = v['etapes'][0]
+        if r.returncode != 1 or e['statut'] != 'echec' or 'erreurs 1' not in e['chiffres']:
+            raise RuntimeError(f"verif : code {r.returncode}, {e.get('statut')} « {e.get('chiffres')} »")
+
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

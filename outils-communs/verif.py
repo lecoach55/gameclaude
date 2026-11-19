@@ -27,6 +27,8 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; les commandes sont 
           "avant": "arrivee" (conseillé) = début du chantier en cours (bureau.py arrivee) ; "HEAD" = dernier commit (les commits
           faits en route passent alors dans l'AVANT : leurs effets ne sont pas vus) ; sans chantier ouvert, arrivee = HEAD
     {"nom": "Poids de la page", "poids": "x/build/index.html", "max_mo": 16}       page publiée (réserve au-delà de 97 %)
+    {"nom": "Hors ligne", "hors_ligne": "x/build/index.html", "args": ["--pret", "window.G"]}   page construite (ou réglages .json),
+          réseau coupé : démarre-t-elle, requêtes externes, polices de repli (hors_ligne.py, lancé avec --strict)
   clés communes : "complet": true (seulement avec --complet) · "delai_s": 600 · "env": {"V3D": "0"} · "params": "v3d=0" (ajouté à
           l'adresse des pages ouvertes par atelier.page() : robots propres au jeu, parcours.py, monkey.py…) · "args": [...] (options
           en plus pour l'outil commun) · "reserve": true (un échec devient une RÉSERVE : signalé, sans faire échouer la vérification ;
@@ -45,9 +47,10 @@ ICI = os.path.dirname(os.path.abspath(__file__))
 RAC = os.path.dirname(ICI)
 sys.path.insert(0, ICI)
 import verrou  # noqa: E402
-OUTILS = {'captures': os.path.join(ICI, 'captures.py'), 'singe': os.path.join(ICI, 'robots', 'singe.py'), 'banc': os.path.join(ICI, 'banc.py')}
+OUTILS = {'captures': os.path.join(ICI, 'captures.py'), 'singe': os.path.join(ICI, 'robots', 'singe.py'), 'banc': os.path.join(ICI, 'banc.py'),
+          'hors_ligne': os.path.join(ICI, 'hors_ligne.py')}
 MARQUE = '.verif-sortie'  # posé dans chaque sortie : seul un dossier qui le porte peut être effacé
-TYPES = ('commande', 'captures', 'singe', 'banc', 'poids')
+TYPES = ('commande', 'captures', 'singe', 'banc', 'poids', 'hors_ligne')
 
 
 def lire_args(argv):
@@ -227,6 +230,19 @@ def chiffres_singe(d):
     return ' · '.join(morceaux), detail, caps
 
 
+def chiffres_hors_ligne(fj):
+    d = lire_json(fj)
+    if not d:
+        return 'pas de rapport hors_ligne.json', []
+    ext = d.get('externes_non_tolerees') or []
+    det = [f"externe : {h} ×{d['externes'][h]['n']} ({', '.join(d['externes'][h]['types'])})" for h in ext]
+    det += [f"police de repli : {n} ({d['polices'][n]['texte']} textes)" for n in d.get('polices_repli') or []]
+    det += [f'erreur : {e}' for e in (d.get('erreurs') or [])[:5]]
+    c = (f"{'prêt' if d.get('pret') else 'JAMAIS PRÊT'} · externes {len(ext)} · polices de repli {len(d.get('polices_repli') or [])}"
+         f" · erreurs {len(d.get('erreurs') or [])}")
+    return c, det
+
+
 def chiffres_banc(fj):
     b = lire_json(fj) or {}
     detail = []
@@ -287,6 +303,8 @@ def une_etape(e, o, sortie):
                 cmd += ['--comparer', e['comparer']]
         elif t == 'singe':
             cmd += ['--sortie', d]
+        elif t == 'hors_ligne':
+            cmd += ['--json', os.path.join(d, 'hors_ligne.json'), '--strict']
         elif t == 'banc':
             cmd += [os.path.join(d, 'banc.json'), '--strict']
             avant = o['avant'] if (o['avant'] and e.get('avant')) else e.get('avant')
@@ -340,6 +358,8 @@ def une_etape(e, o, sortie):
         res['chiffres'], res['detail'], res['images'] = chiffres_singe(d)
     elif t == 'banc':
         res['chiffres'], res['detail'], res['images'] = chiffres_banc(os.path.join(d, 'banc.json'))
+    elif t == 'hors_ligne':
+        res['chiffres'], res['detail'] = chiffres_hors_ligne(os.path.join(d, 'hors_ligne.json'))
     if e.get('chiffres'):
         vals = re.findall(e['chiffres'], out)
         if vals:

@@ -114,8 +114,8 @@ const LARG={};function largeurOpaque(cle,im,sx,sy,sw,sh){if(LARG[cle]!=null)retu
   if(x1<0)return 1;return LARG[cle]=(x1-x0+1)/c.width;}catch(e){return LARG[cle]=1;}}
 // ombre de contact : halo large et doux + noyau serré sous les pieds
 function ombreContact(g,x,y,hw,a){y+=hw*.06;ombreSol(g,x,y,hw*.62,hw*.2,.42*a);ombreSol(g,x,y,hw*.34,hw*.1,.55*a);}
-function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(q.h).s||1;const hexL=(G2.port?G2.h:G2.w)*ps*1.6;let S=G2.w*(G2.W<700?2.75:2.2)*ps;
- if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);let ppu=G2.w*(G2.W<700?1.25:1.05)*ps;const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
+function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(q.h).s||1;const hexL=(G2.port?G2.h:G2.w)*ps*2.1;let S=G2.w*(G2.W<700?2.75:2.2)*ps;
+ if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);let ppu=G2.w*(G2.W<700?1.25:1.45)*ps;const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
   {const D=SPR3D[q.c];const [im,sx,sy,sw,sh]=cadre3D(q.c,'idle',0);const l=largeurOpaque('3'+q.c,im,sx,sy,sw,sh)*sw*ppu/D.pxu;if(l>hexL)ppu*=hexL/l;}
   ombreContact(g,pos.x,by,G2.w*ps,q.n>0?1:.5);const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
   dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);if(fl){g.globalCompositeOperation='lighter';g.globalAlpha=.45*(1-(now-fl.t0)/fl.d);dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);g.globalCompositeOperation='source-over';}

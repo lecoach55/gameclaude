@@ -27,3 +27,6 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | orque | Orc Warrior (21eaa407bf164cdea21135a1d1b2b8f3), socle pCylinder1 retiré, --rotation 61 | cmcentee72 | CC BY 4.0 |
 | ogre | Green Ogre (e6e4c9a163c0457d9420562ff3bf9d82), --rotation 61 --hauteur 2.0 | s8819296 | CC BY 4.0 |
 | cyclope | Cyclops Rig (e5cc86878c314f5bae6d7268bb7541d9), formes d'os retirées, --rotation 30 --hauteur 1.8 | SuperKapoo913 | CC BY 4.0 |
+| squelette | Skeleton animated (9210377c7a514cf6b48a31b9d3991ff3), --rotation 30 --hauteur 1.45 | danielmclogan | CC BY 4.0 |
+| liche | Lich (4ad4ece50273473ba1d843797b8f4fa6), --rotation 30 --hauteur 1.8 | Spinnee | CC BY 4.0 |
+| vampire | Albine Vampire (96dc3c5227f746ab988e8fcbdb3f611b), --rotation 30 --hauteur 1.7 | Pebegou | CC BY 4.0 |

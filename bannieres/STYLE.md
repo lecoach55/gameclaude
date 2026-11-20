@@ -20,3 +20,6 @@ Chaîne : recherche et import dans le Blender du Mac de Victor (pont MCP, clé S
 | griffon | Griffin Non Animated (590f91391cea4443b167b35511845b17), --rotation 60 | ChristineDesigns | CC BY 4.0 |
 | cavalier | 1964.88 Armor for Man and Horse (faca2ad557f64809b598c3a646a8804f), --rotation 90 | clevelandart | CC0 |
 Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'est alors pas écrite).
+| piquier | Lord’s personal guard (b7cc646a8d8d4e768d978eb4fa52804f), --rotation 61 | Makkoy_tales | CC BY 4.0 |
+| archer | Cult Member (0de7496d24ff4bef81a6937005ce34c1), flèches au sol retirées, --rotation 61 --hauteur 1.75 | DivyeSh.PanchAl | CC BY 4.0 |
+| moine | Corrupted Monk - Ash-Grey Ritual Robes (b45845141ed74a0abc191ac528e3e869), --rotation 61 | s8819296 | CC BY 4.0 |

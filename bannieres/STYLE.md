@@ -16,3 +16,7 @@ Chaîne : recherche et import dans le Blender du Mac de Victor (pont MCP, clé S
 | Unité | Modèle | Auteur | Licence |
 |---|---|---|---|
 | ange | Corrupted Archangel Six Wings Boss (139d6f0185684ab9ae12fed7530c0696) | s8819296 | CC BY 4.0 |
+| croise | The Forgotten Knight (d14eb14d83bd4e7ba7cbe443d76a10fd), --rotation 61 | dark_igorek | CC BY 4.0 |
+| griffon | Griffin Non Animated (590f91391cea4443b167b35511845b17), --rotation 60 | ChristineDesigns | CC BY 4.0 |
+| cavalier | 1964.88 Armor for Man and Horse (faca2ad557f64809b598c3a646a8804f), --rotation 90 | clevelandart | CC0 |
+Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'est alors pas écrite).

@@ -50,6 +50,7 @@ let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
   const H0=Math.pow(2,Math.ceil(Math.log2(y+lh+2)));const c=mkC(W,H0),g=c.getContext('2d');ks.forEach((k,j)=>{if(ims[j]&&pos[k])g.drawImage(ims[j],pos[k][0],pos[k][1]);});
   const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;const rect={};for(const k in pos){const [px,py,w,h]=pos[k];rect[k]=[px/W,1-(py+h)/H0,w/W,h/H0];}
   (RES.atlas=RES.atlas||{})[vue]={tex:t,rect,canvas:c,pos};}}
+ {const im=await chargerImg(srcRes('i3-fort_bastion_h','imp/fort_bastion_h.webp'));if(im){const t=new T.Texture(im);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.needsUpdate=true;RES.fort={bastion:t};}}
  RES.pret=true;})();return RESP;}
 chargerRes();
 // ciel pour l'éclairage d'ambiance et les reflets (remplace la « pièce » de studio)
@@ -312,7 +313,12 @@ function fusionner(gr,garder=o=>false){gr.updateMatrixWorld(true);const lots=new
  for(const [m,gs] of lots){const g=T.BGU.mergeGeometries(gs,false);gs.forEach(x=>x.dispose());const me=new T.Mesh(g,m);me.castShadow=me.receiveShadow=true;out.add(me);}
  for(const o of hors){const wm=new T.Matrix4().multiplyMatrices(inv,o.matrixWorld);o.parent.remove(o);wm.decompose(o.position,o.quaternion,o.scale);out.add(o);}
  return out;}
-function villeMesh(v){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const P=PM;
+// fort de la carte rendu dans Blender (Poly Haven modular_fort_01, CC0 ; outils/blender/imp_fort.py) : pied = avant du fort
+const FORT={bastion:{w:673,h:526,px:289,py:495.6,ppm:18.758,haut:8.37,larg:28.24}};
+function fortImp(fac){const me=FORT[fac],tx=RES.fort&&RES.fort[fac];if(!me||!tx)return null;const s=3.1/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
+ const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);
+ const m=brume(new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false}),{cle:'fort'});const o=new T.Mesh(g,m);o.quaternion.setFromEuler(new T.Euler(-C3.tang*.75,0,0));o.position.set(0,0,15*s-.35);o.castShadow=false;o.renderOrder=1;return o;}
+function villeMesh(v,carte){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const P=PM;
  if(v.fac==='horde'||v.fac==='sylve'){const bois=v.fac==='horde'?0x7a5228:0x8a6238;
   for(let k=0;k<26&&v.fac==='horde';k++){const a=k/26*Math.PI*2;if(Math.abs(a-Math.PI/2)<.3)continue;bloc(gr,CYL,bois,PB,[Math.cos(a)*1.25,.28,Math.sin(a)*.95],null,[.09,.56+(k%2)*.08,.09]);bloc(gr,CONE,bois,PB,[Math.cos(a)*1.25,.62,Math.sin(a)*.95],null,[.09,.12,.09]);}
   if(v.fac==='horde'){for(const [x,z,s] of [[-.6,-.3,.5],[.6,-.3,.5],[0,-.15,.75]]){bloc(gr,CYL,0x9a7448,PB,[x,.22*s/.5,z],null,[s,.44*s/.5,s]);bloc(gr,CONE,0xc9a050,PC,[x,(.44+.35)*s/.5,z],null,[s*1.25,.7*s/.5,s*1.25]);}
@@ -323,6 +329,7 @@ function villeMesh(v){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=n
    tourR(gr,0,-.25,.2,1.75,0xece6d8,vt,'fleche',pm);const h0=new T.Group();h0.position.set(.35,0,.15);h0.scale.setScalar(.6);colombage(h0,.8,.6,.45,vt,false,PT);gr.add(h0);
    impObj(gr,'feuillu_b',1.5,-.55,-.1);impObj(gr,'feuillu_a',1.3,.6,-.45,1);impObj(gr,'feuillu_b',1.1,-.2,.45,1);}
   if(v.fac==='horde')bloc(gr,BOX,0x3a2412,PB,[0,.25,.95],null,[.4,.5,.06]);}
+ else if(carte&&fortImp(v.fac)){gr.add(fortImp(v.fac));}
  else{const forme=v.fac==='necro'?'fleche':'cone';const nuit=v.fac==='necro';
   const C=[[-1.15,-.85],[1.15,-.85],[1.15,.82],[-1.15,.82]];
   rempart(gr,C[0],C[1],.62,.16,mur,P);rempart(gr,C[1],C[2],.62,.16,mur,P);rempart(gr,C[3],C[0],.62,.16,mur,P);rempart(gr,C[2],[.36,.82],.62,.16,mur,P);rempart(gr,[-.36,.82],C[3],.62,.16,mur,P);
@@ -334,7 +341,7 @@ function villeMesh(v){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=n
   bloc(gr,GBOX,0xb8b0a0,PV,[0,.015,.3],null,[2.1,.03,1.0]);
   for(const [x,z,w] of [[.75,.35,.36],[-.78,.4,.32]]){const h0=new T.Group();h0.position.set(x,0,z);h0.scale.setScalar(.55);colombage(h0,w*1.6,w*1.2,w*1.1,toit,nuit,nuit?PA2:PTU);gr.add(h0);}
   if(nuit)bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[-.05,2.6,-.25],null,[.12,.12,.12]);}
- const drap=drapeauMesh(gr,0,v.fac==='horde'||v.fac==='sylve'?2.0:2.5,-.25,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
+ const drap=drapeauMesh(gr,carte&&FORT[v.fac]&&RES.fort?.78:0,carte&&FORT[v.fac]&&RES.fort?1.45:v.fac==='horde'||v.fac==='sylve'?2.0:2.5,carte&&FORT[v.fac]&&RES.fort?1.5:-.25,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
  const out=fusionner(gr,o=>o===drap);out.scale.setScalar(.95);out.userData.drap=drap;return out;}
 function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.25,o.id);const col={or:0x8a7a5a,minerai:0x7a7670,mercure:0x6a7078,soufre:0x8a7a40,cristal:0x6a5a6a,gemmes:0x5a6a6a,bois:0x6a5a3a}[o.res];
  if(o.res==='bois'){const h0=new T.Group();h0.position.set(-.05,0,-.12);colombage(h0,.8,.5,.36,0x8a7a5a,false,PC);gr.add(h0);bloc(gr,GBOX,0x4a3424,PP,[.5,.2,0],null,[.04,.4,.04]);for(let k=0;k<3;k++)bloc(gr,CYL,0xa87a48,PB,[-.25+k*.15,.08+k%2*.06,.35],[0,0,Math.PI/2],[.12,.5,.12]);
@@ -379,7 +386,7 @@ const GPAN=new T.PlaneGeometry(1,1).translate(0,.4,0);const PANM=new Map();
 function panneau(canvas,cle,taille,miroir){const k=cle+(miroir?'-':'');let m=PANM.get(k);if(!m){const t=texCanvas(canvas,cle);m=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));if(miroir){m.map=t.clone();m.map.repeat.x=-1;m.map.offset.x=1;m.map.needsUpdate=true;}PANM.set(k,m);}
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
 function objet3D(o){let g=null;
- switch(o.t){case 'ville':g=villeMesh(o);break;case 'mine':g=mineMesh(o);break;case 'res':g=pileMesh(o);break;case 'coffre':g=coffreMesh();break;case 'artefact':g=artefactMesh(o);break;
+ switch(o.t){case 'ville':g=villeMesh(o,true);break;case 'mine':g=mineMesh(o);break;case 'res':g=pileMesh(o);break;case 'coffre':g=coffreMesh();break;case 'artefact':g=artefactMesh(o);break;
   case 'bat':g=lieuMesh(o);if(o.b==='habitation'&&o.cre){const s=panneau(spriteCreature(o.cre,128),'c'+o.cre+'128',.9);s.position.set(.25,0,.3);g.add(s);}break;
   case 'monstre':{g=new T.Group();const s=panneau(spriteMiroir(o.cre,160),'m'+o.cre+'160',1.75);g.add(s);g.userData.sprite=s;break;}}
  if(!g)return null;const y=o.t==='ville'?sol(o.x,o.y-.4):sol(o.x,o.y);g.position.set(o.x+.5,y,o.y+.5+(o.t==='ville'?-1.05:o.t==='mine'?-.45:0));

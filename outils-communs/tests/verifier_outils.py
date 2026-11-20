@@ -978,7 +978,7 @@ def _():
 
 
 
-@controle('verif.py : une commande par jeu (construction toujours lancée, statuts ok/réserve/échec/délai/sautée, étape bloquante, captures relues, rapport) + ATELIER_PARAMS')
+@controle('verif.py : une commande par jeu (construction toujours lancée, statuts ok/réserve/échec/délai/sautée, étape bloquante, captures relues avec gros plan, rapport) + ATELIER_PARAMS')
 def _():
     sys.path.insert(0, OC)
     from atelier import ajouter_params
@@ -1011,7 +1011,7 @@ def _():
             {'nom': 'Parametres', 'commande': f'python3 -c "{sonde_params}"', 'params': 'v3d=0', 'ok_si': r'i\.html\?a=1&v3d=0'},
             {'nom': 'Reserve', 'commande': 'echo rien', 'ok_si': 'introuvable', 'reserve': True},
             {'nom': 'Trop long', 'commande': 'sleep 30', 'delai_s': 1, 'complet': True},
-            {'nom': 'Captures', 'captures': rv, 'comparer': os.path.join(d, 'refs')},
+            {'nom': 'Captures', 'captures': rv, 'comparer': os.path.join(d, 'refs'), 'gros_plan': True},
             {'nom': 'Poids', 'poids': os.path.join(d, 'jeu', 'index.html'), 'max_mo': 0.0001},
             {'nom': 'Bloquant', 'commande': 'exit 3', 'bloquant': True},
             {'nom': 'Apres le bloquant', 'commande': 'echo jamais'}]}
@@ -1026,7 +1026,8 @@ def _():
         vu = {k: x['statut'] for k, x in v.items()}
         if vu != attendu:
             raise RuntimeError(f'statuts {vu}')
-        if not os.path.exists(marque) or '77%' not in v['Commande juste']['chiffres'] or '0 alerte(s) sur 1' not in v['Captures']['chiffres']:
+        if not os.path.exists(marque) or '77%' not in v['Commande juste']['chiffres'] or '0 alerte(s) sur 1' not in v['Captures']['chiffres'] \
+                or 'gros plan : 1 aucun changement' not in v['Captures']['chiffres']:
             raise RuntimeError(f"construction ou chiffres : {v['Commande juste']['chiffres']} / {v['Captures']['chiffres']}")
         h = open(os.path.join(so, 'rapport.html'), encoding='utf-8').read()
         if 'problème à regarder' not in h or '<img src="img_' not in h or 'Bloquant' not in h:

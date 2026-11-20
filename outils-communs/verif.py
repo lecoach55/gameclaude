@@ -22,6 +22,7 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; les commandes sont 
           doit pas y apparaître ; "chiffres": "regex" (groupes) = valeurs reprises dans le rapport ; "images": ["/tmp/x/planche.png"]
           = images jointes au rapport. Les outils propres aux jeux rendent souvent 0 même en cas d'erreur : mettre "ok_si".
     {"nom": "Captures 2D", "captures": "x/outils/vues.json", "comparer": "x/references"}   (ou "avant": "HEAD") studio commun
+          + "gros_plan": true = planches plein cadre + gros plan + verdict « ça se voit ? » (gros_plan.py) dans le rapport
     {"nom": "Singe", "singe": "x/outils/singe.json", "args": ["--secondes", "45", "--couvrir"]}             singe commun
     {"nom": "Banc", "banc": "x/outils/banc.json", "avant": "arrivee"}                                     banc commun
           "avant": "arrivee" (conseillé) = début du chantier en cours (bureau.py arrivee) ; "HEAD" = dernier commit (les commits
@@ -210,6 +211,15 @@ def chiffres_captures(d):
     for f in echecs[:6]:
         detail.append(f"{f} : {vues[f]['echec'][:160]}")
     planches = [os.path.join(d, 'planche.png')] if os.path.exists(os.path.join(d, 'planche.png')) else []
+    gp = lire_json(os.path.join(d, 'gros_plan', 'gros_plan.json'))
+    if isinstance(gp, dict) and gp.get('vues'):  # étape "gros_plan": true (gros_plan.py) : verdict « ça se voit ? » et planches
+        cpt = gp.get('verdicts') or {}
+        morceaux.append('gros plan : ' + ', '.join(f'{n} {k}' for k, n in cpt.items() if n))
+        for v in gp['vues']:
+            detail.append(f"{v.get('nom')} : {v.get('verdict')} (surface {v.get('surface_pct')} %, palette {v.get('palette')}, objet {v.get('objet_pct')} %)")
+        ordre = {'saute aux yeux': 0, 'visible en regardant': 1, 'discret': 2, 'aucun changement': 3}
+        planches += [v['planche'] for v in sorted(gp['vues'], key=lambda v: ordre.get(v.get('verdict'), 9))
+                     if v.get('planche') and os.path.exists(v['planche']) and v.get('verdict') != 'aucun changement'][:4]
     return ' · '.join(morceaux), detail, planches
 
 
@@ -330,6 +340,8 @@ def une_etape(e, o, sortie):
                 cmd += ['--avant', avant]
             elif e.get('comparer'):
                 cmd += ['--comparer', e['comparer']]
+            if e.get('gros_plan'):
+                cmd += ['--gros-plan']
         elif t == 'singe':
             cmd += ['--sortie', d]
         elif t == 'hors_ligne':

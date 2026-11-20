@@ -1,0 +1,11 @@
+{
+ "nom": "centaure",
+ "note": "Exemple de gabarit quadrupède à buste humain : centaure à robe alezan sombre, torse nu, cheveux noirs ; attaque « frappe » (bras). BROUILLON : le buste en tubes reste grossier (visage, épaules) ; pour Bannières, garder plutôt le personnage Mixamo posé sur ce corps de cheval (corps seul : enlever « buste »), ou retoucher le buste à la main.",
+ "gabarit": {"type": "quadrupede", "garrot": 1.0, "longueur": 0.85, "pied": "sabot",
+             "torse": 0.26, "ventre": 0.24, "croupe": 0.26, "pattes": {"r": [0.095, 0.045], "r_ar": [0.145, 0.05]},
+             "buste": {"hauteur": 0.62, "r": 0.17, "tete": 0.12, "peau": "#b88a68", "cheveux": "#16100c"},
+             "queue": {"longueur": 0.6, "angle": -62, "r": [0.07, 0.05], "segments": 3, "meches": 7, "couleur": "#1a100a"},
+             "couleurs": {"sabot": "#2a2018"}},
+ "peau": {"couleur": "#4e3220", "fonce": "#22160c", "ventre": "#5a3e2a", "taches": 0.3, "freq": 2.5,
+          "relief": 0.008, "relief_freq": 6, "poil": 0.004, "rugosite": 0.65, "subdivision": 2, "triangles": 18000}
+}

@@ -1,0 +1,23 @@
+{
+ "nom": "loup",
+ "note": "Exemple de gabarit quadrupède : grand loup gris (monture des chevaucheurs), attaque « morsure » avec mâchoire.",
+ "gabarit": {
+  "type": "quadrupede",
+  "garrot": 0.75,
+  "longueur": 0.68,
+  "pied": "patte",
+  "ecart": 0.11,
+  "torse": 0.21,
+  "ventre": 0.16,
+  "croupe": 0.18,
+  "pattes": {"r": [0.08, 0.035], "r_ar": [0.115, 0.04], "pied": 0.045},
+  "cou": {"longueur": 0.28, "angle": 38, "r": [0.22, 0.16]},
+  "tete": {"longueur": 0.42, "angle": -12, "r": [0.13, 0.04], "machoire": true},
+  "oreilles": 0.15,
+  "yeux": {"r": 0.025, "couleur": "#c8901a"},
+  "queue": {"longueur": 0.55, "angle": -40, "r": [0.07, 0.06], "segments": 3, "couleur": "#2a2520"},
+  "couleurs": {"nez": "#0c0a08", "griffes": "#141210", "pattes": "#26221e"}
+ },
+ "peau": {"couleur": "#4a4540", "fonce": "#1a1714", "ventre": "#8a8070", "taches": 0.4, "freq": 3.5, "relief": 0.012, "relief_freq": 8, "poil": 0.012, "rugosite": 0.9, "subdivision": 2, "triangles": 16000},
+ "os": [{"nom": "cou", "couleur": "#5a544c", "melange": 0.5}]
+}

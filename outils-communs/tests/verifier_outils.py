@@ -2099,6 +2099,88 @@ def _():
 
 
 
+@controle("blender/gabarits.py + creature.py : gabarit « quadrupede » (recette courte → squelette, pièces, ailes, 4 animations) — 4 recettes d'exemple dépliées, centaure (buste à bras) construit, buste par défaut / sans bras / sans oreilles acceptés, os/animation de la recette prioritaires, pièces sans couleur = robe ; griffon : 2 ailes de plumes symétriques sur os hors peau, attaque ≠ repos, mort couchée sous la hauteur debout ; --recette-complete ; gabarit faux = code 2 avec le nom en cause")
+def _():
+    from PIL import Image, ImageChops
+    BL = os.path.join(OC, 'blender')
+    sys.path.insert(0, BL)
+    try:
+        import importlib
+        import gabarits
+        importlib.reload(gabarits)
+    finally:
+        sys.path.remove(BL)
+    for nom in ('cheval', 'loup', 'griffon', 'centaure'):
+        rec = json.load(open(os.path.join(BL, 'recettes', nom + '.json')))
+        r = gabarits.etendre(rec)
+        if sorted(r['animations']) != ['Attack', 'Death', 'Hit', 'Idle'] or len(r['os']) < 14:
+            raise RuntimeError(f"{nom} : {len(r['os'])} os, animations {sorted(r['animations'])}")
+        noms_os = {o['nom'] for o in r['os']}
+        for an in r['animations'].values():   # chaque os animé existe (côté .L pour « x.* »)
+            for c in an['cles']:
+                for k in c.get('os', {}):
+                    if (k[:-2] + '.L' if k.endswith('.*') else k) not in noms_os:
+                        raise RuntimeError(f"{nom} : animation sur l'os inconnu « {k} »")
+    g = {'type': 'quadrupede', 'pied': 'patte', 'tete': {'machoire': True}}
+    r = gabarits.etendre({'gabarit': g, 'peau': {'couleur': '#123456'}, 'os': [{'nom': 'cou', 'r': [.3, .2]}, {'nom': 'corne', 'parent': 'tete', 'queue': [1, 0, 2]}],
+                          'animations': {'Idle': {'cles': [{'t': 0}]}}})
+    cou = [o for o in r['os'] if o['nom'] == 'cou'][0]
+    if cou['r'] != [.3, .2] or 'tete' not in cou or r['os'][-1]['nom'] != 'corne' or r['animations']['Idle'] != {'cles': [{'t': 0}]}:
+        raise RuntimeError(f"recette non prioritaire sur le gabarit : cou {cou}, dernier os {r['os'][-1]['nom']}")
+    if any(pc.get('couleur') is None for pc in r['pieces']) or not any(pc.get('couleur') == '#123456' for pc in r['pieces']):
+        raise RuntimeError('pièce du gabarit sans couleur (ou robe non reprise)')
+    if 'machoire' not in str(r['animations']['Attack']):
+        raise RuntimeError('morsure sans mâchoire')
+    py = _bpy()
+    with tempfile.TemporaryDirectory() as d:
+        rec = json.load(open(os.path.join(BL, 'recettes', 'griffon.json')))
+        rec['peau'].update({'subdivision': 1, 'triangles': 5000})
+        rj = os.path.join(d, 'rec.json'); json.dump(rec, open(rj, 'w'))
+        glb, comp = os.path.join(d, 'g.glb'), os.path.join(d, 'complet.json')
+        o = run(py, os.path.join(BL, 'creature.py'), rj, glb, '--recette-complete', comp, timeout=180)
+        info = json.load(open(os.path.join(d, 'g.json')))
+        gj = _glb_json(glb)
+        noms = sorted(a['name'] for a in gj.get('animations', []))
+        nos = {n['name'] for n in gj['nodes']}
+        if noms != ['Attack', 'Death', 'Hit', 'Idle'] or not {'aile3.L', 'aile3.R', 'ar_pied.R', 'av_pied.L'} <= nos:
+            raise RuntimeError(f"GLB : animations {noms}, os d'aile/pattes manquants — {o[-200:]}")
+        ailes = [p for p in info['pointes'] if abs(p[1]) > .5]
+        if len(ailes) != 2 or abs(ailes[0][1] + ailes[1][1]) > .01:
+            raise RuntimeError(f"ailes : bouts {ailes} (attendu 2 symétriques)")
+        cj = json.load(open(comp))
+        if 'gabarit' in cj or 'gabarit_source' not in cj or len(cj['animations']) != 4 or not any(o.get('peau') is False for o in cj['os']):
+            raise RuntimeError('--recette-complete absent ou incomplet')
+        out = os.path.join(d, 'spr')
+        o = run(py, os.path.join(BL, 'planche_sprites.py'), glb, out, '--id', 'g', '--format', '96x96', '--unites', '2.6',
+                '--poses', 'idle:1,atk:2,die:1', '--echantillons', '4', timeout=240)
+        im = {n: Image.open(os.path.join(out, f'g_{n}.png')) for n in ('idle0', 'atk1', 'die0')}
+        if sum(ImageChops.difference(im['idle0'].split()[3], im['atk1'].split()[3]).histogram()[40:]) < 60:
+            raise RuntimeError('attaque identique au repos')
+        bi, bd = im['idle0'].split()[3].getbbox(), im['die0'].split()[3].getbbox()
+        if not (bd[3] - bd[1]) < (bi[3] - bi[1]) * .85:
+            raise RuntimeError(f'Death non couchée : {bd} contre {bi}')
+        # centaure (buste humain à bras) construit pour de vrai ; sans oreilles et buste par défaut « {} » acceptés
+        cen = json.load(open(os.path.join(BL, 'recettes', 'centaure.json')))
+        cen['peau'].update({'subdivision': 1, 'triangles': 4000}); cen['gabarit']['oreilles'] = 0
+        json.dump(cen, open(rj, 'w'))
+        run(py, os.path.join(BL, 'creature.py'), rj, glb, timeout=180)
+        nos = {n['name'] for n in _glb_json(glb)['nodes']}
+        if not {'bras_h.L', 'avbras_h.R', 'tete_h', 'ar_pied.R'} <= nos or 'cou' in nos:
+            raise RuntimeError(f'centaure : os {sorted(nos)}')
+        for g_ok in ({'type': 'quadrupede', 'buste': {}}, {'type': 'quadrupede', 'buste': {'bras': False}, 'oreilles': 0}):
+            r = gabarits.etendre({'gabarit': g_ok})
+            noms_os = {o['nom'] for o in r['os']}
+            if any((k[:-2] + '.L' if k.endswith('.*') else k) not in noms_os for an in r['animations'].values() for c in an['cles'] for k in c.get('os', {})):
+                raise RuntimeError(f'gabarit {g_ok} : animation sur un os absent')
+        for faute, mot in (({'type': 'quadrupede', 'pied': 'nageoire'}, 'nageoire'), ({'type': 'serpent'}, 'serpent'),
+                           ({'type': 'quadrupede', 'attaque': 'frappe'}, 'buste'), ({'type': 'quadrupede', 'garrot': 'grand'}, 'illisible'),
+                           ('quadrupede', 'objet')):
+            json.dump({'gabarit': faute}, open(rj, 'w'))
+            r = subprocess.run([py, os.path.join(BL, 'creature.py'), rj, glb], capture_output=True, text=True, timeout=120)
+            if r.returncode != 2 or mot not in r.stderr:
+                raise RuntimeError(f'gabarit faux ({mot}) : code {r.returncode} {r.stderr[-200:]}')
+
+
 @controle("gros_plan.py : planche avant/après plein cadre + gros plan trouvé seul sur ce qui change (créature remplacée cadrée, 2e zone ailleurs), verdict (identique = aucun changement sans zone, assombrissement = saute aux yeux, petite créature = visible en regardant), --ignorer, --zone, --strict, dossier de captures (avant/ + images), page à glissière autonome ; captures.py --avant-dossier --gros-plan")
 def _():
     import numpy as np

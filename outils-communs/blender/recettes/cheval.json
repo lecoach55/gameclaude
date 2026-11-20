@@ -1,0 +1,21 @@
+{
+ "nom": "cheval",
+ "note": "Exemple de gabarit quadrupède : cheval bai de 1 u au garrot (repère du studio de Bannières, quad.js). Point de départ à retoucher.",
+ "gabarit": {
+  "type": "quadrupede",
+  "garrot": 1.0,
+  "longueur": 0.9,
+  "pied": "sabot",
+  "torse": 0.27,
+  "ventre": 0.25,
+  "croupe": 0.27,
+  "pattes": {"r": [0.11, 0.045], "r_ar": [0.16, 0.05]},
+  "cou": {"longueur": 0.55, "angle": 52, "r": [0.21, 0.11]},
+  "tete": {"longueur": 0.5, "angle": -58, "r": [0.115, 0.07]},
+  "oreilles": 0.12,
+  "criniere": {"meches": 15, "longueur": 0.2, "couleur": "#1c120c"},
+  "queue": {"longueur": 0.6, "angle": -62, "r": [0.07, 0.05], "segments": 3, "meches": 7, "couleur": "#1c120c"},
+  "couleurs": {"sabot": "#2a2018", "nez": "#2e221a"}
+ },
+ "peau": {"couleur": "#6a3f22", "fonce": "#2e1a0e", "ventre": "#7a4c2c", "taches": 0.3, "freq": 2.5, "relief": 0.008, "relief_freq": 6, "poil": 0.004, "rugosite": 0.6, "subdivision": 2, "triangles": 16000}
+}

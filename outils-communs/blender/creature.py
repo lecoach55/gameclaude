@@ -32,6 +32,15 @@ Recette (JSON) :
       de Z (+ = tourne vers la gauche). "bras.*" = les deux côtés (roulis et lacet inversés à droite).
       deplacement = translation de l'os racine (unités du monde). Une animation « boucle » (Idle) doit finir comme elle commence.
 
+Gabarits (outils-communs/blender/gabarits.py) : "gabarit": {"type": "quadrupede", "garrot": 1, "pied": "sabot", …} génère
+squelette, pièces (oreilles, yeux, griffes, bec, crinière, crins), ailes de plumes et les 4 animations à partir de quelques
+proportions ; "os" / "pieces" / "animations" de la recette complètent ou remplacent. Exemples : recettes/cheval.json, loup.json,
+griffon.json, centaure.json. --recette-complete fichier.json écrit la recette dépliée (pour la retoucher à la main).
+  os "peau": false = os sans peau (ailes : seules les pièces « aile » s'y accrochent).
+  pièce {"forme": "aile", "os": ["aile1.L", "aile2.L", "aile3.L"], "largeur": [l0, l1, l2, l3], "plumes": 9,
+         "couleur": "#couvertures", "pennes": "#pennes"} : aile de plumes plate (bord de fuite festonné) liée aux os en
+         douceur, recopiée de l'autre côté.
+
 Sortie : sortie.glb + sortie.json (triangles, os, animations, hauteur, secondes). Code 2 = recette invalide (message clair).
 """
 import argparse
@@ -48,6 +57,7 @@ import mathutils  # noqa: E402
 from mathutils import noise  # noqa: E402
 
 import bpy_outils as B  # noqa: E402
+import gabarits  # noqa: E402
 
 V = mathutils.Vector
 AXES = {'tangage': (0, 1, 0), 'roulis': (1, 0, 0), 'lacet': (0, 0, 1)}
@@ -129,9 +139,11 @@ def corps(liste, peau):
         a, b = V(o['tete']), V(o['queue']); L = (b - a).length
         if L < 1e-4:
             refus(f'os « {o["nom"]} » de longueur nulle')
+        if o.get('peau', True) is False:   # ailes : os sans peau (les pièces « aile » s'y accrochent)
+            continue
         n = int(o.get('segments', max(1, min(8, round(L / max(0.05, min(o['r']) * 0.9))))))
         prev = sommet(a, o['r'][0], o.get('aplati', 1.0)); chaine[o['nom']] = [prev]
-        if o.get('parent') and not o['connecte']:   # épaule, cuisse, queue : arête vers le sommet le plus proche du parent
+        if o.get('parent') in chaine and not o['connecte']:   # épaule, cuisse, queue : arête vers le sommet le plus proche du parent
             pv = min(chaine[o['parent']], key=lambda v: (v.co - a).length)
             if pv is not prev:
                 try:
@@ -201,15 +213,24 @@ def armature(liste):
     return arm
 
 
-def lier(ob, arm):
+def lier(ob, arm, hors_peau=()):
+    for nom in hors_peau:
+        arm.data.bones[nom].use_deform = False
     bpy.ops.object.select_all(action='DESELECT')
     ob.select_set(True); arm.select_set(True); bpy.context.view_layer.objects.active = arm
     bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+    for nom in hors_peau:   # os d'aile : la peau du dos ne doit pas suivre le battement (use_deform coupé pendant le calcul)
+        g = ob.vertex_groups.get(nom)
+        if g:
+            ob.vertex_groups.remove(g)
+    for nom in hors_peau:
+        arm.data.bones[nom].use_deform = True
     sans = [v.index for v in ob.data.vertices if not v.groups]
+    os_peau = [b for b in arm.data.bones if b.name not in hors_peau]
     if sans:   # chaleur des os en échec par endroits (pièces fines) : os le plus proche
         for i in sans:
             p = ob.data.vertices[i].co
-            nom = min(arm.data.bones, key=lambda b: geodist(p, b.head_local, b.tail_local)).name
+            nom = min(os_peau, key=lambda b: geodist(p, b.head_local, b.tail_local)).name
             g = ob.vertex_groups.get(nom) or ob.vertex_groups.new(name=nom)
             g.add([i], 1.0, 'REPLACE')
     return len(sans)
@@ -261,6 +282,13 @@ def pieces(ob, arm, rec):
     """Cornes, griffes, yeux : primitives rigides jointes au corps, entièrement liées à leur os."""
     pl = []
     for p in rec.get('pieces', []):
+        if p.get('forme') == 'aile':
+            if not isinstance(p.get('os'), list) or len(p['os']) < 1:
+                refus('pièce aile : "os" doit être une liste d\'os (ex. ["aile1.L", "aile2.L", "aile3.L"])')
+            pl.append(p)
+            if all(n.endswith('.L') for n in p['os']):
+                pl.append(dict(p, os=[miroir_nom(n) for n in p['os']]))
+            continue
         pl.append(p)
         cote = p.get('os', '').endswith(('.L', '.R'))
         if p.get('os', '').endswith('.L') or (not cote and p.get('symetrie', True) and abs(p['de'][1]) > 1e-3):
@@ -270,6 +298,9 @@ def pieces(ob, arm, rec):
                            courbure=-float(p.get('courbure', 0.0))))
     n = 0; pointes = []
     for p in pl:
+        if p.get('forme') == 'aile':
+            pointes.append(aile(ob, arm, p)); n += 1
+            continue
         if p.get('os') not in arm.data.bones:
             refus(f'pièce {p.get("forme")} : os « {p.get("os")} » inconnu')
         a, b = V(p['de']), V(p.get('a', p['de'])); r = float(p.get('r', .05)); d = (b - a)
@@ -284,7 +315,7 @@ def pieces(ob, arm, rec):
             r2 = float(p.get('r2', 0.0 if forme == 'cone' else r))
             bmesh.ops.create_cone(bm, cap_ends=True, segments=14, radius1=r, radius2=max(r2, 0.002), depth=max(d.length, 1e-3))
         else:
-            refus(f'pièce : forme « {forme} » inconnue (cone, sphere, cylindre)')
+            refus(f'pièce : forme « {forme} » inconnue (cone, sphere, cylindre, aile)')
         courbe = float(p.get('courbure', 0.0))   # corne qui se recourbe : décalage croissant vers la pointe
         if courbe and forme == 'cone':
             for v in bm.verts:
@@ -311,6 +342,81 @@ def pieces(ob, arm, rec):
         po.select_set(True); ob.select_set(True); bpy.context.view_layer.objects.active = ob
         bpy.ops.object.join(); n += 1
     return n, pointes
+
+
+def aile(ob, arm, p):
+    """Aile de plumes : nappe le long de la chaîne d'os (bord d'attaque), bord de fuite festonné en pennes, épaisseur fine ;
+    chaque sommet suit 1-2 os voisins (pli doux aux articulations). Rend la pointe (bout de l'aile) en coordonnées du monde."""
+    noms = p['os']
+    for nm in noms:
+        if nm not in arm.data.bones:
+            refus(f'pièce aile : os « {nm} » inconnu')
+    bones = [arm.data.bones[nm] for nm in noms]
+    pts = [V(bones[0].head_local)] + [V(b.tail_local) for b in bones]
+    larg = [float(x) for x in (p.get('largeur') or [.25] * len(pts))]
+    if len(larg) != len(pts):
+        refus(f'pièce aile : "largeur" attend {len(pts)} valeurs (une par articulation, de l\'épaule au bout)')
+    npl = max(3, int(p.get('plumes', 9)))
+    c1, c2 = couleur(p.get('couleur'), (.4, .3, .2)), couleur(p.get('pennes'), (.12, .08, .05))
+    N, M = max(24, npl * 4), 6
+    seg = len(pts) - 1
+    arriere = V((-1.0, 0.0, -0.45)).normalized()
+    bm = bmesh.new(); grille = []; infos = []
+    for i in range(N + 1):
+        s = i / N * seg; j = min(seg - 1, int(s)); f = s - j
+        P = pts[j].lerp(pts[j + 1], f)
+        sp = (pts[j + 1] - pts[j]).normalized()
+        c = (arriere - sp * arriere.dot(sp)).normalized()
+        w = larg[j] * (1 - f) + larg[j + 1] * f
+        u = i / N
+        dent = abs(math.sin(math.pi * npl * u))          # pointe de chaque penne
+        nrm = sp.cross(c).normalized()
+        ligne = []
+        for k in range(M + 1):
+            v = k / M
+            ext = v * (1 + 0.28 * dent * v ** 3) if u < 0.97 else v * 0.6
+            ligne.append(P + c * (w * ext)); infos.append((j, f, u, v, dent))
+        grille.append((ligne, nrm))
+    # deux nappes (dessus / dessous) à « epaisseur » l'une de l'autre, sans bmesh.ops.solidify (plante Blender 5 à la libération)
+    ep = float(p.get('epaisseur', 0.012))
+    nv = (N + 1) * (M + 1)
+    for face in (0, 1):
+        idx = []
+        for i, (ligne, nrm) in enumerate(grille):
+            idx.append([bm.verts.new(q + nrm * (ep / 2 if face == 0 else -ep / 2)) for q in ligne])
+        for i in range(N):
+            for k in range(M):
+                quad = (idx[i][k], idx[i + 1][k], idx[i + 1][k + 1], idx[i][k + 1])
+                bm.faces.new(quad if face == 0 else quad[::-1])
+    me = bpy.data.meshes.new('aile'); bm.to_mesh(me); bm.free()
+    po = bpy.data.objects.new('aile', me); bpy.context.scene.collection.objects.link(po)
+    grp = {nm: po.vertex_groups.new(name=nm) for nm in noms}
+    at = me.color_attributes.new('Col', 'FLOAT_COLOR', 'POINT')
+    a_lier = []   # poids posés APRÈS la boucle : vertex_groups.add pendant un parcours de me.vertices corrompt le maillage (plantage)
+    for v in me.vertices:
+        j, f, u, vv, dent = infos[v.index % nv]
+        poids = {j: 1.0}
+        if f > 0.7 and j + 1 < seg:
+            poids = {j: 1 - (f - 0.7) / 0.6, j + 1: (f - 0.7) / 0.6}
+        elif f < 0.3 and j > 0:
+            poids = {j: 0.5 + f / 0.6, j - 1: 0.5 - f / 0.6}
+        a_lier += [(noms[jj], v.index, ww) for jj, ww in poids.items()]
+        t = min(1.0, max(0.0, (vv - 0.3) / 0.45))           # couvertures → pennes
+        raie = 0.82 + 0.18 * (0.5 + 0.5 * math.cos(2 * math.pi * npl * u))   # séparation des plumes
+        bruit = 0.92 + 0.16 * noise.noise(V((u * 40, vv * 6, 0.3)))
+        col = [(a * (1 - t) + b * t) * raie * bruit for a, b in zip(c1, c2)]
+        at.data[v.index].color = (*col, 1.0)
+    for nm, i, ww in a_lier:
+        grp[nm].add([i], ww, 'REPLACE')
+    for pf in me.polygons:
+        pf.use_smooth = True
+    me.materials.append(materiau('aile', rugosite=float(p.get('rugosite', .75)), attribut='Col'))
+    me.validate(clean_customdata=False); me.update()
+    bout = [round(c, 3) for c in pts[-1]]
+    bpy.ops.object.select_all(action='DESELECT')
+    po.select_set(True); ob.select_set(True); bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.join()
+    return bout
 
 
 def rot_locale(arm, nom, r):
@@ -376,8 +482,10 @@ def animer(arm, liste, rec):
 def apercu(chemin, ob):
     sc = bpy.context.scene
     B.lumieres_studio(sc); B.cycles(sc, echantillons=24)
-    h = max((ob.matrix_world @ V(c)).z for c in ob.bound_box)
-    B.camera_ortho(sc, 320, 320, max(1.0, h * 1.25))
+    bb = [ob.matrix_world @ V(c) for c in ob.bound_box]
+    h = max(c.z for c in bb); xs = [c.x for c in bb]
+    cam = B.camera_ortho(sc, 320, 320, max(1.0, h * 1.25, (max(xs) - min(xs)) * 1.12))
+    cam.location.x += (max(xs) + min(xs)) / 2   # cadré sur la bête (une bête en long dépasse d'un cadre centré en x = 0)
     B.rendre(sc, chemin)
 
 
@@ -385,12 +493,19 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('recette'); ap.add_argument('sortie')
     ap.add_argument('--apercu', help='image PNG de la créature au repos (Cycles, 320×320)')
+    ap.add_argument('--recette-complete', help='écrit la recette dépliée par le gabarit (os, pièces, animations) dans ce fichier')
     a = ap.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:])
     t0 = time.time()
     try:
         rec = json.load(open(a.recette))
     except (OSError, ValueError) as e:
         refus(f'{a.recette} illisible : {e}')
+    try:
+        rec = gabarits.etendre(rec)
+    except gabarits.GabaritInvalide as e:
+        refus(str(e))
+    if a.recette_complete:
+        json.dump(rec, open(a.recette_complete, 'w'), ensure_ascii=False, indent=1)
     peau = rec.get('peau', {})
     B.vider()
     liste, _ = lire_os(rec)
@@ -398,7 +513,7 @@ def main():
     relief(ob, peau)
     decimer(ob, int(peau.get('triangles', 40000)))
     arm = armature(liste)
-    sans = lier(ob, arm)
+    sans = lier(ob, arm, {o['nom'] for o in liste if o.get('peau', True) is False})
     colorier(ob, arm, liste, peau)
     npc, pointes = pieces(ob, arm, rec)
     ob.data.validate(clean_customdata=False)   # jointures des pièces : arêtes en double (« Mesh not valid » à l'export)

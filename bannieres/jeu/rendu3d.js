@@ -183,7 +183,9 @@ function maillageImp(vue,liste,lean,kY,ombre){const n=liste.length;const g=GIMP.
  g.setAttribute('aUV',new T.InstancedBufferAttribute(aUV,4));g.setAttribute('aAnc',new T.InstancedBufferAttribute(aAnc,2));g.setAttribute('aTail',new T.InstancedBufferAttribute(aTail,2));
  im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;im.castShadow=!!ombre;im.receiveShadow=false;im.customDepthMaterial=matImp(vue,true);
  // sphère englobante large (les plans sont déformés dans le shader)
- g.boundingSphere=new T.Sphere();const bb=new T.Box3();liste.forEach(([,x,y,z,ht])=>{bb.expandByPoint(new T.Vector3(x,y,z));bb.expandByPoint(new T.Vector3(x,y+ht*1.2,z));});bb.expandByScalar(1.2);bb.getBoundingSphere(g.boundingSphere);return im;}
+ g.boundingSphere=new T.Sphere();const bb=new T.Box3();liste.forEach(([,x,y,z,ht])=>{bb.expandByPoint(new T.Vector3(x,y,z));bb.expandByPoint(new T.Vector3(x,y+ht*1.2,z));});bb.expandByScalar(1.2);bb.min.z-=4;bb.max.y+=2;bb.getBoundingSphere(g.boundingSphere);
+ // 20/11 : les plans sont penchés vers la caméra dans le shader ; la boîte trop juste faisait disparaître des pans entiers de décor (montagnes, buissons) au bas de l'écran
+ return im;}
 // un imposteur seul (vrai maillage, pour les décors rendus une fois : combats, villes) ; q = orientation (face à la caméra)
 const MPI={};function planImp(vue,nom,ht,mir,q){const k=nom+'_'+vue,me=RES.imp&&RES.imp[k],at=RES.atlas&&RES.atlas[vue];if(!me||!at||!at.rect[k])return null;const r=at.rect[k];const s=ht/me.haut;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
  const g=new T.PlaneGeometry(w,hh);const ax=(mir?1-me.px/me.w:me.px/me.w)*w,ay=(1-me.py/me.h)*hh;g.translate(w/2-ax,hh/2-ay,0);const uv=g.attributes.uv;for(let i=0;i<uv.count;i++){let u=uv.getX(i);if(mir)u=1-u;uv.setXY(i,r[0]+u*r[2],r[1]+uv.getY(i)*r[3]);}

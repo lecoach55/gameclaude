@@ -2,14 +2,14 @@
  "nom": "behemoth",
  "note": "Béhémoth DRESSÉ façon Heroes III (décision de Victor 19/11, option B) : mi-ours mi-singe voûté, épaules énormes, longs bras à griffes d'ivoire, tête basse cornue, crocs. Regard +X, ≈ 2,9 u. Dérivé de outils-communs/blender/recettes/behemoth_dresse.json.",
  "peau": {
-  "couleur": "#7a6a52",
-  "fonce": "#261e16",
-  "ventre": "#b6a282",
-  "taches": 0.6,
+  "couleur": "#5a4432",
+  "fonce": "#1c140e",
+  "ventre": "#86705a",
+  "taches": 0.55,
   "freq": 3.2,
-  "relief": 0.045,
+  "relief": 0.05,
   "relief_freq": 6,
-  "poil": 0.018,
+  "poil": 0.025,
   "rugosite": 0.9,
   "subdivision": 2,
   "triangles": 40000
@@ -37,9 +37,9 @@
    "nom": "ventre",
    "parent": "bassin",
    "queue": [
-    0.42,
+    0.28,
     0,
-    1.86
+    1.9
    ],
    "r": [
     0.54,
@@ -50,9 +50,9 @@
    "nom": "poitrine",
    "parent": "ventre",
    "queue": [
-    0.7,
+    0.45,
     0,
-    2.15
+    2.3
    ],
    "r": [
     0.62,
@@ -63,14 +63,14 @@
    "nom": "bosse",
    "parent": "poitrine",
    "tete": [
-    0.34,
+    0.12,
     0,
-    2.18
+    2.32
    ],
    "queue": [
-    0.58,
+    0.34,
     0,
-    2.38
+    2.52
    ],
    "r": [
     0.38,
@@ -83,9 +83,9 @@
    "nom": "cou",
    "parent": "poitrine",
    "queue": [
-    1.0,
+    0.72,
     0,
-    2.25
+    2.42
    ],
    "r": [
     0.34,
@@ -96,9 +96,9 @@
    "nom": "tete",
    "parent": "cou",
    "queue": [
-    1.42,
+    1.08,
     0,
-    2.24
+    2.38
    ],
    "r": [
     0.36,
@@ -109,14 +109,14 @@
    "nom": "machoire",
    "parent": "tete",
    "tete": [
-    1.14,
+    0.82,
     0,
-    2.04
+    2.2
    ],
    "queue": [
-    1.5,
+    1.16,
     0,
-    1.96
+    2.12
    ],
    "r": [
     0.22,
@@ -129,14 +129,14 @@
    "nom": "epaule.L",
    "parent": "poitrine",
    "tete": [
-    0.6,
+    0.38,
     0.3,
-    2.1
+    2.25
    ],
    "queue": [
+    0.42,
     0.66,
-    0.7,
-    2.06
+    2.2
    ],
    "r": [
     0.46,
@@ -147,9 +147,9 @@
    "nom": "bras.L",
    "parent": "epaule.L",
    "queue": [
-    0.76,
-    0.86,
-    1.72
+    0.56,
+    0.78,
+    1.86
    ],
    "r": [
     0.33,
@@ -160,9 +160,9 @@
    "nom": "coude.L",
    "parent": "bras.L",
    "queue": [
-    0.92,
-    0.96,
-    1.3
+    0.72,
+    0.84,
+    1.46
    ],
    "r": [
     0.4,
@@ -173,9 +173,9 @@
    "nom": "avantbras.L",
    "parent": "coude.L",
    "queue": [
-    1.12,
-    1.0,
-    0.86
+    0.98,
+    0.8,
+    1.24
    ],
    "r": [
     0.25,
@@ -186,9 +186,9 @@
    "nom": "poignet.L",
    "parent": "avantbras.L",
    "queue": [
-    1.28,
-    1.02,
-    0.56
+    1.14,
+    0.76,
+    1.04
    ],
    "r": [
     0.34,
@@ -199,9 +199,9 @@
    "nom": "main.L",
    "parent": "poignet.L",
    "queue": [
-    1.42,
-    1.02,
-    0.22
+    1.3,
+    0.72,
+    0.92
    ],
    "r": [
     0.22,
@@ -280,14 +280,14 @@
    "forme": "cone",
    "os": "tete",
    "de": [
-    1.12,
+    0.78,
     0.17,
-    2.4
+    2.56
    ],
    "a": [
-    0.9,
+    0.56,
     0.5,
-    2.84
+    3.0
    ],
    "r": 0.1,
    "courbure": 0.35,
@@ -298,14 +298,14 @@
    "forme": "cone",
    "os": "tete",
    "de": [
-    1.26,
+    0.92,
     0.14,
-    2.34
+    2.5
    ],
    "a": [
-    1.26,
+    0.92,
     0.27,
-    2.56
+    2.72
    ],
    "r": 0.05,
    "courbure": 0.15,
@@ -316,9 +316,9 @@
    "forme": "sphere",
    "os": "tete",
    "de": [
-    1.46,
+    1.12,
     0.13,
-    2.33
+    2.49
    ],
    "r": 0.04,
    "couleur": "#ff4a10",
@@ -328,14 +328,14 @@
    "forme": "cone",
    "os": "machoire",
    "de": [
-    1.46,
+    1.12,
     0.11,
-    1.99
+    2.13
    ],
    "a": [
-    1.49,
+    1.15,
     0.12,
-    2.21
+    2.35
    ],
    "r": 0.04,
    "couleur": "#e6dcc2",
@@ -345,14 +345,14 @@
    "forme": "cone",
    "os": "machoire",
    "de": [
-    1.5,
+    1.16,
     0.04,
-    1.97
+    2.11
    ],
    "a": [
-    1.52,
+    1.18,
     0.04,
-    2.09
+    2.23
    ],
    "r": 0.025,
    "couleur": "#e6dcc2",
@@ -362,14 +362,14 @@
    "forme": "cone",
    "os": "main.L",
    "de": [
-    1.44,
-    0.9,
-    0.24
+    1.32,
+    0.62,
+    0.94
    ],
    "a": [
-    1.74,
-    0.852,
-    0.02
+    1.6,
+    0.58,
+    0.68
    ],
    "r": 0.055,
    "courbure": 0.3,
@@ -380,14 +380,14 @@
    "forme": "cone",
    "os": "main.L",
    "de": [
-    1.44,
-    1.02,
-    0.24
+    1.32,
+    0.72,
+    0.94
    ],
    "a": [
-    1.74,
-    1.02,
-    0.02
+    1.6,
+    0.72,
+    0.68
    ],
    "r": 0.06,
    "courbure": 0.3,
@@ -398,14 +398,14 @@
    "forme": "cone",
    "os": "main.L",
    "de": [
-    1.44,
-    1.14,
-    0.24
+    1.32,
+    0.82,
+    0.94
    ],
    "a": [
-    1.74,
-    1.188,
-    0.02
+    1.6,
+    0.86,
+    0.68
    ],
    "r": 0.055,
    "courbure": 0.3,
@@ -450,14 +450,14 @@
    "forme": "cone",
    "os": "bosse",
    "de": [
-    0.3,
+    0.06,
     0,
-    2.5
+    2.62
    ],
    "a": [
-    0.12,
+    -0.12,
     0,
-    2.86
+    2.98
    ],
    "r": 0.09,
    "courbure": 0.2,
@@ -469,14 +469,14 @@
    "forme": "cone",
    "os": "bosse",
    "de": [
-    0.52,
+    0.28,
     0,
-    2.66
+    2.78
    ],
    "a": [
-    0.38,
+    0.14,
     0,
-    3.0
+    3.12
    ],
    "r": 0.1,
    "courbure": 0.2,
@@ -488,14 +488,14 @@
    "forme": "cone",
    "os": "poitrine",
    "de": [
-    0.76,
+    0.52,
     0,
-    2.6
+    2.72
    ],
    "a": [
-    0.66,
+    0.42,
     0,
-    2.9
+    3.02
    ],
    "r": 0.08,
    "courbure": 0.2,
@@ -507,14 +507,14 @@
    "forme": "cone",
    "os": "ventre",
    "de": [
-    0.06,
+    -0.18,
     0,
-    2.12
+    2.24
    ],
    "a": [
-    -0.16,
+    -0.4,
     0,
-    2.38
+    2.5
    ],
    "r": 0.07,
    "courbure": 0.2,
@@ -685,42 +685,44 @@
      "t": 0.45,
      "os": {
       "cuisse.*": {
-       "tangage": -35
+       "tangage": -25
       },
       "jambe.*": {
-       "tangage": 50
+       "tangage": 35
       },
       "poitrine": {
+       "tangage": 10
+      },
+      "tete": {
        "tangage": 15
       }
      },
      "deplacement": [
       0,
       0,
-      -0.35
+      -0.25
      ]
     },
     {
      "t": 1.2,
      "os": {
       "bassin": {
-       "tangage": -80
+       "roulis": 82
       },
       "cuisse.*": {
-       "tangage": 30
+       "tangage": -20
       },
       "bras.*": {
-       "roulis": -35,
-       "tangage": -40
+       "tangage": -25
       },
       "tete": {
-       "lacet": 25
+       "tangage": 20
       }
      },
      "deplacement": [
-      0.15,
       0,
-      -0.6
+      -0.2,
+      -0.7
      ]
     }
    ]

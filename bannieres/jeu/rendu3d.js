@@ -111,9 +111,9 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
  {// mer brillante (20/11) : reflets du ciel sur les faces des vagues tournées vers le soleil + scintillement doré du soleil bas (avant la brume et le brouillard)
   float d=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).r,pr=smoothstep(.04,.35,d);
   vec3 Vw=normalize(cameraPosition-vBsP),Nw=normalize((vec4(normal,0.)*viewMatrix).xyz);
-  float fr=pow(1.-clamp(dot(Nw,Vw),0.,1.),3.),w=dot(Nw.xz,vec2(-.86,.51))*6.;
-  gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(.33,.50,.66),clamp(.05+fr*.5+max(w,0.)*.28,0.,.45)*pr);
-  gl_FragColor.rgb*=1.-clamp(-w,0.,1.)*.22*pr;
+  float fr=pow(1.-clamp(dot(Nw,Vw),0.,1.),3.),w=dot(Nw.xz,vec2(-.86,.51))*3.6,m=texture2D(bsBr,vBsW*.071+vec2(bsT*.004,bsT*.003)).r;
+  gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(.30,.46,.60),clamp(.03+fr*.3+max(w,0.)*.2,0.,.3)*pr*(.55+.9*m));
+  gl_FragColor.rgb*=1.-clamp(-w,0.,1.)*.15*pr;
   float s1=texture2D(bsBr,vBsW*.83+vec2(bsT*.021,-bsT*.013)).r,s2=texture2D(bsBr,vBsW*1.91-vec2(bsT*.017,bsT*.026)).r;
   float sc=smoothstep(.66,.79,s1*.5+s2*.5)*smoothstep(.0,.6,w+.3);
   gl_FragColor.rgb+=vec3(1.,.70,.34)*sc*3.0*pr;}
@@ -165,7 +165,7 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
 function majBrume(){const vu=G.joueurs[vueJoueur()].vu;for(let i=0;i<N*N;i++)fogData[i]=vu[i]?255:0;fogTex.needsUpdate=true;}
 let VAGUES=null;function texVagues(){if(VAGUES)return VAGUES;const S0=256;const [T1,T2]=textures();const d=new Uint8Array(S0*S0*4);const hh=(x,y)=>T2[((y+S0)%S0)*256+((x+S0)%S0)]*.6+T1[((y*2+S0)%S0)*256+((x*2+S0)%S0)]*.4;
  for(let y=0;y<S0;y++)for(let x=0;x<S0;x++){const dx=(hh(x+1,y)-hh(x-1,y))*6,dy=(hh(x,y+1)-hh(x,y-1))*6;const l=Math.hypot(dx,dy,1);const o=(y*S0+x)*4;d[o]=(-dx/l*.5+.5)*255;d[o+1]=(-dy/l*.5+.5)*255;d[o+2]=(1/l*.5+.5)*255;d[o+3]=255;}
- VAGUES=new T.DataTexture(d,S0,S0);VAGUES.wrapS=VAGUES.wrapT=T.RepeatWrapping;VAGUES.repeat.set(20,20);VAGUES.generateMipmaps=true;VAGUES.minFilter=T.LinearMipmapLinearFilter;VAGUES.magFilter=T.LinearFilter;VAGUES.needsUpdate=true;return VAGUES;}
+ VAGUES=new T.DataTexture(d,S0,S0);VAGUES.wrapS=VAGUES.wrapT=T.RepeatWrapping;VAGUES.repeat.set(12,12);VAGUES.generateMipmaps=true;VAGUES.minFilter=T.LinearMipmapLinearFilter;VAGUES.magFilter=T.LinearFilter;VAGUES.needsUpdate=true;return VAGUES;}
 // ---------- forêts et rochers pré-rendus (imposteurs Poly Haven) : un maillage instancié par bloc de cases ----------
 const GIMP=new T.PlaneGeometry(1,1).translate(.5,.5,0);const MIMP={};
 function patchImp(sh,vent){sh.vertexShader=sh.vertexShader.replace('void main() {','attribute vec4 aUV;attribute vec2 aAnc;attribute vec2 aTail;\nvoid main() {')

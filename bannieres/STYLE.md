@@ -30,3 +30,6 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | squelette | Skeleton animated (9210377c7a514cf6b48a31b9d3991ff3), --rotation 30 --hauteur 1.45 | danielmclogan | CC BY 4.0 |
 | liche | Lich (4ad4ece50273473ba1d843797b8f4fa6), --rotation 30 --hauteur 1.8 | Spinnee | CC BY 4.0 |
 | vampire | Albine Vampire (96dc3c5227f746ab988e8fcbdb3f611b), --rotation 30 --hauteur 1.7 | Pebegou | CC BY 4.0 |
+| centaure | Centaur (564621800fb24beaa6d49167034ae47c), sol et plantes retirés, --rotation 30 --hauteur 2.0 | grigoriyarx | CC BY 4.0 |
+| elfe | Elf Archer (0897039da4ba44a7b398b812d9dcf354), --rotation 30 --hauteur 1.6 | infant2k4 | CC BY 4.0 |
+| dragonvert | Green Dragon (62b512c628da4b16ba4a82cb0acdbc62), --rotation 120 --hauteur 2.6 | lionkinen | CC BY 4.0 |

@@ -180,3 +180,6 @@
 {"quand": "2026-11-19 22:02", "jeu": "outils", "etape": "verifier_outils.py complet (43 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 469.7, "code": 0}
 {"quand": "2026-11-19 22:17", "jeu": "outils", "etape": "verifier_outils.py complet après relecture (43 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 382.9, "code": 0}
 {"quand": "2026-11-20 01:58", "jeu": "outils", "etape": "verifier_outils.py complet (44 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 390.4, "code": 0}
+{"quand": "2026-11-20 05:32", "jeu": "outils", "etape": "verifier_outils.py complet (45 contrôles, gros_plan)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 416.8, "code": 1}
+{"quand": "2026-11-20 05:45", "jeu": "outils", "etape": "captures.py Bannières vues.json --vues carte,combat --avant HEAD --gros-plan", "commande": "python3 outils-communs/captures.py bannieres/outils/vues.json /tmp/bs --vues carte,combat --avant HEAD --gros-plan", "secondes": 176.5, "code": 0}
+{"quand": "2026-11-20 05:56", "jeu": "outils", "etape": "verifier_outils.py complet (45 contrôles, gros_plan, après relecture)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 417.8, "code": 0}

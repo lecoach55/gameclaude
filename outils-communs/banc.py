@@ -625,7 +625,8 @@ async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, 
                         m = await pg.evaluate(MESURE_FIGE_JS, [s.get('images', cfg.get('images', 120)), 1000 / 60, s.get('budget_ms', cfg.get('budget_ms', 6000))])
                         if prep_reelle:
                             await pg.evaluate('()=>{__horloge.coulant(false);__horloge.reel(true)}')
-                        if m.get('ms', 1) < 0.1:
+                        # médiane aussi : sous charge, une seule image retardée (3,9 ms sur 20) portait la moyenne à 0,2 ms → note perdue
+                        if min(m.get('ms', 1), m.get('med', 1)) < 0.1:
                             m['note'] = "presque rien à chaque image : la scène ne s'anime pas par requestAnimationFrame (setInterval, ou rien ne bouge) ; jeu qui redessine sur un clic : scène \"action\" (coût jusqu'à l'affichage) ; boucle setInterval : \"mode\": \"reel\""
                             print('    note : ' + m['note'], flush=True)
                     else:

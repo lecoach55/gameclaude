@@ -1,0 +1,24 @@
+{
+ "jeu": "bannieres",
+ "_note": "Studio de captures commun (remplace outils/capt.py, mêmes vues : carte, 4 villes, combat, combat_suite). Passe graphique : python3 outils-communs/captures.py bannieres/outils/vues.json /tmp/bs --avant arrivee --gros-plan (AVANT = début du chantier, planches plein cadre + gros plan + verdict « ça se voit ? » dans /tmp/bs/gros_plan, page à glissière index.html). Fenêtre du Mac : --appareils mac. Contre les références : --comparer bannieres/references --strict. Rendu logiciel lent (carte 3D ≈ 1 s par image).",
+ "dossier": "bannieres/jeu",
+ "page": "index.html?graine=7&taille=54&q3d=2",
+ "graine": 12345,
+ "appareils": {"ordinateur": {"largeur": 1280, "hauteur": 800}},
+ "pret": "typeof ECRAN!=='undefined'&&ECRAN==='aventure'&&(!V.m3||R3.actif)",
+ "pret_ms": 1500,
+ "pret_max_s": 300,
+ "preparation": "reelle",
+ "entree": "const t=document.querySelector('div[style*=monospace]');if(t)t.remove();",
+ "images": 16,
+ "pas": 162,
+ "vues": [
+  {"nom": "carte", "js": "", "images": 46, "pas": 16.667},
+  {"nom": "ville_bastion", "js": "const v=villesDe(0)[0];v.fac='bastion';for(const b of BAT_ORDRE)if(!BAT[b].unique)v.bat[b]=1;ouvrirVille(v);"},
+  {"nom": "ville_sylve", "js": "try{VI.fermer()}catch(e){};const v=villesDe(0)[0];v.fac='sylve';for(const b of BAT_ORDRE)if(!BAT[b].unique)v.bat[b]=1;ouvrirVille(v);"},
+  {"nom": "ville_necro", "js": "try{VI.fermer()}catch(e){};const v=villesDe(0)[0];v.fac='necro';for(const b of BAT_ORDRE)if(!BAT[b].unique)v.bat[b]=1;ouvrirVille(v);"},
+  {"nom": "ville_horde", "js": "try{VI.fermer()}catch(e){};const v=villesDe(0)[0];v.fac='horde';for(const b of BAT_ORDRE)if(!BAT[b].unique)v.bat[b]=1;ouvrirVille(v);"},
+  {"nom": "combat", "js": "try{VI.fermer()}catch(e){};const h=herosDe(0)[0];combatInteractif({heros:h,armee:['griffon','cavalier','ange','moine','croise','archer','piquier'].map(c=>({c,n:5})),joueur:0},{heros:null,armee:['behemoth','cyclope','roc','ogre','orque','chevloup2','gobelin2'].map(c=>({c,n:4})),joueur:-1},{terrain:(window._ter||'herbe'),banc:true});setTimeout(()=>{CB.auto=false;},10)"},
+  {"nom": "combat_suite", "js": "CB.auto=true;CB.banc=false;ACCEL=2;if(CB.attente)CB.attente(iaCombat(CB.C));", "images": 56}
+ ]
+}

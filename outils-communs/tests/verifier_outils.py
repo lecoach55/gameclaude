@@ -2097,6 +2097,81 @@ def _():
                 raise RuntimeError(f'recette fausse ({mot}) : code {r.returncode} {r.stderr[-200:]}')
 
 
+
+@controle("gros_plan.py : planche avant/après plein cadre + gros plan trouvé seul sur ce qui change (créature remplacée cadrée, 2e zone ailleurs), verdict (identique = aucun changement sans zone, assombrissement = saute aux yeux, petite créature = visible en regardant), --ignorer, --zone, --strict, dossier de captures (avant/ + images), page à glissière autonome ; captures.py --avant-dossier --gros-plan")
+def _():
+    import numpy as np
+    from PIL import Image
+    gp = os.path.join(OC, 'gros_plan.py')
+    with tempfile.TemporaryDirectory() as d:
+        rng = np.random.default_rng(3)
+        base = np.clip(np.stack([60 + 30 * rng.random((400, 640)), 100 + 30 * rng.random((400, 640)), 50 + 20 * rng.random((400, 640))], -1), 0, 255)
+        base = np.asarray(Image.fromarray(base.astype(np.uint8)).resize((640, 400)))
+        A, B = os.path.join(d, 'avant'), os.path.join(d, 'apres'); os.makedirs(A); os.makedirs(B)
+        av = base.copy(); av[200:240, 450:480] = (120, 110, 100)          # ancienne bête (grise)
+        ap = base.copy(); ap[195:240, 452:482] = (200, 60, 40)            # nouvelle bête (rousse), même case
+        ap[40:60, 60:80] = (230, 230, 230)                                # petit détail ailleurs (2e zone)
+        Image.fromarray(av).save(os.path.join(A, 'bete.png')); Image.fromarray(ap).save(os.path.join(B, 'bete.png'))
+        Image.fromarray(base).save(os.path.join(A, 'pareil.png')); Image.fromarray(base).save(os.path.join(B, 'pareil.jpg'))
+        Image.fromarray((base * 0.6).astype(np.uint8)).save(os.path.join(B, 'sombre.png')); Image.fromarray(base).save(os.path.join(A, 'sombre.png'))
+        Image.new('RGB', (9, 9)).save(os.path.join(B, 'planche.png'))
+        o = os.path.join(d, 'o')
+        r = subprocess.run([sys.executable, gp, A, B, o, '--zones', '2'], capture_output=True, text=True, timeout=120)
+        if r.returncode:
+            raise RuntimeError('gros_plan : ' + (r.stderr or r.stdout)[-300:])
+        j = {v['nom']: v for v in json.load(open(os.path.join(o, 'gros_plan.json')))['vues']}
+        if set(j) != {'bete', 'pareil', 'sombre'}:
+            raise RuntimeError(f'paires : {sorted(j)}')
+        if j['pareil']['verdict'] != 'aucun changement' or j['pareil']['zones']:
+            raise RuntimeError(f"image identique (png ↔ jpg) : {j['pareil']['verdict']} {j['pareil']['zones']}")
+        if j['sombre']['verdict'] != 'saute aux yeux':
+            raise RuntimeError(f"assombrissement de 40 % : {j['sombre']}")
+        b = j['bete']; z = b['zones']
+        if b['verdict'] != 'visible en regardant' or len(z) != 2:
+            raise RuntimeError(f'créature remplacée : {b}')
+        x, y, l, h = z[0]
+        if not (x <= 452 and x + l >= 482 and y <= 195 and y + h >= 240 and l <= 200):
+            raise RuntimeError(f'gros plan 1 ne cadre pas la créature (452-482 × 195-240) : {z[0]}')
+        x, y, l, h = z[1]
+        if not (x <= 60 and x + l >= 80 and y <= 40 and y + h >= 60):
+            raise RuntimeError(f'gros plan 2 ne cadre pas le détail (60-80 × 40-60) : {z[1]}')
+        for f in ('bete_gros_plan.jpg', 'sombre_gros_plan.jpg', 'index.html'):
+            if not os.path.getsize(os.path.join(o, f)):
+                raise RuntimeError(f + ' vide')
+        im = Image.open(os.path.join(o, 'bete_gros_plan.jpg'))
+        if im.width != 2 * 640 + 8 or im.height < 400 + 2 * 300:
+            raise RuntimeError(f'planche plein cadre + 2 gros plans : {im.size}')
+        html = open(os.path.join(o, 'index.html')).read()
+        if 'http://' in html or 'https://' in html or html.count('<img') < 12:  # bête 3 paires + sombre ≥ 2 + pareil 1
+            raise RuntimeError('page à glissière : lien externe ou images manquantes')
+        # --ignorer la case de la bête et le détail → plus rien ; --zone imposée ; --strict (aucun / discret → code 1)
+        r = subprocess.run([sys.executable, gp, os.path.join(A, 'bete.png'), os.path.join(B, 'bete.png'), os.path.join(d, 'o2'),
+                            '--ignorer', '440,185,60,70', '--ignorer', '0.05,0.05,0.12,0.15', '--strict'], capture_output=True, text=True, timeout=60)
+        v = json.load(open(os.path.join(d, 'o2', 'gros_plan.json')))['vues'][0]
+        if r.returncode != 1 or v['verdict'] != 'aucun changement':
+            raise RuntimeError(f"--ignorer / --strict (code {r.returncode}) : {v['verdict']}")
+        r = subprocess.run([sys.executable, gp, A, B, os.path.join(d, 'o3'), '--zone', '0,0,100,50', '--strict'], capture_output=True, text=True, timeout=60)
+        if r.returncode != 1 or json.load(open(os.path.join(d, 'o3', 'gros_plan.json')))['vues'][0]['zones'] != [[0, 0, 100, 50]]:
+            raise RuntimeError(f'--zone imposée / --strict avec une vue identique (code {r.returncode})')
+        # dossier de captures.py --avant : <sortie>/avant ↔ <sortie>
+        cap = os.path.join(d, 'cap'); shutil.copytree(B, cap); shutil.copytree(A, os.path.join(cap, 'avant'))
+        run(sys.executable, gp, cap, timeout=60)
+        if not os.path.exists(os.path.join(cap, 'gros_plan', 'bete_gros_plan.jpg')):
+            raise RuntimeError('mode dossier de captures : planche absente')
+        # branché dans captures.py
+        page = open(os.path.join(OC, 'tests', 'captures_factice.html')).read()
+        for nom, pg in (('jeu', page), ('autre', page.replace("window.VARIANTE='#2c2'", "window.VARIANTE='#22c'"))):
+            os.makedirs(os.path.join(d, nom)); open(os.path.join(d, nom, 'index.html'), 'w').write(pg)
+        cfg = {'jeu': 'factice', 'dossier': os.path.join(d, 'jeu'), 'pret': 'window.pret', 'pret_ms': 50, 'images': 4, 'pas': 162,
+               'vues': [{'nom': 'pret', 'js': 'preparer()', 'occupe': 'window.occupe'}], 'appareils': {'petit': {'largeur': 200, 'hauteur': 220}}}
+        reg = os.path.join(d, 'vues.json'); json.dump(cfg, open(reg, 'w'))
+        r = subprocess.run([sys.executable, os.path.join(OC, 'captures.py'), reg, os.path.join(d, 'oc'), '--avant-dossier', os.path.join(d, 'autre'), '--gros-plan', '--sans-verrou'],
+                           capture_output=True, text=True, timeout=180)
+        gj = os.path.join(d, 'oc', 'gros_plan', 'gros_plan.json')
+        if r.returncode or not os.path.exists(gj) or json.load(open(gj))['vues'][0]['verdict'] == 'aucun changement':
+            raise RuntimeError(f'captures.py --gros-plan (code {r.returncode}) : ' + r.stdout[-300:])
+
+
 if '--reseau' in sys.argv:
     @controle('phget.py : liste de fichiers Poly Haven')
     def _():

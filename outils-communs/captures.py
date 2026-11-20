@@ -17,7 +17,9 @@ Verrou machine (verrou.py, 18/11) : les captures passent avec les autres robots 
   mesures : bruit 69-315 % vu chez Une vie) ; elles attendent sa fin en le disant.
 Seules les images que la série refait sont remplacées dans la sortie (rien d'autre n'y est effacé).
 Sortie (défaut /tmp/captures-<jeu>) : une image par vue (`nom.png`, ou `<appareil>_nom.png` s'il y a plusieurs appareils),
-  captures.json (durée, erreurs, infos de chaque vue), et avec --comparer/--avant : planche.png + comparaison.json.
+  captures.json (durée, erreurs, infos de chaque vue), et avec --comparer/--avant : planche.png + comparaison.json ;
+  --gros-plan : en plus, gros_plan/ (gros_plan.py : chaque vue en plein cadre + gros plan sur ce qui change + verdict
+  « saute aux yeux / visible en regardant / discret », index.html à glissière avant/après).
 
 Réglages (JSON ; chemins relatifs à la racine du dépôt ; MÊMES clés de chargement que banc.json, qu'on peut recopier) :
   "jeu", "fichier" | "dossier"+"page", "construire", "stockage", "init", "graine" (12345), "pret", "pret_ms", "pret_max_s",
@@ -77,11 +79,11 @@ async def ev(pg, js, arg=None, delai=DELAI_EVAL):
 def lire_args(argv):
     o = {'vues': None, 'appareils': None, 'construire': False, 'seuil': None, 'strict': False, 'stabilite': False, 'format': None,
          'echelle': None, 'qualite': None, 'mode': None, 'comparer': None, 'avant': None, 'avant_dossier': None, 'avant_page': None, 'pos': [],
-         'sans_verrou': False, 'attente_max': None}
+         'sans_verrou': False, 'attente_max': None, 'gros_plan': False}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a in ('--construire', '--strict', '--stabilite', '--sans-verrou'):
+        if a in ('--construire', '--strict', '--stabilite', '--sans-verrou', '--gros-plan'):
             o[a[2:].replace('-', '_')] = True
         elif a.startswith('--'):
             k = a[2:].replace('-', '_')
@@ -413,6 +415,8 @@ def main(argv):
             if inst and o['strict']:
                 code = 1
         ref = o['comparer'] or (os.path.join(sortie, 'avant') if avec_avant else None)
+        if o['gros_plan'] and not ref:
+            print('--gros-plan ignoré : il faut une comparaison (--avant, --avant-dossier, --avant-page ou --comparer)')
         if ref:
             print(f"\nComparaison {'AVANT → APRÈS' if avec_avant else 'référence ' + ref + ' → nouvelle version'} :")
             # on ne compare QUE les images de cette série (une image d'une série précédente restée dans la sortie serait comparée
@@ -431,6 +435,13 @@ def main(argv):
                         if os.path.splitext(f)[0] in voulus and f.lower().endswith(EXT):
                             os.symlink(os.path.abspath(os.path.join(ref, f)), os.path.join(r_dir, f))
                 c = comparer(r_dir, n_dir, os.path.join(sortie, 'planche.png'), seuil, os.path.join(sortie, 'comparaison.json'))
+                if o['gros_plan']:
+                    print('\nGros plan (ce qui change, se voit-il sans planche ?) :')
+                    try:  # option facultative : son échec ne doit jamais coûter captures.json ni la comparaison
+                        import gros_plan as GP
+                        GP.principal([r_dir, n_dir, os.path.join(sortie, 'gros_plan')], etiquettes=(ref, sortie))
+                    except (Exception, SystemExit) as e:
+                        print('  gros plan impossible :', e)
             finally:
                 shutil.rmtree(d_cmp, ignore_errors=True)
             bilan['comparaison'] = {k: c[k] for k in ('alertes', 'total', 'manquantes')}

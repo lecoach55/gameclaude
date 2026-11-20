@@ -38,5 +38,8 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | chevnoir | Stylized Wraith Knight (3ebe97b7ffe248708ebe877eff81eab3), socle retiré, --rotation 180 --hauteur 1.9 | Babevid | CC BY 4.0 |
 | dragonos | Bone Dragon (22da5db4892540f8ba7e3bbcbfabafe7), --rotation 45 --hauteur 2.2 | witsanusuperball | CC BY 4.0 |
 | spectre | Spectral Reaper (d5d445e5addf4f68a41967597bf543cc), --rotation 61 --hauteur 1.9 | Rignu | CC BY 4.0 |
+| zombie | Cursed Undead Soldier Rig (b2e39de76b834d978adee5716aec814d), contrôles du squelette retirés, --rotation 61 --hauteur 1.6 | SuperKapoo913 | CC BY 4.0 |
+| roc | Eagle Neutral Flying Pose (1d1ca28411b942038ee0a5bd66e11417), --rotation -60 --hauteur 2.4 | s8819296 | CC BY 4.0 |
+| loup | Black Wolf – Pale-Eyed Fierce Dark Predator (d14d5e0957f5450eb025a18635bb0d77), --rotation 61 --hauteur 1.3 | s8819296 | CC BY 4.0 |
 
 Remarques : les modèles à armature sortent souvent couchés ou minuscules ; figer la pose (convert dans Blender, ou fige.py) puis redresser. Le pont Blender du Mac ne doit pas servir à des aperçus (« look » rendu) : ils le bloquent plusieurs minutes. Les châteaux des 4 factions : `FORT_STYLE=bastion|horde|necropole|sylve` dans `outils/blender/imp_fort.py`.

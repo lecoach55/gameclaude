@@ -33,3 +33,10 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | centaure | Centaur (564621800fb24beaa6d49167034ae47c), sol et plantes retirés, --rotation 30 --hauteur 2.0 | grigoriyarx | CC BY 4.0 |
 | elfe | Elf Archer (0897039da4ba44a7b398b812d9dcf354), --rotation 30 --hauteur 1.6 | infant2k4 | CC BY 4.0 |
 | dragonvert | Green Dragon (62b512c628da4b16ba4a82cb0acdbc62), --rotation 120 --hauteur 2.6 | lionkinen | CC BY 4.0 |
+| nain | Dwarf Warrior (b9fcc240bc0642649d39a8ca845b56aa), pose figée dans Blender (convert), redressé −90° en X, --rotation 61 --hauteur 1.3 | Northcliffe | CC BY 4.0 |
+| treant | Treant - Week 2 (aa60f5de1ed94b2e96e46ad08cde4d5a), armature figée (POSE=1, /tmp/fige.py), --rotation 61 --hauteur 2.4 | Batuhan13 | CC BY 4.0 |
+| chevnoir | Stylized Wraith Knight (3ebe97b7ffe248708ebe877eff81eab3), socle retiré, --rotation 180 --hauteur 1.9 | Babevid | CC BY 4.0 |
+| dragonos | Bone Dragon (22da5db4892540f8ba7e3bbcbfabafe7), --rotation 45 --hauteur 2.2 | witsanusuperball | CC BY 4.0 |
+| spectre | Spectral Reaper (d5d445e5addf4f68a41967597bf543cc), --rotation 61 --hauteur 1.9 | Rignu | CC BY 4.0 |
+
+Remarques : les modèles à armature sortent souvent couchés ou minuscules ; figer la pose (convert dans Blender, ou fige.py) puis redresser. Le pont Blender du Mac ne doit pas servir à des aperçus (« look » rendu) : ils le bloquent plusieurs minutes. Les châteaux des 4 factions : `FORT_STYLE=bastion|horde|necropole|sylve` dans `outils/blender/imp_fort.py`.

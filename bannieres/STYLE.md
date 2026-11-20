@@ -26,3 +26,4 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | gobelin | Goblin Warrior (852c928a166e471a8dc8e592ff25a21a), --rotation 61 | Batuhan13 | CC BY 4.0 |
 | orque | Orc Warrior (21eaa407bf164cdea21135a1d1b2b8f3), socle pCylinder1 retiré, --rotation 61 | cmcentee72 | CC BY 4.0 |
 | ogre | Green Ogre (e6e4c9a163c0457d9420562ff3bf9d82), --rotation 61 --hauteur 2.0 | s8819296 | CC BY 4.0 |
+| cyclope | Cyclops Rig (e5cc86878c314f5bae6d7268bb7541d9), formes d'os retirées, --rotation 30 --hauteur 1.8 | SuperKapoo913 | CC BY 4.0 |

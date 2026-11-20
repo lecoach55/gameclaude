@@ -71,3 +71,7 @@ Trêve des rivaux envers le joueur humain : jour 29 (paisibles), 15 (ambitieux),
 
 ## Mesures sur les appareils de Victor
 Accueil → 🧪 Mode test → ☰ → ▶ Banc ; ☰ → 🐞 Signaler. Lire avec `db_whoami` + `db_list` (`data/users/<id>`) : `mesures_*`, `signalement_*`.
+
+## Vraies créatures et mer (20/11/2026) — v17
+- **Béhémoth dressé** sculpté dans Blender (cloud) d'après une recette : `/home/claude/bpyenv/bin/python outils-communs/blender/creature.py bannieres/outils/studio/recettes/behemoth.json /tmp/b.glb`, puis `planche_sprites.py /tmp/b.glb /tmp/spr --id behemoth --comme-bannieres --format 256x224 --unites 3.7` et `python3 outils/studio/pack.py /tmp/spr jeu/sprites3d.js --fusion`. Le cadre (fh/u) d'une créature rendue autrement que 168×168/2,35 doit être ajouté au dict `PXU` de `pack.py`.
+- **Mer** : bloc « mer brillante (20/11) » dans le shader de l'eau (`rendu3d.js`) : reflets du ciel, scintillement doré, coupé en Économie.

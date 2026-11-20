@@ -41,5 +41,7 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | zombie | Cursed Undead Soldier Rig (b2e39de76b834d978adee5716aec814d), contrôles du squelette retirés, figé à l’image 5 de « Slash » (POSE=5 fige.py), --rotation 61 --hauteur 1.6 | SuperKapoo913 | CC BY 4.0 |
 | roc | Eagle Neutral Flying Pose (1d1ca28411b942038ee0a5bd66e11417), --rotation -60 --hauteur 2.4 | s8819296 | CC BY 4.0 |
 | loup | Black Wolf – Pale-Eyed Fierce Dark Predator (d14d5e0957f5450eb025a18635bb0d77), --rotation 61 --hauteur 1.3 | s8819296 | CC BY 4.0 |
+| pegase | mythical winged horse (ade90f9948bf4a09b600b11cf487375c), --rotation 61 --hauteur 2.2 | rakeshsingh.tce | CC BY 4.0 |
+| licorne | White Horse Free (ab8c0196f8994eb895be3bc7e4209521), pose figée (convert) + corne torsadée ajoutée dans Blender, --rotation 61 --hauteur 1.9 | kenchoo (corne : nous) | CC BY 4.0 |
 
 Remarques : les modèles à armature sortent souvent couchés ou minuscules ; figer la pose (convert dans Blender, ou fige.py) puis redresser. Le pont Blender du Mac ne doit pas servir à des aperçus (« look » rendu) : ils le bloquent plusieurs minutes. Les châteaux des 4 factions : `FORT_STYLE=bastion|horde|necropole|sylve` dans `outils/blender/imp_fort.py`.

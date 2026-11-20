@@ -189,3 +189,18 @@
 {"quand": "2026-11-20 09:29", "jeu": "outils", "etape": "verifier_outils --seulement gabarit (nouveau contrôle)", "commande": "python3 outils-communs/tests/verifier_outils.py --seulement gabarit|creature.py", "secondes": 10.6, "code": 0}
 {"quand": "2026-11-20 09:37", "jeu": "outils", "etape": "verifier_outils.py complet (gabarit quadrupède)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 432.3, "code": 0}
 {"quand": "2026-11-20 09:39", "jeu": "outils", "etape": "verifier_outils --seulement creature|gabarit (après relecture)", "commande": "python3 outils-communs/tests/verifier_outils.py --seulement gabarit|creature.py|chaîne Blender", "secondes": 22.2, "code": 0}
+{"quand": "2026-11-19 14:08", "jeu": "bannieres", "etape": "verif · Construction", "commande": "python3 bannieres/jeu/build.py", "secondes": 0.3, "code": 0}
+{"quand": "2026-11-19 14:09", "jeu": "bannieres", "etape": "verif · Parcours 6 jours carte 2D + sauvegarde", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/parcours.py 6", "secondes": 22.2, "code": 0}
+{"quand": "2026-11-19 14:09", "jeu": "bannieres", "etape": "verif · Scénarios siège, Graal, victoire", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/scen.py", "secondes": 14.7, "code": 0}
+{"quand": "2026-11-19 14:10", "jeu": "bannieres", "etape": "verif · Singe téléphone carte 2D", "commande": "V3D=0 python3 bannieres/outils/monkey.py 45 390 844 1", "secondes": 48.8, "code": 0}
+{"quand": "2026-11-19 14:10", "jeu": "bannieres", "etape": "verif · Page publiée hors ligne", "commande": "python3 bannieres/outils/hors_ligne.py", "secondes": 28.8, "code": 0}
+{"quand": "2026-11-19 14:28", "jeu": "bannieres", "etape": "verif · Construction", "commande": "python3 bannieres/jeu/build.py", "secondes": 0.2, "code": 0}
+{"quand": "2026-11-19 14:28", "jeu": "bannieres", "etape": "verif · Parcours 6 jours carte 2D + sauvegarde", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/parcours.py 6", "secondes": 17.5, "code": 0}
+{"quand": "2026-11-19 14:29", "jeu": "bannieres", "etape": "verif · Scénarios siège, Graal, victoire", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/scen.py", "secondes": 13.4, "code": 0}
+{"quand": "2026-11-19 14:29", "jeu": "bannieres", "etape": "verif · Singe téléphone carte 2D", "commande": "V3D=0 python3 bannieres/outils/monkey.py 45 390 844 1", "secondes": 48.2, "code": 0}
+{"quand": "2026-11-19 14:30", "jeu": "bannieres", "etape": "verif · Page publiée hors ligne", "commande": "python3 bannieres/outils/hors_ligne.py", "secondes": 17.7, "code": 0}
+{"quand": "2026-11-19 16:29", "jeu": "bannieres", "etape": "verif · Construction", "commande": "python3 bannieres/jeu/build.py", "secondes": 0.2, "code": 0}
+{"quand": "2026-11-19 16:29", "jeu": "bannieres", "etape": "verif · Parcours 6 jours carte 2D + sauvegarde", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/parcours.py 6", "secondes": 17.9, "code": 0}
+{"quand": "2026-11-19 16:30", "jeu": "bannieres", "etape": "verif · Scénarios siège, Graal, victoire", "commande": "ATELIER_PARAMS=v3d=0 python3 bannieres/outils/scen.py", "secondes": 13.6, "code": 0}
+{"quand": "2026-11-19 16:30", "jeu": "bannieres", "etape": "verif · Singe téléphone carte 2D", "commande": "V3D=0 python3 bannieres/outils/monkey.py 45 390 844 1", "secondes": 48.2, "code": 0}
+{"quand": "2026-11-19 16:31", "jeu": "bannieres", "etape": "verif · Page publiée hors ligne", "commande": "python3 bannieres/outils/hors_ligne.py", "secondes": 17.4, "code": 0}

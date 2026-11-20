@@ -1,0 +1,175 @@
+{
+ "jeu": "bannieres",
+ "date": "2026-11-20T08:25:22",
+ "plafond": false,
+ "tours": 2,
+ "cpu": null,
+ "duree_s": 150,
+ "charge": {
+  "debut": 0.19,
+  "fin": 1.04
+ },
+ "attente_verrou_s": 0,
+ "avant_rev": "arrivee 6740529",
+ "avant": {
+  "mac": {
+   "scenes": {
+    "carte": {
+     "fps": 2.15,
+     "bas1": 1.0,
+     "pire": 1001.65,
+     "ms": 464.8,
+     "med": 857.4,
+     "p95": 1001.65,
+     "n": 14.0,
+     "bruit": 0.9,
+     "valeurs": [
+      466.864,
+      462.729
+     ],
+     "infos": {
+      "calls": 113,
+      "tris": 73402,
+      "geo": 51,
+      "tex": 29
+     }
+    },
+    "carte_dezoom_tout_vu": {
+     "fps": 2.0,
+     "bas1": 0.95,
+     "pire": 1058.4,
+     "ms": 504.77,
+     "med": 963.15,
+     "p95": 1058.4,
+     "n": 13.0,
+     "bruit": 6.8,
+     "valeurs": [
+      487.514,
+      522.025
+     ],
+     "infos": {
+      "calls": 230,
+      "tris": 95748,
+      "geo": 87,
+      "tex": 38
+     }
+    },
+    "combat": {
+     "fps": 159.55,
+     "bas1": 99.9,
+     "pire": 16.0,
+     "ms": 6.41,
+     "med": 6.15,
+     "p95": 8.55,
+     "n": 120.0,
+     "bruit": 30.0,
+     "valeurs": [
+      5.449,
+      7.374
+     ]
+    }
+   },
+   "chronos": {},
+   "chargement_ms": 5478,
+   "erreurs": []
+  }
+ },
+ "apres": {
+  "mac": {
+   "scenes": {
+    "carte": {
+     "fps": 2.25,
+     "bas1": 1.05,
+     "pire": 939.45,
+     "ms": 446.25,
+     "med": 861.6,
+     "p95": 939.45,
+     "n": 14.0,
+     "bruit": 2.0,
+     "valeurs": [
+      441.786,
+      450.714
+     ],
+     "infos": {
+      "calls": 113,
+      "tris": 73402,
+      "geo": 51,
+      "tex": 29
+     }
+    },
+    "carte_dezoom_tout_vu": {
+     "fps": 1.95,
+     "bas1": 0.95,
+     "pire": 1059.7,
+     "ms": 503.57,
+     "med": 963.2,
+     "p95": 1059.7,
+     "n": 13.0,
+     "bruit": 6.2,
+     "valeurs": [
+      487.879,
+      519.267
+     ],
+     "infos": {
+      "calls": 230,
+      "tris": 95748,
+      "geo": 87,
+      "tex": 38
+     }
+    },
+    "combat": {
+     "fps": 157.15,
+     "bas1": 104.75,
+     "pire": 13.6,
+     "ms": 6.56,
+     "med": 6.25,
+     "p95": 8.75,
+     "n": 120.0,
+     "bruit": 34.2,
+     "valeurs": [
+      5.435,
+      7.677
+     ]
+    }
+   },
+   "chronos": {},
+   "chargement_ms": 4734,
+   "erreurs": []
+  }
+ },
+ "ecarts": [
+  {
+   "appareil": "mac",
+   "scene": "carte",
+   "avant_ms": 464.8,
+   "apres_ms": 446.25,
+   "ecart_pct": -4.0,
+   "bruit_pct": 2.0,
+   "avant_bas1": 1.0,
+   "apres_bas1": 1.05,
+   "verdict": "égal (bruit)"
+  },
+  {
+   "appareil": "mac",
+   "scene": "carte_dezoom_tout_vu",
+   "avant_ms": 504.77,
+   "apres_ms": 503.57,
+   "ecart_pct": -0.2,
+   "bruit_pct": 6.8,
+   "avant_bas1": 0.95,
+   "apres_bas1": 0.95,
+   "verdict": "égal (bruit)"
+  },
+  {
+   "appareil": "mac",
+   "scene": "combat",
+   "avant_ms": 6.41,
+   "apres_ms": 6.56,
+   "ecart_pct": 2.3,
+   "bruit_pct": 34.2,
+   "avant_bas1": 99.9,
+   "apres_bas1": 104.75,
+   "verdict": "égal (bruit)"
+  }
+ ]
+}

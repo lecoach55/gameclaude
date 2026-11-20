@@ -106,7 +106,18 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
   float ec=(1.-smoothstep(.0,.06+.05*nz,d))*smoothstep(.35,.7,nz2*.6+nz*.4+.15*sin(bsT*1.3+d*40.));
   diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.8,.78),ec*.75);diffuseColor.a=max(diffuseColor.a,ec*.85);}
 #endif
- }`);}});eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
+ }`).replace('#include <opaque_fragment>',`#include <opaque_fragment>
+#ifndef BS_LEGER
+ {// mer brillante (20/11) : reflets du ciel sur les faces des vagues tournées vers le soleil + scintillement doré du soleil bas (avant la brume et le brouillard)
+  float d=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).r,pr=smoothstep(.04,.35,d);
+  vec3 Vw=normalize(cameraPosition-vBsP),Nw=normalize((vec4(normal,0.)*viewMatrix).xyz);
+  float fr=pow(1.-clamp(dot(Nw,Vw),0.,1.),3.),w=dot(Nw.xz,vec2(-.86,.51))*6.;
+  gl_FragColor.rgb=mix(gl_FragColor.rgb,vec3(.33,.50,.66),clamp(.05+fr*.5+max(w,0.)*.28,0.,.45)*pr);
+  gl_FragColor.rgb*=1.-clamp(-w,0.,1.)*.22*pr;
+  float s1=texture2D(bsBr,vBsW*.83+vec2(bsT*.021,-bsT*.013)).r,s2=texture2D(bsBr,vBsW*1.91-vec2(bsT*.017,bsT*.026)).r;
+  float sc=smoothstep(.66,.79,s1*.5+s2*.5)*smoothstep(.0,.6,w+.3);
+  gl_FragColor.rgb+=vec3(1.,.70,.34)*sc*3.0*pr;}
+#endif`);}});eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
  const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint

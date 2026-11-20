@@ -6,7 +6,9 @@ D,OUT=sys.argv[1],sys.argv[2];FUSION='--fusion' in sys.argv
 # bêtes sculptées (quad.js) : couleurs déjà naturelles, pas de saturation ajoutée (revue artistique 16/11 : « plastique orange »)
 BETES={'loup','chevloup','roc','behemoth','centaure','griffon','pegase','licorne','treant'}
 ANIMS=['idle','atk','hit','die']
-PXU={'dragonvert':224/3.3,'dragonos':224/3.3,'wyverne':176/2.6}
+PXU={'dragonvert':224/3.3,'dragonos':224/3.3,'wyverne':176/2.6,
+     # cadre réel du rendu (fh/u) : béhémoth dressé Blender 224 px / 3,7 u (20/11) ; roc de quad.js 262 px / 4,2 u (était lu à 168/2,35 : 13 % trop petit)
+     'behemoth':224/3.7,'roc':262/4.2}
 def traiter(im,sat=1.4,lum=(.9,1.3)):
     im=im.convert('RGBA');r,g,b,a=im.split();rgb=Image.merge('RGB',(r,g,b))
     import numpy as np;A=np.asarray(a,dtype=np.float32)>40;L=np.asarray(rgb.convert('L'),dtype=np.float32)[A].mean()/255 if A.any() else .5

@@ -11,5 +11,9 @@ let k=0;window.grille=()=>{k++;for(const d of g.children)d.style.background=`hsl
 const f=document.getElementById('flou');for(let i=0;i<120;i++){const d=document.createElement('div');d.style.cssText=`position:absolute;left:${(i*97)%90}%;top:${(i*53)%90}%;width:200px;height:200px;border-radius:50%`;f.appendChild(d);}
 let p=0;window.peindre=()=>{p++;for(const d of f.children)d.style.background=`hsl(${(p*61+d.offsetLeft)%360},80%,50%)`;};
 if(location.search.includes('boucle')){const b=()=>{travail(4e5);requestAnimationFrame(b);};requestAnimationFrame(b);}  // jeu à boucle d'animation
+// secousses : machine chargée vue de la page, SANS hasard (contrôle du 20/11) : créneaux de 300 ms, chargés un sur deux (tâche de
+// 12 ms toutes les 9 ms) ; une paire vide/action tombe presque toujours dans un seul créneau, la médiane de tous les vides au milieu
+if(location.search.includes('secousses')){const now=window.__vraiNow||performance.now.bind(performance),t0=now();
+ setInterval(()=>{if(Math.floor((now()-t0)/300)%2){const e=now()+12;while(now()<e);}},9);}
 window.pret=1;
 </script></body>

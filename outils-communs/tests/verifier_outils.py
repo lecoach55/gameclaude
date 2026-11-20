@@ -1248,7 +1248,7 @@ def _():
     shutil.rmtree(env['BANC_VERROU'] + '.qui', ignore_errors=True)
 
 
-@controle('banc.py : scène « action » (jeux DOM/SVG : coût d\'un clic jusqu\'à l\'AFFICHAGE, dessin hors fil principal compris, vide déduit, plancher = JS), avant/après sensible au dessin, -h, réglages absents, dossier d\'une page à chemin absolu créé d\'office, pas d\'Infinity dans la sortie')
+@controle('banc.py : scène « action » (jeux DOM/SVG : coût d\'un clic jusqu\'à l\'AFFICHAGE, dessin hors fil principal compris, vide déduit par paire, plancher = JS ; machine chargée : répétitions en plus et incertitude), avant/après sensible au dessin, -h, réglages absents, dossier d\'une page à chemin absolu créé d\'office, pas d\'Infinity dans la sortie')
 def _():
     sb = os.path.join(OC, 'banc.py')
     for outil in ('banc.py', 'captures.py', 'verif.py'):  # avant le 18/11 : « -h » lu comme un fichier de réglages (FileNotFoundError)
@@ -1276,8 +1276,8 @@ def _():
         ri, tr, pe = r['rien'], r['travail'], r['peindre']
         if not all(x.get('action') for x in (ri, tr, pe)):
             raise RuntimeError('mesures action absentes : ' + json.dumps(r)[:300])
-        if ri['ms'] > 3:
-            raise RuntimeError(f"action vide : {ri['ms']} ms (le trajet vide n'est pas déduit)")
+        if ri['ms'] > (max(3, 2 * ri['incertitude_ms']) if ri.get('non_converge') else 3):  # 19/11 17:41 : 6,85 ms sous charge (vide déduit en bloc)
+            raise RuntimeError(f"action vide : {ri['ms']} ms (le trajet vide n'est pas déduit) : {ri}")
         if not (tr['js_ms'] > 5 and tr['ms'] >= 0.9 * tr['js_ms'] and tr['raster_ms'] < 0.5 * tr['ms']):
             raise RuntimeError(f"action JS : {tr}")
         if not (pe['ms'] > 6 and pe['ms'] > 4 * pe['js_ms'] and pe['js_ms'] < 5):  # presque pas de JS, beaucoup de dessin : compté
@@ -1289,8 +1289,26 @@ def _():
         json.dump(c2, open(reg, 'w'))
         run(sys.executable, sb, reg, sortie, timeout=120)
         r = json.load(open(sortie))['appareils']['ordinateur']['scenes']
-        if r['rien'].get('ms', 99) > 3 or 'sans fin' not in r['bloque'].get('erreur', ''):
+        rr = r['rien']
+        if rr.get('ms', 99) > (max(3, 2 * rr.get('incertitude_ms', 0)) if rr.get('non_converge') else 3) or 'sans fin' not in r['bloque'].get('erreur', ''):
             raise RuntimeError(f"boucle d'animation / action sans fin : {r}")
+        # machine chargée vue de la page, sans hasard (créneaux de 300 ms chargés un sur deux) : vide déduit PAR PAIRE (20/11 ; avant :
+        # médiane de tous les vides au milieu des deux créneaux → action vide 1,7-30 ms, 3 fois sur 5 > 3 ms), méthode notée
+        c3 = dict(cfg, parametres='?secousses=1', scenes=[{'nom': 'rien', 'action': '0', 'attente_ms': 0, 'repetitions': 6}])
+        json.dump(c3, open(reg, 'w'))
+        vus = []
+        for essai in range(2):   # 2e essai seulement si le plafond de répétitions est atteint sans converger (charge extrême)
+            run(sys.executable, sb, reg, sortie, timeout=180)
+            rs = json.load(open(sortie))['appareils']['ordinateur']['scenes']['rien']
+            vus.append(rs)
+            if rs.get('methode_action') != 2 or 'incertitude_ms' not in rs or rs.get('repetitions_faites', 0) < 6:
+                raise RuntimeError(f"secousses : champs de la méthode 2 absents : {rs}")
+            if rs['ms'] <= 3 or (rs.get('non_converge') and rs['ms'] <= 2 * rs['incertitude_ms'] and essai == 1):
+                break
+            if not rs.get('non_converge'):
+                raise RuntimeError(f"action vide sous secousses : {rs['ms']} ms (attendu ≤ 3, vide déduit par paire) : {rs}")
+        else:
+            raise RuntimeError(f"action vide sous secousses (2 essais) : {vus}")
         # avant/après : AVANT = même page sans flou, 4 disques au lieu de 120 (dessin léger) ; le dessin plus lourd doit être vu, l'action vide rester « égale »
         av = os.path.join(d, 'avant'); os.makedirs(av)
         open(os.path.join(av, 'p.html'), 'w').write(open(src).read().replace('filter:blur(30px) drop-shadow(0 0 40px #000)', '').replace('i<120', 'i<4'))
@@ -2020,6 +2038,63 @@ def _():
         run(py, os.path.join(BL, 'rendu_studio.py'), os.path.join(d, 'table.glb'), os.path.join(d, 'studio.png'), '64', '4', timeout=120)
         if Image.open(os.path.join(d, 'studio.png')).size != (64, 64):
             raise RuntimeError('rendu_studio.py : image absente ou mauvaise taille')
+
+
+
+@controle("blender/creature.py : créature sculptée d'après une recette (squelette + rayons) — GLB à squelette (os « .L » recopiés en « .R »), couleurs COLOR_0 vues au rendu, pièces hors de l'axe doublées, animations Idle/Attack/Death prises par planche_sprites (pas de remplacement) ; Icosphere des os ignorée (avant : modèle posé 1 u trop haut, « coupé ») ; recette fausse = code 2 avec le nom en cause")
+def _():
+    from PIL import Image, ImageChops, ImageStat
+    py = _bpy()
+    BL = os.path.join(OC, 'blender')
+    rec = {'peau': {'couleur': '#2a8a2a', 'fonce': '#1a5a1a', 'ventre': '#3a9a3a', 'relief': .01, 'subdivision': 1, 'triangles': 4000},
+           'os': [{'nom': 'bassin', 'tete': [0, 0, .5], 'queue': [0, 0, .8], 'r': [.25, .28]},
+                  {'nom': 'torse', 'parent': 'bassin', 'queue': [.1, 0, 1.2], 'r': .3},
+                  {'nom': 'tete', 'parent': 'torse', 'queue': [.4, 0, 1.3], 'r': [.16, .12]},
+                  {'nom': 'bras.L', 'parent': 'torse', 'tete': [.1, .3, 1.1], 'queue': [.15, .5, .6], 'r': [.12, .09]},
+                  {'nom': 'jambe.L', 'parent': 'bassin', 'tete': [0, .15, .5], 'queue': [0, .18, .05], 'r': [.14, .1]}],
+           'pieces': [{'forme': 'cone', 'os': 'tete', 'de': [.3, .08, 1.38], 'a': [.25, .18, 1.6], 'r': .04, 'couleur': '#d0c0a0', 'courbure': .4}],
+           'animations': {'Idle': {'duree': 1, 'cles': [{'t': 0}, {'t': .5, 'os': {'torse': {'tangage': -4}}}, {'t': 1}]},
+                          'Attack': {'duree': .8, 'cles': [{'t': 0}, {'t': .4, 'os': {'torse': {'tangage': 35}, 'bras.*': {'tangage': -100}},
+                                                                                 'deplacement': [.15, 0, 0]}, {'t': .8}]},
+                          'Death': {'duree': 1, 'cles': [{'t': 0}, {'t': 1, 'os': {'bassin': {'tangage': -85}}, 'deplacement': [0, 0, -.3]}]}}}
+    with tempfile.TemporaryDirectory() as d:
+        rj = os.path.join(d, 'r.json'); json.dump(rec, open(rj, 'w'))
+        glb = os.path.join(d, 'c.glb')
+        o = run(py, os.path.join(BL, 'creature.py'), rj, glb, timeout=180)
+        info = json.load(open(os.path.join(d, 'c.json')))
+        g = _glb_json(glb)
+        noms = sorted(a['name'] for a in g.get('animations', []))
+        joints = len(g['skins'][0]['joints']) if g.get('skins') else 0
+        if noms != ['Attack', 'Death', 'Idle'] or joints != 7 or info['pieces'] != 2 or not (1.3 < info['hauteur'] < 1.75):
+            raise RuntimeError(f"GLB : animations {noms}, {joints} os (attendu 7), {info['pieces']} pièces (attendu 2), hauteur {info['hauteur']} — {o[-200:]}")
+        if not all('COLOR_0' in pr['attributes'] for m in g['meshes'] for pr in m['primitives']):
+            raise RuntimeError('COLOR_0 absent')
+        (xa, ya, za), (xb, yb, zb) = info['pointes']   # corne recourbée et sa copie : pointes symétriques (avant : x opposés)
+        if not (abs(xa - xb) < .01 and abs(ya + yb) < .01 and abs(za - zb) < .01 and abs(ya) > .05):
+            raise RuntimeError(f"pièce recopiée non symétrique : {info['pointes']}")
+        out = os.path.join(d, 'spr')
+        o = run(py, os.path.join(BL, 'planche_sprites.py'), glb, out, '--id', 'c', '--format', '64x64', '--unites', '2.0',
+                '--poses', 'idle:1,atk:2,die:1', '--echantillons', '4', timeout=240)
+        ip = json.load(open(os.path.join(out, 'c.json')))
+        if ip['animations'] != {'idle': 'Idle', 'atk': 'Attack', 'die': 'Death'} or 'coupé' in o or abs(ip['hauteur'] - info['hauteur']) > .1:
+            raise RuntimeError(f"planche_sprites : {ip['animations']}, hauteur {ip['hauteur']} (créature {info['hauteur']}) — {o[-300:]}")
+        im = {n: Image.open(os.path.join(out, f'c_{n}.png')) for n in ('idle0', 'atk1', 'die0')}
+        r_, g_, b_ = ImageStat.Stat(im['idle0'].convert('RGB'), mask=im['idle0'].split()[3].point(lambda a: 255 if a > 200 else 0)).mean
+        if not (g_ > r_ * 1.2 and g_ > b_ * 1.2):
+            raise RuntimeError(f'couleurs de la recette perdues au rendu (vert attendu) : r {r_:.0f} v {g_:.0f} b {b_:.0f}')
+        if sum(ImageChops.difference(im['idle0'].split()[3], im['atk1'].split()[3]).histogram()[40:]) < 30:
+            raise RuntimeError('attaque identique au repos')
+        bi, bd = im['idle0'].split()[3].getbbox(), im['die0'].split()[3].getbbox()
+        if not (bd[3] - bd[1]) < (bi[3] - bi[1]) * .8:
+            raise RuntimeError(f'Death non couchée : {bd} contre {bi}')
+        for faute, mot in ((dict(rec, os=rec['os'] + [{'nom': 'x', 'parent': 'absent', 'queue': [0, 0, 1]}]), 'absent'),
+                           (dict(rec, animations={'Idle': {'cles': [{'t': 0, 'os': {'aile': {'tangage': 3}}}]}}), 'aile'),
+                           (dict(rec, animations={'Idle': {'cles': [{'t': 0, 'os': {'tete': {'pivot': 3}}}]}}), 'pivot'),
+                           (dict(rec, os=rec['os'] + [{'nom': 'jambe.R', 'parent': 'bassin', 'tete': [0, -.15, .5], 'queue': [0, -.18, .05]}]), 'jambe.R')):
+            json.dump(faute, open(rj, 'w'))
+            r = subprocess.run([py, os.path.join(BL, 'creature.py'), rj, glb], capture_output=True, text=True, timeout=120)
+            if r.returncode != 2 or mot not in r.stderr:
+                raise RuntimeError(f'recette fausse ({mot}) : code {r.returncode} {r.stderr[-200:]}')
 
 
 if '--reseau' in sys.argv:

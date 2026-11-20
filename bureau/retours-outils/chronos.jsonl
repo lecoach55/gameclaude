@@ -179,3 +179,4 @@
 {"quand": "2026-11-19 21:42", "jeu": "outils", "etape": "singe.py Bannières 2×120 s (téléphone + ordinateur 1280x800), images 1 pas 250", "commande": "python3 outils-communs/robots/singe.py bannieres/outils/singe.json --secondes 120 --sortie /tmp/claude-0/-home-claude-gameclaude/58c78925-0d7e-50c2-97da-eadea924b1fe/scratchpad/singe6", "secondes": 275.6, "code": 1}
 {"quand": "2026-11-19 22:02", "jeu": "outils", "etape": "verifier_outils.py complet (43 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 469.7, "code": 0}
 {"quand": "2026-11-19 22:17", "jeu": "outils", "etape": "verifier_outils.py complet après relecture (43 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 382.9, "code": 0}
+{"quand": "2026-11-20 01:58", "jeu": "outils", "etape": "verifier_outils.py complet (44 contrôles)", "commande": "python3 outils-communs/tests/verifier_outils.py", "secondes": 390.4, "code": 0}

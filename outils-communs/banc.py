@@ -52,6 +52,12 @@ Réglages (JSON ; chemins relatifs à la racine du dépôt ; toutes les clés sa
        attend 16 ms). Le même trajet SANS action (« vide ») est mesuré en alternance et déduit. Rend ms (affichage net, médiane ;
        c'est lui qu'on compare), js_ms, principal_ms (temps du fil principal : JS + styles + mise en page + peinture, compteurs
        Chromium), raster_ms ≈ ms − principal_ms (dessin hors fil principal : gros SVG, filtres), vide_ms, pire, p95.
+       Machine chargée (20/11) : chaque action est déduite du trajet vide de SA répétition (dérive annulée) ; si l'incertitude
+       dépasse max(1 ms, 10 % de l'action), répétitions en plus jusqu'à "repetitions_max" (défaut 3 × repetitions ; noté
+       repetitions_faites ; "non_converge": true si le plafond est atteint sans que l'incertitude baisse). Action vide sous charge :
+       3,4-6,9 ms → ≈ 0-2 ms. incertitude_ms = erreur type de la médiane des différences appariées : sous 2 × incertitude, l'action
+       ne se distingue pas de rien sur cette machine à cet instant. "methode_action": 2 (absent = mesure d'avant le 20/11 : vide
+       déduit en bloc, ms surestimé sous charge). Sous charge une scène action peut durer jusqu'à 3 × plus longtemps.
        Action ASYNCHRONE : l'écrire en fonction fléchée qui rend la promesse (« ()=>charger() ») : elle est attendue (attente_ms à part) ;
        en instructions, une promesse n'est pas attendue. "delai_s": 60 = abandon d'une action sans fin (la page reste en attente :
        "seule": true sur les scènes suivantes si besoin). Bruit plus fort qu'une image
@@ -458,6 +464,17 @@ ACTION_JS = """async([js,vide,fige])=>{const now=window.__vraiNow||performance.n
  await image();await image();return [t2-t0,t1-t0,att];}"""
 
 
+def incertitude(dif):
+    """Erreur type de la médiane des différences appariées (1,25 × écart robuste ÷ √n). Écart robuste = le plus grand de la MAD
+    et de l'écart interquartile ÷ 1,35 : en temps réel les durées tombent par paliers d'≈ 16,7 ms et la MAD seule peut valoir 0
+    alors qu'un tiers des paires sont décalées d'une image (relecture du 20/11)."""
+    if len(dif) < 2:
+        return 0.0
+    md = statistics.median(dif); t = sorted(dif); k = len(t)
+    iqr = t[min(k - 1, (3 * k) // 4)] - t[k // 4]
+    return 1.25 * max(1.4826 * statistics.median([abs(x - md) for x in dif]), iqr / 1.35) / k ** .5
+
+
 async def mesurer_action(ctx, pg, s, fige):
     """Répétitions alternées vide / action (même trajet) ; renvoie une mesure au format du banc (ms = affichage net médian)."""
     n = max(4, int(s.get('repetitions', 12)))
@@ -472,8 +489,17 @@ async def mesurer_action(ctx, pg, s, fige):
     delai = float(s.get('delai_s', 60))
     try:
         await pg.evaluate(ACTION_JS, [js, True, fige])  # chauffe (pixel créé, page au repos)
-        for i in range(n):
-            for vide in (True, False) if i % 2 == 0 else (False, True):  # ordre alterné : la dérive ne favorise ni l'un ni l'autre
+        # 20/11 : machine chargée (incertitude > max(1 ms, 10 %)) → répétitions en plus, par deux (ordre alterné gardé), jusqu'à 3 × n
+        n_max = max(n, int(s.get('repetitions_max', 3 * n))); n_max = n + 2 * ((n_max - n) // 2)
+        def bruyant():
+            if len(aff) < 4:
+                return False
+            dif = [max(x - w, j - wj) for x, w, j, wj in zip(aff, vaff, jsm, vjs)]
+            return incertitude(dif) > max(1.0, 0.1 * abs(statistics.median(dif)))
+        i = 0
+        while i < n or (i < n_max and ((i - n) % 2 == 1 or bruyant())):
+            i += 1
+            for vide in (True, False) if i % 2 == 1 else (False, True):  # ordre alterné : la dérive ne favorise ni l'un ni l'autre
                 a = await tache()
                 try:
                     r = await asyncio.wait_for(pg.evaluate(ACTION_JS, [js, vide, fige]), delai)
@@ -495,15 +521,22 @@ async def mesurer_action(ctx, pg, s, fige):
     # affichage net = attente d'affichage moins celle du trajet vide, jamais moins que le temps du JS + mise en page lui-même, moins
     # celui du trajet vide (l'image du jeu jouée à chaque fois : un jeu à boucle d'animation de 8 ms ne doit pas lire 8 ms pour une
     # action vide) ; sans ce plancher, une action longue « recouvre » l'attente de l'image : 102 ms de JS lus 90 ms (page factice)
-    net = sorted(max(0.0, x - v, j - vj) for x, j in zip(aff, jsm))
+    # 20/11 : différence APPARIÉE (action − trajet vide de la même répétition, mesurés l'un après l'autre) plutôt que − médiane de tous
+    # les vides : machine chargée (autre conversation, rendus Blender), les vides dérivent de 3 à 17 ms et une action vide lisait
+    # 3,4-6,9 ms au lieu de ≈ 0 (retour Outils 19/11 17:41) ; la dérive lente s'annule dans chaque paire
+    net = sorted(max(0.0, x - w, j - wj) for x, w, j, wj in zip(aff, vaff, jsm, vjs))
     q = lambda k: net[min(len(net) - 1, int(len(net) * k))]
     ms = med(net)
+    dif = [max(x - w, j - wj) for x, w, j, wj in zip(aff, vaff, jsm, vjs)]
+    incert = incertitude(dif)
+    converge = len(dif) < n_max or incert <= max(1.0, 0.1 * abs(med(dif)))
     princ = max(0.0, med(fil) - vf)
     attente = med(att)  # action asynchrone (« ()=>promesse ») : temps passé à attendre, ni JS ni dessin
     return {'ms': round(ms, 3), 'med': round(ms, 3), 'p95': round(q(.95), 2), 'pire': round(net[-1], 1), 'n': len(net),
             'fps': round(1000 / max(ms, 1e-3), 1), 'bas1': round(1000 / max(net[-1], 1e-3), 1), 'action': True,
             'js_ms': round(max(0.0, med([j - w for j, w in zip(jsm, att)]) - vj), 2), 'principal_ms': round(princ, 2), 'raster_ms': round(max(0.0, ms - princ - attente), 2),
-            'vide_ms': round(v, 2), **({'attente_ms': round(attente, 2)} if attente > 0.05 else {})}
+            'incertitude_ms': round(incert, 2), 'methode_action': 2, 'repetitions_faites': len(net), **({} if converge else {'non_converge': True}),
+            'vide_ms': round(v, 2), 'bruit_ms': round(1.4826 * med([abs(x - v) for x in vaff]), 2), **({'attente_ms': round(attente, 2)} if attente > 0.05 else {})}
 
 
 async def une_passe(nav, cfg, base, page, app_nom, app, scenes, cpu_force=None, au_fil=None, profil=None):
@@ -766,7 +799,7 @@ def resume_mesure(m):
     if 'erreur' in m:
         return 'ERREUR ' + m['erreur'][:80]
     if m.get('action'):
-        return (f"{m.get('ms', 0):7.2f} ms par action jusqu'à l'affichage (JS {m.get('js_ms')} · fil principal {m.get('principal_ms')}"
+        return (f"{m.get('ms', 0):7.2f} ms{' ± ' + format(m['incertitude_ms'], '.1f') if m.get('incertitude_ms', 0) >= 0.5 else ''} par action jusqu'à l'affichage (JS {m.get('js_ms')} · fil principal {m.get('principal_ms')}"
                 f" · dessin hors fil ≈ {m.get('raster_ms')}{' · attente ' + str(m['attente_ms']) if m.get('attente_ms') else ''} · pire {m.get('pire')} · vide déduit {m.get('vide_ms')})")
     t = f"{m.get('ms', 0):7.2f} ms/img  {m.get('fps', 0):6.1f} img/s  1 % bas {m.get('bas1', 0):6.1f}  pire {m.get('pire', 0):6.1f} ms"
     if m.get('pauses'):
@@ -903,7 +936,7 @@ def fusion(passes):
             if not ok:
                 sc[s] = vals[0]; continue
             m = {}
-            for k in ('fps', 'bas1', 'pire', 'ms', 'med', 'p95', 'n', 'js_ms', 'principal_ms', 'raster_ms', 'vide_ms'):
+            for k in ('fps', 'bas1', 'pire', 'ms', 'med', 'p95', 'n', 'js_ms', 'principal_ms', 'raster_ms', 'vide_ms', 'bruit_ms', 'incertitude_ms', 'repetitions_faites', 'methode_action'):
                 xs = [v[k] for v in ok if k in v]
                 if xs:
                     m[k] = round(statistics.median(xs), 2)
@@ -912,6 +945,8 @@ def fusion(passes):
             m['valeurs'] = [round(v['ms'], 3) if 'ms' in v else None for v in vals]  # temps moyen de chaque passe, dans l'ordre des tours
             if ok[0].get('action'):
                 m['action'] = True
+            if any(v.get('non_converge') for v in ok):
+                m['non_converge'] = True
             if ok[-1].get('note'):
                 m['note'] = ok[-1]['note']  # avant le 18/11 la note (« presque rien à chaque image… ») n'était qu'à l'écran
             if any(v.get('pauses') for v in ok):
@@ -981,6 +1016,8 @@ def ecarts(avant, apres, seuil):
             verdict = 'plus lent' if d > lim and meme_sens_lent else 'plus rapide' if d < -lim and meme_sens_rapide else 'égal (bruit)'
             e = {'appareil': an, 'scene': s, 'avant_ms': a['ms'], 'apres_ms': b['ms'], 'ecart_pct': round(d, 1), 'bruit_pct': bruit,
                  'avant_bas1': a.get('bas1'), 'apres_bas1': b.get('bas1'), 'verdict': verdict, **({'action': True} if b.get('action') else {})}
+            if b.get('action') and a.get('methode_action') != b.get('methode_action'):   # --comparer avec une sortie d'avant le 20/11
+                e['methode'] = 'différente (vide déduit en bloc d\'un côté : ms surestimé sous charge)'
             L.append(e)
             if verdict == 'plus lent':
                 alertes.append(e)
@@ -1043,7 +1080,7 @@ def tableau(L):
     for e in L:
         br = f"{e['bruit_pct']:.0f} %" if e.get('bruit_pct') is not None else '  -'
         pe = f"   (programmes compilés en jeu {e['programmes_en_jeu'][0]} → {e['programmes_en_jeu'][1]})" if e.get('programmes_en_jeu') else ''
-        t.append(f"{e['appareil']:10s} {e['scene'][:22]:22s} {e['avant_ms']:9.2f} {e['apres_ms']:9.2f} {e['ecart_pct']:+7.1f}% {br:>6s}  {e['verdict']}{' — DOUTEUX (robot hors verrou pendant la mesure)' if e.get('douteux') else ''}{pe}")
+        t.append(f"{e['appareil']:10s} {e['scene'][:22]:22s} {e['avant_ms']:9.2f} {e['apres_ms']:9.2f} {e['ecart_pct']:+7.1f}% {br:>6s}  {e['verdict']}{' — DOUTEUX (robot hors verrou pendant la mesure)' if e.get('douteux') else ''}{' — méthode action différente (sortie d avant le 20/11)' if e.get('methode') else ''}{pe}")
     if any(e.get('action') for e in L):
         t.append('(action = ms par action jusqu\'à l\'affichage, vide déduit)')
     if any(e['scene'].startswith('gel ') for e in L):

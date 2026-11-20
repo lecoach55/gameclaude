@@ -37,7 +37,12 @@ def importer(chemin):
     else:
         raise SystemExit(f'format non pris en charge : {ext} (glb, gltf, fbx, obj)')
     nouveaux = [o for o in bpy.data.objects if o not in avant]
-    return [o for o in nouveaux if o.type == 'MESH' and not o.hide_render]
+    # 20/11 : un GLB à squelette fait créer par l'importeur glTF une « Icosphere » (forme d'affichage des os, rayon 1, en 0) ;
+    # comptée comme maillage, elle posait le modèle 1 unité trop haut et le disait « coupé » (béhémoth 2,8 u lu 3,8 u)
+    formes = {pb.custom_shape for o in nouveaux if o.type == 'ARMATURE' for pb in o.pose.bones if pb.custom_shape}
+    for f in formes:
+        f.hide_render = True; f.hide_viewport = True; f['studio'] = 1
+    return [o for o in nouveaux if o.type == 'MESH' and not o.hide_render and o not in formes]
 
 
 def maillages(scene=None):

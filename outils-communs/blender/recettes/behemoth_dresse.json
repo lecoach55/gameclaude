@@ -1,0 +1,49 @@
+{
+ "nom": "behemoth",
+ "note": "Exemple : béhémoth DRESSÉ mi-ours mi-singe (décision de Victor 19/11, option B), regard +X, ≈ 2,8 u de haut. Point de départ à retoucher par l'équipe Bannières (proportions, couleurs, poses).",
+ "peau": {"couleur": "#4a3f34", "fonce": "#1c1712", "ventre": "#6b5a47", "taches": 0.4, "freq": 2.6,
+          "relief": 0.018, "relief_freq": 5, "poil": 0.012, "rugosite": 0.9, "subdivision": 2, "triangles": 30000},
+ "os": [
+  {"nom": "bassin", "tete": [0, 0, 1.0], "queue": [0.05, 0, 1.35], "r": [0.42, 0.48], "aplati": 0.9},
+  {"nom": "ventre", "parent": "bassin", "queue": [0.15, 0, 1.75], "r": [0.5, 0.56]},
+  {"nom": "poitrine", "parent": "ventre", "queue": [0.3, 0, 2.15], "r": [0.6, 0.46]},
+  {"nom": "cou", "parent": "poitrine", "queue": [0.52, 0, 2.3], "r": [0.34, 0.27]},
+  {"nom": "tete", "parent": "cou", "queue": [0.82, 0, 2.27], "r": [0.31, 0.21]},
+  {"nom": "machoire", "parent": "tete", "tete": [0.62, 0, 2.16], "queue": [0.88, 0, 2.1], "r": [0.17, 0.12], "couleur": "#2a221b", "melange": 0.6},
+  {"nom": "epaule.L", "parent": "poitrine", "tete": [0.25, 0.28, 2.08], "queue": [0.24, 0.66, 2.05], "r": [0.44, 0.34]},
+  {"nom": "bras.L", "parent": "epaule.L", "queue": [0.36, 0.84, 1.5], "r": [0.3, 0.24]},
+  {"nom": "avantbras.L", "parent": "bras.L", "queue": [0.52, 0.88, 0.9], "r": [0.25, 0.19]},
+  {"nom": "main.L", "parent": "avantbras.L", "queue": [0.64, 0.88, 0.5], "r": [0.19, 0.16], "couleur": "#241d17", "melange": 0.7},
+  {"nom": "cuisse.L", "parent": "bassin", "tete": [0.0, 0.27, 1.05], "queue": [0.1, 0.42, 0.6], "r": [0.34, 0.26]},
+  {"nom": "jambe.L", "parent": "cuisse.L", "queue": [0.0, 0.43, 0.2], "r": [0.24, 0.18]},
+  {"nom": "pied.L", "parent": "jambe.L", "queue": [0.3, 0.45, 0.1], "r": [0.18, 0.13], "couleur": "#241d17", "melange": 0.7},
+  {"nom": "queue", "parent": "bassin", "tete": [-0.3, 0, 1.15], "queue": [-0.7, 0, 0.85], "r": [0.12, 0.04]}
+ ],
+ "pieces": [
+  {"forme": "cone", "os": "tete", "de": [0.64, 0.14, 2.4], "a": [0.52, 0.34, 2.78], "r": 0.075, "courbure": 0.35, "couleur": "#6a5e4c", "rugosite": 0.5},
+  {"forme": "sphere", "os": "tete", "de": [0.86, 0.1, 2.31], "r": 0.035, "couleur": "#c83a10", "rugosite": 0.25},
+  {"forme": "cone", "os": "machoire", "de": [0.84, 0.08, 2.12], "a": [0.86, 0.08, 2.24], "r": 0.025, "couleur": "#d8cdb4", "rugosite": 0.4},
+  {"forme": "cone", "os": "main.L", "de": [0.68, 0.8, 0.5], "a": [0.82, 0.8, 0.36], "r": 0.035, "couleur": "#151210", "rugosite": 0.4},
+  {"forme": "cone", "os": "main.L", "de": [0.7, 0.88, 0.49], "a": [0.85, 0.88, 0.34], "r": 0.035, "couleur": "#151210", "rugosite": 0.4},
+  {"forme": "cone", "os": "main.L", "de": [0.68, 0.96, 0.5], "a": [0.82, 0.96, 0.36], "r": 0.035, "couleur": "#151210", "rugosite": 0.4}
+ ],
+ "animations": {
+  "Idle": {"duree": 1.6, "cles": [
+    {"t": 0, "os": {"poitrine": {"tangage": 0}, "bras.*": {"roulis": 0}}},
+    {"t": 0.8, "os": {"poitrine": {"tangage": -3}, "tete": {"lacet": 6}, "bras.*": {"roulis": -4}}, "deplacement": [0, 0, 0.02]},
+    {"t": 1.6, "os": {"poitrine": {"tangage": 0}, "bras.*": {"roulis": 0}}}]},
+  "Attack": {"duree": 1.0, "cles": [
+    {"t": 0},
+    {"t": 0.35, "os": {"poitrine": {"tangage": -14}, "tete": {"tangage": -10}, "bras.*": {"tangage": -110, "roulis": -10}, "avantbras.*": {"tangage": -30}}, "deplacement": [-0.06, 0, 0.03]},
+    {"t": 0.55, "os": {"poitrine": {"tangage": 22}, "tete": {"tangage": 8}, "bras.*": {"tangage": -45}, "avantbras.*": {"tangage": -5}}, "deplacement": [0.18, 0, -0.06]},
+    {"t": 1.0}]},
+  "Hit": {"duree": 0.6, "cles": [
+    {"t": 0},
+    {"t": 0.15, "os": {"poitrine": {"tangage": -12}, "tete": {"tangage": -15, "lacet": 10}, "bras.*": {"tangage": 15}}, "deplacement": [-0.1, 0, 0]},
+    {"t": 0.6}]},
+  "Death": {"duree": 1.2, "cles": [
+    {"t": 0},
+    {"t": 0.45, "os": {"cuisse.*": {"tangage": -35}, "jambe.*": {"tangage": 50}, "poitrine": {"tangage": 15}}, "deplacement": [0, 0, -0.35]},
+    {"t": 1.2, "os": {"bassin": {"tangage": -80}, "cuisse.*": {"tangage": 30}, "bras.*": {"roulis": -35, "tangage": -40}, "tete": {"lacet": 25}}, "deplacement": [0.15, 0, -0.6]}]}
+ }
+}

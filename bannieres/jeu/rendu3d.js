@@ -316,10 +316,10 @@ function fusionner(gr,garder=o=>false){gr.updateMatrixWorld(true);const lots=new
  for(const o of hors){const wm=new T.Matrix4().multiplyMatrices(inv,o.matrixWorld);o.parent.remove(o);wm.decompose(o.position,o.quaternion,o.scale);out.add(o);}
  return out;}
 // fort de la carte rendu dans Blender (Poly Haven modular_fort_01, CC0 ; outils/blender/imp_fort.py) : pied = avant du fort
-const FORT={bastion:{w:673,h:526,px:289,py:495.6,ppm:18.758,haut:8.37,larg:28.24}};
-function fortImp(fac){const me=FORT[fac],tx=RES.fort&&RES.fort[fac];if(!me||!tx)return null;const s=3.1/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
+const FORT={bastion:{w:526,h:751,px:263,py:731.7,ppm:14.709,haut:54.79,larg:35.62}};
+function fortImp(fac){const me=FORT[fac],tx=RES.fort&&RES.fort[fac];if(!me||!tx)return null;const s=3.3/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
  const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);
- const m=brume(new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false}),{cle:'fort'});const o=new T.Mesh(g,m);o.quaternion.setFromEuler(new T.Euler(-C3.tang*.75,0,0));o.position.set(0,0,15*s-.35);o.castShadow=false;o.renderOrder=1;return o;}
+ const m=brume(new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false}),{cle:'fort'});const o=new T.Mesh(g,m);o.quaternion.setFromEuler(new T.Euler(-C3.tang*.75,0,0));o.position.set(0,0,17*s-.45);o.castShadow=false;o.renderOrder=1;return o;}
 function villeMesh(v,carte){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const P=PM;
  if(v.fac==='horde'||v.fac==='sylve'){const bois=v.fac==='horde'?0x7a5228:0x8a6238;
   for(let k=0;k<26&&v.fac==='horde';k++){const a=k/26*Math.PI*2;if(Math.abs(a-Math.PI/2)<.3)continue;bloc(gr,CYL,bois,PB,[Math.cos(a)*1.25,.28,Math.sin(a)*.95],null,[.09,.56+(k%2)*.08,.09]);bloc(gr,CONE,bois,PB,[Math.cos(a)*1.25,.62,Math.sin(a)*.95],null,[.09,.12,.09]);}
@@ -343,7 +343,7 @@ function villeMesh(v,carte){const gr=new T.Group();const F=FAC[v.fac].coul;const
   bloc(gr,GBOX,0xb8b0a0,PV,[0,.015,.3],null,[2.1,.03,1.0]);
   for(const [x,z,w] of [[.75,.35,.36],[-.78,.4,.32]]){const h0=new T.Group();h0.position.set(x,0,z);h0.scale.setScalar(.55);colombage(h0,w*1.6,w*1.2,w*1.1,toit,nuit,nuit?PA2:PTU);gr.add(h0);}
   if(nuit)bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[-.05,2.6,-.25],null,[.12,.12,.12]);}
- const drap=drapeauMesh(gr,carte&&FORT[v.fac]&&RES.fort?.78:0,carte&&FORT[v.fac]&&RES.fort?1.45:v.fac==='horde'||v.fac==='sylve'?2.0:2.5,carte&&FORT[v.fac]&&RES.fort?1.5:-.25,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
+ const drap=drapeauMesh(gr,carte&&FORT[v.fac]&&RES.fort?.06:0,carte&&FORT[v.fac]&&RES.fort?3.15:v.fac==='horde'||v.fac==='sylve'?2.0:2.5,carte&&FORT[v.fac]&&RES.fort?-.35:-.25,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
  const out=fusionner(gr,o=>o===drap);out.scale.setScalar(.95);out.userData.drap=drap;return out;}
 function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.25,o.id);const col={or:0x8a7a5a,minerai:0x7a7670,mercure:0x6a7078,soufre:0x8a7a40,cristal:0x6a5a6a,gemmes:0x5a6a6a,bois:0x6a5a3a}[o.res];
  if(o.res==='bois'){const h0=new T.Group();h0.position.set(-.05,0,-.12);colombage(h0,.8,.5,.36,0x8a7a5a,false,PC);gr.add(h0);bloc(gr,GBOX,0x4a3424,PP,[.5,.2,0],null,[.04,.4,.04]);for(let k=0;k<3;k++)bloc(gr,CYL,0xa87a48,PB,[-.25+k*.15,.08+k%2*.06,.35],[0,0,Math.PI/2],[.12,.5,.12]);

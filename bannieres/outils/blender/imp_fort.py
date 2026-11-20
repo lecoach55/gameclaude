@@ -3,7 +3,8 @@ Usage : /home/claude/bpyenv/bin/python imp_fort.py <dossier_modeles_polyhaven> <
 Même convention que outils/studio3d/imposteur.py (vue 'h' = 52°, caméra au sud, soleil = AMB.dir de rendu3d.js).
 Écrit aussi <sortie>.json : w, h, px, py (pied), ppm, haut, larg.
 """
-import bpy, math, sys, json, mathutils
+import bpy, math, sys, json, mathutils, os
+from mathutils import Vector
 from bpy_extras.object_utils import world_to_camera_view
 M, OUT = sys.argv[-2], sys.argv[-1]
 bpy.ops.wm.read_homefile(use_empty=True); sc = bpy.context.scene
@@ -19,15 +20,49 @@ def caler(o, x, y):
 def pl(src, x, y, rz=0, s=1): o = place(src, rz, s); caler(o, x, y); return o
 def plw(x, y, rz, long): o = place(W, rz, 1); o.scale = (.75, long / 14.6, .75); caler(o, x, y); return o
 T = F['modular_fort_01_tower_round']; W = F['modular_fort_01_wall_thick_straight_01']; G = F['modular_fort_01_wall_thin_gate_01']
-for x, y in [(-10, -10), (10, -10), (-10, 10), (10, 10)]: pl(T, x, y, 0, .52)
+TX = os.path.dirname(M.rstrip('/'))
+def matimg(nom, f, nf=None, ech=1.0, teinte=None):
+    m = bpy.data.materials.new(nom); m.use_nodes = True; N = m.node_tree.nodes; L = m.node_tree.links; b = N['Principled BSDF']
+    tc = N.new('ShaderNodeTexCoord'); mp = N.new('ShaderNodeMapping'); mp.inputs['Scale'].default_value = (ech, ech, ech); L.new(tc.outputs['Object'], mp.inputs[0])
+    t = N.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(f); t.projection = 'BOX'; t.projection_blend = .3; L.new(mp.outputs[0], t.inputs[0])
+    if teinte:
+        hs = N.new('ShaderNodeMixRGB'); hs.blend_type = 'MULTIPLY'; hs.inputs[0].default_value = 1; hs.inputs[2].default_value = teinte; L.new(t.outputs[0], hs.inputs[1]); L.new(hs.outputs[0], b.inputs['Base Color'])
+    else: L.new(t.outputs[0], b.inputs['Base Color'])
+    if nf:
+        n = N.new('ShaderNodeTexImage'); n.image = bpy.data.images.load(nf); n.image.colorspace_settings.name = 'Non-Color'; n.projection = 'BOX'; L.new(mp.outputs[0], n.inputs[0])
+        nm = N.new('ShaderNodeNormalMap'); L.new(n.outputs[0], nm.inputs['Color']); L.new(nm.outputs[0], b.inputs['Normal'])
+    b.inputs['Roughness'].default_value = .85; return m
+ARD = matimg('ardoise', f'{TX}/roof_slates_02_Diffuse.jpg', f'{TX}/roof_slates_02_nor_gl.jpg', .5, (.55, .65, .95, 1))
+ROC = matimg('roc', f'{TX}/rocky_terrain_02_Diffuse.jpg', f'{TX}/rocky_terrain_02_nor_gl.jpg', .12)
+# butte rocheuse
+from mathutils import noise
+bpy.ops.mesh.primitive_uv_sphere_add(segments=96, ring_count=48, radius=1); bt = bpy.context.object
+for v in bt.data.vertices:
+    x, y, z = v.co; r = 17 + 3 * noise.noise(Vector((x * 2, y * 2, z * 2)))
+    v.co = Vector((x * r, y * r * .95, max(-1, z) * 7 + 2.2 * noise.fractal(Vector((x * 3, y * 3, z * 3)), .6, 2, 4)))
+    if v.co.z > 5.2: v.co.z = 5.2 + (v.co.z - 5.2) * .15
+bt.data.materials.append(ROC); bpy.ops.object.shade_smooth()
+FZ = 5.4
+def pl(src, x, y, rz=0, s=1, sz=None):
+    o = place(src, rz, s)
+    if sz: o.scale = (s, s, sz)
+    caler(o, x, y); o.location.z += FZ; return o
+def plw(x, y, rz, long): o = place(W, rz, 1); o.scale = (.75, long / 14.6, .75); caler(o, x, y); o.location.z += FZ; return o
+def toit(x, y, ztop, r, h):
+    bpy.ops.mesh.primitive_cone_add(vertices=32, radius1=r, depth=h, location=(x, y, ztop + h / 2)); c = bpy.context.object; c.data.materials.append(ARD)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=r * .06, depth=h * .35, location=(x, y, ztop + h + h * .17)); bpy.context.object.data.materials.append(ARD)
+def tour(x, y, s, sz):
+    o = pl(T, x, y, 0, s, sz); bpy.context.view_layer.update(); bb = [o.matrix_world @ Vector(c) for c in o.bound_box]
+    r = (max(v.x for v in bb) - min(v.x for v in bb)) / 2; zt = max(v.z for v in bb); toit(x, y, zt - .2, r * .9, r * 3.2)
+for x, y in [(-10, -10), (10, -10), (-10, 10), (10, 10)]: tour(x, y, .52, .52 * 2.1)
 plw(-10, 0, 0, 12.5); plw(10, 0, 0, 12.5); plw(0, 10, math.pi / 2, 12.5)
 plw(-6.1, -10, math.pi / 2, 4.2); plw(6.1, -10, math.pi / 2, 4.2); pl(G, 0, -10, math.pi / 2, .75)
-pl(T, 0, 2, 0, .62)
+tour(0, 3, .62, .62 * 3.4); tour(-4.5, 6, .3, .3 * 4.6); tour(5, 5.5, .32, .32 * 4.0)
 bpy.context.view_layer.update()
 pts = [o.matrix_world @ mathutils.Vector(c) for o in sc.objects if o.type == 'MESH' for c in o.bound_box]
 haut = max(p.z for p in pts); larg = max(p.x for p in pts) - min(p.x for p in pts)
 # sol attrape-ombre (ombre de contact cuite dans l'image)
-bpy.ops.mesh.primitive_plane_add(size=80); bpy.context.object.is_shadow_catcher = True
+
 # lumière : AMB.dir three (-.75,.62,.45) -> blender (x, -z, y)
 d = mathutils.Vector((-.75, -.45, .62)).normalized()
 ld = bpy.data.lights.new('soleil', 'SUN'); ld.energy = 4.5; ld.color = (1, .89, .75); ld.angle = math.radians(3)
@@ -35,14 +70,14 @@ lo = bpy.data.objects.new('soleil', ld); lo.rotation_euler = (-d).to_track_quat(
 w = bpy.data.worlds.new('w'); sc.world = w; w.use_nodes = True
 bg = w.node_tree.nodes['Background']; bg.inputs[0].default_value = (.62, .72, .9, 1); bg.inputs[1].default_value = .55
 # caméra orthographique à 52° depuis le sud
-el = math.radians(52); cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = larg * 1.45
+el = math.radians(52); cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = max(larg, haut * 1.05) * 1.3
 cam = bpy.data.objects.new('c', cd); sc.collection.objects.link(cam); sc.camera = cam
 cam.location = (0, -100 * math.cos(el), 100 * math.sin(el) + haut * .35); cam.rotation_euler = (math.pi / 2 - el, 0, 0)
-R = 768; sc.render.resolution_x = sc.render.resolution_y = R
+R = 1100; sc.render.resolution_x = sc.render.resolution_y = R
 sc.render.engine = 'CYCLES'; sc.cycles.samples = 64; sc.cycles.use_denoising = True; sc.render.film_transparent = True
 sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Base Contrast'
 png = OUT.rsplit('.', 1)[0] + '_brut.png'; sc.render.filepath = png; bpy.ops.render.render(write_still=True)
-p = world_to_camera_view(sc, cam, mathutils.Vector((0, -15, 0)))
+p = world_to_camera_view(sc, cam, mathutils.Vector((0, -17, 0)))
 from PIL import Image
 im = Image.open(png).convert('RGBA'); bb = im.getchannel('A').point(lambda v: 255 if v > 10 else 0).getbbox(); im = im.crop(bb)
 px, py = p.x * R - bb[0], (1 - p.y) * R - bb[1]

@@ -65,3 +65,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 | moulin | Windmill (92f751dab03e4a2792348a21b3673ec1), sol retiré, −30° | BlueHour | CC BY 4.0 |
 | mines (sauf scierie) | Abandoned Mine Entrance Portal (3610d41ccd0e4b8e834ec73cb61a70f6), 0° | s8819296 | CC BY 4.0 |
 | écurie | maison de pierre de DoniTodorov, 35° | DoniTodorov | CC BY 4.0 |
+| tour de guet | Octagonal Medieval Stone Tower (b6d6934d02c44b01bf3cf1b0b3f2a994), 0° | Sereib | CC BY 4.0 |

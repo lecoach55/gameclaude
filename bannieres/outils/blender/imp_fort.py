@@ -1,4 +1,5 @@
 """Imposteur du fort de la carte (Bastion), rendu dans Blender (Cycles) à partir de Poly Haven modular_fort_01 (CC0).
+# FORT_ELEV : 52° (carte, défaut) ou ~8° (vue de la ville) ; FORT_R : résolution ; FORT_STYLE : bastion|horde|necropole|sylve
 Usage : /home/claude/bpyenv/bin/python imp_fort.py <dossier_modeles_polyhaven> <sortie.webp>
 Même convention que outils/studio3d/imposteur.py (vue 'h' = 52°, caméra au sud, soleil = AMB.dir de rendu3d.js).
 Écrit aussi <sortie>.json : w, h, px, py (pied), ppm, haut, larg.
@@ -94,10 +95,10 @@ lo = bpy.data.objects.new('soleil', ld); lo.rotation_euler = (-d).to_track_quat(
 w = bpy.data.worlds.new('w'); sc.world = w; w.use_nodes = True
 bg = w.node_tree.nodes['Background']; bg.inputs[0].default_value = (.62, .72, .9, 1); bg.inputs[1].default_value = .55
 # caméra orthographique à 52° depuis le sud
-el = math.radians(52); cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = max(larg, haut * 1.05) * 1.3
+el = math.radians(float(os.environ.get('FORT_ELEV', '52'))); cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = max(larg, haut * 1.05) * 1.3
 cam = bpy.data.objects.new('c', cd); sc.collection.objects.link(cam); sc.camera = cam
 cam.location = (0, -100 * math.cos(el), 100 * math.sin(el) + haut * .35); cam.rotation_euler = (math.pi / 2 - el, 0, 0)
-R = 1100; sc.render.resolution_x = sc.render.resolution_y = R
+R = int(os.environ.get('FORT_R', '1100')); sc.render.resolution_x = sc.render.resolution_y = R
 sc.render.engine = 'CYCLES'; sc.cycles.samples = 64; sc.cycles.use_denoising = True; sc.render.film_transparent = True
 sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Base Contrast'
 png = OUT.rsplit('.', 1)[0] + '_brut.png'; sc.render.filepath = png; bpy.ops.render.render(write_still=True)

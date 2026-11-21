@@ -13,6 +13,8 @@ def imp(f):
         if o.data.shape_keys: o.shape_key_clear()
         o.select_set(True)
     bpy.context.view_layer.objects.active=ms[0];bpy.ops.object.convert(target='MESH')
+    for o in [o for o in bpy.data.objects if o not in av and o.type=='MESH']:
+        mw=o.matrix_world.copy();o.parent=None;o.matrix_world=mw
     for o in [o for o in nv if o.name in bpy.data.objects and (o.type!='MESH' or o.name.startswith('Icosphere'))]: bpy.data.objects.remove(o)
     for a in list(bpy.data.actions): bpy.data.actions.remove(a)
     ms=[o for o in bpy.data.objects if o in nv or o.name not in [x.name for x in av]]
@@ -25,9 +27,9 @@ print('loup',lmn,lmx)
 G,gmn,gmx=imp(gob)
 print('gob',gmn,gmx)
 # gobelin : hauteur = 0.75 × hauteur du loup, posé au milieu du dos, enfoncé jusqu'aux hanches
-hl=lmx.z-lmn.z;hg=gmx.z-gmn.z;k=hl*.8/hg
+hl=lmx.z-lmn.z;hg=gmx.z-gmn.z;k=hl*1.0/hg
 cx=(gmn.x+gmx.x)/2;cy=(gmn.y+gmx.y)/2
 yd=lmn.y+(lmx.y-lmn.y)*float(sys.argv[-4])
-M=mathutils.Matrix.Translation((0,yd,lmn.z+hl*.55))@mathutils.Matrix.Rotation(math.radians(float(sys.argv[-5])),4,'Z')@mathutils.Matrix.Scale(k,4)@mathutils.Matrix.Translation((-cx,-cy,-gmn.z))
+M=mathutils.Matrix.Translation((0,yd,lmn.z+hl*.72))@mathutils.Matrix.Rotation(math.radians(float(sys.argv[-5])),4,'Z')@mathutils.Matrix.Scale(k,4)@mathutils.Matrix.Translation((-cx,-cy,-gmn.z))
 for o in G:o.matrix_world=M@o.matrix_world
 bpy.ops.export_scene.gltf(filepath=dst)

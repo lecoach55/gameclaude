@@ -43,5 +43,7 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | loup | Black Wolf – Pale-Eyed Fierce Dark Predator (d14d5e0957f5450eb025a18635bb0d77), --rotation 61 --hauteur 1.3 | s8819296 | CC BY 4.0 |
 | pegase | mythical winged horse (ade90f9948bf4a09b600b11cf487375c), --rotation 61 --hauteur 2.2 | rakeshsingh.tce | CC BY 4.0 |
 | licorne | White Horse Free (ab8c0196f8994eb895be3bc7e4209521), pose figée (convert) + corne torsadée ajoutée dans Blender, --rotation 61 --hauteur 1.9 | kenchoo (corne : nous) | CC BY 4.0 |
+| behemoth | Behemoth (b8675a25e9134ce5b82a6a61e94fd0e7), --rotation 61 --hauteur 2.4 | Vasian-Digital3D | CC BY 4.0 |
+| chevloup | loup noir (s8819296) + gobelin (Batuhan13) assemblés par outils/blender/compose_cavalier.py -90 0.45, --rotation 61 --hauteur 1.7 | s8819296, Batuhan13 | CC BY 4.0 |
 
 Remarques : les modèles à armature sortent souvent couchés ou minuscules ; figer la pose (convert dans Blender, ou fige.py) puis redresser. Le pont Blender du Mac ne doit pas servir à des aperçus (« look » rendu) : ils le bloquent plusieurs minutes. Les châteaux des 4 factions : `FORT_STYLE=bastion|horde|necropole|sylve` dans `outils/blender/imp_fort.py`.

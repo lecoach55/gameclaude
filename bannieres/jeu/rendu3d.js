@@ -50,6 +50,7 @@ let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
   const H0=Math.pow(2,Math.ceil(Math.log2(y+lh+2)));const c=mkC(W,H0),g=c.getContext('2d');ks.forEach((k,j)=>{if(ims[j]&&pos[k])g.drawImage(ims[j],pos[k][0],pos[k][1]);});
   const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;const rect={};for(const k in pos){const [px,py,w,h]=pos[k];rect[k]=[px/W,1-(py+h)/H0,w/W,h/H0];}
   (RES.atlas=RES.atlas||{})[vue]={tex:t,rect,canvas:c,pos};}}
+ RES.fortV={};for(const f of ['bastion','horde','necro','sylve']){const im=await chargerImg(srcRes('i3-fortv_'+f,'imp/fortv_'+f+'.webp'));if(im)RES.fortV[f]=im;}
  RES.fort={};for(const f of ['bastion','horde','necro','sylve']){const im=await chargerImg(srcRes('i3-fort_'+f+'_h','imp/fort_'+f+'_h.webp'));if(im){const t=new T.Texture(im);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.needsUpdate=true;RES.fort[f]=t;}}
  RES.pret=true;})();return RESP;}
 chargerRes();
@@ -571,11 +572,17 @@ A.fondCombat=abri(A.fondCombat);
 const PRISME=(()=>{const g=new T.CylinderGeometry(.5,.5,1,3,1);g.rotateZ(Math.PI/2);g.rotateX(Math.PI/6);g.translate(0,.25,0);g.scale(1,1.15,1);return g;})();// toit à deux pans (axe x)
 function fenetres(gr,n,larg,y,z,coul,nuit){for(let k=0;k<n;k++)bloc(gr,BOX,coul,{em:nuit?0xffb040:0xffd890,ei:nuit?2.2:.5},[(k-(n-1)/2)*larg/n,y,z],null,[larg/n*.4,larg/n*.55,.04]);}
 function maison(gr,w,h,mur,toit,P,nuit,porte=true,PR=PT){bloc(gr,BOX,mur,P,[0,h/2,0],null,[w,h,w*.75]);bloc(gr,PRISME,toit,PR,[0,h,0],null,[w*1.12,w*.6,w*.92]);fenetres(gr,2,w*.8,h*.62,w*.38,0xffd87a,nuit);if(porte)bloc(gr,BOX,0x3a2412,PB,[0,h*.22,w*.38],null,[w*.22,h*.44,.04]);}
+// château de la ville rendu dans Blender, vu presque de face (outils/blender/imp_fort.py, FORT_ELEV=8) : un panneau face à la caméra, cliquable par sa silhouette
+const FORTV={bastion:{w:668,h:1175,px:334.0,py:1068.8,ppm:18.721},horde:{w:850,h:1219,px:425.0,py:1083.8,ppm:23.809},necro:{w:524,h:1142,px:262.0,py:1058.2,ppm:14.691},sylve:{w:912,h:1187,px:441.0,py:1073.2,ppm:20.18}};function fortVue(fac,L,n,nuit){const me=FORTV[fac],im=RES.fortV&&RES.fortV[fac];if(!me||!im)return null;const s=Math.min(L*(.62+.06*n)/35.62,(13+1.6*n)/((FORT[fac]&&FORT[fac].haut)||55));const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
+ const tx=new T.Texture(im);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=4;tx.needsUpdate=true;const sv=mkC(im.width,im.height),sg=sv.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,sv.width,sv.height);const st=new T.CanvasTexture(sv);
+ const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);const m=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xb0b0c8:0xffffff});
+ const o=new T.Mesh(g,m);o.userData.face=1;o.userData.sil=st;o.castShadow=false;return o;}
 function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?0x7c7684:v.fac==='horde'?0xc8b490:0xf0eae0;const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex();let toit=toitNat(F.toit);const fac=v.fac;const bois=fac==='horde'?0x8a6238:0x9a7448;
  if(b==='fort'||b==='citadelle'||b==='chateau'){const n=b==='chateau'?3:b==='citadelle'?2:1;const L=u;// u = largeur des remparts
+  const fi=fortVue(fac,L,n,nuit);// château Blender au centre, enceinte et tours de façade construites autour (21/11)
   if(fac==='horde'){for(let x=-L/2;x<=L/2;x+=.45){bloc(gr,CYL,0x7a5228,PB,[x,1.1,0],null,[.4,2.2+(Math.abs(x*7)%3)*.15,.4]);bloc(gr,CONE,0x7a5228,PB,[x,2.4,0],null,[.4,.5,.4]);}
    for(let k=0;k<=n;k++){const x=-L/2+L*k/n;bloc(gr,BOX,0x8a6238,PB,[x,2.2,0],null,[1.3,4.4+n*.4,1.3]);bloc(gr,CONE4,0xc9a050,PC,[x,4.4+n*.4+.7,0],[0,Math.PI/4,0],[2.2,1.5,2.2]);for(const s of [-1,1])bloc(gr,CONE,0xe8dcc4,{},[x+s*.5,5.4+n*.4,0],[0,0,-s*.5],[.15,1.2,.15]);}
-   bloc(gr,BOX,0x3a2412,PB,[0,1,.3],null,[2,2,.2]);return gr;}
+   bloc(gr,BOX,0x3a2412,PB,[0,1,.3],null,[2,2,.2]);if(fi){fi.position.set(0,0,-4.5);gr.add(fi);}return gr;}
   const forme=fac==='necro'||fac==='sylve'?'fleche':'cone';const ht=2.4+n*.3;const D=7+n;
   if(fac==='sylve'){toit=0x5e8c70;// cuivre vert-de-grisé
    if(RES.atlas)for(const [x,z,h,nm] of [[-L*.28,-D-2.5,13+n*2,'feuillu_a'],[L*.3,-D-3,12+n*2,'feuillu_b'],[0,-D-5,16+n*2.5,'feuillu_a']]){const o=planImp('b',nm,h,x>0,null);if(o){o.position.set(x,0,z);o.userData.face=1;gr.add(o);}}}
@@ -584,10 +591,10 @@ function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?
   porteF(gr,0,0,3.2,ht*.95,mur,toit,forme,P);
   for(let k=0;k<=n+1;k++){const x=-L/2+L*k/(n+1);if(Math.abs(x)<2)continue;tourR(gr,x,0,1.1,ht+2.2+n*.5,mur,toit,forme,P);}
   for(const x of [-L/2,L/2])tourR(gr,x,-D,1.2,ht+2.6+n*.5,mur,toit,forme,P);
-  donjon(gr,0,-D*.55,5.2,4.2,ht+4+n*1.2,mur,toit,P,nuit,nuit?1.6:1.1);
-  for(const s2 of [-1,1])tourR(gr,s2*2.9,-D*.55+1.5,.9,ht+6+n*1.2,mur,toit,forme,P);
+  if(fi){fi.position.set(0,0,-D*.55);gr.add(fi);}else{donjon(gr,0,-D*.55,5.2,4.2,ht+4+n*1.2,mur,toit,P,nuit,nuit?1.6:1.1);
+  for(const s2 of [-1,1])tourR(gr,s2*2.9,-D*.55+1.5,.9,ht+6+n*1.2,mur,toit,forme,P);}
   if(n>=2)tourC(gr,-L/2+2.2,-D*.6,2.2,ht+3.2,mur,toit,P);if(n>=3)tourC(gr,L/2-2.2,-D*.6,2.2,ht+3.6,mur,toit,P);
-  if(fac==='necro')bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[0,ht+4+n*1.2+5.8,-D*.55],null,[.5,.5,.5]);
+  if(fac==='necro'&&!fi)bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[0,ht+4+n*1.2+5.8,-D*.55],null,[.5,.5,.5]);
   return gr;}
  const w=u;
  if(b==='conseil'||b==='mairie'||b==='hotelville'||b==='capitole'){bloc(gr,GBOX,mur,P,[0,w*.18,0],null,[w*1.02,w*.36,w*.78]);const h1=new T.Group();h1.position.y=w*.36;colombage(h1,w,w*.75,w*.4,toit,nuit,PT,false);gr.add(h1);bloc(gr,GBOX,0x3a2412,PP,[0,w*.13,w*.4],null,[w*.18,w*.26,.02]);bloc(gr,GARC,0x3a2412,PP,[0,w*.26,w*.4],null,[w*.18,.02,w*.18]);

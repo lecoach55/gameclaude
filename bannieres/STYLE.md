@@ -58,3 +58,10 @@ Remarques : les modèles à armature sortent souvent couchés ou minuscules ; fi
 | taverne, maison au lierre | Medieval House (1bea14d1a8a34b0b86a5374f256b47bf), socle retiré, ±35° | pierpapiercizo | CC BY 4.0 |
 | Nécropole : habitations, taverne, mairie | Prieskorn Crypt (d873fa301fa449b99af9d33ec1f7717e), 0° | cadbimgroup | CC BY 4.0 |
 La Horde garde ses yourtes construites (la hutte essayée gardait son socle de terre). Château au centre : `imp_fort.py` avec `FORT_ELEV=8 FORT_R=1400`.
+
+## Lieux de la carte (21/11) — `imp_glb.py` avec `FORT_ELEV=52 FORT_R=700`
+| lieu | modèle Sketchfab (UID) | auteur | licence |
+|---|---|---|---|
+| moulin | Windmill (92f751dab03e4a2792348a21b3673ec1), sol retiré, −30° | BlueHour | CC BY 4.0 |
+| mines (sauf scierie) | Abandoned Mine Entrance Portal (3610d41ccd0e4b8e834ec73cb61a70f6), 0° | s8819296 | CC BY 4.0 |
+| écurie | maison de pierre de DoniTodorov, 35° | DoniTodorov | CC BY 4.0 |

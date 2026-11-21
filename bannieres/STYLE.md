@@ -72,3 +72,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Touffes et végétation restantes éclaircies (moyenne visée ≈ 88) pour supprimer les taches noires.
 - Forêts : 5-6 arbres plus grands par case au lieu de 9-12 petits.
 - Essais écartés : filtre « peinture » Kuwahara (taches), rendu AgX sur la carte (sol délavé).
+- Montagnes « peintes » (21/11 soir) : `PEINT=1 montagnes.py /home/claude/peint sortie [neige]` (roche procédurale, arêtes plus marquées, AgX contraste moyen-fort).
+- Herbe du sol (`tex3d/sol_herbe.jpg`) adoucie (flou 1,2 px) et plus colorée (saturation ×1,3).
+- Scierie de la carte : maison à pilotis (illya2878) rendue à 52°.

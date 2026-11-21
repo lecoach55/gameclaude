@@ -6,6 +6,7 @@ var CW=15,CH=11;
 function hexVois(h){const q=h%CW,r=(h/CW)|0;const D=r&1?[[1,0],[-1,0],[1,-1],[0,-1],[1,1],[0,1]]:[[1,0],[-1,0],[0,-1],[-1,-1],[0,1],[-1,1]];const v=[];for(const [dq,dr] of D){const nq=q+dq,nr=r+dr;if(nq>=0&&nr>=0&&nq<CW&&nr<CH)v.push(nr*CW+nq);}return v;}
 function hexCube(h){const q=h%CW,r=(h/CW)|0;const x=q-(r-(r&1))/2;return[x,r,-x-r];}
 function hexDist(a,b){const A=hexCube(a),B=hexCube(b);return Math.max(Math.abs(A[0]-B[0]),Math.abs(A[1]-B[1]),Math.abs(A[2]-B[2]));}
+// 21/11 : à 7 troupes, celle du milieu (ligne 5) avance d'une colonne pour ne pas se coller à ses voisines des lignes 4 et 6
 var LIGNES=[[],[5],[2,8],[2,5,8],[0,4,6,10],[0,2,5,8,10],[0,2,4,6,8,10],[0,2,4,5,6,8,10]];
 
 function creerCombat(A,D,o){o=o||{};const rng=creeRng(o.graine||12345);
@@ -17,7 +18,7 @@ function creerCombat(A,D,o){o=o||{};const rng=creeRng(o.graine||12345);
  if(C.siege)C.stats[1].def+=[0,2,4,6][C.siege];
  // piles
  for(let k=0;k<2;k++){const arm=C.cotes[k].armee;const slots=[];arm.forEach((s,i)=>{if(s&&s.n>0)slots.push(i);});const L=LIGNES[slots.length]||LIGNES[7];
-  slots.forEach((i,m)=>{const c=CRE[arm[i].c];C.piles.push({id:C.pid++,cote:k,slot:i,c:c.id,n:arm[i].n,n0:arm[i].n,pvh:c.pv,tirs:c.tirs||0,rip:c.sp.includes('riposte2')?2:1,eff:{},h:L[m]*CW+(k===0?0:CW-1),aJoue:false,attend:false,defend:false,moralFait:false});});}
+  slots.forEach((i,m)=>{const c=CRE[arm[i].c];C.piles.push({id:C.pid++,cote:k,slot:i,c:c.id,n:arm[i].n,n0:arm[i].n,pvh:c.pv,tirs:c.tirs||0,rip:c.sp.includes('riposte2')?2:1,eff:{},h:L[m]*CW+(k===0?0:CW-1)+(slots.length===7&&L[m]===5?(k===0?1:-1):0),aJoue:false,attend:false,defend:false,moralFait:false});});}
  // moral : factions mélangées, anges, dragons d'os
  for(let k=0;k<2;k++){const ps=C.piles.filter(p=>p.cote===k);const facs=new Set(ps.map(p=>CRE[p.c].fac));let m=C.moralBonus[k];if(facs.size===1&&!facs.has('neutre'))m+=1;else if(facs.size>=3)m-=facs.size-2;
   if(ps.some(p=>CRE[p.c].sp.includes('mort'))&&ps.some(p=>!CRE[p.c].sp.includes('mort')))m-=1;if(ps.some(p=>CRE[p.c].sp.includes('moral')))m+=1;if(C.piles.some(p=>p.cote!==k&&CRE[p.c].sp.includes('peur')))m-=1;C.moralBonus[k]=Math.max(-3,Math.min(3,m));}

@@ -108,7 +108,9 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
 function etat3D(q,now){const e=CB.anim3d&&CB.anim3d[q.id];if(q.n<=0||(e&&e.a==='die')){const t=e?Math.min(1,(now-e.t0)/500):1;return['die',Math.min(2,Math.floor(t*3))];}
  if(e&&now-e.t0<e.d){const t=(now-e.t0)/e.d;return[e.a,Math.floor(t*(e.a==='hit'?2:4))];}return['idle',Math.floor((now/260+q.id*1.7))%4];}
 // hauteur réellement peinte (fraction du cadre) : la taille affichée suit le niveau de la créature, quel que soit le modèle d'origine
-const HAUT={};function hauteurOpaque(cle,im,sx,sy,sw,sh){if(HAUT[cle]!=null)return HAUT[cle];if(!im||!im.width||!sh)return 1;
+const HAUT={};// 21/11 : correction de taille pour les créatures longues et basses, que la règle « hauteur selon le niveau » grossit trop
+const ECH3D={licorne:.8};
+function hauteurOpaque(cle,im,sx,sy,sw,sh){if(HAUT[cle]!=null)return HAUT[cle];if(!im||!im.width||!sh)return 1;
  try{const c=document.createElement('canvas');const k=Math.min(1,128/Math.max(sw,sh));c.width=Math.max(1,Math.round(sw*k));c.height=Math.max(1,Math.round(sh*k));const g=c.getContext('2d');g.drawImage(im,sx,sy,sw,sh,0,0,c.width,c.height);
   const d=g.getImageData(0,0,c.width,c.height).data;let y0=c.height,y1=-1;for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++)if(d[(y*c.width+x)*4+3]>40){if(y<y0)y0=y;if(y>y1)y1=y;}
   if(y1<0)return HAUT[cle]=1;return HAUT[cle]=(y1-y0+1)/c.height;}catch(e){return HAUT[cle]=1;}}
@@ -121,7 +123,7 @@ const LARG={};function largeurOpaque(cle,im,sx,sy,sw,sh){if(LARG[cle]!=null)retu
 function ombreContact(g,x,y,hw,a){y+=hw*.06;ombreSol(g,x,y,hw*.62,hw*.2,.42*a);ombreSol(g,x,y,hw*.34,hw*.1,.55*a);}
 function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(q.h).s||1;const hexL=(G2.port?G2.h:G2.w)*ps*2.1;let S=G2.w*(G2.W<700?2.75:2.2)*ps;
  if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);let ppu=G2.w*(G2.W<700?1.25:1.45)*ps;const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
-  {const D=SPR3D[q.c];const [im,sx,sy,sw,sh]=cadre3D(q.c,'idle',0);const niv=((typeof CRE!=='undefined'&&(CRE[q.c]||CRE[String(q.c).replace(/2$/,'')]))||{}).niv||3;const T=G2.w*ps*(G2.W<700?.9:1)*(1.05+.2*niv);const ho=hauteurOpaque('3'+q.c,im,sx,sy,sw,sh)*sh;if(ho>0)ppu=T*D.pxu/ho;const lim=hexL*(niv>=6?1.45:niv>=4?1.15:1);const l=largeurOpaque('3'+q.c,im,sx,sy,sw,sh)*sw*ppu/D.pxu;if(l>lim)ppu*=lim/l;}
+  {const D=SPR3D[q.c];const [im,sx,sy,sw,sh]=cadre3D(q.c,'idle',0);const niv=((typeof CRE!=='undefined'&&(CRE[q.c]||CRE[String(q.c).replace(/2$/,'')]))||{}).niv||3;const T=G2.w*ps*(G2.W<700?.9:1)*(1.05+.2*niv)*(ECH3D[String(q.c).replace(/2$/,'')]||1);const ho=hauteurOpaque('3'+q.c,im,sx,sy,sw,sh)*sh;if(ho>0)ppu=T*D.pxu/ho;const lim=hexL*(niv>=6?1.45:niv>=4?1.15:1);const l=largeurOpaque('3'+q.c,im,sx,sy,sw,sh)*sw*ppu/D.pxu;if(l>lim)ppu*=lim/l;}
   ombreContact(g,pos.x,by,G2.w*ps,q.n>0?1:.5);const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
   dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);if(fl){g.globalCompositeOperation='lighter';g.globalAlpha=.45*(1-(now-fl.t0)/fl.d);dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);g.globalCompositeOperation='source-over';}
   g.restore();return;}const spr=q.cote===0?spriteCreature(q.c,160):spriteMiroir(q.c,160);{const l=largeurOpaque('2'+q.c+q.cote,spr,0,0,spr.width,spr.height)*S;if(l>hexL)S*=hexL/l;}g.save();g.globalAlpha=al;

@@ -66,3 +66,9 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 | mines (sauf scierie) | Abandoned Mine Entrance Portal (3610d41ccd0e4b8e834ec73cb61a70f6), 0° | s8819296 | CC BY 4.0 |
 | écurie | maison de pierre de DoniTodorov, 35° | DoniTodorov | CC BY 4.0 |
 | tour de guet | Octagonal Medieval Stone Tower (b6d6934d02c44b01bf3cf1b0b3f2a994), 0° | Sereib | CC BY 4.0 |
+
+## Harmonisation (21/11 soir)
+- Arbres, sapins, buissons et jeunes arbres « peints » façon Heroes : `outils/blender/arbres_peints.py` (houppiers ronds bosselés, feuillage procédural, rendu Cycles). Carte : `ELEV=52 SUF=h` ; villes : `ELEV=8 SUF=b` ; petits végétaux : `QUOI=petits`. Remplacent les imposteurs Poly Haven dans `jeu/imp` (même noms) ; pour les buissons, `haut` de imp.json est corrigé pour garder la largeur d'origine.
+- Touffes et végétation restantes éclaircies (moyenne visée ≈ 88) pour supprimer les taches noires.
+- Forêts : 5-6 arbres plus grands par case au lieu de 9-12 petits.
+- Essais écartés : filtre « peinture » Kuwahara (taches), rendu AgX sur la carte (sol délavé).

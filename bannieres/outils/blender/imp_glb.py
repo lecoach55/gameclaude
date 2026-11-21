@@ -10,6 +10,10 @@ bpy.ops.wm.read_homefile(use_empty=True); sc = bpy.context.scene
 bpy.ops.import_scene.gltf(filepath=SRC)
 for o in list(bpy.data.objects):
     if o.name.startswith('Icosphere') or o.type in ('CAMERA', 'LIGHT'): bpy.data.objects.remove(o)
+EF = os.environ.get('IMP_ENFANT')  # ne garder que les maillages dont le nom contient ce texte (variantes d'un même fichier Poly Haven)
+if EF:
+    for o in list(bpy.data.objects):
+        if o.type == 'MESH' and EF not in o.name: bpy.data.objects.remove(o)
 roots = [o for o in bpy.data.objects if o.parent is None]
 R = mathutils.Matrix.Rotation(math.radians(RZ), 4, 'Z')
 for o in roots: o.matrix_world = R @ o.matrix_world

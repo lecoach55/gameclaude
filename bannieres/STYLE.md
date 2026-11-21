@@ -47,3 +47,14 @@ Attention : ne pas couper la sortie de pack.py avec « | head » (la fusion n'es
 | chevloup | loup noir (s8819296) + gobelin (Batuhan13) assemblés par outils/blender/compose_cavalier.py -90 0.45, --rotation 61 --hauteur 1.7 | s8819296, Batuhan13 | CC BY 4.0 |
 
 Remarques : les modèles à armature sortent souvent couchés ou minuscules ; figer la pose (convert dans Blender, ou fige.py) puis redresser. Le pont Blender du Mac ne doit pas servir à des aperçus (« look » rendu) : ils le bloquent plusieurs minutes. Les châteaux des 4 factions : `FORT_STYLE=bastion|horde|necropole|sylve` dans `outils/blender/imp_fort.py`.
+
+
+## Bâtiments de ville (21/11) — `outils/blender/imp_glb.py` (vue à 8°, rotations entre parenthèses)
+| bâtiment | modèle Sketchfab (UID) | auteur | licence |
+|---|---|---|---|
+| mairie et suivantes (Bastion, Sylve) | Medieval house (904038d693b945d4843decee87fb0eb5), 215° | sketh | CC BY 4.0 |
+| habitations à pilotis | Medieval house (4ec56df1c24d422ea85d1cfbf21bbe8c), 145° et 35° | illya2878 | CC BY 4.0 |
+| maisons de pierre | Medieval house (a8ad9d2723444b1b8ac054c232e61f12), ±35° | DoniTodorov | CC BY 4.0 |
+| taverne, maison au lierre | Medieval House (1bea14d1a8a34b0b86a5374f256b47bf), socle retiré, ±35° | pierpapiercizo | CC BY 4.0 |
+| Nécropole : habitations, taverne, mairie | Prieskorn Crypt (d873fa301fa449b99af9d33ec1f7717e), 0° | cadbimgroup | CC BY 4.0 |
+La Horde garde ses yourtes construites (la hutte essayée gardait son socle de terre). Château au centre : `imp_fort.py` avec `FORT_ELEV=8 FORT_R=1400`.

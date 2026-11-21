@@ -50,6 +50,7 @@ let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
   const H0=Math.pow(2,Math.ceil(Math.log2(y+lh+2)));const c=mkC(W,H0),g=c.getContext('2d');ks.forEach((k,j)=>{if(ims[j]&&pos[k])g.drawImage(ims[j],pos[k][0],pos[k][1]);});
   const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;const rect={};for(const k in pos){const [px,py,w,h]=pos[k];rect[k]=[px/W,1-(py+h)/H0,w/W,h/H0];}
   (RES.atlas=RES.atlas||{})[vue]={tex:t,rect,canvas:c,pos};}}
+ RES.maisV={};for(const k of Object.keys(MAISV)){const im=await chargerImg(srcRes('i3-mv_'+k,'imp/mv_'+k+'.webp'));if(im)RES.maisV[k]=im;}
  RES.fortV={};for(const f of ['bastion','horde','necro','sylve']){const im=await chargerImg(srcRes('i3-fortv_'+f,'imp/fortv_'+f+'.webp'));if(im)RES.fortV[f]=im;}
  RES.fort={};for(const f of ['bastion','horde','necro','sylve']){const im=await chargerImg(srcRes('i3-fort_'+f+'_h','imp/fort_'+f+'_h.webp'));if(im){const t=new T.Texture(im);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.needsUpdate=true;RES.fort[f]=t;}}
  RES.pret=true;})();return RESP;}
@@ -572,6 +573,16 @@ A.fondCombat=abri(A.fondCombat);
 const PRISME=(()=>{const g=new T.CylinderGeometry(.5,.5,1,3,1);g.rotateZ(Math.PI/2);g.rotateX(Math.PI/6);g.translate(0,.25,0);g.scale(1,1.15,1);return g;})();// toit à deux pans (axe x)
 function fenetres(gr,n,larg,y,z,coul,nuit){for(let k=0;k<n;k++)bloc(gr,BOX,coul,{em:nuit?0xffb040:0xffd890,ei:nuit?2.2:.5},[(k-(n-1)/2)*larg/n,y,z],null,[larg/n*.4,larg/n*.55,.04]);}
 function maison(gr,w,h,mur,toit,P,nuit,porte=true,PR=PT){bloc(gr,BOX,mur,P,[0,h/2,0],null,[w,h,w*.75]);bloc(gr,PRISME,toit,PR,[0,h,0],null,[w*1.12,w*.6,w*.92]);fenetres(gr,2,w*.8,h*.62,w*.38,0xffd87a,nuit);if(porte)bloc(gr,BOX,0x3a2412,PB,[0,h*.22,w*.38],null,[w*.22,h*.44,.04]);}
+// maisons de la ville rendues dans Blender (modèles Sketchfab CC BY, outils/blender/imp_glb.py, vue à 8°) : panneau face à la caméra, cliquable par sa silhouette (21/11)
+const MAISV={eglise:{w:509,h:696,px:219.0,py:664.5,ppm:68.571,larg:9.36},pierre_a:{w:704,h:642,px:354.0,py:603.0,ppm:83.993,larg:8.57},pierre_b:{w:706,h:638,px:355.0,py:599.9,ppm:83.965,larg:8.58},pilotis_a:{w:682,h:692,px:322.0,py:647.8,ppm:81.251,larg:8.86},pilotis_b:{w:689,h:668,px:328.0,py:623.8,ppm:81.251,larg:8.86},lierre_a:{w:570,h:574,px:294.0,py:538.6,ppm:97.125,larg:7.11},lierre_b:{w:655,h:561,px:337.0,py:527.6,ppm:97.125,larg:7.11},crypte:{w:624,h:736,px:312.0,py:698.5,ppm:85.714,larg:7.27}};
+function maisonVue(nom,u,nuit,larg){const me=MAISV[nom],im=RES.maisV&&RES.maisV[nom];if(!me||!im)return null;const s=u*(larg||1.15)/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
+ const tx=new T.Texture(im);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=4;tx.needsUpdate=true;const sv=mkC(im.width,im.height),sg=sv.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,sv.width,sv.height);const st=new T.CanvasTexture(sv);
+ const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);const m=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0x9a9ab8:0xffffff});
+ const o=new T.Mesh(g,m);o.userData.face=1;o.userData.sil=st;o.castShadow=false;return o;}
+function maisonPour(b,fac){const hab=b.startsWith('hab');if(fac==='necro')return(hab||b==='taverne'||['conseil','mairie','hotelville','capitole'].includes(b))?'crypte':null;
+ if(fac==='horde')return null;// les huttes Sketchfab gardaient leur socle de terre : yourtes construites conservées
+ if(['conseil','mairie','hotelville','capitole'].includes(b))return'eglise';if(b==='taverne')return'lierre_a';
+ if(hab){const L=['pierre_a','pilotis_a','lierre_b','pierre_b','pilotis_b','pierre_a','lierre_a'];return L[(+b[3]||1)-1];}return null;}
 // château de la ville rendu dans Blender, vu presque de face (outils/blender/imp_fort.py, FORT_ELEV=8) : un panneau face à la caméra, cliquable par sa silhouette
 const FORTV={bastion:{w:668,h:1175,px:334.0,py:1068.8,ppm:18.721},horde:{w:850,h:1219,px:425.0,py:1083.8,ppm:23.809},necro:{w:524,h:1142,px:262.0,py:1058.2,ppm:14.691},sylve:{w:912,h:1187,px:441.0,py:1073.2,ppm:20.18}};function fortVue(fac,L,n,nuit){const me=FORTV[fac],im=RES.fortV&&RES.fortV[fac];if(!me||!im)return null;const s=Math.min(L*(.62+.06*n)/35.62,(13+1.6*n)/((FORT[fac]&&FORT[fac].haut)||55));const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
  const tx=new T.Texture(im);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=4;tx.needsUpdate=true;const sv=mkC(im.width,im.height),sg=sv.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,sv.width,sv.height);const st=new T.CanvasTexture(sv);
@@ -597,6 +608,7 @@ function batiment3D(b,v,u,P,nuit){const gr=new T.Group();ENDUIT=v.fac==='necro'?
   if(fac==='necro'&&!fi)bloc(gr,SPH,0x7cf7a2,{em:0x7cf7a2,ei:2.5},[0,ht+4+n*1.2+5.8,-D*.55],null,[.5,.5,.5]);
   return gr;}
  const w=u;
+ {const mn=maisonPour(b,fac);const mv=mn&&maisonVue(mn,u,nuit,(mn==='eglise'?2.3:mn==='crypte'?1.8:2.0)*((ZV[b]??0)>=5?.62:1));if(mv){gr.add(mv);return gr;}}
  if(b==='conseil'||b==='mairie'||b==='hotelville'||b==='capitole'){bloc(gr,GBOX,mur,P,[0,w*.18,0],null,[w*1.02,w*.36,w*.78]);const h1=new T.Group();h1.position.y=w*.36;colombage(h1,w,w*.75,w*.4,toit,nuit,PT,false);gr.add(h1);bloc(gr,GBOX,0x3a2412,PP,[0,w*.13,w*.4],null,[w*.18,w*.26,.02]);bloc(gr,GARC,0x3a2412,PP,[0,w*.26,w*.4],null,[w*.18,.02,w*.18]);
   if(b!=='conseil')tourC(gr,0,-w*.12,w*.22,w*1.2,mur,toit,P);
   if(b==='hotelville'||b==='capitole')for(const s of [-1,1])tourR(gr,s*w*.55,0,w*.1,w*.85,mur,toit,'cone',P);if(b==='capitole')bloc(gr,SPH,0xf0c040,{em:0xd0a020,ei:1,m:.8,r:.2},[0,w*1.25+w*.62,-w*.1],null,[w*.22,w*.22,w*.22]);return gr;}
@@ -680,7 +692,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
   // créature devant son habitation (19/11) : panneau posé au sol dans la scène 3D (cachée par les bâtiments placés devant, au lieu de flotter par-dessus)
   if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const Sw=u*1.25;
    const tx=new T.CanvasTexture(spriteCreature(cre,256));tx.colorSpace=T.SRGBColorSpace;texV.push(tx);const mc=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xa8a8c0:0xf4f0ea});matV.push(mc);
-   const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);pc.position.set(gr.position.x+u*.42*(gr.position.x>0?-1:1),.03,gr.position.z+u*1.0);pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;pc.userData.bidx=objs.length-1;{const sv=mkC(256,256),sg=sv.getContext('2d');sg.drawImage(spriteCreature(cre,256),0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,256,256);const st=new T.CanvasTexture(sv);texV.push(st);pc.userData.sil=st;}sc.add(pc);}}
+   const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);pc.position.set(gr.position.x+u*.42*(gr.position.x>0?-1:1),.03,gr.position.z+u*(RES.maisV&&maisonPour(b,v.fac)?1.8:1.0));pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;pc.userData.bidx=objs.length-1;{const sv=mkC(256,256),sg=sv.getContext('2d');sg.drawImage(spriteCreature(cre,256),0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,256,256);const st=new T.CanvasTexture(sv);texV.push(st);pc.userData.sil=st;}sc.add(pc);}}
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure;
  const mIb=MPI.bm,cIb=mIb&&mIb.color.getHex();if(mIb&&nuit)mIb.color.setRGB(.42,.44,.6);R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:ciel?1.06:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);if(mIb)mIb.color.setHex(cIb);
  const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);if(ciel)etalonner(c,0,0,W,H,{sx:-.05,sy:.1,chaud:hd?'rgba(255,170,90,.5)':'rgba(255,200,130,.45)',vignette:'rgba(180,166,152,1)'});
@@ -697,7 +709,7 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const zones=[];const bb=new T.Box3(),q=new T.Vector3();const pr=(x,y,z)=>{q.set(x,y,z).project(cam);return[(q.x+1)/2*W,(1-q.y)/2*H];};
  const tri=objs.slice().sort((a,b)=>a[1].position.z-b[1].position.z);
  for(const [b,gr,u] of tri){bb.setFromObject(gr);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let k=0;k<8;k++){const [sx,sy]=pr(k&1?bb.max.x:bb.min.x,k&2?bb.max.y:bb.min.y,k&4?bb.max.z:bb.min.z);x0=Math.min(x0,sx);x1=Math.max(x1,sx);y0=Math.min(y0,sy);y1=Math.max(y1,sy);}
-  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const cx=gr.position.x+u*.42*(gr.position.x>0?-1:1),cz=gr.position.z+u*1.0;const [bx,by]=pr(cx,0,cz);const [bx2]=pr(cx+u,0,cz);const S=Math.max(24,Math.abs(bx2-bx)*1.25);if(gr.position.x>0)x0=Math.min(x0,bx-S*.5);else x1=Math.max(x1,bx+S*.5);y1=Math.max(y1,by);}
+  if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const cx=gr.position.x+u*.42*(gr.position.x>0?-1:1),cz=gr.position.z+u*(RES.maisV&&maisonPour(b,v.fac)?1.8:1.0);const [bx,by]=pr(cx,0,cz);const [bx2]=pr(cx+u,0,cz);const S=Math.max(24,Math.abs(bx2-bx)*1.25);if(gr.position.x>0)x0=Math.min(x0,bx-S*.5);else x1=Math.max(x1,bx+S*.5);y1=Math.max(y1,by);}
   zones.push({b,x:x0,y:y0,w:x1-x0,h:y1-y0});}
  // drapeaux animés en 2D au sommet du château
  const drap=[];const fort=objs.find(o=>o[0]==='fort'||o[0]==='citadelle'||o[0]==='chateau');if(fort){const [b,gr,u]=fort;bb.setFromObject(gr);const [dx,dy]=pr(gr.position.x,bb.max.y,gr.position.z-1.6);drap.push([dx,Math.max(H*.12,dy)]);}

@@ -9,7 +9,9 @@ function ouvrirVille(v){if(!v)return Promise.resolve();SON.porte(1);return new P
 function herosVille(){const v=VI.v;const h=heroPar(G.hpos[idx(v.x,v.y)]);return h&&h.j===v.prop?h:null;}
 function redimVille(){if(!VI)return;const cv=$('cvVille');const d=Math.min(2,devicePixelRatio||1);const bas=document.querySelector('.ville-bas').offsetHeight;const H=Math.max(160,innerHeight-bas);cv.style.height=H+'px';cv.width=innerWidth*d;cv.height=H*d;VI.dpr=d;VI.W=innerWidth;VI.H=H;VI.dirty=true;}
 function dessinerVille(){if(!VI)return;const cv=$('cvVille');const g=cv.getContext('2d');
- if(VI.dirty){let p=null;if(V.m3&&R3.ok){try{p=R3.panoVille(VI.v,VI.W*VI.dpr,VI.H*VI.dpr);}catch(e){console.error(e);}}VI.pano=p||panoramaVille(VI.v,VI.W*VI.dpr,VI.H*VI.dpr);VI.dirty=false;}
+ if(VI.dirty){let p=null;if(V.m3&&R3.ok){try{/* 23/11 : panorama gardé en mémoire tant que la ville ne change pas (réouverture instantanée) */
+  const cle=[VI.v.id,VI.v.fac,JSON.stringify(VI.v.bat),VI.W*VI.dpr,VI.H*VI.dpr,R3.niveau&&R3.niveau()].join('|');const M=window.PANO_CACHE=window.PANO_CACHE||new Map();p=M.get(cle)||null;
+  if(!p){p=R3.panoVille(VI.v,VI.W*VI.dpr,VI.H*VI.dpr);if(p){M.set(cle,p);while(M.size>4)M.delete(M.keys().next().value);}}}catch(e){console.error(e);}}VI.pano=p||panoramaVille(VI.v,VI.W*VI.dpr,VI.H*VI.dpr);VI.dirty=false;}
  g.setTransform(1,0,0,1,0,0);g.drawImage(VI.pano.c,0,0);
  // drapeaux et fumées
  const t=performance.now()/1000;const col=COULEURS[G.joueurs[VI.v.prop].coul].c;g.save();g.scale(VI.dpr,VI.dpr);if(VI.pano.drap){for(const [x,y] of VI.pano.drap)drapeau(g,x/VI.dpr,y/VI.dpr,col,t,Math.min(2.2,VI.H/260));}else{drapeau(g,VI.W*.5,VI.H*.36,col,t,VI.H/200);drapeau(g,VI.W*.22,VI.H*.42,col,t+1,VI.H/300);drapeau(g,VI.W*.78,VI.H*.42,col,t+2,VI.H/300);}

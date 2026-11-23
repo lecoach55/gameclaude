@@ -124,7 +124,7 @@ async function visiter(h,o){const p=G.joueurs[h.j];
   retirerObjet(o);if(k===0)gain(h.j,'or',v);else await gagnerXp(h,v-500);await HOOK.anim('ramasse',h,o);break;}
  case 'artefact':{retirerObjet(o);h.arts.push(o.art);await HOOK.message(h.j,'Artefact',`${h.nom} trouve : ${ARTS[o.art].nom} (${txtBonus(ARTS[o.art].b)}).`,{art:o.art});break;}
  case 'mine':{if(o.prop!==h.j){o.prop=h.j;await HOOK.message(h.j,MINE_NOM[o.res],`${MINE_NOM[o.res]} passe sous votre bannière : +${MINE_PROD[o.res]} ${RES_NOM[o.res].toLowerCase()} par jour.`,{res:o.res});}break;}
- case 'ville':{if(o.prop===h.j){if(h.arts.includes('graal')&&!o.bat.graal){poserGraal(h,o);await HOOK.message(h.j,GRAAL_NOM[o.fac],`Le Graal est installé à ${o.nom} : la merveille « ${GRAAL_NOM[o.fac]} » s’élève ! (+5000 or par jour, créatures +50 %)`);}apprendreSorts(h,o);if(o.bat.guilde1)h.mana=Math.max(h.mana,manaMax(h));await HOOK.ville(o,h);}break;}
+ case 'ville':{if(o.prop===h.j){if(h.arts.includes('graal')&&!o.bat.graal){poserGraal(h,o);await HOOK.message(h.j,GRAAL_NOM[o.fac],`Le Graal est installé à ${o.nom} : la merveille « ${GRAAL_NOM[o.fac]} » s’élève ! (+5000 or par jour, créatures +50 %)`,{bloquant:1});}apprendreSorts(h,o);if(o.bat.guilde1)h.mana=Math.max(h.mana,manaMax(h));await HOOK.ville(o,h);}break;}
  case 'bat':await visiterBat(h,o);break;
  }
  HOOK.maj();}

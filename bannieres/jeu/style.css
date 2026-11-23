@@ -20,7 +20,7 @@ h1{font-family:"Cinzel","Palatino Linotype",Georgia,serif;font-weight:700;font-s
 h1 span{color:#e8b850;font-style:italic}
 .sous{margin:10px 0 24px;color:#e8dcc0;font-style:italic;text-shadow:0 1px 3px #000}
 .menu-acc{display:flex;flex-direction:column;gap:10px;align-items:center}.menu-acc .btn{min-width:250px;font-size:18px}
-.credits{position:absolute;bottom:8px;width:100%;text-align:center;font-size:12px;color:#c9b38a;text-shadow:0 1px 2px #000;padding:0 8px}
+.credits{position:absolute;bottom:6px;left:0;width:100%;box-sizing:border-box;text-align:center;font-size:11px;line-height:1.35;color:#c9b38a;text-shadow:0 1px 2px #000;padding:0 10px;max-height:16vh;overflow-y:auto;scrollbar-width:thin}/* 23/11 : la liste des auteurs ne recouvre plus les boutons (défilable) */
 .nuage-info{margin-top:10px;font-size:12px;color:#c9b38a;min-height:1em}
 /* configuration */
 #config{background:radial-gradient(ellipse at 50% 30%,#3a2614,#120a05);overflow:auto;touch-action:pan-y}
@@ -150,3 +150,10 @@ h1 span{color:#e8b850;font-style:italic}
 .ico.pt{width:17px;height:17px;vertical-align:-3px;margin-right:6px}
 .ib:disabled .ico{stroke:#9a8a6a}
 .ib.fin .ico{stroke:#fff4d8}
+
+/* 23/11 : messages d'information non bloquants (mines, moulins, puits…), empilés en haut à droite de la carte */
+#notifs{position:fixed;right:calc(var(--panneau,220px) + 14px);top:56px;display:flex;flex-direction:column;gap:8px;z-index:55;pointer-events:none;max-width:min(340px,70vw)}
+.notif{pointer-events:auto;display:flex;gap:10px;align-items:center;background:linear-gradient(180deg,rgba(46,28,12,.96),rgba(24,14,6,.96));border:1px solid #c09a48;box-shadow:0 4px 14px rgba(0,0,0,.5);color:#f6e6bc;padding:8px 12px;border-radius:6px;font-size:13px;animation:notifIn .25s ease-out;cursor:pointer;transition:opacity .4s,transform .4s}
+.notif b{display:block;color:#ffd77a;font-size:14px;margin-bottom:2px}
+.notif.part{opacity:0;transform:translateX(30px)}
+@keyframes notifIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}

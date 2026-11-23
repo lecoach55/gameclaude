@@ -75,3 +75,10 @@ Accueil → 🧪 Mode test → ☰ → ▶ Banc ; ☰ → 🐞 Signaler. Lire av
 ## Vraies créatures et mer (20/11/2026) — v17
 - **Béhémoth dressé** sculpté dans Blender (cloud) d'après une recette : `/home/claude/bpyenv/bin/python outils-communs/blender/creature.py bannieres/outils/studio/recettes/behemoth.json /tmp/b.glb`, puis `planche_sprites.py /tmp/b.glb /tmp/spr --id behemoth --comme-bannieres --format 256x224 --unites 3.7` et `python3 outils/studio/pack.py /tmp/spr jeu/sprites3d.js --fusion`. Le cadre (fh/u) d'une créature rendue autrement que 168×168/2,35 doit être ajouté au dict `PXU` de `pack.py`.
 - **Mer** : bloc « mer brillante (20/11) » dans le shader de l'eau (`rendu3d.js`) : reflets du ciel, scintillement doré, coupé en Économie.
+
+### Fluidité de jeu (23/11)
+- `outils/fluidite.py [jours]` (`VIT=1|2|3`, `OPT='&v3d=0'`) : temps d'attente réels (ouverture/réouverture de ville, tours de l'ordinateur, marche d'un héros, combat 7 contre 7). En 3D logiciel (sans carte graphique) les temps sont gonflés par le rendu ; comparer en `v3d=0`.
+- Vitesse des animations ×1/×2/×3 (`VITESSE`, clé `bs-vitesse`, `AC()` = ACCEL×VITESSE) : menu, bouton ×N du combat, touche V en combat.
+- Raccourcis combat : W attendre, D défendre, S sorts, A automatique, V vitesse, F fuir.
+- Messages d'information (mines, moulins, puits, autels, tours…) : cartes non bloquantes (`notifier`) ; artefacts, Graal et villes conquises restent en fenêtre.
+- Panorama de ville gardé en mémoire (`PANO_CACHE`, 4 villes) tant que les bâtiments ne changent pas.

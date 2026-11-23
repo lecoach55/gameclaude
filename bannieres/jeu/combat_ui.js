@@ -31,7 +31,11 @@ async function combatInteractif(A,D,opts){const C=creerCombat(A,D,Object.assign(
  majBarreCombat();if(CB.banc){return C;}
  await pause(400);await resultatsCombat(C);ecran('aventure');SON.musique('carte');const c=C;CB=null;return c;}
 var ACCEL=1; // accélération des animations (tests automatiques)
-function pause(ms){return new Promise(r=>setTimeout(r,ms/ACCEL));}
+var VITESSE=(()=>{try{return Math.min(3,Math.max(1,+localStorage.getItem('bs-vitesse')||1));}catch(e){return 1;}})();// 23/11 : vitesse choisie par le joueur (×1, ×2, ×3), carte et combat
+function AC(){return ACCEL*VITESSE;}
+const NOMS_VIT={1:'normale',2:'rapide',3:'très rapide'};
+function changerVitesse(v){VITESSE=v||(VITESSE%3)+1;try{localStorage.setItem('bs-vitesse',String(VITESSE));}catch(e){}const b=$('cbVit');if(b)b.textContent='×'+VITESSE;return VITESSE;}
+function pause(ms){return new Promise(r=>setTimeout(r,ms/AC()));}
 function logC(t){CB.log.push(t);if(CB.log.length>3)CB.log.shift();$('cbLog').innerHTML=CB.log.map((l,i)=>`<div style="opacity:${.55+.45*(i===CB.log.length-1)}">${l}</div>`).join('');}
 function nomP(p,n){return(n||p.n)>1?CRE[p.c].pl:CRE[p.c].nom;}
 async function jouerEvts(ev){const C=CB.C;
@@ -64,13 +68,13 @@ async function jouerEvts(ev){const C=CB.C;
   }}
  majBarreCombat();}
 var SORTS_EFFETS={beni:'Béni',maudit:'Maudit',hate:'Hâte',lent:'Ralenti',bouclier:'Bouclier',pierre:'Peau de pierre',fureur:'Fureur',priere:'Prière'};
-function animer(ms,f){ms/=ACCEL;return new Promise(r=>{const t0=performance.now();const st=()=>{const t=Math.min(1,(performance.now()-t0)/ms);f(t);if(t<1&&!CB.abandon)requestAnimationFrame(st);else r();};st();});}
+function animer(ms,f){ms/=AC();return new Promise(r=>{const t0=performance.now();const st=()=>{const t=Math.min(1,(performance.now()-t0)/ms);f(t);if(t<1&&!CB.abandon)requestAnimationFrame(st);else r();};st();});}
 function flash(p){CB.fx.push({t:'flash',id:p.id,t0:performance.now(),d:260});anim3(p,'hit',420);}
-function anim3(p,a,d){(CB.anim3d=CB.anim3d||{})[p.id]={a,t0:performance.now(),d:d/ACCEL};}
+function anim3(p,a,d){(CB.anim3d=CB.anim3d||{})[p.id]={a,t0:performance.now(),d:d/AC()};}
 function texte(pos,txt,coul){CB.fx.push({t:'txt',x:pos.x,y:pos.y-CB.geo.h*.9,txt,coul,t0:performance.now(),d:1100});}
 async function projectile(a,b,orbe){const fx={t:'proj',x:a.x,y:a.y-CB.geo.h*.6,orbe,a:0};CB.fx.push(fx);const yb=b.y-CB.geo.h*.5;await animer(Math.min(420,180+Math.hypot(b.x-a.x,b.y-a.y)*.4),t=>{fx.x=a.x+(b.x-a.x)*t;fx.y=a.y-CB.geo.h*.6+(yb-(a.y-CB.geo.h*.6))*t-Math.sin(t*Math.PI)*CB.geo.h*.8;fx.a=Math.atan2(yb-a.y,b.x-a.x)+(t-.5)*-1.4*Math.sign(b.x-a.x||1);});CB.fx.splice(CB.fx.indexOf(fx),1);}
-async function eclair(a,b){const pts=[];const n=9;for(let i=0;i<=n;i++){const t=i/n;pts.push({x:a.x+(b.x-a.x)*t+(i&&i<n?(Math.random()-.5)*30:0),y:a.y+(b.y-a.y)*t});}const fx={t:'eclair',pts,t0:performance.now(),d:380/ACCEL};CB.fx.push(fx);CB.flashEcran=performance.now();SON.coup();await pause(260);}
-async function explosion(c){const fx={t:'explo',x:c.x,y:c.y-CB.geo.h*.3,t0:performance.now(),d:520/ACCEL,r:CB.geo.w*1.7};CB.fx.push(fx);SON.coup();await pause(380);}
+async function eclair(a,b){const pts=[];const n=9;for(let i=0;i<=n;i++){const t=i/n;pts.push({x:a.x+(b.x-a.x)*t+(i&&i<n?(Math.random()-.5)*30:0),y:a.y+(b.y-a.y)*t});}const fx={t:'eclair',pts,t0:performance.now(),d:380/AC()};CB.fx.push(fx);CB.flashEcran=performance.now();SON.coup();await pause(260);}
+async function explosion(c){const fx={t:'explo',x:c.x,y:c.y-CB.geo.h*.3,t0:performance.now(),d:520/AC(),r:CB.geo.w*1.7};CB.fx.push(fx);SON.coup();await pause(380);}
 async function etincelles(c,coul,zone){const fx={t:'spark',x:c.x,y:c.y-CB.geo.h*.4,coul,t0:performance.now(),d:600,r:zone?CB.geo.w*1.6:CB.geo.w*.7};CB.fx.push(fx);await pause(560);}
 
 function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');const g=cv.getContext('2d');const G2=CB.geo;g.setTransform(CB.dpr,0,0,CB.dpr,0,0);const now=performance.now();
@@ -101,7 +105,7 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
   else if(f.t==='eclair'){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=1-t;for(const [lw,col] of [[9,'rgba(120,170,255,.35)'],[4,'#bfe0ff'],[1.6,'#ffffff']]){g.lineWidth=lw;g.strokeStyle=col;g.beginPath();f.pts.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));g.stroke();}g.restore();}
   else if(f.t==='explo'){g.save();g.globalCompositeOperation='lighter';const rr=f.r*(.3+t*.9);const gr=g.createRadialGradient(f.x,f.y,1,f.x,f.y,rr);gr.addColorStop(0,`rgba(255,240,180,${.9*(1-t)})`);gr.addColorStop(.4,`rgba(255,140,40,${.7*(1-t)})`);gr.addColorStop(1,'rgba(120,30,0,0)');g.fillStyle=gr;g.beginPath();g.ellipse(f.x,f.y,rr,rr*.6,0,0,7);g.fill();g.restore();}
   else if(f.t==='spark'){g.save();g.globalCompositeOperation='lighter';for(let k=0;k<18;k++){const a=k/18*Math.PI*2+t*3;const r=f.r*t*(.4+.6*((k*37)%10)/10);g.fillStyle=f.coul;g.globalAlpha=1-t;g.beginPath();g.arc(f.x+Math.cos(a)*r,f.y+Math.sin(a)*r*SQ,G2.w*.07*(1-t)+1,0,7);g.fill();}g.restore();}}
- if(CB.flashEcran&&now-CB.flashEcran<180/ACCEL){g.fillStyle=`rgba(220,235,255,${.35*(1-(now-CB.flashEcran)/(180/ACCEL))})`;g.fillRect(0,0,G2.W,G2.H+60);}
+ if(CB.flashEcran&&now-CB.flashEcran<180/AC()){g.fillStyle=`rgba(220,235,255,${.35*(1-(now-CB.flashEcran)/(180/AC()))})`;g.fillRect(0,0,G2.W,G2.H+60);}
  // héros
  for(let k=0;k<2;k++){const s=C.cotes[k];if(!s.heros)continue;const x=k?G2.W-58:8,y=8;g.drawImage(portrait(s.heros,64),x,y,50,50);g.font='12px Palatino,Georgia,serif';g.textAlign=k?'right':'left';g.lineWidth=3;g.strokeStyle='#000';const tx=k?x-4:x+56;
   g.strokeText(s.heros.nom,tx,y+16);g.fillStyle='#f6d77a';g.fillText(s.heros.nom,tx,y+16);g.strokeText(`Mana ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);g.fillStyle='#9ad0ff';g.fillText(`Mana ${C.mana[k]}${C.sort[k]?' (sort lancé)':''}`,tx,y+32);}}
@@ -144,7 +148,7 @@ function badgePile(g,q,pos,G2){
   const ef=Object.keys(q.eff);if(ef.length||q.defend){const L=(q.defend?['defend']:[]).concat(ef);const sz=Math.max(12,Math.round(G2.w*.26));let ix=bx;for(const e of L){const im=icoEffet(e);if(!im)continue;g.fillStyle='rgba(14,9,6,.78)';g.beginPath();g.arc(ix+sz/2,by-3-sz/2,sz*.62,0,7);g.fill();if(im.complete&&im.naturalWidth)g.drawImage(im,ix+sz*.12,by-3-sz*.88,sz*.76,sz*.76);ix+=sz*1.2;}}}}
 function majBarreCombat(){if(!CB)return;const C=CB.C;const p=C.actif;const mon=p&&CB.humain[p.cote]&&!CB.auto;
  $('cbSort').disabled=!mon||!C.peutLancer(p.cote);$('cbAttendre').disabled=!mon||p.attend;$('cbDefendre').disabled=!mon;$('cbFuir').disabled=!mon||!C.cotes[p.cote].heros||!!C.ville&&p.cote===1;$('cbAuto').disabled=!p||!(CB.humain[0]||CB.humain[1]);
- $('cbAuto').style.background=CB.auto?'linear-gradient(180deg,#b88a2a,#6a4a12)':'';
+ $('cbVit').textContent='×'+VITESSE;$('cbAuto').style.background=CB.auto?'linear-gradient(180deg,#b88a2a,#6a4a12)':'';
  // file d'attente
  const l=[];if(p)l.push(p);const reste=C.vivants().filter(q=>q!==p&&!q.aJoue&&!q.attend).sort((a,b)=>C.vit(b)-C.vit(a));const att=C.vivants().filter(q=>q!==p&&!q.aJoue&&q.attend).sort((a,b)=>C.vit(a)-C.vit(b));
  const suiv=C.vivants().filter(q=>q!==p).sort((a,b)=>C.vit(b)-C.vit(a));const file=l.concat(reste,att,suiv).slice(0,12);
@@ -178,6 +182,7 @@ function brancherCombat(){const cv=$('cvCombat');let appui=null,down=null;
   CB.confirme=null;bulleC(null);CB.mode=null;CB.depuis=null;SON.clic();CB.attente(a);});
  cv.addEventListener('contextmenu',e=>e.preventDefault());
  $('cbAttendre').onclick=()=>{if(CB&&CB.attente)CB.attente({t:'attendre'});};
+ $('cbVit').onclick=()=>{const v=changerVitesse();toast('Vitesse des animations : '+NOMS_VIT[v]+' (×'+v+')',1400);};
  $('cbDefendre').onclick=()=>{if(CB&&CB.attente)CB.attente({t:'defendre'});};
  $('cbAuto').onclick=async()=>{if(!CB)return;const cb0=CB;if(CB.auto){CB.auto=false;majBarreCombat();toast('Vous reprenez le commandement.');return;}const k=await fenetre('<h2>Combat automatique</h2><p>Laisser vos capitaines mener la bataille jusqu’au bout ? (vous pourrez reprendre la main en touchant ⚙)</p>',[{t:'Oui',or:true},{t:'Non'}]);if(k===0&&CB&&CB===cb0){CB.auto=true;majBarreCombat();const p=CB.C.actif;if(CB.attente&&p)CB.attente(iaCombat(CB.C));}};
  $('cbFuir').onclick=async()=>{if(!CB||!CB.attente)return;const k=await fenetre('<h2>Fuir ?</h2><p>Votre héros abandonne son armée et s’enfuit. Il pourra être recruté de nouveau à la taverne… par n’importe qui.</p>',[{t:'Fuir',or:true},{t:'Rester'}]);if(k===0&&CB.attente)CB.attente({t:'fuir'});};

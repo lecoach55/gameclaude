@@ -27,7 +27,10 @@ const alerte=(titre,txt,extra='')=>fenetre(`<h2>${titre}</h2>${extra}<p>${txt}</
 function humain(j){return j>=0&&G.joueurs[j]&&G.joueurs[j].humain;}
 function visible(i){return G.joueurs[vueJoueur()].vu[i];}
 HOOK.choix=async(j,titre,texte,opts,ex)=>{if(!humain(j))return ex&&ex.ia?ex.ia():0;return fenetre(`<h2>${titre}</h2><p>${texte}</p>`,opts.map((t,i)=>({t,or:i===0})));};
-HOOK.message=async(j,titre,texte,ex={})=>{if(!humain(j)||j!==G.courant)return;let img='';if(ex.res)img=`<div style="text-align:center">${imgRes(ex.res,48)}</div>`;if(ex.art){img=`<div style="text-align:center"><canvas width="64" height="64" id="cvArt"></canvas></div>`;SON.objet();}if(ex.res)SON.piece();
+function notifier(titre,texte,img,ms=4500){let z=$('notifs');if(!z){z=document.createElement('div');z.id='notifs';document.body.appendChild(z);}const p=$('panneau');if(p)z.style.setProperty('--panneau',(p.offsetWidth||0)+'px');
+ const d=document.createElement('div');d.className='notif';d.innerHTML=(img||'')+`<div><b>${titre}</b>${texte}</div>`;const part=()=>{d.classList.add('part');setTimeout(()=>d.remove(),420);};d.onclick=part;setTimeout(part,ms);z.appendChild(d);peindreCanvasRes(d);while(z.children.length>4)z.firstChild.remove();}
+HOOK.message=async(j,titre,texte,ex={})=>{if(!humain(j)||j!==G.courant)return;
+ if(!ex.art&&!ex.bloquant&&!ex.ville){if(ex.res)SON.piece();notifier(titre,texte,ex.res?imgRes(ex.res,36):'');majUI();return;}/* 23/11 : simple information → carte non bloquante, le héros continue sa route */let img='';if(ex.res)img=`<div style="text-align:center">${imgRes(ex.res,48)}</div>`;if(ex.art){img=`<div style="text-align:center"><canvas width="64" height="64" id="cvArt"></canvas></div>`;SON.objet();}if(ex.res)SON.piece();
  await fenetre(`<h2>${titre}</h2>${img}<p>${texte}</p>`,[{t:'D’accord',or:true}],{init:f=>{const c=f.querySelector('#cvArt');if(c)c.getContext('2d').drawImage(spriteArtefact(ex.art),0,0);}});majUI();};
 HOOK.niveau=async(h,offres,stat)=>{if(!humain(h.j)){const C=CLASSES[h.classe];let b=0;offres.forEach((o,i)=>{if((C.ch[o]||0)>(C.ch[offres[b]]||0))b=i;});return b;}
  SON.fanfare();V.porTmp=h;const html=`<h2>${esc(h.nom)} passe au niveau ${h.niv} !</h2><div style="display:flex;gap:12px;align-items:center"><canvas width="80" height="80" data-por="${h.id}" class="portrait-fiche"></canvas><p>+1 en <b>${STAT_NOM[stat]}</b>.<br>Choisissez une compétence :</p></div>`;
@@ -40,7 +43,7 @@ HOOK.recruter=async(h,o,c,maxN)=>{if(!humain(h.j))return maxN;return choisirNomb
 HOOK.journal=(j,t)=>{G.log.push({j:G.jour,t});if(G.log.length>200)G.log.shift();if(ECRAN==='aventure'&&(humain(j)||/éliminé|empare/.test(t)))toast(t);};
 HOOK.maj=()=>{V.miniDirty=true;V.fogDirty=true;majUI();};
 HOOK.anim=async(type,h,a,b)=>{if(type==='ramasse'){if(humain(h.j))SON.piece();return;}
- if(type==='pas'){const vis=visible(a)||visible(b);V.fogDirty=true;V.miniDirty=true;if(!vis||V.rapide)return;const [x0,y0]=xy(a),[x1,y1]=xy(b);const dur=(humain(h.j)?150:90)/ACCEL;V.anim={h,x0,y0,x1,y1,t0:performance.now(),dur};if(humain(h.j))SON.pas();
+ if(type==='pas'){const vis=visible(a)||visible(b);V.fogDirty=true;V.miniDirty=true;if(!vis||V.rapide)return;const [x0,y0]=xy(a),[x1,y1]=xy(b);const dur=(humain(h.j)?150:90)/AC();V.anim={h,x0,y0,x1,y1,t0:performance.now(),dur};if(humain(h.j))SON.pas();
   suivre(x1,y1);await new Promise(r=>setTimeout(r,dur));V.anim=null;}};
 function suivre(x,y){if(en3D()){R3.suivre(x,y);return;}const T=tailleT(),z=zoneVue();const sx=(x+.5)*T-V.cam.x,sy=(y+.5)*T-V.cam.y;if(sx<z.w*.25||sx>z.w*.75||sy<z.y+z.h*.25||sy>z.y+z.h*.75){V.cam.x+=(sx-z.w/2)*.25;V.cam.y+=(sy-z.y-z.h/2)*.25;borner();}}
 HOOK.combat=async(A,D,opts)=>{const ha=humain(A.joueur),hd=humain(D.joueur);if(!ha&&!hd)return combatAuto(A,D,opts);
@@ -217,7 +220,7 @@ async function fenetreEchange(a,b){V.porTmp=a;await fenetre(`<h2>Rencontre : ${e
 
 // ---------- menu ----------
 async function menu(){if(!G)return;const e=SON.etat();const nb=window.NUAGE?(NUAGE.ok?'active':NUAGE.err?'refusée ('+esc(NUAGE.err)+')':'en attente'):'—';
- const it=[{id:'sauver',t:'💾 Sauvegarder'},{id:'son',t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{id:'musique',t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{id:'journal',t:'📜 Journal'},{id:'graal',t:'🗺 Carte du Graal'},{id:'rapide',t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{id:'3d',t:R3.ok?(V.m3?'🧊 Carte en 3D : oui':'🧊 Carte en 3D : non (2D)'):'🧊 3D indisponible sur cet appareil',off:!R3.ok},
+ const it=[{id:'sauver',t:'💾 Sauvegarder'},{id:'son',t:e.actif?'🔊 Sons : oui':'🔇 Sons : non'},{id:'musique',t:e.musique?'🎵 Musique : oui':'🎵 Musique : non'},{id:'journal',t:'📜 Journal'},{id:'graal',t:'🗺 Carte du Graal'},{id:'rapide',t:(()=>{let a=false;try{a=localStorage.getItem('bs-rapide')==='1';}catch(e){}return a?'⚡ Combats rapides auto : oui':'⚡ Combats rapides auto : non';})()},{id:'vitesse',t:'⏩ Vitesse des animations : '+NOMS_VIT[VITESSE]},{id:'3d',t:R3.ok?(V.m3?'🧊 Carte en 3D : oui':'🧊 Carte en 3D : non (2D)'):'🧊 3D indisponible sur cet appareil',off:!R3.ok},
   ...(R3.ok&&V.m3&&R3.actif?[{id:'qualite',t:'🎚 Qualité 3D : '+NOMS_Q3D[R3.niveau()]+(R3.auto()?' (auto)':'')}]:[]),
   {id:'aide',t:'📖 Aide'},{id:'bug',t:'🐞 Signaler un problème'},...(TEST?[{id:'banc',t:'▶ Banc de mesure'}]:[]),{id:'quitter',t:'🏠 Quitter vers l’accueil'},{id:'reprendre',t:'Reprendre',or:true}];
  const k=await fenetre(`<h2>Menu</h2><p style="font-size:13px;text-align:center">${dateTxt()} · Graine ${G.graine}${TEST?' · 🧪 Mode test':''}<br>☁ Sauvegarde en ligne : ${nb}</p>`,it);
@@ -225,6 +228,7 @@ async function menu(){if(!G)return;const e=SON.etat();const nb=window.NUAGE?(NUA
  if(c==='sauver'){sauver();toast(TEST?'Mode test : rien n’est sauvegardé.':'Partie sauvegardée.');}
  else if(c==='son'){SON.basculerSon();menu();}else if(c==='musique'){SON.basculerMusique();menu();}
  else if(c==='rapide'){try{localStorage.setItem('bs-rapide',localStorage.getItem('bs-rapide')==='1'?'0':'1');}catch(e){}menu();}
+ else if(c==='vitesse'){changerVitesse();menu();}
  else if(c==='graal')carteGraal();
  else if(c==='journal'){await fenetre('<h2>Journal</h2>'+(G.log.slice(-40).reverse().map(l=>`<p style="font-size:13px">J${l.j} — ${esc(l.t)}</p>`).join('')||'<p>Rien pour l’instant.</p>'),[{t:'Fermer',or:true}]);}
  else if(c==='3d'){basculer3D();}
@@ -252,7 +256,7 @@ function aide(){return fenetre(`<h2>Comment jouer</h2>
  <p><b>Villes :</b> un bâtiment par jour. Les habitations produisent des créatures chaque semaine (lundi). La guilde des mages enseigne des sorts, la taverne propose des héros.</p>
  <p><b>Le Graal :</b> chaque obélisque révèle un fragment de sa carte (menu ☰). Une fois la carte complète, une croix rouge marque l’emplacement : creusez-y (fiche du héros, ⛏) avec un héros qui n’a pas bougé de la journée, puis rapportez le Graal dans une ville pour y bâtir une merveille (+5000 or par jour, créatures +50 %).</p>
  <p><b>Combat :</b> chaque troupe agit à son tour selon sa vitesse. Touchez une case verte pour vous déplacer, un ennemi pour l’attaquer (ou tirer). Votre héros peut lancer un sort par round (📖). ⏳ attendre, 🛡 se défendre, ⚙ combat automatique.</p>
- <p><b>Raccourcis :</b> E fin du tour · H héros suivant · V ville · Espace avancer · Échap menu.</p>`,[{t:'Fermer',or:true}]);}
+ <p><b>Raccourcis :</b> E fin du tour · H héros suivant · V ville · Espace avancer · Échap menu. En combat : W attendre · D se défendre · S sorts · A automatique · V vitesse (×1, ×2, ×3) · F fuir.</p>`,[{t:'Fermer',or:true}]);}
 
 // ---------- mode test et banc ----------
 function modeTest(){TEST=true;TK&&TK.modeTest();demarrer({graine:7,taille:54,eau:1,monstres:1,difficulte:1,joueurs:[{fac:'bastion',humain:true},{fac:'necro',humain:false},{fac:'sylve',humain:false}]});}
@@ -272,6 +276,7 @@ function boucle(){try{V.cpt=(V.cpt||0)+1;const repos=performance.now()-(V.activi
 window.addEventListener('resize',()=>{if(G){redim();borner();}if(ECRAN==='combat'&&CB)redimCombat();if(ECRAN==='ville'&&VI)redimVille();});
 window.addEventListener('keydown',e=>{V.activite=performance.now();if(e.target.tagName==='INPUT')return;const fh=fenHaut();const m=!!fh;
  if(e.key==='Escape'){if(m){const bs=fh.querySelectorAll('.fen > .btns .btn');const b=[...bs].find(x=>/Fermer|Annuler|Reprendre|Terminer|D’accord/.test(x.textContent))||bs[bs.length-1];if(b)b.click();}else if(ECRAN==='aventure')menu();else if(ECRAN==='ville'&&VI)VI.fermer();return;}
+ if(!m&&ECRAN==='combat'&&CB){const k=e.key.toLowerCase();const id={w:'cbAttendre',d:'cbDefendre',s:'cbSort',a:'cbAuto',v:'cbVit',f:'cbFuir'}[k];if(id){const b=$(id);if(b&&!b.disabled){e.preventDefault();b.click();}}return;}
  if(m||ECRAN!=='aventure'||!G||V.occupe)return;const k=e.key.toLowerCase();
  if(k==='e')finTour();else if(k==='h')heroSuivant();else if(k===' '){e.preventDefault();avancer();}else if(k==='v'){const v=V.sel&&V.sel.t==='ville'?G.oi[V.sel.id]:villesDe(G.courant)[0];if(v)ouvrirVille(v);}
  else if(k.startsWith('arrow')&&en3D()){const d=innerHeight*.2;R3.deplacer(k==='arrowleft'?d:k==='arrowright'?-d:0,k==='arrowup'?d:k==='arrowdown'?-d:0);}

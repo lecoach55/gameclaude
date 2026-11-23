@@ -75,3 +75,13 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Montagnes « peintes » (21/11 soir) : `PEINT=1 montagnes.py /home/claude/peint sortie [neige]` (roche procédurale, arêtes plus marquées, AgX contraste moyen-fort).
 - Herbe du sol (`tex3d/sol_herbe.jpg`) adoucie (flou 1,2 px) et plus colorée (saturation ×1,3).
 - Scierie de la carte : maison à pilotis (illya2878) rendue à 52°.
+
+## 23/11
+- Carte plus lumineuse (exposition 1,4, lumière du ciel 0,88, vignettage 0,18) ; eau bleue avec écume (shader de l'eau dans rendu3d.js).
+- Piles de ressources : `outils/blender/piles.py` (or, bois, minerai, soufre, cristal, gemmes, mercure).
+- Petits lieux : `outils/blender/lieux_peints.py` (puits, sanctuaire, fontaine, autel, obélisque, pierre runique).
+- Villes : `outils/blender/ville_peints.py` avec `ELEV=8 ROT=32` (tour de mage, marché, grenier, hutte de la Horde).
+- Créatures : liseré sombre et étalonnage commun appliqués à toutes les planches (`planche3D` dans sprites.js).
+- Terrains adoucis (flou léger) et plus colorés.
+- Essai écarté : liseré sur les imposteurs du décor (assombrit les forêts).
+- À surveiller : `outils/villes_clics.py` ne retrouve plus les créatures devant les habitations depuis la v40 (les bâtiments, eux, restent bons) — probablement l'outil (différence de rendus), à vérifier.

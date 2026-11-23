@@ -60,7 +60,7 @@ sc = scene(); P = PIERRE(); B = BOIS()
 cyl(.55, .5, (0, 0, .25), P, 32); cyl(.45, .52, (0, 0, .27), mat('int', (.05, .04, .03, 1), r=1), 32); cyl(.44, .02, (0, 0, .38), EAU(), 32)
 for s in (-1, 1): boite((.08, .08, 1.0), (s * .5, 0, .85), B)
 boite((1.15, .06, .06), (0, 0, 1.25), B)
-for s in (-1, 1): boite((1.15, .5, .05), (0, s * .2, 1.42), TUILE(), (s * .85, 0, 0))
+for s in (-1, 1): boite((1.15, .5, .05), (0, s * .2, 1.42), TUILE(), (-s * .85, 0, 0))
 cyl(.07, .9, (0, 0, 1.05), B, 12).rotation_euler = (0, math.pi / 2, 0)
 cyl(.11, .16, (.15, 0, .72), mat('seau', (.45, .3, .18, 1), r=.8), 16)
 rendre(sc, 'puits')
@@ -70,7 +70,7 @@ for k, (w, d) in enumerate([(2.2, 1.6), (2.0, 1.4), (1.8, 1.2)]): boite((w, d, .
 for x in (-.75, -.25, .25, .75):
     for y in (-.48, .48): cyl(.09, 1.3, (x, y, 1.01), P, 16)
 boite((1.95, 1.3, .14), (0, 0, 1.73), P)
-for sg in (-1, 1): boite((2.05, .78, .08), (0, sg * .33, 1.97), mat('ardoise_s', (.8, .82, .9, 1), 'ardoise.jpg', 1.2), (sg * .55, 0, 0))
+for sg in (-1, 1): boite((2.05, .78, .08), (0, sg * .33, 1.97), mat('ardoise_s', (.8, .82, .9, 1), 'ardoise.jpg', 1.2), (-sg * .55, 0, 0))
 cyl(.16, .5, (0, 0, .6), P, 16); bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=.16, location=(0, 0, .98)); ob(bpy.context.object, mat('orbe', (1, .85, .5, 1), r=.2, em=(1, .8, .4, 1)))
 rendre(sc, 'sanctuaire')
 # fontaine : bassin octogonal, colonne et vasque

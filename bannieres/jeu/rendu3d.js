@@ -156,7 +156,7 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
 #ifndef BS_LEGER
  if(bsLoin<.5){vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
 #endif
- float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));
+ float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));col=mix(col,dot(col,vec3(.33))*vec3(.52,.44,.4),lav*.85);// 23/11 : croûte de basalte sombre (au lieu d'ocre vif)
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
  col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,.76);// grandes surfaces moins saturées (revue artistique : S ≤ 0,45)
@@ -240,7 +240,7 @@ function construireDecor(){decor=new T.Group();scene.add(decor);const c=G.carte;
  const occ=new Set(G.objs.map(o=>o.y*N+o.x));const reel=!!(RES.atlas&&RES.imp);
  const mMont={};const matMont=ter=>mMont[ter]||(mMont[ter]=RES.tx.roche?mat(ter==='lave'?0x5a4a46:0xffffff,{tri:ter==='sable'||ter==='terre'?'roche2':'roche',neige:ter==='neige'?.55:ter==='sable'||ter==='lave'?9:1.15,r:.95,ech:.3}):mat(0xffffff,{vc:1,r:.95}));
  for(let y=0;y<N;y++)for(let x=0;x<N;x++){ck=((x/9)|0)+','+((y/9)|0);const i=y*N+x,o=c.obs[i],ter=TER[c.ter[i]];const r=creeRng(i*7+3);
-  if(o===OBS.MONT&&reel&&ter!=='lave'&&RES.imp['mont_a_h']){const v=(x*5+y*11)%6;const cx=x+1,cz=y+1;imp('mont_'+'abcdef'[v]+(ter==='neige'?'_n':''),cx+(r.f()-.5)*.3,cz+.35,1.9+r.f()*.9,r,1);if(r.f()<.6)imp('mont_'+'abcdef'[(v+3)%6]+(ter==='neige'?'_n':''),cx+(r.f()-.5)*1.1,cz+.75,1.1+r.f()*.6,r,1);if(ter!=='neige'&&r.f()<.7){for(let k=0;k<3;k++){const a=r.f()*6.28,d=1+r.f()*.4;const nm=arbresPour(ter,r);imp(nm,cx+Math.cos(a)*d,cz+.9+Math.abs(Math.sin(a))*d*.4,hauteurArbre(nm,r)*.9,r,1);}}}
+  if(o===OBS.MONT&&reel&&RES.imp['mont_a_h']){const v=(x*5+y*11)%6;const cx=x+1,cz=y+1;const sfx=ter==='neige'?'_n':ter==='lave'&&RES.imp['mont_a_l_h']?'_l':'';imp('mont_'+'abcdef'[v]+sfx,cx+(r.f()-.5)*.3,cz+.35,1.9+r.f()*.9,r,1);if(r.f()<.6)imp('mont_'+'abcdef'[(v+3)%6]+sfx,cx+(r.f()-.5)*1.1,cz+.75,1.1+r.f()*.6,r,1);if(ter!=='neige'&&ter!=='lave'&&r.f()<.7){for(let k=0;k<3;k++){const a=r.f()*6.28,d=1+r.f()*.4;const nm=arbresPour(ter,r);imp(nm,cx+Math.cos(a)*d,cz+.9+Math.abs(Math.sin(a))*d*.4,hauteurArbre(nm,r)*.9,r,1);}}}
   else if(o===OBS.MONT){const v=(x*5+y*11)%6;const g=geoMontagne(v,ter);const cx=x+1,cz=y+1;ajout('m'+v+ter,g,mk(cx,h(cx,cz)-.1,cz,r.f()*6,.95+r.f()*.25,.9+r.f()*.5),1,matMont(ter));
    if(reel&&ter!=='neige'&&ter!=='lave'&&r.f()<.7){for(let k=0;k<2;k++){const a=r.f()*6.28,d=.9+r.f()*.5;const nm=ter==='sable'?'buisson_a':arbresPour(ter,r);imp(nm,cx+Math.cos(a)*d,cz+Math.sin(a)*d*.8,hauteurArbre(nm,r)*.9,r,1);}}}
   else if(o===OBS.VEG){if(reel){// 21/11 : moins d'arbres mais plus grands, pour lire chaque houppier comme dans Heroes (au lieu d'un tapis de feuilles)

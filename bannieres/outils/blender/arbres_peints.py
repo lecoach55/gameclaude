@@ -109,6 +109,7 @@ VERT = ((.012, .04, .008, 1), (.07, .19, .025, 1), (.22, .36, .05, 1))
 VERT2 = ((.015, .045, .01, 1), (.1, .2, .03, 1), (.3, .36, .07, 1))
 SAP = ((.008, .03, .015, 1), (.03, .1, .045, 1), (.09, .2, .07, 1))
 QUOI = os.environ.get('QUOI')
-for nom, f, g, t in [('arbuste_a', buisson, 21, VERT), ('arbuste_b', buisson, 25, VERT2), ('arbuste_c', buisson, 29, VERT), ('buisson_a', buisson, 33, VERT2), ('jeune_a', jeune, 41, VERT), ('jeune_b', jeune, 45, VERT2)] if QUOI == 'petits' else [
+OR3 = ((.06, .03, .0, 1), (.45, .26, .02, 1), (.95, .7, .15, 1))
+for nom, f, g, t in [('arbre_or', feuillu, 7, OR3)] if QUOI == 'or' else [('arbuste_a', buisson, 21, VERT), ('arbuste_b', buisson, 25, VERT2), ('arbuste_c', buisson, 29, VERT), ('buisson_a', buisson, 33, VERT2), ('jeune_a', jeune, 41, VERT), ('jeune_b', jeune, 45, VERT2)] if QUOI == 'petits' else [
     ('feuillu_a', feuillu, 3, VERT), ('feuillu_b', feuillu, 11, VERT2), ('sapin_a', sapin, 5, SAP), ('sapin_b', sapin, 8, SAP), ('sapin_c', sapin, 13, SAP)]:
     rendre(f(g, t), nom)

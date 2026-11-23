@@ -98,3 +98,26 @@ ob(o, P); bpy.ops.object.shade_smooth()
 boite((.04, .02, .7), (0, -.22, 1.0), mat('rune', (.4, .85, 1, 1), em=(.3, .8, 1, 1)))
 boite((.28, .02, .04), (.07, -.22, 1.12), MATS['rune'], (0, -.7, 0)); boite((.22, .02, .04), (.06, -.22, .9), MATS['rune'], (0, .7, 0))
 rendre(sc, 'pierre')
+
+# antre de créatures : butte rocheuse, entrée voûtée sombre, encadrement de poutres, deux torches
+if os.environ.get('QUOI') == 'plus':
+    pass
+sc = scene(); R = mat('roche_a', (.75, .7, .62, 1), 'roche.jpg', .9); B = BOIS()
+bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=5, radius=1.4, location=(0, .3, 0)); o = bpy.context.object
+for v in o.data.vertices:
+    p = v.co.normalized(); v.co = p * 1.4 * (1 + .22 * noise.noise(p * 2.2) + .08 * noise.noise(p * 6)); v.co.z = max(v.co.z, -.05) * .75
+ob(o, R); bpy.ops.object.shade_smooth()
+bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=.42, depth=.6, location=(0, -1.0, .32), rotation=(math.pi / 2, 0, 0)); ob(bpy.context.object, mat('noir', (.01, .008, .005, 1), r=1))
+boite((1.0, .5, .65), (0, -1.0, .1), MATS['noir'])
+for sx in (-1, 1): boite((.1, .12, 1.0), (sx * .5, -1.18, .5), B)
+boite((1.2, .14, .12), (0, -1.18, 1.0), B)
+for sx in (-1, 1):
+    cyl(.035, .5, (sx * .75, -1.25, .55), B, 8); bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=.08, depth=.22, location=(sx * .75, -1.25, .9)); ob(bpy.context.object, mat('feu', (1, .55, .1, 1), em=(1, .5, .1, 1)))
+rendre(sc, 'antre')
+# artefact : piédestal de pierre et calice doré lumineux
+sc = scene(); P = PIERRE2()
+cyl(.45, .15, (0, 0, .075), P, 8); cyl(.25, .7, (0, 0, .5), P, 8); cyl(.38, .12, (0, 0, .9), P, 8)
+OR = mat('or_a', (1, .62, .15, 1), m=.9, r=.3, em=(.12, .07, .01, 1))
+cyl(.06, .25, (0, 0, 1.08), OR, 12); cyl(.18, .28, (0, 0, 1.33), OR, 20, .08)
+bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=.06, location=(0, 0, 1.52)); ob(bpy.context.object, mat('gemme_a', (.2, .5, 1, 1), em=(.2, .5, 1, 1)))
+rendre(sc, 'artefact')

@@ -112,3 +112,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - `rochers_peints.py` VAR=s|n|l : grès du désert, rochers enneigés, basalte à fissures de lave (`rocT(ter,l)` choisit la variante sur la carte et en combat).
 - `outils/blender/desert_peints.py` : palmier, cactus à bras, broussaille sèche (desert_a/b/c, h et b) à la place des arbustes photo.
 - Combat sur la lave : sol de basalte sombre (couche lave seule), plus de palmiers, rochers de lisière plus petits.
+
+## v57 (23/11) — arbres morts et acacias
+- `desert_peints.py` QUOI=autres : `arbre_mort` (branches récursives, bois gris) et `acacia` (cime en ombrelle), h et b.
+- Nécropole : arbres morts autour de la ville ; Horde : acacias de savane mêlés aux arbustes ; lave (carte/combat) : arbres morts. Plus aucun palmier ni cactus hors du désert.

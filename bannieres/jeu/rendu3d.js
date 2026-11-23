@@ -204,12 +204,12 @@ function rocT(ter,l){const v={sable:'s',neige:'n',lave:'l'}[ter];return'roc_'+l+
 function arbresPour(ter,r){const p=r.f();switch(ter){
  case 'neige':return p<.8?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:'jeune_a';
  case 'sable':return p<.35?'desert_a':p<.75?['desert_b','desert_c'][r.i(0,1)]:'buisson_a';
- case 'lave':return 'mort_a';
+ case 'lave':return p<.6?'arbre_mort':'mort_a';
  case 'marais':return p<.4?['arbuste_a','arbuste_b'][r.i(0,1)]:p<.75?'jeune_b':'feuillu_b';
  case 'terre':return p<.55?['feuillu_a','feuillu_b'][r.i(0,1)]:p<.85?['arbuste_a','arbuste_c'][r.i(0,1)]:'jeune_b';
  case 'rude':return p<.55?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:p<.8?['jeune_a','jeune_b'][r.i(0,1)]:'arbuste_b';
  default:return p<.55?['feuillu_a','feuillu_b'][r.i(0,1)]:p<.8?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:['arbuste_a','arbuste_b','arbuste_c'][r.i(0,2)];}}
-function hauteurArbre(nom,r){return nom.startsWith('sapin')?1.25+r.f()*.5:nom.startsWith('feuillu')?1.05+r.f()*.4:nom.startsWith('jeune')?.7+r.f()*.3:nom.startsWith('desert_a')?1.1+r.f()*.3:nom.startsWith('roc')?.32+r.f()*.25:nom==='mort_a'?.12:.5+r.f()*.25;}
+function hauteurArbre(nom,r){return nom.startsWith('sapin')?1.25+r.f()*.5:nom.startsWith('feuillu')?1.05+r.f()*.4:nom.startsWith('jeune')?.7+r.f()*.3:nom.startsWith('desert_a')?1.1+r.f()*.3:nom==='arbre_mort'?.9+r.f()*.35:nom==='acacia'?.75+r.f()*.2:nom==='desert_b'?.55+r.f()*.2:nom.startsWith('roc')?.32+r.f()*.25:nom==='mort_a'?.12:.5+r.f()*.25;}
 // ---------- géométries de décor ----------
 function bruiter(g,k,seed){const p=g.attributes.position;const nz=bruit(seed);for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);const n=nz.fbm(x*1.7+5,z*1.7+y*1.3,3)-.5;const s=1+n*k;p.setXYZ(i,x*s,y*(1+n*k*.6),z*s);}g.computeVertexNormals();return g;}
 function colorer(g,f){const p=g.attributes.position;const col=new Float32Array(p.count*3);const c=new T.Color();for(let i=0;i<p.count;i++){f(p.getX(i),p.getY(i),p.getZ(i),c);c.convertSRGBToLinear();col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;}g.setAttribute('color',new T.BufferAttribute(col,3));return g;}
@@ -690,13 +690,13 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
  const vis=z=>2*(camZ-z)*tf*asp;// largeur visible à la profondeur z
  const mV=mat(0xffffff,{vc:1,r:.82}),mP=mat(0xffffff,{vc:1,r:.95});
  const ty=()=>nuit?'mort':syl?(r.f()<.6?'sapin':'feuillu'):hd?(r.f()<.4?'mort':'feuillu'):(r.f()<.3?'sapin':'feuillu');
- const qV=cam.quaternion.clone();const nomV=()=>nuit?(r.f()<.6?'desert_a':'jeune_b'):syl?['sapin_a','sapin_b','sapin_c','feuillu_a'][r.i(0,3)]:hd?['feuillu_b','arbuste_a','desert_a'][r.i(0,2)]:['feuillu_a','feuillu_b','sapin_a','sapin_b','arbuste_b'][r.i(0,4)];
- const arbre=(x,z,s)=>{if(reel){const nm=nomV();const o=planImp('b',nm,s*(nm.startsWith('arbuste')?.55:nm.startsWith('jeune')?.8:1.1),r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}return;}const o=new T.Mesh(geoArbre(ty(),r.i(0,2)),mV);o.position.set(x,0,z);o.scale.setScalar(s);o.rotation.y=r.f()*6;o.castShadow=true;o.receiveShadow=true;sc.add(o);};
+ const qV=cam.quaternion.clone();const nomV=()=>nuit?(r.f()<.7?'arbre_mort':'jeune_b'):syl?['sapin_a','sapin_b','sapin_c','feuillu_a'][r.i(0,3)]:hd?['acacia','arbuste_a','feuillu_b','arbuste_a'][r.i(0,3)]:['feuillu_a','feuillu_b','sapin_a','sapin_b','arbuste_b'][r.i(0,4)];
+ const arbre=(x,z,s)=>{if(reel){const nm=nomV();const o=planImp('b',nm,s*(nm.startsWith('arbuste')?.55:nm.startsWith('jeune')?.8:nm==='acacia'?.7:1.1),r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}return;}const o=new T.Mesh(geoArbre(ty(),r.i(0,2)),mV);o.position.set(x,0,z);o.scale.setScalar(s);o.rotation.y=r.f()*6;o.castShadow=true;o.receiveShadow=true;sc.add(o);};
  for(let k=0;k<70;k++){const z=-17-r.f()*22;arbre((r.f()-.5)*vis(z)*1.1,z,4+r.f()*3);}
  for(let k=0;k<16;k++){const z=-12+r.f()*20;const sd=r.f()<.5?-1:1;arbre(sd*vis(z)*(.44+r.f()*.1),z,3.5+r.f()*2);}
  for(let k=0;k<10;k++){const z=-2+r.f()*12;const x=(r.f()-.5)*vis(z)*.9;if(Math.abs(x)<2)continue;if(reel){const o=planImp('b','roc_'+'abcd'[k%4],.22+r.f()*.25,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}continue;}const o=new T.Mesh(geoRocher(k%5,terS),mP);o.position.set(x,0,z);o.scale.setScalar(.6+r.f()*.6);o.castShadow=true;sc.add(o);}
  // premier plan (19/11) : massifs et rochers aux deux coins pour cadrer la scène comme un tableau, touffes éparses sur le terrain vide
- if(reel){const fg=nuit?['desert_b','desert_c','roc_d','jeune_b']:hd?['desert_a','arbuste_a','roc_d','desert_c']:['buisson_a','arbuste_b','buisson_a','roc_d'];
+ if(reel){const fg=nuit?['arbre_mort','desert_c','roc_d','arbre_mort']:hd?['arbuste_a','desert_c','roc_d','desert_c']:['buisson_a','arbuste_b','buisson_a','roc_d'];
   for(const sd of [-1,1])for(let k=0;k<6;k++){const z=8.6+r.f()*3.2;const nm=fg[r.i(0,3)];const x=sd*vis(z)*(.36+r.f()*.16);const o=planImp('b',nm,((nm.startsWith('roc')?.6:1.4)+r.f()*1.1)*(/^(arbuste|buisson)/.test(nm)?.55:1),r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}}
   for(let k=0;k<22;k++){const z=-1+r.f()*11;const x=(r.f()-.5)*vis(z)*.95;if(Math.abs(x)<2.2)continue;const nm=fg[r.i(1,3)];const o=planImp('b',nm.startsWith('roc')?'arbuste_c':nm,.28+r.f()*.35,r.f()<.5,qV);if(o){o.position.set(x,0,z);sc.add(o);}}}
  // place pavée, puits, tonneaux, caisses et lanternes (accessoires photographiés)

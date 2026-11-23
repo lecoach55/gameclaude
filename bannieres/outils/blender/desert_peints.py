@@ -6,6 +6,31 @@ exec(src.split('\nVERT = ')[0])
 import bpy, math, random
 from mathutils import Vector
 
+
+def branche(p0, d, L, r, M, prof, g):  # branche récursive tordue
+    if prof == 0 or L < .12: return
+    p1 = p0 + d * L
+    c = (p0 + p1) / 2; bpy.ops.mesh.primitive_cone_add(vertices=8, radius1=r, radius2=r * .65, depth=L, location=c)
+    o = bpy.context.object; o.rotation_euler = d.to_track_quat('Z', 'Y').to_euler(); o.data.materials.append(M); bpy.ops.object.shade_smooth()
+    random.seed(g)
+    for k in range(2 if prof > 1 else 3):
+        nd = (d * .8 + Vector((random.uniform(-1, 1), random.uniform(-1, 1), random.uniform(0, .4)))).normalized()
+        branche(p1, nd, L * random.uniform(.6, .78), r * .62, M, prof - 1, g * 7 + k + 1)
+def arbre_mort(g):
+    sc = scene_vide(); random.seed(g)
+    M = bpy.data.materials.new('bois_mort'); M.use_nodes = True; b = M.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value = (.12, .1, .09, 1); b.inputs['Roughness'].default_value = .9
+    t = M.node_tree.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(TX); mx = M.node_tree.nodes.new('ShaderNodeMixRGB'); mx.blend_type = 'MULTIPLY'; mx.inputs[0].default_value = 1; mx.inputs[2].default_value = (.35, .32, .3, 1)
+    M.node_tree.links.new(t.outputs[0], mx.inputs[1]); M.node_tree.links.new(mx.outputs[0], b.inputs['Base Color'])
+    branche(Vector((0, 0, 0)), Vector((.08, 0, 1)).normalized(), 1.0, .11, M, 6, g)
+    return sc
+def acacia(g):
+    sc = scene_vide(); random.seed(g); E = mat_ecorce()
+    F = mat_feuillage('acacia', (.02, .04, .005, 1), (.12, .2, .03, 1), (.33, .38, .08, 1))
+    for sx in (-1, 1):
+        bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=.1, radius2=.06, depth=1.7, location=(sx * .25, 0, .8), rotation=(0, sx * .3, 0)); o = bpy.context.object; o.data.materials.append(E); bpy.ops.object.shade_smooth()
+    for k, (x, y, r) in enumerate([(0, 0, .7), (-.75, .15, .5), (.75, -.05, .55), (.1, .45, .45), (-.2, -.45, .45)]):
+        o = boule((x, y, 1.75), r, F, g + k, rug=.35); o.scale = (1.25, 1.25, .28)
+    return sc
 def palmier(g):
     sc = scene_vide(); random.seed(g); E = mat_ecorce()
     F = mat_feuillage('palme', (.02, .06, .01, 1), (.12, .3, .04, 1), (.36, .5, .1, 1))
@@ -51,5 +76,6 @@ def broussaille(g):
     for k in range(6):
         a = k / 6 * 6.28; bpy.ops.mesh.primitive_cone_add(vertices=5, radius1=.012, depth=.42, location=(math.cos(a) * .18, math.sin(a) * .18, .3), rotation=(math.sin(a) * .7, -math.cos(a) * .7, 0)); bpy.context.object.data.materials.append(E)
     return sc
-for nom, f, g in [('desert_a', palmier, 3), ('desert_b', cactus, 5), ('desert_c', broussaille, 7)]:
+QUOI = os.environ.get('QUOI', 'desert')
+for nom, f, g in ([('arbre_mort', arbre_mort, 9), ('acacia', acacia, 11)] if QUOI == 'autres' else [('desert_a', palmier, 3), ('desert_b', cactus, 5), ('desert_c', broussaille, 7)]):
     rendre(f(g), nom)

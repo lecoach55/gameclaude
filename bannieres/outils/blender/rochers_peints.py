@@ -50,7 +50,10 @@ def materiau():
     mo = N.new('ShaderNodeMixRGB'); L.new(mul.outputs[0], mo.inputs[0]); L.new(mf.outputs[0], mo.inputs[1]); mo.inputs[2].default_value = {'n': (.9, .93, 1, 1), 's': (.3, .19, .09, 1), 'l': (.03, .025, .025, 1)}.get(VAR, (.09, .15, .035, 1))
     if VAR == 'n': pe.inputs[1].default_value = .58; pe.inputs[2].default_value = .74; mm.inputs[1].default_value = .3; mm.inputs[2].default_value = .4
     L.new(mo.outputs[0], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .88
-    if VAR == 'l':  # fissures incandescentes
+    if VAR == 'l':  # fissures incandescentes, rares et irrégulières (cellules larges, coordonnées déformées)
+        vo.inputs['Scale'].default_value = .75
+        dn = N.new('ShaderNodeTexNoise'); dn.inputs['Scale'].default_value = 1.8; dn.inputs['Detail'].default_value = 3; L.new(geo.outputs['Position'], dn.inputs['Vector'])
+        ad = N.new('ShaderNodeVectorMath'); ad.operation = 'MULTIPLY_ADD'; ad.inputs[1].default_value = (.7, .7, .7); L.new(dn.outputs['Color'], ad.inputs[0]); L.new(geo.outputs['Position'], ad.inputs[2]); L.new(ad.outputs[0], vo.inputs['Vector'])
         gl = N.new('ShaderNodeMapRange'); L.new(vo.outputs['Distance'], gl.inputs[0]); gl.inputs[1].default_value = .018; gl.inputs[2].default_value = 0
         L.new(gl.outputs[0], b.inputs['Emission Strength']); b.inputs['Emission Color'].default_value = (1, .2, 0, 1); gl.inputs[4].default_value = 3.5
     return m

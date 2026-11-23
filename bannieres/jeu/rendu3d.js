@@ -204,7 +204,7 @@ function rocT(ter,l){const v={sable:'s',neige:'n',lave:'l'}[ter];return'roc_'+l+
 function arbresPour(ter,r){const p=r.f();switch(ter){
  case 'neige':return p<.8?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:'jeune_a';
  case 'sable':return p<.5?'desert_a':p<.75?'desert_b':'desert_c';
- case 'lave':return p<.6?'arbre_mort':'mort_a';
+ case 'lave':return 'arbre_mort';
  case 'marais':return p<.4?['arbuste_a','arbuste_b'][r.i(0,1)]:p<.75?'jeune_b':'feuillu_b';
  case 'terre':return p<.55?['feuillu_a','feuillu_b'][r.i(0,1)]:p<.85?['arbuste_a','arbuste_c'][r.i(0,1)]:'jeune_b';
  case 'rude':return p<.55?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:p<.8?['jeune_a','jeune_b'][r.i(0,1)]:'arbuste_b';

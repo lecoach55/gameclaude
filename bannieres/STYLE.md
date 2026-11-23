@@ -134,3 +134,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v61 (23/11) — marais
 - `touffes_peintes.py` QUOI=roseaux : roseaux à quenouilles sur une petite flaque (`roseaux_a`), semés dans les marais à la place des troncs photo.
 - `tex3d/sol_marais.jpg` un peu plus vert et plus clair.
+
+## v62 (23/11) — châteaux selon le terrain
+- `imp_fort.py` FORT_SOL=n|s|l : butte de neige, de sable ou de basalte (texture désaturée puis teintée) ; 12 images `fort_<fac>_h_<n|s|l>.webp`, choisies d'après la case du château (`fortImp(fac,sx)`). Page : 10,6 Mio.

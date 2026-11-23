@@ -49,6 +49,13 @@ def matimg(nom, f, nf=None, ech=1.0, teinte=None):
     b.inputs['Roughness'].default_value = .85; return m
 ARD = matimg('ardoise', f'{TX}/roof_slates_02_Diffuse.jpg', f'{TX}/roof_slates_02_nor_gl.jpg', .5, ST['toit'])
 ROC = matimg('roc', f'{TX}/rocky_terrain_02_Diffuse.jpg', f'{TX}/rocky_terrain_02_nor_gl.jpg', .12, ST['roc'])
+# FORT_SOL (23/11) : butte de neige (n), de sable (s) ou de basalte (l) pour les châteaux posés sur ces terrains
+SOL = os.environ.get('FORT_SOL', '')
+if SOL: ROC = matimg('roc_' + SOL, f'{TX}/rocky_terrain_02_Diffuse.jpg', f'{TX}/rocky_terrain_02_nor_gl.jpg', .12, {'n': (2.6, 2.75, 3.0, 1), 's': (1.9, 1.35, .75, 1), 'l': (.3, .26, .25, 1)}[SOL])
+if SOL:  # texture désaturée avant la teinte (la roche Poly Haven est verdâtre)
+    N = ROC.node_tree.nodes; L = ROC.node_tree.links; mix = next(n for n in N if n.type == 'MIX_RGB'); tx = mix.inputs[1].links[0].from_socket
+    hs = N.new('ShaderNodeHueSaturation'); hs.inputs['Saturation'].default_value = 0; L.new(tx, hs.inputs['Color']); L.new(hs.outputs[0], mix.inputs[1])
+    mix.inputs[2].default_value = {'n': (2.3, 2.45, 2.75, 1), 's': (1.45, 1.05, .6, 1), 'l': (.28, .25, .24, 1)}[SOL]
 # butte rocheuse
 from mathutils import noise
 bpy.ops.mesh.primitive_uv_sphere_add(segments=96, ring_count=48, radius=1); bt = bpy.context.object

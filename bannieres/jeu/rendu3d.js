@@ -53,7 +53,7 @@ let RESP=null;function chargerRes(){if(RESP)return RESP;RESP=(async()=>{
  RES.lieuV={};for(const k of Object.keys(LIEUV)){const im=await chargerImg(srcRes('i3-lv_'+k,'imp/lv_'+k+'.webp'));if(im){const t=new T.Texture(im);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.needsUpdate=true;RES.lieuV[k]=t;}}
  RES.maisV={};for(const k of Object.keys(MAISV)){const im=await chargerImg(srcRes('i3-mv_'+k,'imp/mv_'+k+'.webp'));if(im)RES.maisV[k]=im;}
  RES.fortV={};for(const f of ['bastion','horde','necro','sylve']){const im=await chargerImg(srcRes('i3-fortv_'+f,'imp/fortv_'+f+'.webp'));if(im)RES.fortV[f]=im;}
- RES.fort={};for(const f of ['bastion','horde','necro','sylve']){const im=await chargerImg(srcRes('i3-fort_'+f+'_h','imp/fort_'+f+'_h.webp'));if(im){const t=new T.Texture(im);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.needsUpdate=true;RES.fort[f]=t;}}
+ RES.fort={};for(const f of ['bastion','horde','necro','sylve'])for(const sx of ['','_n','_s','_l']){const im=await chargerImg(srcRes('i3-fort_'+f+'_h'+sx,'imp/fort_'+f+'_h'+sx+'.webp'));if(im){const t=new T.Texture(im);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.needsUpdate=true;RES.fort[f+sx]=t;}}/* 23/11 : butte de neige, sable ou basalte selon le terrain */
  RES.pret=true;})();return RESP;}
 chargerRes();
 // ciel pour l'éclairage d'ambiance et les reflets (remplace la « pièce » de studio)
@@ -325,11 +325,11 @@ function fusionner(gr,garder=o=>false){gr.updateMatrixWorld(true);const lots=new
  return out;}
 // fort de la carte rendu dans Blender (Poly Haven modular_fort_01, CC0 ; outils/blender/imp_fort.py) : pied = avant du fort
 const FORT={bastion:{w:526,h:751,px:263,py:731.7,ppm:14.709,haut:54.79,larg:35.62},horde:{w:668,h:821,px:334.0,py:796.3,ppm:18.707,haut:43.08,larg:35.62},necro:{w:412,h:697,px:206.0,py:681.3,ppm:11.543,haut:69.81,larg:35.62},sylve:{w:716,h:771,px:346.0,py:750.1,ppm:15.856,haut:50.82,larg:35.62}};
-function fortImp(fac){const me=FORT[fac],tx=RES.fort&&RES.fort[fac];if(!me||!tx)return null;const s=3.3/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
+function fortImp(fac,sx){const me=FORT[fac],tx=RES.fort&&(RES.fort[fac+(sx||'')]||RES.fort[fac]);if(!me||!tx)return null;const s=3.3/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
  const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);
  const m=brume(new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false}),{cle:'fort'});const o=new T.Mesh(g,m);o.quaternion.setFromEuler(new T.Euler(-C3.tang*.75,0,0));o.position.set(0,0,17*s-.45);o.castShadow=false;o.renderOrder=1;return o;}
 function villeMesh(v,carte){const gr=new T.Group();const F=FAC[v.fac].coul;const mur=new T.Color(F.mur).getHex(),toit=toitNat(F.toit);const P=PM;
- const fi=carte&&fortImp(v.fac);const fiOk=!!fi;
+ const fi=carte&&fortImp(v.fac,{3:'_n',4:'_s',6:'_l'}[G.carte.ter[idx(v.x,v.y)]]);const fiOk=!!fi;
  if(fi)gr.add(fi);
  else if(v.fac==='horde'||v.fac==='sylve'){const bois=v.fac==='horde'?0x7a5228:0x8a6238;
   for(let k=0;k<26&&v.fac==='horde';k++){const a=k/26*Math.PI*2;if(Math.abs(a-Math.PI/2)<.3)continue;bloc(gr,CYL,bois,PB,[Math.cos(a)*1.25,.28,Math.sin(a)*.95],null,[.09,.56+(k%2)*.08,.09]);bloc(gr,CONE,bois,PB,[Math.cos(a)*1.25,.62,Math.sin(a)*.95],null,[.09,.12,.09]);}

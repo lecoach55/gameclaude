@@ -149,3 +149,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v65 (23/11) — portraits en ville
 - Écran de ville (et éditeurs d'armées) : portrait du héros devant sa rangée, blason de la faction devant la garnison (`blasonVille`), comme dans Heroes.
 - Essai rejeté : ombres portées des créatures sur la carte (panneau caché face au soleil) — aucune ombre visible dans le rendu, à reprendre.
+
+## v66 (23/11) — lave rougeoyante
+- Carte : fissures de lave rouge-orangé (émission (1,.16,.01)×1,8 au lieu de (1,.3,.03)×4, qui saturait en jaune-blanc), croûte plus sombre et plus brune ; petits arbres morts sur la lave au lieu des bûches photo.

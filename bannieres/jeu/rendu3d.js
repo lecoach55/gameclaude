@@ -156,7 +156,7 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
 #ifndef BS_LEGER
  if(bsLoin<.5){vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
 #endif
- float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));col=mix(col,dot(col,vec3(.33))*vec3(.52,.44,.4),lav*.85);// 23/11 : croûte de basalte sombre (au lieu d'ocre vif)
+ float lav=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);bsGlow=lav*(1.-smoothstep(.015,.06,dot(col,vec3(.33))))*(.6+.4*sin(bsT*2.+nz*20.));col=mix(col,dot(col,vec3(.33))*vec3(.4,.3,.27),lav*.9);// 23/11 : croûte de basalte sombre (au lieu d'ocre vif)
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
  col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,.76);// grandes surfaces moins saturées (revue artistique : S ≤ 0,45)
@@ -164,7 +164,7 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
- diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n#ifndef BS_LEGER\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}\n#endif').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.3,.03)*bsGlow*4.;');}});}
+ diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n#ifndef BS_LEGER\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}\n#endif').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.16,.01)*bsGlow*1.8;/* 23/11 : fissures rouge-orangé (le blanc-jaune venait de la saturation) */');}});}
 // ---------- brouillard (texture N×N, filtrage linéaire = bords doux) ----------
 function majBrume(){const vu=G.joueurs[vueJoueur()].vu;for(let i=0;i<N*N;i++)fogData[i]=vu[i]?255:0;fogTex.needsUpdate=true;}
 let VAGUES=null;function texVagues(){if(VAGUES)return VAGUES;const S0=256;const [T1,T2]=textures();const d=new Uint8Array(S0*S0*4);const hh=(x,y)=>T2[((y+S0)%S0)*256+((x+S0)%S0)]*.6+T1[((y*2+S0)%S0)*256+((x*2+S0)%S0)]*.4;
@@ -253,7 +253,7 @@ function construireDecor(){decor=new T.Group();scene.add(decor);const c=G.carte;
    else{const n=1+r.i(0,1);for(let k=0;k<n;k++){const v=r.i(0,4);const px=x+.25+r.f()*.5,pz=y+.25+r.f()*.5;ajout('r'+v+ter,geoRocher(v,ter),mk(px,h(px,pz),pz,r.f()*6,1+r.f()*.8,.9+r.f()*.6),1);}}}
   else if(!o&&c.ter[i]!==EAU&&!c.route[i]&&!occ.has(i)&&ter!=='neige'&&r.f()<(reel?.55:.10)){// petits buissons et pierres
    const px=x+.2+r.f()*.6,pz=y+.2+r.f()*.6;if(reel&&RES.imp['touffe_a_h']&&(ter==='herbe'||ter==='terre'||ter==='marais'||ter==='rude')&&r.f()<.65){const TF=ter==='marais'?['roseaux_a','touffe_c','roseaux_a','touffe_a','roseaux_a','touffe_b']:['touffe_a','touffe_b','touffe_c','touffe_a','touffe_b','tronc_a'];const n=2+r.i(0,2);for(let k=0;k<n;k++){const nm=TF[r.i(0,5)];imp(nm,x+.05+r.f()*.9,y+.1+r.f()*.85,nm==='tronc_a'?.2:nm==='roseaux_a'?.28+r.f()*.1:.15+r.f()*.08,r,0);}/* 23/11 : roseaux et flaques dans les marais */}
-   else if(reel){const p0=r.f();imp(p0<.5?(ter==='sable'?'desert_b':ter==='lave'?'mort_a':'buisson_a'):p0<.8?rocT(ter,'abcd'[r.i(0,3)]):arbresPour(ter,r),px,pz,p0<.5?.28+r.f()*.15:p0<.8?.14+r.f()*.1:.55+r.f()*.2,r,0);}
+   else if(reel){const p0=r.f();imp(p0<.5?(ter==='sable'?'desert_b':ter==='lave'?'arbre_mort':'buisson_a'):p0<.8?rocT(ter,'abcd'[r.i(0,3)]):arbresPour(ter,r),px,pz,p0<.5?.28+r.f()*.15:p0<.8?.14+r.f()*.1:.55+r.f()*.2,r,0);}
    else if(ter==='herbe'||ter==='terre'||ter==='marais'||ter==='rude'){if(r.f()<.6){const v=r.i(0,3);ajout('a'+(ter==='marais'?'mort':'feuillu')+v,geoArbre(ter==='marais'?'mort':'feuillu',v),mk(px,h(px,pz),pz,r.f()*6,.45+r.f()*.2),0);}else{const v=r.i(0,4);ajout('r'+v+ter,geoRocher(v,ter),mk(px,h(px,pz),pz,r.f()*6,.4+r.f()*.3),0);}}}}
  const mVeg=mat(0xffffff,{vc:1,r:.82,vent:'.035'}),mPierre=mat(0xffffff,{vc:1,r:.95,plat:0});
  for(const k in lots){const L=lots[k];const im=new T.InstancedMesh(L.geo,L.m||(k[0]==='a'?mVeg:mPierre),L.l.length);L.l.forEach((m,j)=>im.setMatrixAt(j,m));im.userData.ombre=!!L.ombre;im.castShadow=!!L.ombre&&S.qual>=2;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();decor.add(im);}

@@ -180,7 +180,13 @@ function a3d(id){return IMG3D[id]?SPR3D[id]:null;}
 // image k de l'animation an (idle, atk, hit, die) : [image, sx, sy, sw, sh]
 function cadre3D(id,an,k){const D=SPR3D[id];const ord=['idle','atk','hit','die'];let o=0;for(const a of ord){if(a===an)break;o+=D.n[a]||0;}const n=D.n[an]||D.n.idle;k=Math.max(0,Math.min(n-1,k|0));return[IMG3D[id],(o+k)*D.w,0,D.w,D.h];}
 // dessine la créature : pied au point (x,y), echelle = pixels par unité du monde, miroir = regarde à gauche
-function dessiner3D(g,id,an,k,x,y,ppu,miroir){const D=SPR3D[id];const [im,sx,sy,sw,sh]=cadre3D(id,an,k);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
+// 23/11 : liseré sombre et étalonnage commun sur toutes les planches de créatures (style illustré à la Heroes, modèles d'origines variées harmonisés)
+const LISERE=new Map();function planche3D(im){if(!im||!im.width)return im;let c=LISERE.get(im);if(c)return c;
+ try{const w=im.width,h=im.height;const sil=document.createElement('canvas');sil.width=w;sil.height=h;const sg=sil.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='rgba(24,16,8,.9)';sg.fillRect(0,0,w,h);
+  c=document.createElement('canvas');c.width=w;c.height=h;const cg=c.getContext('2d');for(const [dx,dy] of [[-1.5,0],[1.5,0],[0,-1.5],[0,1.5],[-1,-1],[1,1],[-1,1],[1,-1]])cg.drawImage(sil,dx,dy);
+  cg.filter='contrast(1.07) saturate(1.1)';cg.drawImage(im,0,0);cg.filter='none';}catch(e){c=im;}
+ LISERE.set(im,c);return c;}
+function dessiner3D(g,id,an,k,x,y,ppu,miroir){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=planche3D(im0);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
 charger3D();
 // sprite d'une créature (face à droite), taille S, avec ombre
 function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);

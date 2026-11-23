@@ -95,3 +95,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - `outils/blender/horde_peints.py` (ELEV=8) : porte fortifiée `v_porte_h` (deux tours de guet, battants cerclés de fer, crânes, bannière) et tour de guet `v_tour_h`, rendues avec les matériaux de ville_peints.py.
 - Ville de la Horde : les tours carrées de l'enceinte deviennent des tours de guet Blender ; la palissade s'ouvre pour la porte ; l'hôtel de ville (conseil → capitole) devient une grande hutte Blender (v_hutte ×2,6) au lieu de la maison carrée.
 - Essai rejeté : sol « terre rude » pour la Horde (différence invisible).
+- v52 : allée de la Nécropole assombrie la nuit (essai rejeté : lumières de nuit plus fortes, gain invisible).

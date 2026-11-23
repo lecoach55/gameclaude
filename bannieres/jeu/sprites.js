@@ -186,6 +186,9 @@ const LISERE=new Map();function planche3D(im){if(!im||!im.width)return im;let c=
   c=document.createElement('canvas');c.width=w;c.height=h;const cg=c.getContext('2d');for(const [dx,dy] of [[-1.5,0],[1.5,0],[0,-1.5],[0,1.5],[-1,-1],[1,1],[-1,1],[1,-1]])cg.drawImage(sil,dx,dy);
   cg.filter='contrast(1.07) saturate(1.1)';cg.drawImage(im,0,0);cg.filter='none';}catch(e){c=im;}
  LISERE.set(im,c);return c;}
+/* 23/11 : ombre portée des créatures (silhouette noire couchée vers l'arrière-droite, côté opposé au soleil comme les arbres) */
+const PL_NOIR=new WeakMap();function plancheNoire(im){let c=PL_NOIR.get(im);if(c)return c;c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);PL_NOIR.set(im,c);return c;}
+function ombre3D(g,id,an,k,x,y,ppu,miroir,a){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=plancheNoire(planche3D(im0));const e=ppu/D.pxu;g.save();g.globalAlpha*=a;g.translate(x,y);g.transform(1,0,-.75,.32,0,0);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
 function dessiner3D(g,id,an,k,x,y,ppu,miroir){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=planche3D(im0);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
 charger3D();
 // sprite d'une créature (face à droite), taille S, avec ombre

@@ -142,3 +142,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - `outils/blender/necro_peints.py` (ELEV=8 ROT=28) : mausolée `v_mausolee` (pierre sombre, colonnes, grille, lueurs vertes, tombes) pour les habitations paires, entre les cryptes.
 - Nécropole : uniquement des arbres morts ; premier plan (rochers, arbres) assombri pour la nuit.
 - `ville_peints.py` : `view_layer.update()` avant la rotation (la dernière pièce gardait sinon sa taille 1×1×1).
+
+## v64 (23/11) — ombres portées en combat
+- `ombre3D` (sprites.js) : silhouette noire de la créature, couchée (transform 1,0,−.75,.32) vers l'arrière-droite, alpha .4, en plus de l'ombre de contact. `CB.sansOmbre` pour la couper.

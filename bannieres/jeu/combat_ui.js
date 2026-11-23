@@ -128,7 +128,7 @@ function ombreContact(g,x,y,hw,a){y+=hw*.06;ombreSol(g,x,y,hw*.62,hw*.2,.42*a);o
 function dessinerPile(g,q,pos,al,now){const G2=CB.geo;const ps=pos.s||centreHex(q.h).s||1;const hexL=(G2.port?G2.h:G2.w)*ps*2.1;let S=G2.w*(G2.W<700?2.75:2.2)*ps;
  if(a3d(q.c)){g.save();g.globalAlpha=Math.max(al,q.n<=0?0:al);const [an,k]=etat3D(q,now);let ppu=G2.w*(G2.W<700?1.25:1.45)*ps;const by=pos.y+G2.h*.22*(G2.port?SQP:SQ);
   {const D=SPR3D[q.c];const [im,sx,sy,sw,sh]=cadre3D(q.c,'idle',0);const niv=((typeof CRE!=='undefined'&&(CRE[q.c]||CRE[String(q.c).replace(/2$/,'')]))||{}).niv||3;const T=G2.w*ps*(G2.W<700?.9:1)*(1.05+.2*niv)*(ECH3D[String(q.c).replace(/2$/,'')]||1);const ho=hauteurOpaque('3'+q.c,im,sx,sy,sw,sh)*sh;if(ho>0)ppu=T*D.pxu/ho;const lim=hexL*(niv>=6?1.45:niv>=4?1.15:1);const l=largeurOpaque('3'+q.c,im,sx,sy,sw,sh)*sw*ppu/D.pxu;if(l>lim)ppu*=lim/l;}
-  ombreContact(g,pos.x,by,G2.w*ps,q.n>0?1:.5);const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
+  if(q.n>0&&!CB.sansOmbre)ombre3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1,.4);ombreContact(g,pos.x,by,G2.w*ps,q.n>0?1:.5);const fl=CB.fx.find(f=>f.t==='flash'&&f.id===q.id&&now-f.t0<f.d);
   dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);if(fl){g.globalCompositeOperation='lighter';g.globalAlpha=.45*(1-(now-fl.t0)/fl.d);dessiner3D(g,q.c,an,k,pos.x,by,ppu,q.cote===1);g.globalCompositeOperation='source-over';}
   g.restore();return;}const spr=q.cote===0?spriteCreature(q.c,160):spriteMiroir(q.c,160);{const l=largeurOpaque('2'+q.c+q.cote,spr,0,0,spr.width,spr.height)*S;if(l>hexL)S*=hexL/l;}g.save();g.globalAlpha=al;
  if(q.n<=0){const r=CB.mortT&&CB.mortT[q.id]!=null?CB.mortT[q.id]:1;const fy=pos.y+G2.h*.28*SQ*ps;g.translate(pos.x,fy);g.rotate((q.cote===0?-1:1)*r*Math.PI/2*.92);g.globalAlpha=1-.4*r;

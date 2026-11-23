@@ -37,6 +37,7 @@ def cyl(r, h, loc, M, v=24, r2=None):
 def boite(s, loc, M, rot=(0, 0, 0)):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot); o = bpy.context.object; o.scale = s; return ob(o, M)
 def rendre(sc, nom, R=380):
+    bpy.context.view_layer.update()  # 23/11 : sinon la dernière pièce perd son échelle quand on tourne la scène
     rz = math.radians(float(os.environ.get('ROT', '0')))
     for o in sc.objects:
         if o.type == 'MESH': o.matrix_world = __import__('mathutils').Matrix.Rotation(rz, 4, 'Z') @ o.matrix_world

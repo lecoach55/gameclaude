@@ -137,3 +137,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v62 (23/11) — châteaux selon le terrain
 - `imp_fort.py` FORT_SOL=n|s|l : butte de neige, de sable ou de basalte (texture désaturée puis teintée) ; 12 images `fort_<fac>_h_<n|s|l>.webp`, choisies d'après la case du château (`fortImp(fac,sx)`). Page : 10,6 Mio.
+
+## v63 (23/11) — Nécropole
+- `outils/blender/necro_peints.py` (ELEV=8 ROT=28) : mausolée `v_mausolee` (pierre sombre, colonnes, grille, lueurs vertes, tombes) pour les habitations paires, entre les cryptes.
+- Nécropole : uniquement des arbres morts ; premier plan (rochers, arbres) assombri pour la nuit.
+- `ville_peints.py` : `view_layer.update()` avant la rotation (la dernière pièce gardait sinon sa taille 1×1×1).

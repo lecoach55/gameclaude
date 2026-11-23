@@ -130,3 +130,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - `tex3d/sol_neige.jpg` adoucie (flou léger, contraste ½, plus claire, reflet bleuté) : neige nette au lieu d'un marbre gris.
 - `mine_peinte.py` VAR=n|s|l : mines enneigées, de grès, de basalte ; choisies d'après le terrain de la case.
 - Sylve : l'hôtel de ville devient une grande maison-arbre (v_cabane ×2,4).
+
+## v61 (23/11) — marais
+- `touffes_peintes.py` QUOI=roseaux : roseaux à quenouilles sur une petite flaque (`roseaux_a`), semés dans les marais à la place des troncs photo.
+- `tex3d/sol_marais.jpg` un peu plus vert et plus clair.

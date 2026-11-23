@@ -14,21 +14,25 @@ def mat_herbe():
     L.new(mr.outputs[0], cr.inputs['Fac']); L.new(cr.outputs[0], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .7
     b.inputs['Subsurface Weight'].default_value = .2
     return m
-COUL = {'blanc': (1, 1, .95, 1), 'jaune': (1, .72, 0, 1), 'rose': (1, .18, .42, 1), 'mauve': (.45, .2, 1, 1), 'rouge': (.85, .12, .08, 1)}
+COUL = {'brun': (.22, .1, .04, 1), 'blanc': (1, 1, .95, 1), 'jaune': (1, .72, 0, 1), 'rose': (1, .18, .42, 1), 'mauve': (.45, .2, 1, 1), 'rouge': (.85, .12, .08, 1)}
 def mat_fleur(c):
     m = bpy.data.materials.new(c); m.use_nodes = True; b = m.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value = COUL[c]; b.inputs['Roughness'].default_value = .55; return m
-TOUFFES = {'a': ('jaune', 'blanc', 12, 90), 'b': ('rose', 'blanc', 9, 80), 'c': ('mauve', 'jaune', 11, 95)}
+ROSEAUX = os.environ.get('QUOI') == 'roseaux'
+TOUFFES = {'r': ('brun', 'brun', 9, 60)} if ROSEAUX else {'a': ('jaune', 'blanc', 12, 90), 'b': ('rose', 'blanc', 9, 80), 'c': ('mauve', 'jaune', 11, 95)}
 for nom, (c1, c2, nfl, nbr) in TOUFFES.items():
     bpy.ops.wm.read_homefile(use_empty=True); sc = bpy.context.scene; random.seed(hash(nom) % 1000)
     H = mat_herbe(); F1 = mat_fleur(c1); F2 = mat_fleur(c2); objs = []
     for k in range(nbr):  # brins : cônes fins inclinés vers l'extérieur
-        a = random.random() * 6.283; d = random.random() ** .6 * .42; h = .16 + random.random() ** 2 * .3
+        a = random.random() * 6.283; d = random.random() ** .6 * .42; h = (.45 + random.random() * .35) if ROSEAUX else (.16 + random.random() ** 2 * .3)
         bpy.ops.mesh.primitive_cone_add(vertices=5, radius1=.017, radius2=0, depth=h, location=(math.cos(a) * d, math.sin(a) * d * .8, h / 2))
         o = bpy.context.object; o.rotation_euler = (math.sin(a) * -.45 * d / .42 - .1, math.cos(a) * .45 * d / .42, 0); o.data.materials.append(H); objs.append(o)
     for k in range(nfl):
         a = random.random() * 6.283; d = random.random() ** .7 * .4
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=.032, location=(math.cos(a) * d, math.sin(a) * d * .8, .12 + random.random() * .16))
-        o = bpy.context.object; o.scale.z = .5; o.data.materials.append(F1 if k % 3 else F2); objs.append(o)
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=.032, location=(math.cos(a) * d, math.sin(a) * d * .8, (.55 + random.random() * .25) if ROSEAUX else (.12 + random.random() * .16)))
+        o = bpy.context.object; o.scale.z = 2.6 if ROSEAUX else .5; o.data.materials.append(F1 if k % 3 else F2); objs.append(o)
+    if ROSEAUX:  # petite flaque sous les roseaux
+        bpy.ops.mesh.primitive_circle_add(vertices=32, radius=.5, fill_type='NGON', location=(0, 0, .005)); o = bpy.context.object; o.scale.y = .75
+        W = bpy.data.materials.new('flaque'); W.use_nodes = True; bw = W.node_tree.nodes['Principled BSDF']; bw.inputs['Base Color'].default_value = (.02, .05, .05, 1); bw.inputs['Roughness'].default_value = .05; o.data.materials.append(W); objs.append(o)
     bpy.context.view_layer.update()
     pts = [o.matrix_world @ v.co for o in objs for v in o.data.vertices]
     haut = max(p.z for p in pts); larg = max(p.x for p in pts) - min(p.x for p in pts)
@@ -45,6 +49,7 @@ for nom, (c1, c2, nfl, nbr) in TOUFFES.items():
     png = f'/tmp/touffe_{nom}.png'; sc.render.filepath = png; bpy.ops.render.render(write_still=True)
     pc = world_to_camera_view(sc, cam, Vector((0, 0, 0)))
     im = Image.open(png).convert('RGBA'); im.putalpha(im.getchannel('A').point(lambda v: 0 if v < 50 else v)); bb = im.getchannel('A').getbbox(); im = im.crop(bb)
-    im.save(f'{OUT}/touffe_{nom}_h.webp', 'WEBP', quality=88, method=6)
+    nm = 'roseaux_a' if ROSEAUX else f'touffe_{nom}'
+    im.save(f'{OUT}/{nm}_h.webp', 'WEBP', quality=88, method=6)
     meta = {'w': im.width, 'h': im.height, 'px': round(pc.x * R - bb[0], 1), 'py': round((1 - pc.y) * R - bb[1], 1), 'ppm': round(R / cd.ortho_scale, 3), 'haut': round(haut, 2), 'larg': round(larg, 2)}
-    json.dump(meta, open(f'{OUT}/touffe_{nom}_h.webp.json', 'w')); print('FINI', nom, meta, flush=True)
+    json.dump(meta, open(f'{OUT}/{nm}_h.webp.json', 'w')); print('FINI', nom, meta, flush=True)

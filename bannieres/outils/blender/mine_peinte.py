@@ -5,7 +5,7 @@ import os
 D = os.path.dirname(os.path.abspath(__file__))
 exec(open(os.path.join(D, 'lieux_peints.py')).read().split('\n# puits')[0])
 _r = open(os.path.join(D, 'rochers_peints.py')).read()
-exec('import bpy, bmesh, math\nfrom mathutils import noise, Vector\nVAR = ""\n' + _r[_r.index('def bloc('):_r.index('# a : gros bloc')])
+exec('import bpy, bmesh, math\nfrom mathutils import noise, Vector\nVAR = os.environ.get("VAR", "")\n' + _r[_r.index('def bloc('):_r.index('# a : gros bloc')])
 sc = scene(); R = materiau(); B = BOIS(); BS = mat('bois_sombre', (.42, .3, .2, 1), 'poutre.jpg', 2)
 NOIR = mat('galerie', (.01, .008, .006, 1), r=1); FER = mat('fer', (.3, .3, .32, 1), r=.4, m=.85)
 for o in [bloc(3, 1.6, 1.2, 1.25, (0, .75, 0), .2), bloc(8, 1.0, .9, .8, (-1.25, .55, 0), 1.1), bloc(13, .95, .85, .7, (1.2, .6, 0), .5), bloc(19, .6, .55, .45, (-1.5, -.2, 0), 2)]:
@@ -22,4 +22,4 @@ for x in (-.2, .2):
     for y in (-1.3, -1.0): cyl(.08, .05, (x * 1.15, y, .1), FER, 12).rotation_euler = (0, math.pi / 2, 0)
 for k in range(5): bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=.09, location=(-.14 + k * .07, -1.15 + (k % 2) * .06, .47)); ob(bpy.context.object, mat('minerai_w', (.08, .075, .075, 1), r=.5, m=.5))
 cyl(.03, 1.0, (.75, -.5, .5), BS, 8); cyl(.07, .12, (.75, -.5, 1.05), mat('lanterne', (1, .7, .3, 1), em=(1, .6, .2, 1)), 8)
-rendre(sc, 'mine_entree', 520)
+rendre(sc, 'mine_entree' + {'n': '_n', 's': '_s', 'l': '_l'}.get(os.environ.get('VAR', ''), ''), 520)  # variantes : neige, désert, lave

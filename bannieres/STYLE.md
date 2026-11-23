@@ -125,3 +125,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v59 (23/11) — Sylve et mines
 - `outils/blender/sylve_peints.py` (ELEV=8 ROT=32) : maison-arbre `v_cabane` (tronc à racines, plateforme, case ronde au toit vert, échelle, houppier) pour les habitations et la taverne de la Sylve.
 - `outils/blender/mine_peinte.py` (ROT=25) : entrée de mine peinte (colline de rochers moussus, boisage, rails, wagonnet, lanterne) à la place du portail Sketchfab.
+
+## v60 (23/11) — neige, mines selon le terrain
+- `tex3d/sol_neige.jpg` adoucie (flou léger, contraste ½, plus claire, reflet bleuté) : neige nette au lieu d'un marbre gris.
+- `mine_peinte.py` VAR=n|s|l : mines enneigées, de grès, de basalte ; choisies d'après le terrain de la case.
+- Sylve : l'hôtel de ville devient une grande maison-arbre (v_cabane ×2,4).

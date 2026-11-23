@@ -107,3 +107,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - `outils/blender/lieux_peints2.py` : scierie peinte (hangar de planches, roue à aubes, scie circulaire, rondins) à la place de la maison à pilotis ; puits au toit plus haut (on voit l'eau) ; vue de trois quarts (`tourner`).
 - `piles.py` revu : couleurs franches (plus de verre laiteux ni d'émission délavée), monceau d'or, rondins couchés, minerai de fer sombre, soufre, rubis, gemmes taillées sur une pierre, mercure en caisse.
 - Fougères sombres retirées des petites touffes de la carte.
+
+## v56 (23/11) — terrains de combat
+- `rochers_peints.py` VAR=s|n|l : grès du désert, rochers enneigés, basalte à fissures de lave (`rocT(ter,l)` choisit la variante sur la carte et en combat).
+- `outils/blender/desert_peints.py` : palmier, cactus à bras, broussaille sèche (desert_a/b/c, h et b) à la place des arbustes photo.
+- Combat sur la lave : sol de basalte sombre (couche lave seule), plus de palmiers, rochers de lisière plus petits.

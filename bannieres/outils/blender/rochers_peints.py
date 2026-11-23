@@ -7,6 +7,8 @@ from bpy_extras.object_utils import world_to_camera_view
 from mathutils import noise, Vector
 from PIL import Image
 OUT = sys.argv[-1]; os.makedirs(OUT, exist_ok=True); SUF = os.environ.get('SUF', 'h'); EL = float(os.environ.get('ELEV', '52'))
+# VAR (23/11) : '' = roche moussue ; s = grès du désert ; n = enneigée ; l = basalte à fissures de lave
+VAR = os.environ.get('VAR', '')
 
 def bloc(seed, sx, sy, sz, pos=(0, 0, 0), rot=0):
     bm = bmesh.new(); bmesh.ops.create_icosphere(bm, subdivisions=5, radius=1)
@@ -29,7 +31,8 @@ def materiau():
     geo = N.new('ShaderNodeNewGeometry'); sep = N.new('ShaderNodeSeparateXYZ'); L.new(geo.outputs['Normal'], sep.inputs[0])
     wv = N.new('ShaderNodeTexNoise'); wv.inputs['Scale'].default_value = 2.2; wv.inputs['Detail'].default_value = 6; L.new(geo.outputs['Position'], wv.inputs['Vector'])
     cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].position = .32; e[1].position = .7
-    e[0].color = (.07, .06, .045, 1); e[1].color = (.3, .25, .18, 1); e.new(.5).color = (.17, .145, .11, 1)
+    C0, C1, C2 = {'s': ((.09, .05, .02, 1), (.42, .26, .12, 1), (.22, .13, .06, 1)), 'l': ((.012, .01, .01, 1), (.07, .06, .055, 1), (.035, .03, .028, 1))}.get(VAR, ((.07, .06, .045, 1), (.3, .25, .18, 1), (.17, .145, .11, 1)))
+    e[0].color = C0; e[1].color = C1; e.new(.5).color = C2
     L.new(wv.outputs['Fac'], cr.inputs['Fac'])
     vo = N.new('ShaderNodeTexVoronoi'); vo.feature = 'DISTANCE_TO_EDGE'; vo.inputs['Scale'].default_value = 1.4; L.new(geo.outputs['Position'], vo.inputs['Vector'])
     no = N.new('ShaderNodeTexNoise'); no.inputs['Scale'].default_value = 9; no.inputs['Detail'].default_value = 8; L.new(geo.outputs['Position'], no.inputs['Vector'])
@@ -44,8 +47,12 @@ def materiau():
     mn = N.new('ShaderNodeTexNoise'); mn.inputs['Scale'].default_value = 4; L.new(geo.outputs['Position'], mn.inputs['Vector'])
     mm = N.new('ShaderNodeMapRange'); L.new(mn.outputs['Fac'], mm.inputs[0]); mm.inputs[1].default_value = .42; mm.inputs[2].default_value = .58
     mul = N.new('ShaderNodeMath'); mul.operation = 'MULTIPLY'; L.new(pe.outputs[0], mul.inputs[0]); L.new(mm.outputs[0], mul.inputs[1])
-    mo = N.new('ShaderNodeMixRGB'); L.new(mul.outputs[0], mo.inputs[0]); L.new(mf.outputs[0], mo.inputs[1]); mo.inputs[2].default_value = (.09, .15, .035, 1)
+    mo = N.new('ShaderNodeMixRGB'); L.new(mul.outputs[0], mo.inputs[0]); L.new(mf.outputs[0], mo.inputs[1]); mo.inputs[2].default_value = {'n': (.9, .93, 1, 1), 's': (.3, .19, .09, 1), 'l': (.03, .025, .025, 1)}.get(VAR, (.09, .15, .035, 1))
+    if VAR == 'n': pe.inputs[1].default_value = .58; pe.inputs[2].default_value = .74; mm.inputs[1].default_value = .3; mm.inputs[2].default_value = .4
     L.new(mo.outputs[0], b.inputs['Base Color']); b.inputs['Roughness'].default_value = .88
+    if VAR == 'l':  # fissures incandescentes
+        gl = N.new('ShaderNodeMapRange'); L.new(vo.outputs['Distance'], gl.inputs[0]); gl.inputs[1].default_value = .018; gl.inputs[2].default_value = 0
+        L.new(gl.outputs[0], b.inputs['Emission Strength']); b.inputs['Emission Color'].default_value = (1, .2, 0, 1); gl.inputs[4].default_value = 3.5
     return m
 
 # a : gros bloc unique ; b : bloc plat ; c : amas de trois ; d : rocher haut et étroit
@@ -74,10 +81,10 @@ for nom, parts in FORMES.items():
     R = 384; sc.render.resolution_x = sc.render.resolution_y = R
     sc.render.engine = 'CYCLES'; sc.cycles.samples = 48; sc.cycles.use_denoising = True; sc.render.film_transparent = True
     sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Medium High Contrast'
-    png = f'/tmp/roc_{nom}_{SUF}.png'; sc.render.filepath = png; bpy.ops.render.render(write_still=True)
+    png = f'/tmp/roc_{nom}{VAR}_{SUF}.png'; sc.render.filepath = png; bpy.ops.render.render(write_still=True)
     pc = world_to_camera_view(sc, cam, Vector((0, 0, 0)))
     im = Image.open(png).convert('RGBA'); im.putalpha(im.getchannel('A').point(lambda v: 0 if v < 40 else v)); bb = im.getchannel('A').getbbox(); im = im.crop(bb)
-    from PIL import ImageEnhance; a = im.getchannel('A'); im = ImageEnhance.Contrast(ImageEnhance.Brightness(im.convert('RGB')).enhance(.82)).enhance(1.18).convert('RGBA'); im.putalpha(a)  # plus sombre et contrasté, comme les montagnes peintes
-    im.save(f'{OUT}/roc_{nom}_{SUF}.webp', 'WEBP', quality=86, method=6)
+    from PIL import ImageEnhance; a = im.getchannel('A'); im = ImageEnhance.Contrast(ImageEnhance.Brightness(im.convert('RGB')).enhance(.82 if VAR != 'l' else 1)).enhance(1.18).convert('RGBA'); im.putalpha(a)  # plus sombre et contrasté, comme les montagnes peintes
+    im.save(f'{OUT}/roc_{nom}{VAR}_{SUF}.webp', 'WEBP', quality=86, method=6)
     meta = {'w': im.width, 'h': im.height, 'px': round(pc.x * R - bb[0], 1), 'py': round((1 - pc.y) * R - bb[1], 1), 'ppm': round(R / cd.ortho_scale, 3), 'haut': round(haut, 2), 'larg': round(larg, 2)}
-    json.dump(meta, open(f'{OUT}/roc_{nom}_{SUF}.webp.json', 'w')); print('FINI', nom, meta, flush=True)
+    json.dump(meta, open(f'{OUT}/roc_{nom}{VAR}_{SUF}.webp.json', 'w')); print('FINI', nom, meta, flush=True)

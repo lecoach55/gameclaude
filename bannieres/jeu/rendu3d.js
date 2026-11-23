@@ -63,7 +63,7 @@ function envCiel(R0,haut,horiz,bas){const sc=new T.Scene();const g=new T.SphereG
  const pm=new T.PMREMGenerator(R0);const t=pm.fromScene(sc,.02).texture;pm.dispose();g.dispose();m.dispose();return t;}
 // ---------- ambiance (19/11, axe « lumière ») : ciel HDRI Poly Haven kloppenheim_06_puresky (CC0) + lumière de fin d'après-midi dorée ----------
 // tex3d/ciel.jpg vient de outils/ressources/ciel_hdri.py (soleil écrêté, tourné du côté de AMB.dir, sol brun-vert sous l'horizon, valeurs ÷ ECH_CIEL).
-const ECH_CIEL=4;const AMB={dir:new T.Vector3(-.75,.62,.45).normalize(),sol:0xffe2c0,solI:3.0,hCiel:0xa9c2e6,hSol:0x5a4430,hI:.70,envI:.62*ECH_CIEL,haze:[.60,.60,.62]};
+const ECH_CIEL=4;const AMB={dir:new T.Vector3(-.75,.62,.45).normalize(),sol:0xffe2c0,solI:3.0,hCiel:0xa9c2e6,hSol:0x5a4430,hI:.88,envI:.62*ECH_CIEL,haze:[.60,.60,.62]};
 const ENVS=new WeakMap();// un ciel préfiltré par moteur de rendu (carte / combats et villes), gardé : ne jamais le libérer
 function envAmb(R0){let e=ENVS.get(R0);if(e)return e;const im=RES.img.ciel;if(!im)return null;const t=new T.Texture(im);t.mapping=T.EquirectangularReflectionMapping;t.colorSpace=T.SRGBColorSpace;t.needsUpdate=true;
  const pm=new T.PMREMGenerator(R0);e=pm.fromEquirectangular(t).texture;pm.dispose();t.dispose();ENVS.set(R0,e);return e;}
@@ -104,11 +104,11 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
   sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+'uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;uniform sampler2D bsBr;uniform float bsT;\nvoid main() {')
    .replace('#include <color_fragment>',`#include <color_fragment>
  {float d=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).r;// hauts-fonds #3c6e6a → large #12303f
-  diffuseColor.rgb=mix(vec3(.045,.155,.144),vec3(.006,.03,.05),smoothstep(.0,.75,d));diffuseColor.a=mix(.42,.93,smoothstep(.0,.4,d));
+  diffuseColor.rgb=mix(vec3(.08,.31,.36),vec3(.015,.085,.21),smoothstep(.0,.75,d));// 23/11 : eau plus bleue et lumineuse, façon HeroesdiffuseColor.a=mix(.42,.93,smoothstep(.0,.4,d));
 #ifndef BS_LEGER
   if(d<.12){float nz=texture2D(bsBr,vBsW*.9+vec2(bsT*.03,bsT*.02)).r,nz2=texture2D(bsBr,vBsW*2.3-vec2(bsT*.05,0.)).r;
-  float ec=(1.-smoothstep(.0,.06+.05*nz,d))*smoothstep(.35,.7,nz2*.6+nz*.4+.15*sin(bsT*1.3+d*40.));
-  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.8,.78),ec*.75);diffuseColor.a=max(diffuseColor.a,ec*.85);}
+  float ec=(1.-smoothstep(.0,.09+.06*nz,d))*smoothstep(.35,.7,nz2*.6+nz*.4+.15*sin(bsT*1.3+d*40.));
+  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.93,.9),ec*.9);diffuseColor.a=max(diffuseColor.a,ec*.85);}
 #endif
  }`).replace('#include <opaque_fragment>',`#include <opaque_fragment>
 #ifndef BS_LEGER
@@ -120,7 +120,7 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
   gl_FragColor.rgb*=1.-clamp(-w,0.,1.)*.15*pr;
   float s1=texture2D(bsBr,vBsW*.83+vec2(bsT*.021,-bsT*.013)).r,s2=texture2D(bsBr,vBsW*1.91-vec2(bsT*.017,bsT*.026)).r;
   float sc=smoothstep(.66,.79,s1*.5+s2*.5)*smoothstep(.0,.6,w+.3);
-  gl_FragColor.rgb+=vec3(1.,.70,.34)*sc*3.0*pr;}
+  gl_FragColor.rgb+=vec3(1.,.82,.55)*sc*1.1*pr;}
 #endif`);}});eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
  const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);}
@@ -353,7 +353,7 @@ function villeMesh(v,carte){const gr=new T.Group();const F=FAC[v.fac].coul;const
  const drap=drapeauMesh(gr,fiOk?.06:0,fiOk?(FORT[v.fac].drap||3.15):v.fac==='horde'||v.fac==='sylve'?2.0:2.5,fiOk?-.35:-.25,v.prop>=0?COULEURS[G.joueurs[v.prop].coul].c:'#d8d2c2',1.4);
  const out=fusionner(gr,o=>o===drap);out.scale.setScalar(.95);out.userData.drap=drap;return out;}
 // lieux de la carte rendus dans Blender (modèles Sketchfab CC BY, outils/blender/imp_glb.py à 52°) : même pose que le fort (21/11)
-const LIEUV={scierie:{w:531,h:589,px:250.0,py:394.6,ppm:63.196,larg:8.86},tour:{w:462,h:633,px:231.0,py:452.2,ppm:53.395,larg:8.62},moulin:{w:323,h:485,px:167.0,py:389.2,ppm:82.12,larg:4.41},mine_entree:{w:562,h:376,px:281.0,py:196.7,ppm:93.332,larg:6.0},ecurie:{w:549,h:559,px:276.0,py:386.7,ppm:65.328,larg:8.57}};function lieuImp(nom,larg){const me=LIEUV[nom],tx=RES.lieuV&&RES.lieuV[nom];if(!me||!tx)return null;const s=larg/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
+const LIEUV={pile_or:{w:229,h:164,px:109.6,py:90.1,ppm:263.605,larg:0.88},pile_bois:{w:232,h:258,px:117.2,py:173.2,ppm:305.438,larg:0.76},pile_minerai:{w:232,h:158,px:118.8,py:93.7,ppm:259.397,larg:0.89},pile_soufre:{w:212,h:223,px:104.8,py:148.5,ppm:415.858,larg:0.51},pile_cristal:{w:133,h:177,px:66.0,py:123.9,ppm:274.109,larg:0.48},pile_gemmes:{w:232,h:198,px:116.0,py:169.0,ppm:384.615,larg:0.6},pile_mercure:{w:232,h:163,px:112.5,py:135.3,ppm:349.65,larg:0.66},scierie:{w:531,h:589,px:250.0,py:394.6,ppm:63.196,larg:8.86},tour:{w:462,h:633,px:231.0,py:452.2,ppm:53.395,larg:8.62},moulin:{w:323,h:485,px:167.0,py:389.2,ppm:82.12,larg:4.41},mine_entree:{w:562,h:376,px:281.0,py:196.7,ppm:93.332,larg:6.0},ecurie:{w:549,h:559,px:276.0,py:386.7,ppm:65.328,larg:8.57}};function lieuImp(nom,larg){const me=LIEUV[nom],tx=RES.lieuV&&RES.lieuV[nom];if(!me||!tx)return null;const s=larg/me.larg;const w=me.w/me.ppm*s,hh=me.h/me.ppm*s;
  const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);
  const m=brume(new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false}),{cle:'lieu_'+nom});const o=new T.Mesh(g,m);o.quaternion.setFromEuler(new T.Euler(-C3.tang*.75,0,0));o.castShadow=false;o.renderOrder=1;return o;}
 function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10,0,Math.PI*2,0,Math.PI/2);g=bruiter(g,.25,o.id);const col={or:0x8a7a5a,minerai:0x7a7670,mercure:0x6a7078,soufre:0x8a7a40,cristal:0x6a5a6a,gemmes:0x5a6a6a,bois:0x6a5a3a}[o.res];
@@ -366,6 +366,7 @@ function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10
   const pile={or:0xf2c23a,minerai:0x9a9a9a,mercure:0xd8e8f0,soufre:0xe8d23a,cristal:0xe0384a,gemmes:0x3ac85a}[o.res];for(let k=0;k<5;k++)bloc(gr,o.res==='cristal'||o.res==='gemmes'?new T.OctahedronGeometry(.08):SPH,o.res==='gemmes'?[0x3a7ae8,0x3ac85a,0xe83a8a,0xf0d03a,0x3ac8e8][k]:pile,{r:.3,m:o.res==='or'||o.res==='mercure'?.7:0,em:o.res==='cristal'||o.res==='gemmes'?pile:null,ei:.25},[-.3+k*.14,.07,.48+(k%2)*.08],null,o.res==='cristal'||o.res==='gemmes'?[1,1.6,1]:[.14,.1,.14]);}
  if(RES.atlas&&o.res!=='bois'){impObj(gr,'tonneau',.22,-.42,.42);impObj(gr,'caisse',.16,.45,.45,1);}gr.userData.drap=drapeauMesh(gr,.3,.95,-.1,o.prop>=0?COULEURS[G.joueurs[o.prop].coul].c:'#d8d2c2',.9);return gr;}
 function pileMesh(o){const gr=new T.Group();const r=o.res;
+ {const li=lieuImp('pile_'+r,{or:1,bois:.95,minerai:1,soufre:.95,cristal:.85,gemmes:.9,mercure:.95}[r]||.95);if(li){gr.add(li);return gr;}}// 21/11 : piles rendues dans Blender (outils/blender/piles.py)
  if(typeof IMGICO!=='undefined'&&IMGICO[r]&&r!=='bois'&&r!=='minerai'){const p=panneau(iconeRes(r,96),'ico'+r+'96',.6);p.position.z=.05;gr.add(p);return gr;}
  if(RES.atlas){if(r==='bois'){impObj(gr,'mort_a',.1,-.05,-.05);impObj(gr,'mort_a',.1,.05,.1,1);return gr;}if(r==='minerai'){impObj(gr,'roc_b',.22,-.1,0);impObj(gr,'roc_c',.16,.12,.08,1);impObj(gr,'roc_d',.12,0,.15);return gr;}if(r==='mercure'){impObj(gr,'seau',.2,0,0);bloc(gr,SPH,0xcfe3ea,{r:.05,m:1},[0,.18,.02],null,[.12,.03,.12]);return gr;}}
  if(r==='or'){for(let k=0;k<7;k++)bloc(gr,CYL,0xf2c23a,{r:.3,m:.45,em:0x6a4a00,ei:.4},[(k%3-1)*.12,.03+(k/3|0)*.05,((k*7)%3-1)*.08],null,[.14,.04,.14]);}
@@ -441,7 +442,7 @@ const SURV={t0:0,l:[]};function surveiller(){if(S.fixe||S.choisie||S.banc||S.qua
  if(SURV.l.length>=90){const l=SURV.l.sort((a,b)=>a-b);const med=l[l.length>>1];SURV.l=[];if(med>27){A.qualite(S.qual-1);try{localStorage.setItem('bs-q3d',S.qual);}catch(e){}console.log('qualité 3D abaissée',S.qual,med);}}}
 A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart();
  if(!ren){try{ren=new T.WebGLRenderer({canvas:cv,antialias:true,powerPreference:'high-performance'});}catch(e){A.ok=false;return false;}
-  ren.outputColorSpace=T.SRGBColorSpace;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1.26;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;}
+  ren.outputColorSpace=T.SRGBColorSpace;ren.toneMapping=T.ACESFilmicToneMapping;ren.toneMappingExposure=1.4;ren.shadowMap.enabled=true;ren.shadowMap.type=T.PCFSoftShadowMap;}
  if(!IMP.complete)await IMP.decode().catch(()=>{});
  await chargerRes();PAN_A=C3.tang*.5;PAN_K=1/Math.cos(PAN_A);
  if(scene)A.vider();scene=new T.Scene();scene.background=new T.Color(0x0a0806);

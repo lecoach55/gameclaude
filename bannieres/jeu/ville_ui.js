@@ -20,7 +20,7 @@ function dessinerVille(){if(!VI)return;const cv=$('cvVille');const g=cv.getConte
 function majVille(){const v=VI.v,p=G.joueurs[v.prop];const h=herosVille();
  $('vNom').innerHTML=`${esc(v.nom)} <small style="color:#c9b38a">— ${FAC[v.fac].ville}${v.construit?' · déjà construit aujourd’hui':''}</small>`;
  $('vRes').innerHTML=RES.map(r=>`<span>${imgRes(r,16)}${p.res[r]}</span>`).join('');peindreCanvasRes($('vRes'));
- const zone=document.querySelector('.ville-armees');const listes=[{titre:'Garnison',armee:v.garn}];if(h)listes.push({titre:h.nom,armee:h.armee,heros:h});
+ const zone=document.querySelector('.ville-armees');const listes=[{titre:'Garnison',armee:v.garn,ville:v}];if(h)listes.push({titre:h.nom,armee:h.armee,heros:h});
  editeurArmees(zone,listes,()=>{});zone.querySelectorAll('.arm-tit').forEach(e=>e.style.color='#d8c49a');
  $('vTaverne').disabled=!v.bat.taverne;$('vMarche').disabled=!v.bat.marche;$('vGuilde').disabled=!v.bat.guilde1;
  setTimeout(redimVille,0);}

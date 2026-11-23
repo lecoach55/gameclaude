@@ -190,10 +190,15 @@ function ouvrirFiche(h){V.porTmp=h;const st=['att','def','pou','con'];
  return fenetre(html,bts.concat([btCreuser,{t:'Fermer',or:true}]),{init:f=>{editeurArmees(f.querySelector('#edArm'),[{titre:'Armée',armee:h.armee,heros:h}]);}}).then(()=>majUI());}
 
 // ---------- éditeur d'armées (fiches, échanges, villes) ----------
+function blasonVille(g,v,S){const F=FAC[v.fac].coul;const gr=g.createLinearGradient(0,0,0,S);gr.addColorStop(0,'#3a2412');gr.addColorStop(1,'#1a0e06');g.fillStyle=gr;g.fillRect(0,0,S,S);
+ g.save();g.translate(S/2,S*.52);g.beginPath();g.moveTo(-S*.32,-S*.36);g.lineTo(S*.32,-S*.36);g.lineTo(S*.32,0);g.quadraticCurveTo(S*.3,S*.3,0,S*.4);g.quadraticCurveTo(-S*.3,S*.3,-S*.32,0);g.closePath();
+ const b=g.createLinearGradient(0,-S*.36,0,S*.4);b.addColorStop(0,F.drap);b.addColorStop(1,'#101010');g.fillStyle=b;g.fill();g.lineWidth=S*.04;g.strokeStyle='#d8b060';g.stroke();
+ g.fillStyle='#f0d890';g.font=`bold ${S*.34}px Georgia,serif`;g.textAlign='center';g.textBaseline='middle';g.fillText(FAC[v.fac].nom[0],0,S*.02);g.restore();}
 function editeurArmees(el,listes,onChange){let sel=null;
- const rendre=()=>{el.innerHTML=listes.map((l,li)=>`<div class="arm-ligne" style="margin:4px 0"><div class="arm-tit" style="color:#5a3a10">${esc(l.titre)}</div><div class="slots">${l.armee.map((s,k)=>`<div class="slot ${sel&&sel.l===li&&sel.k===k?'sel':''} ${s?'':'vide'}" data-l="${li}" data-k="${k}">${s?`<canvas width="72" height="72" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')}</div></div>`).join('')
+ const rendre=()=>{el.innerHTML=listes.map((l,li)=>`<div class="arm-ligne" style="margin:4px 0"><div class="arm-tit" style="color:#5a3a10">${esc(l.titre)}</div>${l.heros||l.ville?`<canvas class="arm-port" width="128" height="128" data-port="${li}"></canvas>`:''}<div class="slots">${l.armee.map((s,k)=>`<div class="slot ${sel&&sel.l===li&&sel.k===k?'sel':''} ${s?'':'vide'}" data-l="${li}" data-k="${k}">${s?`<canvas width="72" height="72" data-cre="${s.c}"></canvas><b>${s.n}</b>`:''}</div>`).join('')}</div></div>`).join('')
   +`<div class="btns" style="margin-top:4px"><button class="btn petit" id="edDiv" ${sel?'':'disabled'}>✂ Diviser</button><button class="btn petit" id="edInfo" ${sel?'':'disabled'}><svg class="ico pt"><use href="#i-info"/></svg>Détails</button><button class="btn petit" id="edRenv" ${sel?'':'disabled'}><svg class="ico pt"><use href="#i-x"/></svg>Renvoyer</button></div>`;
   peindreCanvasRes(el);
+  el.querySelectorAll('canvas[data-port]').forEach(c=>{const l=listes[+c.dataset.port];const g=c.getContext('2d');try{if(l.heros)g.drawImage(portrait(l.heros,128),0,0,128,128);else if(l.ville)blasonVille(g,l.ville,128);}catch(e){}});/* 23/11 : portrait du héros et blason de la ville devant les rangées, comme dans Heroes */
   el.querySelectorAll('.slot').forEach(d=>d.onclick=()=>tap(+d.dataset.l,+d.dataset.k));
   const bd=el.querySelector('#edDiv'),bi=el.querySelector('#edInfo'),br=el.querySelector('#edRenv');
   if(bi)bi.onclick=()=>{if(sel){const s=listes[sel.l].armee[sel.k];if(s)ficheCreature(s.c,s.n);}};

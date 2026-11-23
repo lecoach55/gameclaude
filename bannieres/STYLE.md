@@ -145,3 +145,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v64 (23/11) — ombres portées en combat
 - `ombre3D` (sprites.js) : silhouette noire de la créature, couchée (transform 1,0,−.75,.32) vers l'arrière-droite, alpha .4, en plus de l'ombre de contact. `CB.sansOmbre` pour la couper.
+
+## v65 (23/11) — portraits en ville
+- Écran de ville (et éditeurs d'armées) : portrait du héros devant sa rangée, blason de la faction devant la garnison (`blasonVille`), comme dans Heroes.
+- Essai rejeté : ombres portées des créatures sur la carte (panneau caché face au soleil) — aucune ombre visible dans le rendu, à reprendre.

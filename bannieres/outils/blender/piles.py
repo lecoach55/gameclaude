@@ -100,12 +100,16 @@ for k in range(14):
     g.data.materials.append(mat('g%d' % k, cols[k % 5], r=.05, transm=.6, em=tuple(c * .6 for c in cols[k % 5][:3]) + (1,)))
 rendre(sc, 'pile_gemmes')
 # mercure : fioles et bonbonne de verre argenté
-sc = scene(); VE = mat('verre', (.85, .92, 1, 1), r=.05, transm=.9); HG = mat('hg', (.85, .88, .92, 1), m=1, r=.08); BO2 = mat('bouchon', (.45, .3, .18, 1), r=.8)
-bpy.ops.mesh.primitive_uv_sphere_add(radius=.2, location=(0, 0, .2)); bpy.context.object.data.materials.append(VE)
-bpy.ops.mesh.primitive_uv_sphere_add(radius=.16, location=(0, 0, .17)); bpy.context.object.scale.z = .8; bpy.context.object.data.materials.append(HG)
+sc = scene(); VE = mat('verre', (.07, .16, .2, 1), r=.06); HG = mat('hg', (.9, .92, .95, 1), m=1, r=.3); BO2 = mat('bouchon', (.45, .3, .18, 1), r=.8)
+# 23/11 : caisse de bois sous les fioles et verre teinté, pour ne plus paraître blanc et plat sur la carte
+CA = mat('caisse', (.85, .62, .42, 1), r=.85, tex='poutre.jpg', ech=2)
+bpy.ops.mesh.primitive_cube_add(size=1, location=(0, .02, .04)); bpy.context.object.scale = (.78, .42, .08); bpy.context.object.data.materials.append(CA)
+for x in (-.36, .36):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(x, .02, .1)); bpy.context.object.scale = (.05, .44, .14); bpy.context.object.data.materials.append(CA)
+bpy.ops.mesh.primitive_uv_sphere_add(radius=.2, location=(0, 0, .2), segments=48, ring_count=24); bpy.context.object.data.materials.append(VE); bpy.ops.object.shade_smooth()
 bpy.ops.mesh.primitive_cylinder_add(radius=.06, depth=.14, location=(0, 0, .44)); bpy.context.object.data.materials.append(VE)
 bpy.ops.mesh.primitive_cylinder_add(radius=.05, depth=.06, location=(0, 0, .53)); bpy.context.object.data.materials.append(BO2)
 for x, y in [(.28, .05), (-.26, .1)]:
-    bpy.ops.mesh.primitive_cylinder_add(radius=.06, depth=.22, location=(x, y, .11)); bpy.context.object.data.materials.append(VE)
-    bpy.ops.mesh.primitive_cylinder_add(radius=.05, depth=.14, location=(x, y, .08)); bpy.context.object.data.materials.append(HG)
+    bpy.ops.mesh.primitive_cylinder_add(radius=.06, depth=.22, location=(x, y, .11)); bpy.context.object.data.materials.append(HG)
+    bpy.ops.mesh.primitive_cylinder_add(radius=.04, depth=.05, location=(x, y, .245)); bpy.context.object.data.materials.append(BO2)
 rendre(sc, 'pile_mercure')

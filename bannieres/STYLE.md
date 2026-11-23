@@ -96,3 +96,9 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Ville de la Horde : les tours carrées de l'enceinte deviennent des tours de guet Blender ; la palissade s'ouvre pour la porte ; l'hôtel de ville (conseil → capitole) devient une grande hutte Blender (v_hutte ×2,6) au lieu de la maison carrée.
 - Essai rejeté : sol « terre rude » pour la Horde (différence invisible).
 - v52 : allée de la Nécropole assombrie la nuit (essai rejeté : lumières de nuit plus fortes, gain invisible).
+
+## v54 (23/11) — vérifications et harmonie
+- Mesures réelles sur le Mac de Victor (Iris Plus, navigateur intégré, page servie par raw.githack.com depuis le dépôt) : calcul d'un tour d'ordinateur 26-69 ms, panorama de ville 0,8 s (0,3 s à chaud) → la mémoire des panoramas (v53) évite cette attente.
+- `villes_clics.py` réparé (vide PANO_CACHE, ignore les pixels qui changent d'un rendu à l'autre) : il a révélé des créatures cachées derrière les maisons de devant. Les créatures des habitations du rang du milieu, du fond (hab7) et hab6 se tiennent maintenant sur la place (`PLACE` dans panoVille) : 28/28 visibles et cliquables en 1280×800 (13/28 avant) ; 21/28 au téléphone (bords de l'écran).
+- `outils/blender/touffes_peintes.py` : touffes d'herbe peintes, claires, à fleurs (remplacent les touffes photo sombres).
+- `piles.py` : mercure = bonbonne de verre teinté dans une caisse de bois (n'est plus une tache blanche).

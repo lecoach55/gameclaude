@@ -19,17 +19,17 @@ TITRES='''()=>[...document.querySelectorAll('body > .modal')].map(m=>{const h=m.
 # masque des créatures : différence entre le panorama avec et sans créatures
 MASQUE='''async()=>{const px=c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data;
  const att=()=>new Promise(r=>{const f=()=>VI.dirty?requestAnimationFrame(f):r();f();});
- await att();const A=px(VI.pano.c);const cw=VI.pano.c.width,ch=VI.pano.c.height;const zones=VI.pano.zones.map(z=>Object.assign({},z));
+ window.PANO_CACHE&&PANO_CACHE.clear();await att();const A=px(VI.pano.c);VI.dirty=true;window.PANO_CACHE&&PANO_CACHE.clear();await att();const A2=px(VI.pano.c);/* 23/11 : deux rendus identiques ? sinon le bruit est masqué */const cw=VI.pano.c.width,ch=VI.pano.c.height;const zones=VI.pano.zones.map(z=>Object.assign({},z));
  const fac=VI.v.fac,cr=FAC[fac].crea;const blobs=[];
- for(let n=1;n<=7;n++){if(!VI.v.bat['hab'+n])continue;const o=cr[n-1];cr[n-1]=o==='wyverne'?'troll':'wyverne';VI.dirty=true;await att();const B=px(VI.pano.c);cr[n-1]=o;
+ for(let n=1;n<=7;n++){if(!VI.v.bat['hab'+n])continue;const o=cr[n-1];cr[n-1]=o==='wyverne'?'troll':'wyverne';VI.dirty=true;window.PANO_CACHE&&PANO_CACHE.clear();await att();const B=px(VI.pano.c);cr[n-1]=o;
  const s=2,gw=Math.ceil(cw/s),gh=Math.ceil(ch/s),m=new Uint8Array(gw*gh);
- for(let y=0;y<ch;y+=s)for(let x=0;x<cw;x+=s){const i=(y*cw+x)*4;const d=Math.abs(A[i]-B[i])+Math.abs(A[i+1]-B[i+1])+Math.abs(A[i+2]-B[i+2]);if(d>60)m[(y/s)*gw+x/s]=1;}
+ for(let y=0;y<ch;y+=s)for(let x=0;x<cw;x+=s){const i=(y*cw+x)*4;const d=Math.abs(A[i]-B[i])+Math.abs(A[i+1]-B[i+1])+Math.abs(A[i+2]-B[i+2]);const d0=Math.abs(A[i]-A2[i])+Math.abs(A[i+1]-A2[i+1])+Math.abs(A[i+2]-A2[i+2]);if(d>60&&d0<30)m[(y/s)*gw+x/s]=1;}
  // érosion légère : garder les points dont les 4 voisins sont aussi dans le masque (on clique bien SUR la créature)
  const m2=new Uint8Array(gw*gh);let tot=0;for(let y=1;y<gh-1;y++)for(let x=1;x<gw-1;x++){const k=y*gw+x;if(m[k])tot++;if(m[k]&&m[k-1]&&m[k+1]&&m[k-gw]&&m[k+gw])m2[k]=1;}
  let sx=0,sy=0,c=0;for(let k=0;k<gw*gh;k++)if(m2[k]){sx+=k%gw;sy+=(k/gw)|0;c++;}
  if(!c){blobs.push({niv:n,n:tot,vis:0});continue;}const cx=sx/c,cy=sy/c;let best=0,bd=1e18;for(let k=0;k<gw*gh;k++)if(m2[k]){const d=(k%gw-cx)**2+(((k/gw)|0)-cy)**2;if(d<bd){bd=d;best=k;}}
  blobs.push({niv:n,n:tot,vis:c,px:(best%gw)*s/VI.dpr,py:((best/gw)|0)*s/VI.dpr});}
- VI.dirty=true;await att();
+ VI.dirty=true;window.PANO_CACHE&&PANO_CACHE.clear();await att();
  return {blobs,zones:zones.map(z=>({b:z.b,x:z.x/VI.dpr,y:z.y/VI.dpr,w:z.w/VI.dpr,h:z.h/VI.dpr})),dpr:VI.dpr};}'''
 async def main():
     base=serveur(os.path.join(D,'../jeu'),8790)

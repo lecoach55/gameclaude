@@ -121,3 +121,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Au-delà du bord de la carte : noir (comme Heroes) au lieu d'une eau pâle répétée (`brume` : f × distance au bord quand bsN>1).
 - `lieux_peints.py` ROT=30 : sanctuaire (temple de marbre blanc, toit de cuivre vert-de-gris, statue dorée), fontaine, autel, obélisque, pierre runique, antre, artefact vus de trois quarts ; `larg` d'origine gardée pour l'échelle.
 - Pile de bois de trois quarts (on voit les bouts des rondins) ; désert : palmiers, cactus et broussailles seulement.
+
+## v59 (23/11) — Sylve et mines
+- `outils/blender/sylve_peints.py` (ELEV=8 ROT=32) : maison-arbre `v_cabane` (tronc à racines, plateforme, case ronde au toit vert, échelle, houppier) pour les habitations et la taverne de la Sylve.
+- `outils/blender/mine_peinte.py` (ROT=25) : entrée de mine peinte (colline de rochers moussus, boisage, rails, wagonnet, lanterne) à la place du portail Sketchfab.

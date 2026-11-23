@@ -152,3 +152,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v66 (23/11) — lave rougeoyante
 - Carte : fissures de lave rouge-orangé (émission (1,.16,.01)×1,8 au lieu de (1,.3,.03)×4, qui saturait en jaune-blanc), croûte plus sombre et plus brune ; petits arbres morts sur la lave au lieu des bûches photo.
+
+## v67 (23/11) — écurie, huttes ; revue graphiste
+- `outils/blender/ecurie_peinte.py` (ROT=−30) : écurie peinte (planches claires, chaume, enclos, abreuvoir, foin) à la place du modèle Sketchfab.
+- Huttes de la Horde : défenses d'os et peau moins blanches (`ville_peints.py`).
+- Revue graphiste (v66, ORANGE) — à faire ensuite, par ordre : 1) créatures Sketchfab trop « photo » et vampire en pose T (fige.py, eclaire.py) ; 2) sols photo neige/sable/eau à repeindre ; 3) rochers de lave en combat trop réguliers ; 4) maisons de ville Sketchfab, ciel HDRI et allée photo ; 5) tour de mage et marché identiques dans toutes les factions ; 6) huttes : défenses encore claires ; 7) sanctuaire, coffres et cristaux « jouet » ; 8) bâtons pâles flottants en combat sur la lave, ombres de palmiers sans arbre.

@@ -424,9 +424,17 @@ function majObjets(){const vu=G.joueurs[vueJoueur()].vu;const vus=new Set();
   // visible si la case (ou une case de l'emprise d'une ville) a été explorée
   g.visible=!!(vu[o.y*N+o.x]||(o.t==='ville'&&vu[(o.y-1)*N+o.x]));}
  for(const [id,g] of objets)if(!vus.has(id)){grp.remove(g);objets.delete(id);}}
+// 23/11 : héros sur la carte = chevalier monté Sketchfab (planche « cavalier ») avec étendard aux couleurs du joueur, comme les héros de Heroes III
+const HMONT=new Map();function spriteHerosMonte(h,fr){if(typeof SPR3D==='undefined'||!SPR3D.cavalier||typeof IMG3D==='undefined'||!IMG3D.cavalier||!IMG3D.cavalier.width)return null;
+ const k=h.j+':'+(fr<0?0:fr);if(HMONT.has(k))return HMONT.get(k);const D=SPR3D.cavalier;const c=mkC(192,192),g=c.getContext('2d');
+ const col=(COULEURS[G.joueurs[h.j].coul]||{}).c||'#c03030';
+ g.strokeStyle='#3a2410';g.lineWidth=3;g.beginPath();g.moveTo(64,150);g.lineTo(64,22);g.stroke();
+ g.fillStyle=col;g.strokeStyle='#1a1008';g.lineWidth=1.5;g.beginPath();g.moveTo(65,24);g.quadraticCurveTo(92,20,112,30);g.lineTo(104,40);g.lineTo(112,50);g.quadraticCurveTo(92,44,65,52);g.closePath();g.fill();g.stroke();
+ const ppu=D.pxu*1.0;const [im0,sx,sy,sw,sh]=cadre3D('cavalier','idle',fr<0?0:fr%((D.n&&D.n.idle)||1));const e=Math.min(176/sw,176/sh);
+ g.drawImage(planche3D(im0),sx,sy,sw,sh,96-sw*e/2,186-sh*e,sw*e,sh*e);HMONT.set(k,c);return c;}
 function majHeros(){const vu=G.joueurs[vueJoueur()].vu;const ids=new Set();
- for(const h of G.heros){ids.add(h.id);const dir=V.anim&&V.anim.h===h?(V.anim.x1<V.anim.x0?-1:V.anim.x1>V.anim.x0?1:(h.dir||1)):(h.dir||1);const fr=V.anim&&V.anim.h===h&&typeof spriteHeros3D==='function'&&a3d('h_'+h.classe)?Math.floor(performance.now()/140)%4:-1;const cle=h.classe+':'+h.j+':'+dir+':'+fr;let s=herosS.get(h.id);
-  if(!s||s.userData.cle!==cle){if(s)grp.remove(s);const cv=(typeof spriteHeros3D==='function'&&spriteHeros3D(h,160,fr))||spriteHeros(h,128);s=panneau(cv,'h'+h.classe+h.j+':'+fr+':'+cv.width,1.45,dir<0);s.userData.cle=cle;s.userData.tile=-h.id;herosS.set(h.id,s);grp.add(s);}
+ for(const h of G.heros){ids.add(h.id);const dir=V.anim&&V.anim.h===h?(V.anim.x1<V.anim.x0?-1:V.anim.x1>V.anim.x0?1:(h.dir||1)):(h.dir||1);const fr=V.anim&&V.anim.h===h&&typeof spriteHeros3D==='function'&&a3d('h_'+h.classe)?Math.floor(performance.now()/140)%4:-1;const cle=h.classe+':'+h.j+':'+dir+':'+fr+(typeof IMG3D!=='undefined'&&IMG3D.cavalier?'m':'');let s=herosS.get(h.id);
+  if(!s||s.userData.cle!==cle){if(s)grp.remove(s);const cv=spriteHerosMonte(h,fr)||(typeof spriteHeros3D==='function'&&spriteHeros3D(h,160,fr))||spriteHeros(h,128);s=panneau(cv,'h'+h.classe+h.j+':'+fr+':'+cv.width+(cv.width===192?'m':''),cv.width===192?1.75:1.45,dir<0);s.userData.cle=cle;s.userData.tile=-h.id;herosS.set(h.id,s);grp.add(s);}
   const [hx,hy]=posHeros(h);const bob=V.anim&&V.anim.h===h?Math.abs(Math.sin(performance.now()/60))*.05:0;const enV=G.occ[Math.round(hy)*N+Math.round(hx)]&&(G.oi[G.occ[Math.round(hy)*N+Math.round(hx)]]||{}).t==='ville';s.position.set(hx+.5,sol(Math.round(hx),Math.round(hy))+bob,hy+.55+(enV?.3:0));s.visible=!!vu[Math.round(hy)*N+Math.round(hx)];}
  for(const [id,s] of herosS)if(!ids.has(id)){grp.remove(s);herosS.delete(id);}}
 // ---------- caméra ----------

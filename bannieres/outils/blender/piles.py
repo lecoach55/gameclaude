@@ -86,12 +86,18 @@ caillou((0, 0, .02), .2, SP, 1.2, .25)
 for k in range(10):
     a = k / 10 * 6.28; cristal((math.cos(a) * .17, math.sin(a) * .15, .14), random.uniform(.2, .32), .05, SO, (math.cos(a) * .45, math.sin(a) * .45, 0))
 rendre(sc, 'pile_soufre')
-# cristal : grappe rouge sur roche
-sc = scene(); CR = mat('cristal', (.85, .03, .08, 1), r=.1, transm=.25, em=(.25, 0, .02, 1)); RO3 = mat('roc3', (.35, .33, .32, 1), r=.9, tex='roche.jpg', ech=1.5)
-caillou((0, 0, .06), .22, RO3, 4.2)
-cristal((0, 0, .32), .5, .09, CR, (0, 0, 0))
-for k in range(6):
-    a = k / 6 * 6.28; cristal((math.cos(a) * .13, math.sin(a) * .12, .2), random.uniform(.25, .4), .06, CR, (math.cos(a) * .55, math.sin(a) * .55, 0))
+# cristal : grappe de prismes rouges irréguliers et facettés sur une pierre (23/11 : plus de polyèdres lisses)
+sc = scene(); CR = mat('cristal', (.8, .02, .07, 1), r=.04, transm=.35, em=(.22, 0, .02, 1)); CR2 = mat('cristal2', (1, .25, .3, 1), r=.04, transm=.2, em=(.3, .02, .04, 1)); RO3 = mat('roc3', (.35, .33, .32, 1), r=.9, tex='roche.jpg', ech=1.5)
+caillou((0, 0, .04), .24, RO3, 4.2)
+def prisme(loc, h, r, M, rot, n):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=n, radius=r, depth=h, location=loc, rotation=rot); o = bpy.context.object; o.data.materials.append(M)
+    for v in o.data.vertices:
+        if v.co.z > 0: v.co.x *= .55 + random.random() * .2; v.co.y *= .55 + random.random() * .2; v.co.z += random.uniform(.02, .09)
+    bpy.ops.mesh.primitive_cone_add(vertices=n, radius1=r * .6, radius2=0, depth=h * .3, location=(0, 0, 0)); p = bpy.context.object; p.data.materials.append(M)
+    p.parent = o; p.location = (0, 0, h * .62); p.scale.z = random.uniform(.8, 1.4)
+prisme((0, 0, .36), .55, .085, CR, (0, 0, 0), 6)
+for k in range(7):
+    a = k / 7 * 6.28 + random.random() * .5; prisme((math.cos(a) * .13, math.sin(a) * .11, .22), random.uniform(.2, .42), random.uniform(.04, .065), CR2 if k % 3 == 0 else CR, (math.cos(a) * .6, math.sin(a) * .6, random.random()), random.choice((5, 6)))
 rendre(sc, 'pile_cristal')
 # gemmes : pierres taillées de couleurs profondes, en tas sur une pierre plate
 sc = scene(); RO4 = mat('roc4', (.4, .37, .34, 1), r=.9, tex='roche.jpg', ech=1.5)

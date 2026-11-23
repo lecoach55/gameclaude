@@ -52,52 +52,52 @@ def rendre(sc, nom):
     json.dump({'w': im.width, 'h': im.height, 'px': round(p.x * R - bb[0], 1), 'py': round((1 - p.y) * R - bb[1], 1), 'ppm': round(R / cd.ortho_scale, 3), 'haut': round(haut, 2), 'larg': round(larg, 2)}, open(f'{OUT}/{nom}_h.webp.json', 'w'))
     print('FINI', nom, im.size)
 random.seed(4)
-# or : tas de pièces + lingots
-sc = scene(); OR = mat('or', (1, .55, .08, 1), m=.75, r=.32, em=(.35, .2, 0, 1))
-for k in range(70):
-    a = random.random() * 6.28; d = random.random() ** .7 * .42; z = .2 * (1 - d / .45) + .02
-    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=.05, depth=.012, location=(math.cos(a) * d, math.sin(a) * d * .9, z * random.uniform(.5, 1.1)), rotation=(random.uniform(-.7, .7), random.uniform(-.7, .7), 0)); bpy.context.object.data.materials.append(OR)
-for x, y in [(-.18, .2), (.05, .26)]:
-    bpy.ops.mesh.primitive_cube_add(size=.1, location=(x, y, .05), scale=(1.6, .7, .55)); bpy.context.object.data.materials.append(OR)
+# 23/11 : couleurs franches (plus de verre laiteux ni d'émission qui délavait tout sous AgX), tas plus lisibles, ancrés au sol
+def gemme(loc, r, M, rot):
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=0, radius=r, location=loc, rotation=rot); o = bpy.context.object; o.scale.z = 1.3; o.data.materials.append(M); return o
+# or : monceau de pièces + lingots
+sc = scene(); OR = mat('or', (.95, .6, .08, 1), m=.85, r=.25, em=(.1, .06, 0, 1))
+for k in range(170):
+    a = random.random() * 6.28; d = random.random() ** .6 * .4; z = .26 * (1 - d / .42) ** 1.3 + .015
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=.045, depth=.012, location=(math.cos(a) * d, math.sin(a) * d * .9, z * random.uniform(.75, 1.05)), rotation=(random.uniform(-.6, .6), random.uniform(-.6, .6), 0)); bpy.context.object.data.materials.append(OR)
+for x, y, rz in [(-.3, .22, .3), (.28, .25, -.4), (.33, -.12, .9)]:
+    bpy.ops.mesh.primitive_cube_add(size=.1, location=(x, y, .035), rotation=(0, 0, rz), scale=(1.7, .75, .6)); bpy.context.object.data.materials.append(OR)
 rendre(sc, 'pile_or')
-# bois : rondins empilés
-sc = scene(); EC = mat('ecorce', (.75, .6, .45, 1), r=.9, tex='ecorce.jpg', ech=2.2); BO = mat('bois_c', (.78, .6, .38, 1), r=.8)
+# bois : rondins couchés, vus de long
+sc = scene(); EC = mat('ecorce', (.75, .6, .45, 1), r=.9, tex='ecorce.jpg', ech=2.2); BO = mat('bois_c', (.9, .7, .45, 1), r=.8, tex='bois.jpg', ech=4)
 for rang, n in enumerate([4, 3, 2]):
     for k in range(n):
-        x = (k - (n - 1) / 2) * .18; z = .085 + rang * .15
-        bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=.08, depth=.7, location=(x, 0, z), rotation=(math.pi / 2, 0, random.uniform(-.1, .1))); o = bpy.context.object; o.data.materials.append(EC)
+        y = (k - (n - 1) / 2) * .17; z = .085 + rang * .145
+        bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=.08, depth=.75, location=(random.uniform(-.03, .03), y, z), rotation=(0, math.pi / 2, random.uniform(-.06, .06))); o = bpy.context.object; o.data.materials.append(EC)
         for s in (-1, 1):
-            bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=.075, depth=.01, location=(x, s * .352, z), rotation=(math.pi / 2, 0, 0)); bpy.context.object.data.materials.append(BO)
+            bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=.075, depth=.01, location=(s * .377, y, z), rotation=(0, math.pi / 2, 0)); bpy.context.object.data.materials.append(BO)
 rendre(sc, 'pile_bois')
-# minerai : blocs de roche à veines
-sc = scene(); RO = mat('roc', (.55, .52, .5, 1), r=.85, tex='roche.jpg', ech=1.5); FE = mat('fer', (.32, .26, .24, 1), m=.55, r=.45, tex='roche2.jpg', ech=1.5)
-for k, (x, y, r) in enumerate([(0, 0, .26), (.26, .1, .17), (-.25, .08, .18), (.08, -.22, .15), (-.1, .26, .12)]):
-    caillou((x, y, r * .6), r, RO if k % 2 == 0 else FE, k * 3.1)
+# minerai : tas de blocs de fer sombres à éclats métalliques
+sc = scene(); RO = mat('roc', (.42, .4, .4, 1), r=.85, tex='roche.jpg', ech=1.5); FE = mat('fer', (.22, .2, .22, 1), m=.7, r=.35, tex='roche2.jpg', ech=1.5)
+for k, (x, y, r) in enumerate([(0, 0, .24), (.24, .1, .16), (-.24, .08, .17), (.08, -.22, .14), (-.12, .25, .12), (.2, -.12, .1), (-.2, -.15, .11), (.02, .14, .13)]):
+    caillou((x, y, r * .6 + (.08 if k == 7 else 0)), r, FE if k % 3 else RO, k * 3.1)
 rendre(sc, 'pile_minerai')
-# soufre : cristaux jaunes sur roche
-sc = scene(); SO = mat('soufre', (1, .85, .15, 1), r=.35, em=(.5, .4, 0, 1)); RO2 = mat('roc2', (.4, .36, .3, 1), r=.9, tex='roche2.jpg', ech=1.5)
-caillou((0, 0, .1), .25, RO2, 1.2)
-for k in range(9):
-    a = k / 9 * 6.28; cristal((math.cos(a) * .17, math.sin(a) * .15, .15), random.uniform(.18, .32), .05, SO, (math.cos(a) * .5, math.sin(a) * .5, 0))
+# soufre : monticule jaune et cristaux
+sc = scene(); SO = mat('soufre', (.7, .48, 0, 1), r=.55); SP = mat('soufre_p', (.6, .42, .05, 1), r=.95)
+caillou((0, 0, .02), .2, SP, 1.2, .25)
+for k in range(10):
+    a = k / 10 * 6.28; cristal((math.cos(a) * .17, math.sin(a) * .15, .14), random.uniform(.2, .32), .05, SO, (math.cos(a) * .45, math.sin(a) * .45, 0))
 rendre(sc, 'pile_soufre')
-# cristal : grappe rouge translucide
-sc = scene(); CR = mat('cristal', (1, .12, .2, 1), r=.08, transm=.7, em=(.7, .05, .1, 1)); RO3 = mat('roc3', (.35, .33, .32, 1), r=.9, tex='roche.jpg', ech=1.5)
+# cristal : grappe rouge sur roche
+sc = scene(); CR = mat('cristal', (.85, .03, .08, 1), r=.1, transm=.25, em=(.25, 0, .02, 1)); RO3 = mat('roc3', (.35, .33, .32, 1), r=.9, tex='roche.jpg', ech=1.5)
 caillou((0, 0, .06), .22, RO3, 4.2)
 cristal((0, 0, .32), .5, .09, CR, (0, 0, 0))
 for k in range(6):
     a = k / 6 * 6.28; cristal((math.cos(a) * .13, math.sin(a) * .12, .2), random.uniform(.25, .4), .06, CR, (math.cos(a) * .55, math.sin(a) * .55, 0))
 rendre(sc, 'pile_cristal')
-# gemmes : pierres taillées de couleurs dans une coupelle
-sc = scene(); BOL = mat('bol', (.5, .35, .2, 1), r=.7, tex='bois.jpg', ech=2)
-bpy.ops.mesh.primitive_uv_sphere_add(radius=.3, location=(0, 0, .3)); o = bpy.context.object; o.scale.z = .55
-bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='DESELECT'); bpy.ops.object.mode_set(mode='OBJECT')
-for v in o.data.vertices: v.select = v.co.z > .1
-bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.delete(type='VERT'); bpy.ops.object.mode_set(mode='OBJECT'); o.data.materials.append(BOL)
-cols = [(.1, .3, 1, 1), (.1, .9, .3, 1), (1, .15, .5, 1), (1, .85, .1, 1), (.2, .9, 1, 1)]
-for k in range(14):
-    a = random.random() * 6.28; d = random.random() * .2
-    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=.06, location=(math.cos(a) * d, math.sin(a) * d, .26 + random.random() * .06)); g = bpy.context.object
-    g.data.materials.append(mat('g%d' % k, cols[k % 5], r=.05, transm=.6, em=tuple(c * .6 for c in cols[k % 5][:3]) + (1,)))
+# gemmes : pierres taillées de couleurs profondes, en tas sur une pierre plate
+sc = scene(); RO4 = mat('roc4', (.4, .37, .34, 1), r=.9, tex='roche.jpg', ech=1.5)
+caillou((0, 0, -.02), .28, RO4, 2.2, .15)
+cols = [(.75, 0, .04, 1), (0, .55, .12, 1), (.02, .1, .8, 1), (.4, .04, .7, 1), (.95, .7, 0, 1)]
+GM = [mat('g%d' % k, c, r=.06, transm=.15, em=tuple(x * .18 for x in c[:3]) + (1,)) for k, c in enumerate(cols)]
+for k in range(22):
+    a = random.random() * 6.28; d = random.random() ** .7 * .22
+    gemme((math.cos(a) * d, math.sin(a) * d * .9, .17 + (.2 - d) * .45 + random.random() * .03), random.uniform(.06, .085), GM[k % 5], (random.random(), random.random(), random.random()))
 rendre(sc, 'pile_gemmes')
 # mercure : fioles et bonbonne de verre argenté
 sc = scene(); VE = mat('verre', (.07, .16, .2, 1), r=.06); HG = mat('hg', (.9, .92, .95, 1), m=1, r=.3); BO2 = mat('bouchon', (.45, .3, .18, 1), r=.8)

@@ -102,3 +102,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - `villes_clics.py` réparé (vide PANO_CACHE, ignore les pixels qui changent d'un rendu à l'autre) : il a révélé des créatures cachées derrière les maisons de devant. Les créatures des habitations du rang du milieu, du fond (hab7) et hab6 se tiennent maintenant sur la place (`PLACE` dans panoVille) : 28/28 visibles et cliquables en 1280×800 (13/28 avant) ; 21/28 au téléphone (bords de l'écran).
 - `outils/blender/touffes_peintes.py` : touffes d'herbe peintes, claires, à fleurs (remplacent les touffes photo sombres).
 - `piles.py` : mercure = bonbonne de verre teinté dans une caisse de bois (n'est plus une tache blanche).
+
+## v55 (23/11) — scierie, puits, ressources
+- `outils/blender/lieux_peints2.py` : scierie peinte (hangar de planches, roue à aubes, scie circulaire, rondins) à la place de la maison à pilotis ; puits au toit plus haut (on voit l'eau) ; vue de trois quarts (`tourner`).
+- `piles.py` revu : couleurs franches (plus de verre laiteux ni d'émission délavée), monceau d'or, rondins couchés, minerai de fer sombre, soufre, rubis, gemmes taillées sur une pierre, mercure en caisse.
+- Fougères sombres retirées des petites touffes de la carte.

@@ -432,6 +432,7 @@ const HMONT=new Map();function spriteHerosMonte(h,fr){if(typeof SPR3D==='undefin
  g.fillStyle=col;g.strokeStyle='#1a1008';g.lineWidth=1.5;g.beginPath();g.moveTo(65,24);g.quadraticCurveTo(92,20,112,30);g.lineTo(104,40);g.lineTo(112,50);g.quadraticCurveTo(92,44,65,52);g.closePath();g.fill();g.stroke();
  const ppu=D.pxu*1.0;const [im0,sx,sy,sw,sh]=cadre3D('cavalier','idle',fr<0?0:fr%((D.n&&D.n.idle)||1));const e=Math.min(176/sw,176/sh);
  g.drawImage(planche3D(im0),sx,sy,sw,sh,96-sw*e/2,186-sh*e,sw*e,sh*e);HMONT.set(k,c);return c;}
+window.spriteHerosMonte=spriteHerosMonte;
 function majHeros(){const vu=G.joueurs[vueJoueur()].vu;const ids=new Set();
  for(const h of G.heros){ids.add(h.id);const dir=V.anim&&V.anim.h===h?(V.anim.x1<V.anim.x0?-1:V.anim.x1>V.anim.x0?1:(h.dir||1)):(h.dir||1);const fr=V.anim&&V.anim.h===h&&typeof spriteHeros3D==='function'&&a3d('h_'+h.classe)?Math.floor(performance.now()/140)%4:-1;const cle=h.classe+':'+h.j+':'+dir+':'+fr+(typeof IMG3D!=='undefined'&&IMG3D.cavalier?'m':'');let s=herosS.get(h.id);
   if(!s||s.userData.cle!==cle){if(s)grp.remove(s);const cv=spriteHerosMonte(h,fr)||(typeof spriteHeros3D==='function'&&spriteHeros3D(h,160,fr))||spriteHeros(h,128);s=panneau(cv,'h'+h.classe+h.j+':'+fr+':'+cv.width+(cv.width===192?'m':''),cv.width===192?1.75:1.45,dir<0);s.userData.cle=cle;s.userData.tile=-h.id;herosS.set(h.id,s);grp.add(s);}

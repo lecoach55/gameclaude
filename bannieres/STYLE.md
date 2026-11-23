@@ -85,3 +85,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Terrains adoucis (flou léger) et plus colorés.
 - Essai écarté : liseré sur les imposteurs du décor (assombrit les forêts).
 - À surveiller : `outils/villes_clics.py` ne retrouve plus les créatures devant les habitations depuis la v40 (les bâtiments, eux, restent bons) — probablement l'outil (différence de rendus), à vérifier.
+
+## v50 (23/11) — rochers peints
+- `outils/blender/rochers_peints.py` (ELEV=52 SUF=h pour la carte et le combat, ELEV=8 SUF=b pour la ville) : blocs arrondis à facettes, fissures fines, mousse sur le dessus, même soleil que le reste. Remplacent les photos Poly Haven `roc_a..d` (trop réalistes à côté des arbres et montagnes peints).
+- `haut` des entrées roc_* de imp.json recalé pour garder l'encombrement des anciens rochers ×1,4 (planImp : échelle = ht/haut).
+- Essai rejeté : soleil plus haut (≈ 55°) sur la carte, gain quasi nul et image un peu plus terne.

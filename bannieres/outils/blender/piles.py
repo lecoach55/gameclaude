@@ -71,6 +71,9 @@ for rang, n in enumerate([4, 3, 2]):
         bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=.08, depth=.75, location=(random.uniform(-.03, .03), y, z), rotation=(0, math.pi / 2, random.uniform(-.06, .06))); o = bpy.context.object; o.data.materials.append(EC)
         for s in (-1, 1):
             bpy.ops.mesh.primitive_cylinder_add(vertices=20, radius=.075, depth=.01, location=(s * .377, y, z), rotation=(0, math.pi / 2, 0)); bpy.context.object.data.materials.append(BO)
+bpy.context.view_layer.update(); Rz = __import__('mathutils').Matrix.Rotation(.62, 4, 'Z')  # trois quarts : on voit les bouts des rondins
+for o in sc.objects:
+    if o.type == 'MESH': o.matrix_world = Rz @ o.matrix_world
 rendre(sc, 'pile_bois')
 # minerai : tas de blocs de fer sombres à éclats métalliques
 sc = scene(); RO = mat('roc', (.42, .4, .4, 1), r=.85, tex='roche.jpg', ech=1.5); FE = mat('fer', (.22, .2, .22, 1), m=.7, r=.35, tex='roche2.jpg', ech=1.5)

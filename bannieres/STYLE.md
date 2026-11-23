@@ -116,3 +116,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v57 (23/11) — arbres morts et acacias
 - `desert_peints.py` QUOI=autres : `arbre_mort` (branches récursives, bois gris) et `acacia` (cime en ombrelle), h et b.
 - Nécropole : arbres morts autour de la ville ; Horde : acacias de savane mêlés aux arbustes ; lave (carte/combat) : arbres morts. Plus aucun palmier ni cactus hors du désert.
+
+## v58 (23/11) — bords de carte, lieux de trois quarts
+- Au-delà du bord de la carte : noir (comme Heroes) au lieu d'une eau pâle répétée (`brume` : f × distance au bord quand bsN>1).
+- `lieux_peints.py` ROT=30 : sanctuaire (temple de marbre blanc, toit de cuivre vert-de-gris, statue dorée), fontaine, autel, obélisque, pierre runique, antre, artefact vus de trois quarts ; `larg` d'origine gardée pour l'échelle.
+- Pile de bois de trois quarts (on voit les bouts des rondins) ; désert : palmiers, cactus et broussailles seulement.

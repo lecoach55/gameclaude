@@ -38,6 +38,12 @@ def boite(s, loc, M, rot=(0, 0, 0)):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot); o = bpy.context.object; o.scale = s; return ob(o, M)
 def rendre(sc, nom, R=380):
     bpy.context.view_layer.update()
+    rz = math.radians(float(os.environ.get('ROT', '0')))  # 23/11 : vue de trois quarts possible (ROT=30)
+    if rz:
+        import mathutils
+        for o in sc.objects:
+            if o.type == 'MESH': o.matrix_world = mathutils.Matrix.Rotation(rz, 4, 'Z') @ o.matrix_world
+        bpy.context.view_layer.update()
     pts = [o.matrix_world @ Vector(c) for o in sc.objects if o.type == 'MESH' for c in o.bound_box]
     mn = Vector([min(p[i] for p in pts) for i in range(3)]); mx = Vector([max(p[i] for p in pts) for i in range(3)])
     haut = mx.z - mn.z; larg = mx.x - mn.x
@@ -64,14 +70,16 @@ for s in (-1, 1): boite((1.15, .5, .05), (0, s * .2, 1.42), TUILE(), (-s * .85, 
 cyl(.07, .9, (0, 0, 1.05), B, 12).rotation_euler = (0, math.pi / 2, 0)
 cyl(.11, .16, (.15, 0, .72), mat('seau', (.45, .3, .18, 1), r=.8), 16)
 rendre(sc, 'puits')
-# sanctuaire : temple à colonnes sur trois marches, fronton, statue lumineuse
-sc = scene(); P = PIERRE2()
-for k, (w, d) in enumerate([(2.2, 1.6), (2.0, 1.4), (1.8, 1.2)]): boite((w, d, .12), (0, 0, .06 + k * .12), P)
+# sanctuaire : temple de marbre blanc à colonnes sur trois marches, toit de cuivre vert-de-gris, statue dorée lumineuse (23/11)
+sc = scene(); P = PIERRE2(); MA = mat('marbre', (.92, .88, .8, 1), r=.5)
+CU = mat('cuivre', (.28, .62, .52, 1), 'ardoise.jpg', 1.2, r=.5); OR = mat('or_s', (1, .72, .25, 1), r=.25, m=.9, em=(.9, .55, .15, 1))
+for k, (w, d) in enumerate([(2.2, 1.6), (2.0, 1.4), (1.8, 1.2)]): boite((w, d, .12), (0, 0, .06 + k * .12), MA if k == 2 else P)
 for x in (-.75, -.25, .25, .75):
-    for y in (-.48, .48): cyl(.09, 1.3, (x, y, 1.01), P, 16)
-boite((1.95, 1.3, .14), (0, 0, 1.73), P)
-for sg in (-1, 1): boite((2.05, .78, .08), (0, sg * .33, 1.97), mat('ardoise_s', (.8, .82, .9, 1), 'ardoise.jpg', 1.2), (-sg * .55, 0, 0))
-cyl(.16, .5, (0, 0, .6), P, 16); bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=.16, location=(0, 0, .98)); ob(bpy.context.object, mat('orbe', (1, .85, .5, 1), r=.2, em=(1, .8, .4, 1)))
+    for y in (-.48, .48): cyl(.1, 1.3, (x, y, 1.01), MA, 16); cyl(.14, .08, (x, y, 1.66), MA, 16)
+boite((1.95, 1.3, .14), (0, 0, 1.73), MA)
+for sg in (-1, 1): boite((2.05, .78, .08), (0, sg * .33, 1.98), CU, (-sg * .62, 0, 0))
+boite((2.08, .08, .08), (0, 0, 2.2), OR)
+cyl(.16, .45, (0, 0, .58), MA, 16); bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=.17, location=(0, 0, .95)); ob(bpy.context.object, OR)
 rendre(sc, 'sanctuaire')
 # fontaine : bassin octogonal, colonne et vasque
 sc = scene(); P = PIERRE2()

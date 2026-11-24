@@ -198,7 +198,7 @@ function matSolSimple(a,b,ech,var2){const m=new T.MeshStandardMaterial({roughnes
  return brume(m,{cle:'solS'+a+b+ech,extra:sh=>{Object.assign(sh.uniforms,uni);sh.fragmentShader=sh.fragmentShader.replace('void main() {','uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsBr;\nvoid main() {').replace('#include <map_fragment>',`{vec2 p=vBsW*${ech.toFixed(3)};float nz=texture2D(bsBr,p*.11).r,nz2=texture2D(bsBr,p*.023+.4).r;
  vec3 ca=mix(texture(bsLay,vec3(p,${a}.)).rgb,texture(bsLay,vec3(mat2(.8,-.6,.6,.8)*p*.71+.3,${a}.)).rgb,smoothstep(.35,.65,nz));vec3 cb=texture(bsLay,vec3(p*.9,${b}.)).rgb;
  float mb=smoothstep(.56,.68,nz2*.7+nz*.3)*${(var2??1).toFixed(2)};vec3 col=mix(ca,cb,mb);col*=.85+.3*nz2;col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,.8);diffuseColor.rgb*=col;bsNt=mix(texture(bsLayN,vec3(p,${a}.)).xyz,texture(bsLayN,vec3(p*.9,${b}.)).xyz,mb)*2.-1.;}`).replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1);normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}');}});}
-const SEC={herbe:1,terre:2,rude:1,neige:2,sable:2,marais:7,lave:2};const IDT={herbe:0,terre:1,rude:2,neige:3,sable:4,marais:5,lave:6};
+const SEC={herbe:1,terre:2,rude:1,neige:3,sable:2,marais:7,lave:2};const IDT={herbe:0,terre:1,rude:2,neige:3,sable:4,marais:5,lave:6};
 /* 23/11 : rochers peints selon le terrain (grès au désert, neige, basalte à fissures de lave) */
 function rocT(ter,l){const v={sable:'s',neige:'n',lave:'l'}[ter];return'roc_'+l+(v&&RES.imp&&RES.imp['roc_'+l+v+'_h']?v:'');}
 function arbresPour(ter,r){const p=r.f();switch(ter){

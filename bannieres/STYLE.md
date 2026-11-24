@@ -160,3 +160,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v68 : rochers de lave à fissures rares et irrégulières (Voronoï large aux coordonnées déformées) ; plus de bûches photo flottantes en combat sur la lave (arbres morts seulement). Points 3 et 8 de la revue traités en partie.
 - v69 : tours de mage propres à la Sylve (écorce, toit de feuilles, lueur verte) et à la Nécropole (pierre noire, lueur spectrale) — `outils/blender/tourmage_var.py`. Point 5 de la revue traité en partie (le marché reste commun).
 - v70 : cristaux en prismes facettés irréguliers sur une pierre (piles.py).
+
+## v71 (24/11) — sable et neige peints
+- `outils/ressources/sols_peints.py` : textures raccordables générées (bruit périodique FFT) : sable à rides de vent et cailloux, neige à congères (crêtes blanches, creux bleutés, paillettes), avec cartes de relief `_n`. Remplacent les photos `sol_sable` (traces de pneus) et `sol_neige`.
+- Combat sur la neige : couche secondaire = neige (plus de taches de terre).

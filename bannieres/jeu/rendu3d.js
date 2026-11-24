@@ -489,7 +489,9 @@ function construireAides(){/* 24/11 : flèches de chemin dessinées (pointe épa
  q.lineJoin='round';q.shadowColor='rgba(0,0,0,.55)';q.shadowBlur=8;fl();q.lineWidth=14;q.strokeStyle='rgba(20,14,6,.9)';q.stroke();q.shadowBlur=0;const gr=q.createLinearGradient(0,-34,0,34);gr.addColorStop(0,'#ffffff');gr.addColorStop(1,'#bdbdbd');fl();q.fillStyle=gr;q.fill();
  const tx=new T.CanvasTexture(cv);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=4;const g=new T.PlaneGeometry(.44,.44);g.rotateX(-Math.PI/2);
  fleches=new T.InstancedMesh(g,new T.MeshBasicMaterial({map:tx,color:0xffffff,transparent:true,opacity:.97,depthWrite:false,toneMapped:false}),400);fleches.frustumCulled=false;fleches.count=0;fleches.renderOrder=3;scene.add(fleches);
- anneau=new T.Mesh(new T.RingGeometry(.36,.46,32).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.8,depthWrite:false}));anneau.renderOrder=2;scene.add(anneau);
+ {/* 24/11 : anneau de sélection dessiné — cercle doré lumineux avec quatre pointes, qui tourne lentement */const c=mkC(256,256),q=c.getContext('2d');q.translate(128,128);q.shadowColor='rgba(255,200,90,.95)';q.shadowBlur=14;q.strokeStyle='#ffe590';q.lineWidth=11;q.beginPath();q.arc(0,0,92,0,7);q.stroke();q.lineWidth=4;q.beginPath();q.arc(0,0,106,0,7);q.stroke();
+  q.fillStyle='#fff0b8';for(let k=0;k<4;k++){q.save();q.rotate(k*Math.PI/2);q.beginPath();q.moveTo(0,-122);q.lineTo(-9,-100);q.lineTo(9,-100);q.closePath();q.fill();q.restore();}const tx=new T.CanvasTexture(c);tx.colorSpace=T.SRGBColorSpace;
+  anneau=new T.Mesh(new T.PlaneGeometry(1.05,1.05).rotateX(-Math.PI/2),new T.MeshBasicMaterial({map:tx,transparent:true,opacity:.8,depthWrite:false,depthTest:false,toneMapped:false}));}anneau.renderOrder=1.6;scene.add(anneau);
  const cg=new T.Group();for(const r of [.785,-.785]){const b=new T.Mesh(new T.BoxGeometry(.5,.04,.08),new T.MeshBasicMaterial({color:0xe83a2a}));b.rotation.y=r;cg.add(b);}croixG=cg;scene.add(croixG);}
 let cheminCle='';function majChemin(){const c=V.chemin;const cle=c?c.h+':'+c.dest+':'+c.ch.length+':'+(heroPar(c.h)||{}).mp:'';if(cle===cheminCle)return;cheminCle=cle;if(!c){fleches.count=0;return;}const h0=heroPar(c.h);if(!h0){fleches.count=0;return;}
  const M=new T.Matrix4(),Q=new T.Quaternion(),P=new T.Vector3(),Sc=new T.Vector3(1,1,1);const col=new T.Color();let n=0;
@@ -550,7 +552,7 @@ A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;
  majObjets();majHeros();majChemin();
  // animations : ailes des moulins, roues, artefacts, drapeaux
  for(const g of objets.values()){if(!g.visible)continue;if(g.userData.tourne)g.userData.tourne.rotation.z=t*1.2;if(g.userData.flotte){g.userData.flotte.position.y=.38+Math.sin(t*2+g.userData.id)*.05;g.userData.flotte.rotation.y=t;}if(g.userData.sprite)g.userData.sprite.position.y=Math.abs(Math.sin(t*2+g.userData.id))*.03;if(g.userData.fumee)animFumee(g,t);if(g.userData.eclat){const e=g.userData.eclat,p=((t*.45+(g.userData.id||0)*.61)%1.6);const a=p<.5?Math.sin(Math.PI*p/.5):0;e.material.opacity=a*.95;e.scale.setScalar(.12+a*.3);e.material.rotation=t*.8;}}
- const hs=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):null;anneau.visible=!!hs;if(hs){const [hx,hy]=posHeros(hs);anneau.position.set(hx+.5,sol(Math.round(hx),Math.round(hy))+.04,hy+.5);anneau.material.opacity=.55+.3*Math.sin(t*4);}
+ const hs=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):null;anneau.visible=!!hs;if(hs){const [hx,hy]=posHeros(hs);anneau.position.set(hx+.5,sol(Math.round(hx),Math.round(hy))+.04,hy+.5);anneau.material.opacity=.85+.15*Math.sin(t*4);anneau.rotation.y=t*.4;}
  croixG.visible=graalConnu(vueJoueur());if(croixG.visible){const [gx,gy]=xy(G.carte.graal);croixG.position.set(gx+.5,sol(gx,gy)+.05,gy+.5);}
  if(eau.material.normalMap){eau.material.normalMap.offset.set(t*.012,t*.007);}
  surveiller();borner3();placerCam();PAN_A=C3.tang*.5;PAN_K=1/Math.cos(C3.tang*.5);ren.render(scene,cam);V.images++;};

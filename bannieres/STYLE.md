@@ -333,3 +333,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - (v151) Combats (hors lave et marais) : trois grandes ombres de nuages glissent lentement sur le champ de bataille.
 - (v152) Le fondu d'entrée n'est joué qu'en jeu réel (pas sous l'horloge figée des outils de capture, qui photographiaient la ville encore sombre) ; références de captures renouvelées.
 - (v153) Bulle d'information d'un monstre de la carte : vignette de la créature.
+- (v154) Anneau de sélection du héros dessiné : cercle doré lumineux à quatre pointes qui tourne lentement et pulse, toujours visible même sur un sol vallonné.

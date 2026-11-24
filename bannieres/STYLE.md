@@ -172,3 +172,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v74 : hôtel de ville du Bastion peint (`colombages_peints.py` → col_hv : grande maison à colombages + beffroi à horloge et toit d'ardoise, bannières bleues) à la place de l'église Sketchfab.
 - v75 : marchés propres aux factions (`outils/blender/marche_var.py` : Horde en rondins sous peaux sombres, Nécropole en pierre noire à toiles violettes et fioles vertes, Sylve en branches sous toits de feuilles).
 - v76 : retouches de couleur à l'affichage (`TEINTE3D` dans sprites.js, filtre appliqué une fois par planche) : ogre vert-gris au lieu de jaune plastique, tréant brun à feuillage vert-jaune au lieu d'orange, troll de pierre gris-vert.
+- v77 : lacs et hauts-fonds moins pâles (eau peu profonde plus opaque, .93-.97) ; défenses des huttes de la Horde en bois sombre (matériau os_h).

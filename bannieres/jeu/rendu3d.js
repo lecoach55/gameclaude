@@ -104,7 +104,7 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
   sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+'uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;uniform sampler2D bsBr;uniform float bsT;\nvoid main() {')
    .replace('#include <color_fragment>',`#include <color_fragment>
  {float d=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).r;// hauts-fonds #3c6e6a → large #12303f
-  diffuseColor.rgb=mix(vec3(.08,.31,.36),vec3(.015,.085,.21),smoothstep(.0,.75,d));/* 23/11 : eau plus bleue, presque opaque comme dans Heroes */diffuseColor.a=mix(.8,.95,smoothstep(.0,.4,d));
+  diffuseColor.rgb=mix(vec3(.05,.24,.33),vec3(.015,.085,.21),smoothstep(.0,.6,d));/* 24/11 : lacs moins pâles (eau peu profonde plus opaque et plus soutenue) */diffuseColor.a=mix(.93,.97,smoothstep(.0,.3,d));
 #ifndef BS_LEGER
   if(d<.12){float nz=texture2D(bsBr,vBsW*.9+vec2(bsT*.03,bsT*.02)).r,nz2=texture2D(bsBr,vBsW*2.3-vec2(bsT*.05,0.)).r;
   float ec=(1.-smoothstep(.0,.09+.06*nz,d))*smoothstep(.35,.7,nz2*.6+nz*.4+.15*sin(bsT*1.3+d*40.));

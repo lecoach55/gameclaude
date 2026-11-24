@@ -93,7 +93,7 @@ cyl(1.2, .25, (0, 0, .12), PIERRE(), 24)
 cyl(1.1, 1.3, (0, 0, .9), mat('rondins', (.75, .55, .38, 1), 'ecorce.jpg', 2.5), 24)
 cyl(1.55, 1.8, (0, 0, 2.4), mat('chaume_h', (.95, .8, .55, 1), 'chaume.jpg', 1.3), 24, .05)
 boite((.6, .05, .9), (0, -1.09, .7), mat('peau', (.3, .19, .1, 1), r=.95))
-OS = mat('os', (.3, .24, .15, 1), r=.7)
+OS = mat('os_h', (.1, .075, .045, 1), r=.8)
 for sx in (-1, 1):
     bpy.ops.mesh.primitive_cone_add(vertices=12, radius1=.1, depth=1.1, location=(sx * .55, -1.15, 1.3), rotation=(.4, -sx * .5, 0)); ob(bpy.context.object, OS)
 cyl(.12, 2.6, (1.5, -.3, 1.3), B, 10)

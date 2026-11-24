@@ -270,3 +270,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v123 (24/11 après-midi) — brouillard de guerre en nuées
 - Les zones inexplorées ne sont plus d'un noir uni : nuées gris-violet sombres qui dérivent lentement (deux bruits animés), bord effiloché, liseré légèrement chaud à la limite. Les objets cachés (arbres, montagnes) sont retirés sous les nuées (pas de silhouette). Rien d'inexploré ne se lit sous les nuées. Combats et villes non concernés.
+
+## v124 (24/11 après-midi) — minicarte peinte
+- La minicarte n'est plus faite de carrés de couleur : couleurs fondues entre cases avec grain, côtes lisses (distance à l'eau interpolée) et eau en dégradé selon la profondeur, montagnes en relief éclairé par le haut-gauche, forêts en taches vert sombre, inexploré en nuées avec bord doux.

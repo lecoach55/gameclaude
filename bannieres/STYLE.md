@@ -216,3 +216,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Fond (ville du Bastion en travelling) rendu une fois légèrement flou et assourdi (`blur ≈1,4 px`, saturation .9), vignette sombre sur les bords : le titre se détache comme devant un décor de théâtre.
 - Halo du titre en dégradé « closest-side » (plus de rectangle sombre visible), titre sur une ligne à l'ordinateur ; marges réduites au téléphone.
 - Essai rejeté : bruit plus fort sur les rivages (lacs moins rectilignes) — il comblait un chenal d'une case sur la graine 7 (eau dessinée en terre).
+
+## v107 (24/11) — sols de combat neige et marais
+- Neige : sol teinté gris-bleu (0xc4cad4), moins éblouissant (luminance du centre 227 → 200).
+- Marais : herbe avec plaques de marais (au lieu du motif de flaques répété qui faisait « pois »), teinte olive sombre.

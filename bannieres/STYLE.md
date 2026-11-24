@@ -315,3 +315,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - (v140) Siège : le château assiégé est entièrement visible dans le coin haut-droit, derrière les défenseurs (il était coupé par le bord de l'écran).
 - (v141) Nénuphars (feuilles et quelques fleurs roses) sur les eaux calmes près des rives d'herbe, de terre et de marais.
 - (v142) Pile d'or refaite (`outils/blender/piles_or.py`) : pièces à tranche sombre lisibles une à une, un peu plus grande ; or, gemmes et cristal scintillent comme les coffres.
+- (v143) Écran de génération : rose des vents dessinée sur parchemin qui oscille doucement (au lieu du cercle de chargement), fond brun chaud, texte en italique ombré.

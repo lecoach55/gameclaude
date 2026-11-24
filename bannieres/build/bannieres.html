@@ -6247,7 +6247,7 @@ let TFUM=null;function fumeeVille(g){if(!TFUM){const c=mkC(64,64),x=c.getContext
  const f=[];for(let i=0;i<5;i++){const s=new T.Sprite(new T.SpriteMaterial({map:TFUM,transparent:true,depthWrite:false,depthTest:false,opacity:0}));s.raycast=()=>{};s.renderOrder=4;g.add(s);f.push(s);}g.userData.fumee=f;}
 function animFumee(g,t){const f=g.userData.fumee;const ph=(g.userData.id||0)*.37;for(let i=0;i<f.length;i++){const p=(t*.16+i/f.length+ph)%1;const s=f[i];s.position.set(-.7+p*.6+Math.sin(t*.7+i)*.06,3.3+p*2.2,-.5);const k=.35+p*1.0;s.scale.set(k,k,1);s.material.opacity=Math.sin(Math.PI*Math.min(1,p*1.15))*.5;}}
 function objet3D(o){let g=null;
- switch(o.t){case 'ville':g=villeMesh(o,true);fumeeVille(g);break;case 'mine':g=mineMesh(o);break;case 'res':g=pileMesh(o);break;case 'coffre':g=coffreMesh();scintille(g,.1,.35);break;case 'artefact':g=artefactMesh(o);break;
+ switch(o.t){case 'ville':g=villeMesh(o,true);fumeeVille(g);break;case 'mine':g=mineMesh(o);break;case 'res':g=pileMesh(o);break;case 'coffre':g=coffreMesh();scintille(g,.1,.35);break;case 'artefact':g=artefactMesh(o);scintille(g,.08,.45);break;
   case 'bat':g=lieuMesh(o);if(o.b==='habitation'&&o.cre){const s=panneau(spriteCreature(o.cre,128),'c'+o.cre+'128',.9);s.position.set(.25,0,.3);g.add(s);}break;
   case 'monstre':{g=new T.Group();const s=panneau(spriteMiroir(o.cre,160),'m'+o.cre+'160',1.75);g.add(ombrePied(.95),s);g.userData.sprite=s;break;}}
  if(!g)return null;const y=o.t==='ville'?sol(o.x,o.y-.4):sol(o.x,o.y);g.position.set(o.x+.5,y,o.y+.5+(o.t==='ville'?-1.05:o.t==='mine'?-.45:0));

@@ -6316,6 +6316,12 @@ const PANA=new Set();function panneauAnime(bande,cle,taille,id){let m=PANM.get(c
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
 function panneau(canvas,cle,taille,miroir){const k=cle+(miroir?'-':'');let m=PANM.get(k);if(!m){const t=texCanvas(canvas,cle);m=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));if(miroir){m.map=t.clone();m.map.repeat.x=-1;m.map.offset.x=1;m.map.needsUpdate=true;}PANM.set(k,m);}
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
+/* 24/11 : petits nuages de poussière sous les sabots pendant le déplacement d’un héros */
+let POUS=null;function animPoussiere(t){if(!scene)return;if(!POUS){const c=mkC(64,64),q=c.getContext('2d');const gr=q.createRadialGradient(32,32,2,32,32,30);gr.addColorStop(0,'rgba(210,190,150,.8)');gr.addColorStop(1,'rgba(200,180,140,0)');q.fillStyle=gr;q.fillRect(0,0,64,64);const tx=new T.CanvasTexture(c);tx.colorSpace=T.SRGBColorSpace;
+  POUS={l:[],d:0,m:tx};for(let i=0;i<14;i++){const s=new T.Sprite(new T.SpriteMaterial({map:tx,transparent:true,depthWrite:false,opacity:0}));s.raycast=()=>{};s.renderOrder=3;s.userData.t0=-9;POUS.l.push(s);}}
+ for(const s of POUS.l)if(s.parent!==scene)scene.add(s);
+ if(V.anim&&V.anim.h&&t-POUS.d>.09&&typeof posHeros==='function'){POUS.d=t;const [x,y]=posHeros(V.anim.h);const s=POUS.l.find(q=>t-q.userData.t0>.8);if(s){s.userData.t0=t;s.userData.x=x+.5+(Math.random()-.5)*.25;s.userData.z=y+.78+(Math.random()-.5)*.12;}}
+ for(const s of POUS.l){const a=(t-s.userData.t0)/.8;if(a<0||a>1){s.visible=false;continue;}s.visible=true;s.position.set(s.userData.x,Math.max(-.08,h(s.userData.x,s.userData.z))+.08+a*.25,s.userData.z);s.scale.setScalar(.28+a*.55);s.material.opacity=.8*(1-a)*Math.min(1,a*6);}}
 /* 24/11 : un vol d'oiseaux traverse de temps en temps la carte (silhouettes qui battent des ailes, ombre au sol) */
 let OIS=null;function animOiseaux(t){if(!scene)return;if(!OIS){const c=mkC(64,32),q=c.getContext('2d');q.strokeStyle='#1c1814';q.lineWidth=3.2;q.lineCap='round';q.beginPath();q.moveTo(4,10);q.quadraticCurveTo(18,4,32,16);q.quadraticCurveTo(46,4,60,10);q.stroke();const tx=new T.CanvasTexture(c);tx.colorSpace=T.SRGBColorSpace;
   const m=new T.SpriteMaterial({map:tx,transparent:true,depthWrite:false,opacity:.85}),mo=new T.SpriteMaterial({map:tx,transparent:true,depthWrite:false,opacity:.18,color:0x000000});OIS={g:new T.Group(),b:[]};
@@ -6399,7 +6405,7 @@ A.redim=()=>{if(!ren)return;const dpr=Math.min(devicePixelRatio||1,S.qual>=2?1.5
 A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;U.loin.value=C3.dist>24?1:0;// vue dézoomée : relief fin du sol inutile à cette distance (compense l'eau et le sable du 19/11)
 
  if(V.fogDirty){majBrume();V.fogDirty=false;}
- try{animOiseaux(t);}catch(e){}for(const m of PANA){const f=Math.floor(t*4.5+m.userData.ph*4)%4;m.map.offset.x=f*.25;}
+ try{animOiseaux(t);animPoussiere(t);}catch(e){}for(const m of PANA){const f=Math.floor(t*4.5+m.userData.ph*4)%4;m.map.offset.x=f*.25;}
  majObjets();majHeros();majChemin();
  // animations : ailes des moulins, roues, artefacts, drapeaux
  for(const g of objets.values()){if(!g.visible)continue;if(g.userData.tourne)g.userData.tourne.rotation.z=t*1.2;if(g.userData.flotte){g.userData.flotte.position.y=.38+Math.sin(t*2+g.userData.id)*.05;g.userData.flotte.rotation.y=t;}if(g.userData.sprite)g.userData.sprite.position.y=Math.abs(Math.sin(t*2+g.userData.id))*.03;if(g.userData.fumee)animFumee(g,t);if(g.userData.eclat){const e=g.userData.eclat,p=((t*.45+(g.userData.id||0)*.61)%1.6);const a=p<.5?Math.sin(Math.PI*p/.5):0;e.material.opacity=a*.95;e.scale.setScalar(.12+a*.3);e.material.rotation=t*.8;}}

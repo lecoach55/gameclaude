@@ -311,3 +311,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - **Montagnes de lave** (`outils/ressources/montagnes_lave.py`) : basalte sombre avec veines rougeoyantes au pied, au lieu des montagnes brun-rouge unies qui détonnaient.
 - Collines : facteur par case lissé (3 passes) avant interpolation.
 - (v138) Vignettes des troupes améliorées marquées d'une petite étoile dorée (recrutement, améliorations, armées, file d'initiative).
+- (v139) Poussière soulevée sous les sabots quand un héros se déplace sur la carte (14 nuages réutilisés) ; buissons des forêts répartis dans la case.

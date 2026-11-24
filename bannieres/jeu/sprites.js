@@ -307,3 +307,16 @@ function vignetteCre(id,S){const k='vig:'+id+':'+S;if(SPR_CACHE[k])return SPR_CA
  if(x1<=x0){SPR_CACHE[k]=src;return src;}const w=x1-x0,h=y1-y0;const cote=Math.max(w,h*.78);const cx=(x0+x1)/2,cy=y0+Math.min(h,cote)*.5;const c=mkC(S,S),g=c.getContext('2d');
  const bg=g.createRadialGradient(S/2,S*.4,S*.1,S/2,S/2,S*.7);bg.addColorStop(0,'#5a4630');bg.addColorStop(1,'#1a0f06');g.fillStyle=bg;g.fillRect(0,0,S,S);
  g.drawImage(src,cx-cote/2,cy-cote/2,cote,cote,0,0,S,S);SPR_CACHE[k]=c;return c;}
+
+/* 24/11 : emblème de fin de combat — victoire : épées croisées dans une couronne de laurier dorée, rayons ; défaite : bannière déchirée et épée brisée */
+function emblemeCombat(gagne,fuite){const W=300,H=120,c=mkC(W,H),g=c.getContext('2d');const cx=W/2,cy=H/2+4;
+ const or=(y0,y1)=>{const q=g.createLinearGradient(0,y0,0,y1);q.addColorStop(0,'#fff2b0');q.addColorStop(.45,'#e0b048');q.addColorStop(1,'#8a5a18');return q;};
+ const epee=(a,brisee)=>{g.save();g.translate(cx,cy);g.rotate(a);g.fillStyle='#d8dde4';g.strokeStyle='#3a3a44';g.lineWidth=1.2;g.beginPath();g.moveTo(-3,-44);g.lineTo(0,brisee?-14:-52);g.lineTo(3,brisee?-18:-44);g.lineTo(3,22);g.lineTo(-3,22);g.closePath();g.fill();g.stroke();
+  g.fillStyle=or(18,30);g.fillRect(-13,20,26,5);g.strokeRect(-13,20,26,5);g.fillStyle='#5a3418';g.fillRect(-2.5,25,5,15);g.fillStyle=or(38,46);g.beginPath();g.arc(0,43,4.5,0,7);g.fill();g.restore();};
+ if(gagne){const ry=g.createRadialGradient(cx,cy,6,cx,cy,70);ry.addColorStop(0,'rgba(255,230,150,.75)');ry.addColorStop(1,'rgba(255,230,150,0)');g.fillStyle=ry;g.fillRect(0,0,W,H);
+  g.save();g.translate(cx,cy);for(let k=0;k<16;k++){g.rotate(Math.PI/8);g.fillStyle='rgba(255,225,140,.22)';g.beginPath();g.moveTo(0,0);g.lineTo(-5,-75);g.lineTo(5,-75);g.fill();}g.restore();
+  for(const sd of [-1,1]){for(let k=0;k<9;k++){const a=Math.PI/2+sd*(.35+k*.27),r=44;const x=cx+Math.cos(a)*r*1.15,y=cy+Math.sin(a)*r*.95;g.save();g.translate(x,y);g.rotate(a+sd*1.2);g.fillStyle=k%2?'#c89a38':'#e8c060';g.strokeStyle='#6a4a14';g.lineWidth=.8;g.beginPath();g.ellipse(0,0,4,10,0,0,7);g.fill();g.stroke();g.restore();}}
+  epee(-.6,false);epee(.6,false);}
+ else{g.fillStyle='#4a3a2a';g.fillRect(cx-1.5,cy-50,3,100);g.fillStyle=fuite?'#5a5040':'#3a1a14';g.beginPath();g.moveTo(cx+1,cy-46);g.lineTo(cx+46,cy-40);g.lineTo(cx+40,cy-28);g.lineTo(cx+48,cy-18);g.lineTo(cx+30,cy-10);g.lineTo(cx+38,cy+2);g.lineTo(cx+1,cy-4);g.closePath();g.fill();g.strokeStyle='#1a0a06';g.lineWidth=1.5;g.stroke();
+  if(!fuite){epee(-.9,true);}g.fillStyle='rgba(40,30,20,.35)';g.beginPath();g.ellipse(cx,cy+50,60,6,0,0,7);g.fill();}
+ return c;}

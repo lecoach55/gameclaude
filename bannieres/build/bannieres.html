@@ -180,6 +180,7 @@ h1 span{color:#e8b850;font-style:italic}
 .ann-sem .t{font-size:26px;font-weight:bold;letter-spacing:.04em;color:#5a1a0a}.ann-sem .s{font-size:18px;font-style:italic;margin-top:2px}.ann-sem .d{font-size:14px;margin-top:4px;color:#5a3a1a}
 .bandeau{background:linear-gradient(#2a1a0c,#1a0f06);box-shadow:0 6px 18px rgba(0,0,0,.5);font-family:Palatino,Georgia,serif}/* 24/11 */
 @media (max-width:700px){.ann-sem{min-width:0;top:44px;padding:8px 14px 8px 8px}.ann-sem canvas{width:64px;height:64px}.ann-sem .t{font-size:20px}.ann-sem .s{font-size:15px}}
+.fen canvas.embleme{display:block;margin:-4px auto -6px;width:300px;height:120px;max-width:100%}
 
 </style>
 </head>
@@ -1547,6 +1548,19 @@ function vignetteCre(id,S){const k='vig:'+id+':'+S;if(SPR_CACHE[k])return SPR_CA
  if(x1<=x0){SPR_CACHE[k]=src;return src;}const w=x1-x0,h=y1-y0;const cote=Math.max(w,h*.78);const cx=(x0+x1)/2,cy=y0+Math.min(h,cote)*.5;const c=mkC(S,S),g=c.getContext('2d');
  const bg=g.createRadialGradient(S/2,S*.4,S*.1,S/2,S/2,S*.7);bg.addColorStop(0,'#5a4630');bg.addColorStop(1,'#1a0f06');g.fillStyle=bg;g.fillRect(0,0,S,S);
  g.drawImage(src,cx-cote/2,cy-cote/2,cote,cote,0,0,S,S);SPR_CACHE[k]=c;return c;}
+
+/* 24/11 : emblème de fin de combat — victoire : épées croisées dans une couronne de laurier dorée, rayons ; défaite : bannière déchirée et épée brisée */
+function emblemeCombat(gagne,fuite){const W=300,H=120,c=mkC(W,H),g=c.getContext('2d');const cx=W/2,cy=H/2+4;
+ const or=(y0,y1)=>{const q=g.createLinearGradient(0,y0,0,y1);q.addColorStop(0,'#fff2b0');q.addColorStop(.45,'#e0b048');q.addColorStop(1,'#8a5a18');return q;};
+ const epee=(a,brisee)=>{g.save();g.translate(cx,cy);g.rotate(a);g.fillStyle='#d8dde4';g.strokeStyle='#3a3a44';g.lineWidth=1.2;g.beginPath();g.moveTo(-3,-44);g.lineTo(0,brisee?-14:-52);g.lineTo(3,brisee?-18:-44);g.lineTo(3,22);g.lineTo(-3,22);g.closePath();g.fill();g.stroke();
+  g.fillStyle=or(18,30);g.fillRect(-13,20,26,5);g.strokeRect(-13,20,26,5);g.fillStyle='#5a3418';g.fillRect(-2.5,25,5,15);g.fillStyle=or(38,46);g.beginPath();g.arc(0,43,4.5,0,7);g.fill();g.restore();};
+ if(gagne){const ry=g.createRadialGradient(cx,cy,6,cx,cy,70);ry.addColorStop(0,'rgba(255,230,150,.75)');ry.addColorStop(1,'rgba(255,230,150,0)');g.fillStyle=ry;g.fillRect(0,0,W,H);
+  g.save();g.translate(cx,cy);for(let k=0;k<16;k++){g.rotate(Math.PI/8);g.fillStyle='rgba(255,225,140,.22)';g.beginPath();g.moveTo(0,0);g.lineTo(-5,-75);g.lineTo(5,-75);g.fill();}g.restore();
+  for(const sd of [-1,1]){for(let k=0;k<9;k++){const a=Math.PI/2+sd*(.35+k*.27),r=44;const x=cx+Math.cos(a)*r*1.15,y=cy+Math.sin(a)*r*.95;g.save();g.translate(x,y);g.rotate(a+sd*1.2);g.fillStyle=k%2?'#c89a38':'#e8c060';g.strokeStyle='#6a4a14';g.lineWidth=.8;g.beginPath();g.ellipse(0,0,4,10,0,0,7);g.fill();g.stroke();g.restore();}}
+  epee(-.6,false);epee(.6,false);}
+ else{g.fillStyle='#4a3a2a';g.fillRect(cx-1.5,cy-50,3,100);g.fillStyle=fuite?'#5a5040':'#3a1a14';g.beginPath();g.moveTo(cx+1,cy-46);g.lineTo(cx+46,cy-40);g.lineTo(cx+40,cy-28);g.lineTo(cx+48,cy-18);g.lineTo(cx+30,cy-10);g.lineTo(cx+38,cy+2);g.lineTo(cx+1,cy-4);g.closePath();g.fill();g.strokeStyle='#1a0a06';g.lineWidth=1.5;g.stroke();
+  if(!fuite){epee(-.9,true);}g.fillStyle='rgba(40,30,20,.35)';g.beginPath();g.ellipse(cx,cy+50,60,6,0,0,7);g.fill();}
+ return c;}
 
 </script>
 <script>
@@ -6875,7 +6889,7 @@ async function livreSorts(){const C=CB.C,p=C.actif;if(!p||!CB.attente)return;SON
  await fenetre(html,[{t:'Fermer'}],{init:(f,fermer)=>{f.querySelectorAll('canvas.sort-ico').forEach(cv=>{try{cv.getContext('2d').drawImage(iconeSort(cv.dataset.sort,80),0,0);}catch(e){}});f.querySelectorAll('.carte-b.ok').forEach(d=>d.onclick=()=>{CB.mode=d.dataset.s;fermer(0);toast(`${SORTS[d.dataset.s].nom} : touchez une cible.`);});}});}
 async function resultatsCombat(C){const k=CB.humain[0]?0:1;const gagne=C.fin.gagnant===k;gagne?SON.fanfare():SON.defaite();
  const pertes=c=>{const l=C.pertes(c);return l.length?'<div style="display:flex;flex-wrap:wrap;gap:6px">'+l.map(x=>`<div style="text-align:center"><canvas width="56" height="56" data-cre="${x.c}"></canvas><br><b>${x.n}</b></div>`).join('')+'</div>':'<p>Aucune.</p>';};
- await fenetre(`<h2>${C.fin.fuite?(gagne?'L’ennemi a fui !':'Vous avez fui'):gagne?'Victoire !':'Défaite…'}</h2><p><b>Vos pertes :</b></p>${pertes(k)}<p><b>Pertes ennemies :</b></p>${pertes(1-k)}${gagne&&C.cotes[k].heros?`<p>Expérience gagnée : <b>${C.pvTues(1-k)}</b></p>`:''}`,[{t:'D’accord',or:true}]);}
+ await fenetre(`<canvas class="embleme" width="300" height="120"></canvas><h2>${C.fin.fuite?(gagne?'L’ennemi a fui !':'Vous avez fui'):gagne?'Victoire !':'Défaite…'}</h2><p><b>Vos pertes :</b></p>${pertes(k)}<p><b>Pertes ennemies :</b></p>${pertes(1-k)}${gagne&&C.cotes[k].heros?`<p>Expérience gagnée : <b>${C.pvTues(1-k)}</b></p>`:''}`,[{t:'D’accord',or:true}],{init:f=>{const e=f.querySelector('canvas.embleme');if(e)try{e.getContext('2d').drawImage(emblemeCombat(gagne,!!C.fin.fuite),0,0);}catch(x){}}});}
 
 /* 24/11 : ambiance animée du champ de bataille : flocons sur la neige, braises sur la lave, lucioles au marais */
 function ambianceCombat(g,G2,ter,t){const W=G2.W,H=G2.H;if(ter==='herbe'||ter==='terre'||ter==='rude'){g.save();for(let i=0;i<14;i++){const v=.6+(i%4)/5,p=((i*.173)+t*.035*v)%1;const x=((i*173.9)%W)+Math.sin(t*.9+i*2.1)*30+p*W*.15,y=p*H*1.1-H*.05;const s0=W/1280*6;g.save();g.translate(x,y);g.rotate(t*1.5*v+i);g.scale(1,Math.abs(Math.sin(t*2.2+i))*.8+.2);g.fillStyle=['#b8862a','#8a9a2a','#c8642a','#9a7a2a'][i%4];g.globalAlpha=.85;g.beginPath();g.ellipse(0,0,s0,s0*.5,0,0,7);g.fill();g.restore();}g.restore();return;}/* 24/11 : quelques feuilles qui volent */

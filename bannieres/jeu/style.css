@@ -168,3 +168,4 @@ h1 span{color:#e8b850;font-style:italic}
 .ann-sem .t{font-size:26px;font-weight:bold;letter-spacing:.04em;color:#5a1a0a}.ann-sem .s{font-size:18px;font-style:italic;margin-top:2px}.ann-sem .d{font-size:14px;margin-top:4px;color:#5a3a1a}
 .bandeau{background:linear-gradient(#2a1a0c,#1a0f06);box-shadow:0 6px 18px rgba(0,0,0,.5);font-family:Palatino,Georgia,serif}/* 24/11 */
 @media (max-width:700px){.ann-sem{min-width:0;top:44px;padding:8px 14px 8px 8px}.ann-sem canvas{width:64px;height:64px}.ann-sem .t{font-size:20px}.ann-sem .s{font-size:15px}}
+.fen canvas.embleme{display:block;margin:-4px auto -6px;width:300px;height:120px;max-width:100%}

@@ -330,3 +330,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - (v148) Monstres de la carte : chacun son rythme de respiration (texture clonée, même image), libérés à la nouvelle partie.
 - (v149) Mines libres sans drapeau (le drapeau blanc ressemblait à un panneau vide) ; le drapeau du joueur apparaît à la capture.
 - (v150) Entrée en combat et en ville en fondu depuis le sombre (0,55 s).
+- (v151) Combats (hors lave et marais) : trois grandes ombres de nuages glissent lentement sur le champ de bataille.

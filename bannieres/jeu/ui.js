@@ -4,7 +4,7 @@
    ========================================================= */
 var CLE_SAUVE='bannieres-v1',TEST=false,ECRAN='accueil',TK=null;
 const $=id=>document.getElementById(id);
-function ecran(n){for(const e of document.querySelectorAll('.ecran'))e.classList.toggle('on',e.id===n);ECRAN=n;}
+function ecran(n){for(const e of document.querySelectorAll('.ecran')){e.classList.toggle('on',e.id===n);e.classList.toggle('fondu',e.id===n&&!window.__horloge&&ECRAN!==n);}ECRAN=n;}/* fondu d’entrée sauf sous l’horloge figée des outils de capture */
 function toast(t,ms=2200){const e=$('toast');e.innerHTML=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',ms);}
 function bandeau(t,ms){const e=$('bandeau');if(!t){e.style.display='none';return;}e.innerHTML=t;e.style.display='block';clearTimeout(e._t);if(ms)e._t=setTimeout(()=>e.style.display='none',ms);}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}

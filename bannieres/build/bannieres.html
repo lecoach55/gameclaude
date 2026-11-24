@@ -184,7 +184,7 @@ h1 span{color:#e8b850;font-style:italic}
 .fen canvas.embleme{display:block;margin:-4px auto -6px;width:300px;height:120px;max-width:100%}
 .barre-xp{display:inline-block;vertical-align:middle;width:120px;height:9px;margin-left:8px;background:#3a2810;border:1px solid #8a6420;border-radius:5px;overflow:hidden;box-shadow:inset 0 1px 2px #000}.barre-xp i{display:block;height:100%;background:linear-gradient(#ffe8a0,#c89020)}
 /* 24/11 : entrée en combat et en ville en fondu (rideau sombre qui se lève) */
-#combat.on,#ville.on{animation:entreeEcran .55s ease-out}
+#combat.on.fondu,#ville.on.fondu{animation:entreeEcran .55s ease-out}
 @keyframes entreeEcran{from{filter:brightness(.15) saturate(.6)}to{filter:none}}
 
 </style>
@@ -7037,7 +7037,7 @@ function contourBat(b){const P=VI&&VI.pano,I=P&&P.ids;if(!I)return null;if(P.olB
    ========================================================= */
 var CLE_SAUVE='bannieres-v1',TEST=false,ECRAN='accueil',TK=null;
 const $=id=>document.getElementById(id);
-function ecran(n){for(const e of document.querySelectorAll('.ecran'))e.classList.toggle('on',e.id===n);ECRAN=n;}
+function ecran(n){for(const e of document.querySelectorAll('.ecran')){e.classList.toggle('on',e.id===n);e.classList.toggle('fondu',e.id===n&&!window.__horloge&&ECRAN!==n);}ECRAN=n;}/* fondu d’entrée sauf sous l’horloge figée des outils de capture */
 function toast(t,ms=2200){const e=$('toast');e.innerHTML=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',ms);}
 function bandeau(t,ms){const e=$('bandeau');if(!t){e.style.display='none';return;}e.innerHTML=t;e.style.display='block';clearTimeout(e._t);if(ms)e._t=setTimeout(()=>e.style.display='none',ms);}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}

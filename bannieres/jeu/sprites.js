@@ -289,3 +289,14 @@ function iconeRes(r,S=32){const k='r'+r+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k
  case 'gemmes':for(const [x,y,cl] of [[10,22,'#3a7ae8'],[20,22,'#3ac85a'],[15,15,'#e83a8a'],[22,14,'#f0d03a']])peint(g,poly([x-5,y,x-3,y-4,x+3,y-4,x+5,y,x,y+5]),cl,{y0:y-4,y1:y+5});break;
  }
  SPR_CACHE[k]=c;return c;}
+
+/* 24/11 : médaillons de sorts (guilde des mages, livre de sorts) : glyphe en relief clair sur un disque coloré par école, cerclé d'or */
+const SORT_ICO={fleche:['🏹','#7a3a9a'],soin:['❤','#b8902a'],benediction:['✨','#b8902a'],hate:['💨','#2a7a9a'],bouclier:['🛡','#7a5a32'],lenteur:['⌛','#5a3a8a'],eclair:['⚡','#2a5aa8'],malediction:['💀','#4a2a6a'],pierre:['🪨','#7a5a32'],fureur:['💢','#a8321e'],boulefeu:['🔥','#b8461e'],priere:['🙏','#b8902a'],vision:['👁','#2a7a9a'],portail:['🌀','#2a7a9a'],chaine:['⚡','#2a4aa8']};
+function iconeSort(id,S=64){const k='sort:'+id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const [gl,col]=SORT_ICO[id]||['✦','#6a5a3a'];const c=mkC(S,S),g=c.getContext('2d');
+ const bg=g.createRadialGradient(S*.42,S*.36,S*.04,S*.5,S*.5,S*.5);bg.addColorStop(0,teinte(col,.45));bg.addColorStop(.7,col);bg.addColorStop(1,teinte(col,-.55));g.fillStyle=bg;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.fill();
+ const m=mkC(S,S),mg=m.getContext('2d');mg.font=`${Math.round(S*.5)}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`;mg.textAlign='center';mg.textBaseline='middle';mg.fillText(gl,S/2,S*.53);if(id==='chaine')mg.fillText(gl,S*.62,S*.6);
+ mg.globalCompositeOperation='source-in';mg.fillStyle='#fff4d8';mg.fillRect(0,0,S,S);
+ g.save();g.shadowColor='rgba(0,0,0,.6)';g.shadowBlur=S*.06;g.shadowOffsetY=S*.03;g.drawImage(m,0,0);g.restore();
+ const gl2=g.createRadialGradient(S/2,S/2,S*.1,S/2,S/2,S*.46);gl2.addColorStop(0,'rgba(255,240,200,.18)');gl2.addColorStop(1,'rgba(255,240,200,0)');g.fillStyle=gl2;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.fill();
+ g.lineWidth=S*.06;const rim=g.createLinearGradient(0,0,0,S);rim.addColorStop(0,'#f2d488');rim.addColorStop(.5,'#a87a30');rim.addColorStop(1,'#6a4a1a');g.strokeStyle=rim;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.stroke();
+ SPR_CACHE[k]=c;return c;}

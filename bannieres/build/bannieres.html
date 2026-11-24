@@ -170,6 +170,9 @@ h1 span{color:#e8b850;font-style:italic}
 .notif.part{opacity:0;transform:translateX(30px)}
 @keyframes notifIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
 
+.tav-port{float:left;width:72px;height:72px;margin:0 10px 4px 0;border-radius:3px;box-shadow:0 2px 5px rgba(0,0,0,.35)}/* 24/11 : portraits de la taverne */
+.sort-ico{float:left;width:44px;height:44px;margin:0 8px 2px 0}/* 24/11 : médaillons de sorts */
+
 </style>
 </head>
 <body>
@@ -1517,6 +1520,17 @@ function iconeRes(r,S=32){const k='r'+r+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k
  case 'cristal':for(const [x,h,w] of [[10,16,4],[16,22,5],[22,14,4]])peint(g,poly([x-w,27,x-w,27-h*.6,x,27-h,x+w,27-h*.6,x+w,27]),'#e0384a',{y0:27-h,y1:27});break;
  case 'gemmes':for(const [x,y,cl] of [[10,22,'#3a7ae8'],[20,22,'#3ac85a'],[15,15,'#e83a8a'],[22,14,'#f0d03a']])peint(g,poly([x-5,y,x-3,y-4,x+3,y-4,x+5,y,x,y+5]),cl,{y0:y-4,y1:y+5});break;
  }
+ SPR_CACHE[k]=c;return c;}
+
+/* 24/11 : médaillons de sorts (guilde des mages, livre de sorts) : glyphe en relief clair sur un disque coloré par école, cerclé d'or */
+const SORT_ICO={fleche:['🏹','#7a3a9a'],soin:['❤','#b8902a'],benediction:['✨','#b8902a'],hate:['💨','#2a7a9a'],bouclier:['🛡','#7a5a32'],lenteur:['⌛','#5a3a8a'],eclair:['⚡','#2a5aa8'],malediction:['💀','#4a2a6a'],pierre:['🪨','#7a5a32'],fureur:['💢','#a8321e'],boulefeu:['🔥','#b8461e'],priere:['🙏','#b8902a'],vision:['👁','#2a7a9a'],portail:['🌀','#2a7a9a'],chaine:['⚡','#2a4aa8']};
+function iconeSort(id,S=64){const k='sort:'+id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const [gl,col]=SORT_ICO[id]||['✦','#6a5a3a'];const c=mkC(S,S),g=c.getContext('2d');
+ const bg=g.createRadialGradient(S*.42,S*.36,S*.04,S*.5,S*.5,S*.5);bg.addColorStop(0,teinte(col,.45));bg.addColorStop(.7,col);bg.addColorStop(1,teinte(col,-.55));g.fillStyle=bg;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.fill();
+ const m=mkC(S,S),mg=m.getContext('2d');mg.font=`${Math.round(S*.5)}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`;mg.textAlign='center';mg.textBaseline='middle';mg.fillText(gl,S/2,S*.53);if(id==='chaine')mg.fillText(gl,S*.62,S*.6);
+ mg.globalCompositeOperation='source-in';mg.fillStyle='#fff4d8';mg.fillRect(0,0,S,S);
+ g.save();g.shadowColor='rgba(0,0,0,.6)';g.shadowBlur=S*.06;g.shadowOffsetY=S*.03;g.drawImage(m,0,0);g.restore();
+ const gl2=g.createRadialGradient(S/2,S/2,S*.1,S/2,S/2,S*.46);gl2.addColorStop(0,'rgba(255,240,200,.18)');gl2.addColorStop(1,'rgba(255,240,200,0)');g.fillStyle=gl2;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.fill();
+ g.lineWidth=S*.06;const rim=g.createLinearGradient(0,0,0,S);rim.addColorStop(0,'#f2d488');rim.addColorStop(.5,'#a87a30');rim.addColorStop(1,'#6a4a1a');g.strokeStyle=rim;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.stroke();
  SPR_CACHE[k]=c;return c;}
 
 </script>
@@ -6773,8 +6787,8 @@ function brancherCombat(){const cv=$('cvCombat');let appui=null,down=null;
  $('cbSort').onclick=()=>livreSorts();}
 function bulleC(html,x,y,ms){const b=$('cbInfo');if(!html){b.style.display='none';return;}b.innerHTML=html;b.style.display='block';const w=b.offsetWidth,h=b.offsetHeight;b.style.left=Math.max(4,Math.min(innerWidth-w-4,x-w/2))+'px';b.style.top=Math.max(4,y-h-24)+'px';clearTimeout(b._t);if(ms)b._t=setTimeout(()=>b.style.display='none',ms);}
 async function livreSorts(){const C=CB.C,p=C.actif;if(!p||!CB.attente)return;SON.livre(1);const k=p.cote;const sorts=C.stats[k].sorts;
- const html=`<h2>Livre de sorts</h2><p style="text-align:center">Mana : <b>${C.mana[k]}</b> · Puissance ${C.stats[k].pou}</p><div class="grille">${sorts.map((s,i)=>{const S=SORTS[s];const ok=S.mana<=C.mana[k]&&!C.sort[k];return`<div class="carte-b ${ok?'ok':'non'}" data-s="${s}"><b>${S.nom}</b><small>Cercle ${S.niv} · ${S.mana} mana</small><br>${S.desc}${S.type==='degats'||S.type==='chaine'?`<br><i>≈ ${C.puissanceSort(k,s)} dégâts</i>`:''}</div>`;}).join('')||'<p>Aucun sort connu. Construisez une guilde des mages !</p>'}</div>`;
- await fenetre(html,[{t:'Fermer'}],{init:(f,fermer)=>{f.querySelectorAll('.carte-b.ok').forEach(d=>d.onclick=()=>{CB.mode=d.dataset.s;fermer(0);toast(`${SORTS[d.dataset.s].nom} : touchez une cible.`);});}});}
+ const html=`<h2>Livre de sorts</h2><p style="text-align:center">Mana : <b>${C.mana[k]}</b> · Puissance ${C.stats[k].pou}</p><div class="grille">${sorts.map((s,i)=>{const S=SORTS[s];const ok=S.mana<=C.mana[k]&&!C.sort[k];return`<div class="carte-b ${ok?'ok':'non'}" data-s="${s}"><canvas class="sort-ico" width="80" height="80" data-sort="${s}"></canvas><b>${S.nom}</b><small>Cercle ${S.niv} · ${S.mana} mana</small><br>${S.desc}${S.type==='degats'||S.type==='chaine'?`<br><i>≈ ${C.puissanceSort(k,s)} dégâts</i>`:''}</div>`;}).join('')||'<p>Aucun sort connu. Construisez une guilde des mages !</p>'}</div>`;
+ await fenetre(html,[{t:'Fermer'}],{init:(f,fermer)=>{f.querySelectorAll('canvas.sort-ico').forEach(cv=>{try{cv.getContext('2d').drawImage(iconeSort(cv.dataset.sort,80),0,0);}catch(e){}});f.querySelectorAll('.carte-b.ok').forEach(d=>d.onclick=()=>{CB.mode=d.dataset.s;fermer(0);toast(`${SORTS[d.dataset.s].nom} : touchez une cible.`);});}});}
 async function resultatsCombat(C){const k=CB.humain[0]?0:1;const gagne=C.fin.gagnant===k;gagne?SON.fanfare():SON.defaite();
  const pertes=c=>{const l=C.pertes(c);return l.length?'<div style="display:flex;flex-wrap:wrap;gap:6px">'+l.map(x=>`<div style="text-align:center"><canvas width="56" height="56" data-cre="${x.c}"></canvas><br><b>${x.n}</b></div>`).join('')+'</div>':'<p>Aucune.</p>';};
  await fenetre(`<h2>${C.fin.fuite?(gagne?'L’ennemi a fui !':'Vous avez fui'):gagne?'Victoire !':'Défaite…'}</h2><p><b>Vos pertes :</b></p>${pertes(k)}<p><b>Pertes ennemies :</b></p>${pertes(1-k)}${gagne&&C.cotes[k].heros?`<p>Expérience gagnée : <b>${C.pvTues(1-k)}</b></p>`:''}`,[{t:'D’accord',or:true}]);}
@@ -6852,12 +6866,12 @@ async function fenMarche(){const v=VI.v,p=G.joueurs[v.prop];let de='bois',vers='
    f.querySelector('#mgo').onclick=()=>{if(echanger(p.id,de,vers,+q.value)){SON.piece();majVille();rendu(f);}};}};
  await fenetre(`<h2>Marché</h2><p style="font-size:13px;text-align:center">Plus vous possédez de marchés, meilleurs sont les taux.</p><div id="mk"></div>`,[{t:'Fermer',or:true}],{init:f=>rendu(f)});}
 async function fenTaverne(){const v=VI.v,p=G.joueurs[v.prop];const occupe=!!G.hpos[idx(v.x,v.y)];
- const cartes=p.taverne.map((c,k)=>{if(!c)return`<div class="carte-b non"><b>—</b>Déjà engagé cette semaine.</div>`;const C=CLASSES[c];return`<div class="carte-b ${occupe||p.res.or<2500?'non':'ok'}" data-k="${k}"><b>${C.nom}</b>${FAC[C.fac].adj}<br><small>Att ${C.base[0]} · Déf ${C.base[1]} · Pui ${C.base[2]} · Con ${C.base[3]}<br>${Object.keys(C.comp).map(x=>COMP[x].nom).join(', ')}${C.sorts.length?' · sort : '+SORTS[C.sorts[0]].nom:''}</small></div>`;}).join('');
- await fenetre(`<h2>Taverne</h2><p style="text-align:center">Engager un héros coûte <b>2500 or</b>.${occupe?'<br><span style="color:#8a2a1a">Un héros occupe déjà la porte de la ville : faites-le sortir d’abord.</span>':''}${herosDe(p.id).length>=8?'<br>Vous avez déjà 8 héros.':''}</p><div class="grille">${cartes}</div>`,[{t:'Fermer',or:true}],{init:(f,fermer)=>{f.querySelectorAll('.carte-b.ok').forEach(d=>d.onclick=()=>{const h=engager(v,+d.dataset.k);if(h){SON.fanfare();apprendreSorts(h,v);fermer(0);majVille();toast(`${h.nom} rejoint votre cause !`);V.sel={t:'heros',id:h.id};}});}});}
+ const cartes=p.taverne.map((c,k)=>{if(!c)return`<div class="carte-b non"><b>—</b>Déjà engagé cette semaine.</div>`;const C=CLASSES[c];return`<div class="carte-b ${occupe||p.res.or<2500?'non':'ok'}" data-k="${k}"><canvas class="tav-port" width="96" height="96" data-cl="${c}" data-k="${k}"></canvas><b>${C.nom}</b>${FAC[C.fac].adj}<br><small>Att ${C.base[0]} · Déf ${C.base[1]} · Pui ${C.base[2]} · Con ${C.base[3]}<br>${Object.keys(C.comp).map(x=>COMP[x].nom).join(', ')}${C.sorts.length?' · sort : '+SORTS[C.sorts[0]].nom:''}</small></div>`;}).join('');
+ await fenetre(`<h2>Taverne</h2><p style="text-align:center">Engager un héros coûte <b>2500 or</b>.${occupe?'<br><span style="color:#8a2a1a">Un héros occupe déjà la porte de la ville : faites-le sortir d’abord.</span>':''}${herosDe(p.id).length>=8?'<br>Vous avez déjà 8 héros.':''}</p><div class="grille">${cartes}</div>`,[{t:'Fermer',or:true}],{init:(f,fermer)=>{f.querySelectorAll('canvas.tav-port').forEach(cv=>{try{const cl=cv.dataset.cl;cv.getContext('2d').drawImage(portrait({id:'tav'+cl,portrait:0,classe:cl,nom:(HEROS_NOMS[cl]||[''])[0],fac:CLASSES[cl].fac},96),0,0);}catch(e){}});/* 24/11 : portrait de la classe dans la taverne */f.querySelectorAll('.carte-b.ok').forEach(d=>d.onclick=()=>{const h=engager(v,+d.dataset.k);if(h){SON.fanfare();apprendreSorts(h,v);fermer(0);majVille();toast(`${h.nom} rejoint votre cause !`);V.sel={t:'heros',id:h.id};}});}});}
 async function fenGuilde(){const v=VI.v;const h=herosVille();let html='<h2>Guilde des mages</h2>';
- for(let n=1;n<=3;n++){if(!v.bat['guilde'+n])continue;html+=`<p><b>Cercle ${n}</b>${n===3?' <small>(Sagesse requise)</small>':''}</p><div class="grille">`+v.guilde[n].map(s=>`<div class="carte-b"><b>${SORTS[s].nom}</b><small>${SORTS[s].mana} mana</small><br>${SORTS[s].desc}${h?(h.sorts.includes(s)?'<br><span style="color:#2a6a1a">✔ connu de '+esc(h.nom)+'</span>':'<br><span style="color:#8a2a1a">'+(n===3?'Sagesse requise':'')+'</span>'):''}</div>`).join('')+'</div>';}
+ for(let n=1;n<=3;n++){if(!v.bat['guilde'+n])continue;html+=`<p><b>Cercle ${n}</b>${n===3?' <small>(Sagesse requise)</small>':''}</p><div class="grille">`+v.guilde[n].map(s=>`<div class="carte-b"><canvas class="sort-ico" width="80" height="80" data-sort="${s}"></canvas><b>${SORTS[s].nom}</b><small>${SORTS[s].mana} mana</small><br>${SORTS[s].desc}${h?(h.sorts.includes(s)?'<br><span style="color:#2a6a1a">✔ connu de '+esc(h.nom)+'</span>':'<br><span style="color:#8a2a1a">'+(n===3?'Sagesse requise':'')+'</span>'):''}</div>`).join('')+'</div>';}
  if(!h)html+='<p style="font-size:13px">Un héros présent dans la ville apprend automatiquement les sorts de la guilde et recharge son mana.</p>';
- await fenetre(html,[{t:'Fermer',or:true}]);}
+ await fenetre(html,[{t:'Fermer',or:true}],{init:f=>f.querySelectorAll('canvas.sort-ico').forEach(cv=>{try{cv.getContext('2d').drawImage(iconeSort(cv.dataset.sort,80),0,0);}catch(e){}})});}
 
 </script>
 <script>

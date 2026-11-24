@@ -223,3 +223,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v108 (24/11) — sapins enneigés
 - `outils/ressources/sapins_neige.py` : versions enneigées des trois sapins (vues carte et ville), neige posée sur le bord supérieur des étages de branches avec du bruit, teinte un peu froide. Utilisées partout sur la neige (carte et combats) ; les feuillus verts du terrain enneigé sont remplacés par des arbres nus.
+
+## v109 (24/11) — guilde, livre de sorts et taverne illustrés
+- Médaillons de sorts (`iconeSort` dans sprites.js) : glyphe clair en relief sur un disque coloré par école (feu, foudre, lumière, terre, ténèbres, air), cerclé d'or ; dans la guilde des mages et le livre de sorts du combat.
+- Taverne : portrait de la classe proposée sur chaque carte.

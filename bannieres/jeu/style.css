@@ -157,3 +157,6 @@ h1 span{color:#e8b850;font-style:italic}
 .notif b{display:block;color:#ffd77a;font-size:14px;margin-bottom:2px}
 .notif.part{opacity:0;transform:translateX(30px)}
 @keyframes notifIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+
+.tav-port{float:left;width:72px;height:72px;margin:0 10px 4px 0;border-radius:3px;box-shadow:0 2px 5px rgba(0,0,0,.35)}/* 24/11 : portraits de la taverne */
+.sort-ico{float:left;width:44px;height:44px;margin:0 8px 2px 0}/* 24/11 : médaillons de sorts */

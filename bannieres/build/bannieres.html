@@ -6882,7 +6882,7 @@ HOOK.message=async(j,titre,texte,ex={})=>{if(!humain(j)||j!==G.courant)return;
  if(!ex.art&&!ex.bloquant&&!ex.ville){if(ex.res)SON.piece();notifier(titre,texte,ex.res?imgRes(ex.res,36):'');majUI();return;}/* 23/11 : simple information → carte non bloquante, le héros continue sa route */let img='';if(ex.res)img=`<div style="text-align:center">${imgRes(ex.res,48)}</div>`;if(ex.art){img=`<div style="text-align:center"><canvas width="64" height="64" id="cvArt"></canvas></div>`;SON.objet();}if(ex.res)SON.piece();
  await fenetre(`<h2>${titre}</h2>${img}<p>${texte}</p>`,[{t:'D’accord',or:true}],{init:f=>{const c=f.querySelector('#cvArt');if(c)c.getContext('2d').drawImage(spriteArtefact(ex.art),0,0);}});majUI();};
 HOOK.niveau=async(h,offres,stat)=>{if(!humain(h.j)){const C=CLASSES[h.classe];let b=0;offres.forEach((o,i)=>{if((C.ch[o]||0)>(C.ch[offres[b]]||0))b=i;});return b;}
- SON.fanfare();V.porTmp=h;const html=`<h2>${esc(h.nom)} passe au niveau ${h.niv} !</h2><div style="display:flex;gap:12px;align-items:center"><canvas width="80" height="80" data-por="${h.id}" class="portrait-fiche"></canvas><p>+1 en <b>${STAT_NOM[stat]}</b>.<br>Choisissez une compétence :</p></div>`;
+ SON.fanfare();V.porTmp=h;const html=`<h2>${esc(h.nom)} passe au niveau ${h.niv} !</h2><div style="display:flex;gap:12px;align-items:center"><canvas width="128" height="128" data-por="${h.id}" class="portrait-fiche" style="width:104px;height:104px;border:2px solid #b08a40;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.45)"></canvas><p>+1 en <b>${STAT_NOM[stat]}</b>.<br>Choisissez une compétence :</p></div>`;
  return fenetre(html,offres.map(o=>{const n=(h.comp[o]||0)+1;return{t:`${COMP[o].nom} (${NIV_NOM[n]})<br><small>${COMP[o].desc[n-1]}</small>`};}));};
 HOOK.echange=async(h,o)=>{if(!humain(h.j)){// l'IA regroupe les troupes sur le plus fort
   const [a,b]=forceArmee(h.armee,h)>=forceArmee(o.armee,o)?[h,o]:[o,h];for(let k=0;k<7;k++){const s=b.armee[k];if(s&&nbPiles(b.armee)>1&&ajouterTroupe(a.armee,s.c,s.n))b.armee[k]=null;}return;}
@@ -7026,9 +7026,9 @@ function heroSuivant(){const hs=herosDe(G.courant);if(!hs.length)return;let k=hs
 
 // ---------- fiche du héros ----------
 function ouvrirFiche(h){V.porTmp=h;const st=['att','def','pou','con'];
- const html=`<h2>${esc(h.nom)}</h2><div style="display:flex;gap:12px;align-items:flex-start"><canvas width="80" height="80" data-por="${h.id}" class="portrait-fiche"></canvas>
+ const html=`<h2>${esc(h.nom)}</h2><div style="display:flex;gap:12px;align-items:flex-start"><canvas width="128" height="128" data-por="${h.id}" class="portrait-fiche" style="width:104px;height:104px;border:2px solid #b08a40;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.45)"></canvas>
  <div style="flex:1"><b>${CLASSES[h.classe].nom}</b> ${FAC[h.fac].adj}, niveau ${h.niv}<br>Expérience : ${h.xp} / ${xpPourNiveau(h.niv+1)}<br>Mana : ${h.mana}/${manaMax(h)} · Mouvement : ${h.mp}/${mvtMax(h)}<br>Moral ${moralH(h)>=0?'+':''}${moralH(h)} · Chance ${chanceH(h)>=0?'+':''}${chanceH(h)}</div></div>
- <table class="stats" style="margin-top:8px"><tr>${st.map((k,i)=>`<td style="text-align:center"><small>${STAT_NOM[i]}</small><br><b style="font-size:18px">${statH(h,k)}</b>${bonusArts(h,k)?` <small>(+${bonusArts(h,k)})</small>`:''}</td>`).join('')}</tr></table>
+ <table class="stats" style="margin-top:8px"><tr>${st.map((k,i)=>`<td style="text-align:center"><svg class="ico" style="width:26px;height:26px;color:${['#8a2a1a','#2a4a8a','#a85a10','#2a6a3a'][i]}"><use href="#${['i-sword','i-shield','i-flame','i-book-open'][i]}"/></svg><br><small>${STAT_NOM[i]}</small><br><b style="font-size:18px">${statH(h,k)}</b>${bonusArts(h,k)?` <small>(+${bonusArts(h,k)})</small>`:''}</td>`).join('')}</tr></table>
  <p><b>Compétences :</b> ${Object.keys(h.comp).map(c=>`${COMP[c].nom} (${NIV_NOM[h.comp[c]]})`).join(', ')||'aucune'}</p>
  <p><b>Sorts :</b> ${h.sorts.map(s=>SORTS[s].nom).join(', ')||'aucun'}</p>
  <p><b>Artefacts :</b> ${h.arts.map(a=>`${ARTS[a].nom} <small>(${txtBonus(ARTS[a].b)})</small>`).join(', ')||'aucun'}</p>

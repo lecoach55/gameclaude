@@ -6203,12 +6203,16 @@ function artefactMesh(o){const gr=new T.Group();{const li=lieuImp('artefact',.5)
 const TXC=new Map();function texCanvas(c,cle){if(TXC.has(cle))return TXC.get(cle);const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;TXC.set(cle,t);return t;}
 // panneau penché à mi-chemin entre la verticale et la caméra : se lit bien sans traverser les murs voisins
 const GPAN=new T.PlaneGeometry(1,1).translate(0,.4,0);const PANM=new Map();
+/* 24/11 : ombre de contact douce sous les créatures et les héros de la carte (ellipse sombre posée au sol) */
+let MOMB=null;function ombrePied(l){if(!MOMB){const c=mkC(128,128),g=c.getContext('2d');const gr=g.createRadialGradient(64,64,4,64,64,62);gr.addColorStop(0,'rgba(0,0,0,.55)');gr.addColorStop(.55,'rgba(0,0,0,.3)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,128,128);
+ const t=new T.CanvasTexture(c);MOMB=brume(new T.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}),{cle:'ombp'});}
+ const o=new T.Mesh(new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),MOMB);o.scale.set(l,1,l*.55);o.position.y=.02;o.renderOrder=1;o.raycast=()=>{};return o;}
 function panneau(canvas,cle,taille,miroir){const k=cle+(miroir?'-':'');let m=PANM.get(k);if(!m){const t=texCanvas(canvas,cle);m=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));if(miroir){m.map=t.clone();m.map.repeat.x=-1;m.map.offset.x=1;m.map.needsUpdate=true;}PANM.set(k,m);}
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
 function objet3D(o){let g=null;
  switch(o.t){case 'ville':g=villeMesh(o,true);break;case 'mine':g=mineMesh(o);break;case 'res':g=pileMesh(o);break;case 'coffre':g=coffreMesh();break;case 'artefact':g=artefactMesh(o);break;
   case 'bat':g=lieuMesh(o);if(o.b==='habitation'&&o.cre){const s=panneau(spriteCreature(o.cre,128),'c'+o.cre+'128',.9);s.position.set(.25,0,.3);g.add(s);}break;
-  case 'monstre':{g=new T.Group();const s=panneau(spriteMiroir(o.cre,160),'m'+o.cre+'160',1.75);g.add(s);g.userData.sprite=s;break;}}
+  case 'monstre':{g=new T.Group();const s=panneau(spriteMiroir(o.cre,160),'m'+o.cre+'160',1.75);g.add(ombrePied(.95),s);g.userData.sprite=s;break;}}
  if(!g)return null;const y=o.t==='ville'?sol(o.x,o.y-.4):sol(o.x,o.y);g.position.set(o.x+.5,y,o.y+.5+(o.t==='ville'?-1.05:o.t==='mine'?-.45:0));
  g.userData.id=o.id;g.userData.prop=o.prop;g.userData.tile=o.y*N+o.x;g.traverse(m=>m.userData.tile=o.y*N+o.x);return g;}
 // ---------- chemin, sélection ----------
@@ -6237,11 +6241,12 @@ const HMONT=new Map();function spriteHerosMonte(h,fr){if(typeof SPR3D==='undefin
  const ppu=D.pxu*1.0;const [im0,sx,sy,sw,sh]=cadre3D('cavalier','idle',fr<0?0:fr%((D.n&&D.n.idle)||1));const e=Math.min(176/sw,176/sh);
  g.drawImage(planche3D(im0),sx,sy,sw,sh,96-sw*e/2,186-sh*e,sw*e,sh*e);HMONT.set(k,c);return c;}
 window.spriteHerosMonte=spriteHerosMonte;
-function majHeros(){const vu=G.joueurs[vueJoueur()].vu;const ids=new Set();
+const HOMB=new Map();function majHeros(){const vu=G.joueurs[vueJoueur()].vu;const ids=new Set();
  for(const h of G.heros){ids.add(h.id);const dir=V.anim&&V.anim.h===h?(V.anim.x1<V.anim.x0?-1:V.anim.x1>V.anim.x0?1:(h.dir||1)):(h.dir||1);const fr=V.anim&&V.anim.h===h&&typeof spriteHeros3D==='function'&&a3d('h_'+h.classe)?Math.floor(performance.now()/140)%4:-1;const cle=h.classe+':'+h.j+':'+dir+':'+fr+(typeof IMG3D!=='undefined'&&IMG3D.cavalier?'m':'');let s=herosS.get(h.id);
   if(!s||s.userData.cle!==cle){if(s)grp.remove(s);const cv=spriteHerosMonte(h,fr)||(typeof spriteHeros3D==='function'&&spriteHeros3D(h,160,fr))||spriteHeros(h,128);s=panneau(cv,'h'+h.classe+h.j+':'+fr+':'+cv.width+(cv.width===192?'m':''),cv.width===192?1.75:1.45,dir<0);s.userData.cle=cle;s.userData.tile=-h.id;herosS.set(h.id,s);grp.add(s);}
-  const [hx,hy]=posHeros(h);const bob=V.anim&&V.anim.h===h?Math.abs(Math.sin(performance.now()/60))*.05:0;const enV=G.occ[Math.round(hy)*N+Math.round(hx)]&&(G.oi[G.occ[Math.round(hy)*N+Math.round(hx)]]||{}).t==='ville';s.position.set(hx+.5,sol(Math.round(hx),Math.round(hy))+bob,hy+.55+(enV?.3:0));s.visible=!!vu[Math.round(hy)*N+Math.round(hx)];}
- for(const [id,s] of herosS)if(!ids.has(id)){grp.remove(s);herosS.delete(id);}}
+  const [hx,hy]=posHeros(h);const bob=V.anim&&V.anim.h===h?Math.abs(Math.sin(performance.now()/60))*.05:0;const enV=G.occ[Math.round(hy)*N+Math.round(hx)]&&(G.oi[G.occ[Math.round(hy)*N+Math.round(hx)]]||{}).t==='ville';s.position.set(hx+.5,sol(Math.round(hx),Math.round(hy))+bob,hy+.55+(enV?.3:0));s.visible=!!vu[Math.round(hy)*N+Math.round(hx)];
+  {let o=HOMB.get(h.id);if(!o){o=ombrePied(1.05);HOMB.set(h.id,o);grp.add(o);}o.position.set(s.position.x,s.position.y-bob+.02,s.position.z-.05);o.visible=s.visible;}}
+ for(const [id,s] of herosS)if(!ids.has(id)){grp.remove(s);herosS.delete(id);const o=HOMB.get(id);if(o){grp.remove(o);HOMB.delete(id);}}}
 // ---------- caméra ----------
 function placerCam(){const d=C3.dist;const t=C3.tang;cam.position.set(C3.cible.x,C3.cible.y+d*Math.sin(t),C3.cible.z+d*Math.cos(t));cam.lookAt(C3.cible);
  soleil.position.copy(AMB.dir).multiplyScalar(22).add(C3.cible);// soleil de fin d'après-midi (≈ 38° de haut), ombres longues
@@ -6263,7 +6268,7 @@ A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart()
  hemi=new T.HemisphereLight(AMB.hCiel,AMB.hSol,AMB.hI);scene.add(hemi);soleil=new T.DirectionalLight(AMB.sol,AMB.solI);soleil.castShadow=S.qual>=2;soleil.shadow.mapSize.set(2048,2048);soleil.shadow.bias=-.0006;soleil.shadow.normalBias=.02;scene.add(soleil);scene.add(soleil.target);
  cam=new T.PerspectiveCamera(38,1,.1,200);
  N=G.carte.N;fogData=new Uint8Array(N*N);fogTex=new T.DataTexture(fogData,N,N,T.RedFormat);fogTex.magFilter=T.LinearFilter;fogTex.minFilter=T.LinearFilter;U.fog.value=fogTex;U.N.value=N;majBrume();
- construireTerrain();construireDecor();grp=new T.Group();scene.add(grp);objets.clear();herosS.clear();construireAides();
+ construireTerrain();construireDecor();grp=new T.Group();scene.add(grp);objets.clear();herosS.clear();HOMB.clear();construireAides();
  A.redim();A.actif=true;V.fogDirty=false;return true;};
 A.vider=()=>{if(!scene)return;if(RIVE){RIVE.dispose();RIVE=null;}scene.traverse(o=>{if(o.geometry&&!Object.values(GEO).includes(o.geometry)&&![BOX,CYL,CONE,CONE4,SPH].includes(o.geometry))o.geometry.dispose();});for(const t of TXC.values())t.dispose();TXC.clear();if(terrain&&terrain.material.map)terrain.material.map.dispose();scene=null;objets.clear();herosS.clear();};
 A.redim=()=>{if(!ren)return;const dpr=Math.min(devicePixelRatio||1,S.qual>=2?1.5:S.qual>=1?1.25:1);ren.setPixelRatio(dpr);ren.setSize(innerWidth,innerHeight,false);if(cam){cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();}};

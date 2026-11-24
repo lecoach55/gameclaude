@@ -109,7 +109,7 @@ function descObjet(o){const prop=o.prop>=0?G.joueurs[o.prop].nom:'sans maître';
   case 'mine':return`<b>${MINE_NOM[o.res]}</b><br>+${MINE_PROD[o.res]} ${RES_NOM[o.res].toLowerCase()}/jour — ${prop}`;
   case 'res':return`<b>${RES_NOM[o.res]}</b>`;case 'coffre':return'<b>Coffre au trésor</b>';case 'artefact':return`<b>${ARTS[o.art].nom}</b><br>${txtBonus(ARTS[o.art].b)}`;
   case 'bat':return`<b>${BATIMENTS_CARTE[o.b].nom}${o.b==='habitation'?' : '+CRE[o.cre].pl:''}</b><br>${BATIMENTS_CARTE[o.b].desc}`;
-  case 'monstre':return`<b>${qteTxt(o.n)} ${CRE[o.cre].pl.toLowerCase()}</b><br>${menaceTxt(o)}`;}return'';}
+  case 'monstre':{let im='';try{im=`<img class="bul-cre" src="${vignetteCre(o.cre,64).toDataURL()}" alt="">`;}catch(e){}return`${im}<b>${qteTxt(o.n)} ${CRE[o.cre].pl.toLowerCase()}</b><br>${menaceTxt(o)}`;}}return'';}/* 24/11 : vignette de la créature dans la bulle */
 
 // ---------- commandes ----------
 var PTR={pts:new Map(),glisse:false,pinch:null,appui:null,dernier:0};

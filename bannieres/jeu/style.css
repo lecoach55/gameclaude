@@ -174,3 +174,4 @@ h1 span{color:#e8b850;font-style:italic}
 /* 24/11 : entrée en combat et en ville en fondu (rideau sombre qui se lève) */
 #combat.on.fondu,#ville.on.fondu{animation:entreeEcran .55s ease-out}
 @keyframes entreeEcran{from{filter:brightness(.15) saturate(.6)}to{filter:none}}
+.bul-cre{float:left;width:44px;height:44px;margin:0 8px 0 0;border:1px solid #8a6420;border-radius:3px}

@@ -174,3 +174,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v76 : retouches de couleur à l'affichage (`TEINTE3D` dans sprites.js, filtre appliqué une fois par planche) : ogre vert-gris au lieu de jaune plastique, tréant brun à feuillage vert-jaune au lieu d'orange, troll de pierre gris-vert.
 - v77 : lacs et hauts-fonds moins pâles (eau peu profonde plus opaque, .93-.97) ; défenses des huttes de la Horde en bois sombre (matériau os_h).
 - v78 : ciels de ville peints (cumulus dessinés au canevas : ombre bleutée, corps clair, bord doré, flous ; teintes par faction) au lieu de la photo HDRI. `window.CIEL_PHOTO=1` pour revenir à la photo. Essai rejeté : côtes adoucies par bruit sur la distance à l'eau (aucun effet sur les lacs, flaques parasites).
+- v79 : dallage peint (`sols_peints.py route` : pavés irréguliers Voronoï périodique, joints de terre, relief) pour l'allée des villes et les routes de la carte, au lieu de la photo de terre battue.

@@ -38,4 +38,17 @@ if 'neige' in QUOI:
     rgb = mi + (clair - mi) * (crete[..., None] * .8 + gros[..., None] * .4) - (mi - ombre) * creux[..., None] + (fin[..., None] - .5) * 7
     paillettes = (bruit(200, 14) > .93)[..., None]; rgb = np.where(paillettes, np.minimum(rgb + 12, 255), rgb)
     sauver('neige', rgb, h, 6)
+if 'route' in QUOI:  # pavés irréguliers (Voronoï périodique) : pierres beiges arrondies, joints de terre
+    from scipy.spatial import cKDTree
+    n = 150; pts = rng.random((n, 2)) * S
+    T = np.concatenate([pts + np.array([dx, dy]) * S for dx in (-1, 0, 1) for dy in (-1, 0, 1)])
+    yy, xx = np.mgrid[0:S, 0:S]; q = np.dstack([xx, yy]).reshape(-1, 2) + (np.dstack([bruit(12, 21), bruit(12, 22)]).reshape(-1, 2) - .5) * 14
+    d, i = cKDTree(T).query(q, k=2); bord = (d[:, 1] - d[:, 0]).reshape(S, S); cell = (i[:, 0] % n).reshape(S, S)
+    pierre = np.clip(bord / 7, 0, 1) ** .6; teinte = np.random.default_rng(5).random(n)[cell]
+    fin = bruit(80, 23); h = pierre * .8 + fin * .2
+    c1 = np.array([196, 172, 132.]); c2 = np.array([168, 144, 108.]); joint = np.array([92, 72, 50.])
+    base = c1 * (1 - teinte[..., None]) + c2 * teinte[..., None]
+    rgb = joint * (1 - pierre[..., None]) + base * pierre[..., None] + (fin[..., None] - .5) * 18
+    rgb = rgb * (.9 + .12 * pierre[..., None] * (1 - np.clip(np.gradient(h, axis=0) * 40, -1, 1)[..., None] * .5))
+    sauver('route', rgb, h, 5)
 print('ok', QUOI)

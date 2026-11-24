@@ -280,3 +280,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v126 (24/11 après-midi) — effets de sorts
 - Orbes (flèche magique, tirs magiques) : halo lumineux avec traînée. Boule de feu : onde de choc au sol, boule de feu, 26 braises projetées en gerbe, fumée qui monte. Sorts d'aide et de malédiction : cercle de runes au sol qui tourne et colonne de lumière. Éclair : flash sur le sol à l'impact.
+- Corps à corps : trait de taille blanc et éclats à l'impact ; troupe anéantie : nuage de poussière.

@@ -61,7 +61,7 @@ function peindreSol(c,objs){const N=c.N,W=N*PX;const cv=mkC(W,W);const g=cv.getC
  const r=creeRng(5);g.fillStyle='rgba(90,70,50,.55)';for(const [a,b,c2,d2] of segs)for(let k=0;k<3;k++){const t=r.f();g.beginPath();g.arc((a+.5+(c2-a)*t)*PX+(r.f()-.5)*PX*.25,(b+.5+(d2-b)*t)*PX+(r.f()-.5)*PX*.25,1.2,0,7);g.fill();}
  return cv;}
 
-function rivieres(g,c,objs,coul){const N=c.N,r=creeRng((c.ter.length*7+N)*13+(c.graine||0));const occ=new Uint8Array(N*N);for(const o of objs){for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=o.x+dx,y=o.y+dy;if(x>=0&&y>=0&&x<N&&y<N)occ[y*N+x]=o.t==='ville'?2:1;}}
+function rivieres(g,c,objs,coul){const N=c.N,r=creeRng((c.ter.length*7+N)*13+(c.graine||0));const occ=new Uint8Array(N*N);for(const o of objs){for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const x=o.x+dx,y=o.y+dy;if(x>=0&&y>=0&&x<N&&y<N)occ[y*N+x]=Math.max(occ[y*N+x],o.t==='ville'||(!dx&&dy<=0&&(o.t==='mine'||o.t==='bat'))?2:1);}}/* 24/11 : jamais à travers une mine ou un lieu (ni la case au-dessus, que leur image recouvre) */
  const nb=Math.max(1,Math.round(N/18));const eau=i=>c.ter[i]===EAU;const nz=bruit(r.i(1,1e9));
  for(let k=0;k<nb;k++){// source : case libre au pied d'une montagne
   let src=-1;for(let t=0;t<400&&src<0;t++){const x=r.i(2,N-3),y=r.i(2,N-3),i=y*N+x;if(c.obs[i]||eau(i)||occ[i])continue;if(DIR8.some(([dx,dy])=>{const j=(y+dy)*N+x+dx;return c.obs[j]===OBS.MONT||c.obs[j]===OBS.MONTP;}))src=i;}

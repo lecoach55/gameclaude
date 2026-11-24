@@ -206,7 +206,7 @@ const SEC={herbe:1,terre:2,rude:1,neige:3,sable:2,marais:7,lave:2};const IDT={he
 /* 23/11 : rochers peints selon le terrain (grès au désert, neige, basalte à fissures de lave) */
 function rocT(ter,l){const v={sable:'s',neige:'n',lave:'l'}[ter];return'roc_'+l+(v&&RES.imp&&RES.imp['roc_'+l+v+'_h']?v:'');}
 function arbresPour(ter,r){const p=r.f();switch(ter){
- case 'neige':return p<.8?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]:'jeune_a';
+ case 'neige':return p<.8?['sapin_a','sapin_b','sapin_c'][r.i(0,2)]+(RES.imp&&RES.imp.sapin_aN_h?'N':''):'arbre_mort';/* 24/11 : sapins enneigés (outils/ressources/sapins_neige.py) */
  case 'sable':return p<.5?'desert_a':p<.75?'desert_b':'desert_c';
  case 'lave':return 'arbre_mort';
  case 'marais':return p<.4?['arbuste_a','arbuste_b'][r.i(0,1)]:p<.75?'jeune_b':'feuillu_b';

@@ -220,3 +220,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v107 (24/11) — sols de combat neige et marais
 - Neige : sol teinté gris-bleu (0xc4cad4), moins éblouissant (luminance du centre 227 → 200).
 - Marais : herbe avec plaques de marais (au lieu du motif de flaques répété qui faisait « pois »), teinte olive sombre.
+
+## v108 (24/11) — sapins enneigés
+- `outils/ressources/sapins_neige.py` : versions enneigées des trois sapins (vues carte et ville), neige posée sur le bord supérieur des étages de branches avec du bruit, teinte un peu froide. Utilisées partout sur la neige (carte et combats) ; les feuillus verts du terrain enneigé sont remplacés par des arbres nus.

@@ -192,3 +192,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v93 : icônes de l'interface en relief doré (remplissage léger, ombre portée, reflet) au lieu du simple trait.
 - v94 : grenier de la Nécropole = grange Blender (plus la hutte ronde construite au code).
 - v95 : sol de lave régénéré (`sols_peints.py lave` : plaques de basalte irrégulières, Voronoï fortement déformé, fissures d'épaisseur variable) : coulées incandescentes en grappes au lieu d'un carrelage.
+- v96 : nuages de ville dessinés au quart de la taille puis agrandis avec un seul flou (ouverture de ville 1,2 s → mesurée sur le Mac).

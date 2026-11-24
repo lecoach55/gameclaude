@@ -683,11 +683,12 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
   const dl=g.createRadialGradient(lx-lr*.3,ly-lr*.3,lr*.1,lx,ly,lr);dl.addColorStop(0,'#e4e2d8');dl.addColorStop(1,'#b8b6ae');g.fillStyle=dl;g.beginPath();g.arc(lx,ly,lr,0,7);g.fill();g.fillStyle='rgba(120,120,128,.35)';for(const [a,b,c] of [[-.3,-.2,.35],[.25,.1,.28],[-.05,.35,.2],[.3,-.35,.15]]){g.beginPath();g.arc(lx+a*lr,ly+b*lr,c*lr,0,7);g.fill();}for(let k=0;k<60;k++){g.fillStyle='rgba(255,255,255,'+(.3+r.f()*.6)+')';g.fillRect(r.f()*W,r.f()*H*yh*.8,1.5,1.5);}}
  else if(ciel&&!window.CIEL_PHOTO){for(let k=0;k<9*32;k++)r.f();/* 24/11 : ciel peint (cumulus ombrés, éclairés du côté du soleil) au lieu de la photo HDRI */
   const hb=H*yh+H*.04;const rc=creeRng(v.id*7+3);const lum=hd?'255,226,190':'255,250,240',omb=hd?'196,120,90':syl?'150,175,190':'150,165,200',bor=hd?'255,200,150':'255,238,205';
-  for(let k=0;k<8;k++){const cx=rc.f()*W,cy=H*(.06+rc.f()*yh*.5),L=W*(.07+rc.f()*.11),hh=H*(.03+rc.f()*.04);const bl=[];for(let j=0;j<22;j++){const t=(j/21-.5);bl.push([cx+t*L*1.8+(rc.f()-.5)*L*.3,cy-Math.cos(t*Math.PI)*hh*(.5+rc.f()*.7),hh*(.45+rc.f()*.55)*(1-Math.abs(t)*.7)]);}
-   g.save();g.filter='blur('+Math.max(2,Math.round(H*.014))+'px)';g.fillStyle=`rgba(${omb},.75)`;for(const [x,y,rr] of bl){g.beginPath();g.arc(x+rr*.12,y+rr*.25,rr*1.05,0,7);g.fill();}
-   g.filter='blur('+Math.max(2,Math.round(H*.01))+'px)';g.fillStyle=`rgba(${lum},.9)`;for(const [x,y,rr] of bl){g.beginPath();g.arc(x-rr*.1,y-rr*.12,rr*.85,0,7);g.fill();}
-   g.filter='blur('+Math.max(2,Math.round(H*.012))+'px)';g.fillStyle=`rgba(${bor},.5)`;for(const [x,y,rr] of bl){g.beginPath();g.arc(x-rr*.3,y-rr*.35,rr*.5,0,7);g.fill();}
-   g.restore();}
+  {const q=4,cw=Math.ceil(W/q),ch=Math.ceil(H/q),cc=mkC(cw,ch),cg=cc.getContext('2d');/* 24/11 : nuages dessinés au quart de la taille puis agrandis (un seul flou) : 4× plus rapide sur le Mac */
+  for(let k=0;k<8;k++){const cx=rc.f()*cw,cy=ch*(.06+rc.f()*yh*.5),L=cw*(.07+rc.f()*.11),hh=ch*(.03+rc.f()*.04);const bl=[];for(let j=0;j<22;j++){const t=(j/21-.5);bl.push([cx+t*L*1.8+(rc.f()-.5)*L*.3,cy-Math.cos(t*Math.PI)*hh*(.5+rc.f()*.7),hh*(.45+rc.f()*.55)*(1-Math.abs(t)*.7)]);}
+   cg.fillStyle=`rgba(${omb},.75)`;for(const [x,y,rr] of bl){cg.beginPath();cg.arc(x+rr*.12,y+rr*.25,rr*1.05,0,7);cg.fill();}
+   cg.fillStyle=`rgba(${lum},.9)`;for(const [x,y,rr] of bl){cg.beginPath();cg.arc(x-rr*.1,y-rr*.12,rr*.85,0,7);cg.fill();}
+   cg.fillStyle=`rgba(${bor},.5)`;for(const [x,y,rr] of bl){cg.beginPath();cg.arc(x-rr*.3,y-rr*.35,rr*.5,0,7);cg.fill();}}
+  g.save();g.filter='blur('+Math.max(2,Math.round(H*.008))+'px)';g.drawImage(cc,0,0,W,H);g.restore();}
   const hz=g.createLinearGradient(0,H*yh*.55,0,hb);hz.addColorStop(0,'rgba(236,214,186,0)');hz.addColorStop(1,hd?'rgba(240,190,140,.75)':'rgba(236,214,186,.45)');g.fillStyle=hz;g.fillRect(0,0,W,hb);}
  else if(ciel){for(let k=0;k<9*32;k++)r.f();// même tirage que les nuages peints : le premier plan (arbres, rochers) reste placé à l'identique
   // ciel photographié (HDRI Poly Haven) : bande au-dessus de l'horizon, nuages dorés du côté du soleil ; Horde : teinte de poussière, Sylve : plus vert

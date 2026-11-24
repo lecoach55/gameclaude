@@ -1,3 +1,4 @@
 # Journal du 2026-11-24 — bannieres
 
 - 2026-11-24 07:46 · bannieres · arrivée — Graphismes jusqu'à midi : créatures, sols, villes
+- 2026-11-24 11:12 · bannieres · Session du 24/11 matin (07:46 → 11:15) : v102 → v117 publiées (16 lots). Rivages adoucis ; créatures de ville sans liseré ; accessoires de place et greniers propres à chaque faction (Blender : accessoires_peints.py, greniers_var.py) ; accueil (fond flou, halo) ; sols de combat neige/marais ; sapins enneigés (sapins_neige.py) ; médaillons de sorts (guilde, livre, fiche) et portraits en taverne ; héros +30 % en combat ; vie sur la carte (fumée des villes, oiseaux, coffres et artefacts qui scintillent) ; ambiance des combats (flocons, braises, lucioles, feuilles) ; oiseaux/chauves-souris en ville. Mac : carte 3,7 ms/image. Tests : parcours, scen, villes_clics 28/28, monkey ordi+tél sans erreur. Références de captures renouvelées. Rejetés : herbe peinte, bruit fort sur les côtes (comblait un chenal).

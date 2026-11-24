@@ -306,7 +306,7 @@ function vignetteCre(id,S){const k='vig:'+id+':'+S;if(SPR_CACHE[k])return SPR_CA
  let x0=256,y0=256,x1=0,y1=0;for(let y=0;y<256;y+=2)for(let x=0;x<256;x+=2)if(d[(y*256+x)*4+3]>60){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
  if(x1<=x0){SPR_CACHE[k]=src;return src;}const w=x1-x0,h=y1-y0;const cote=Math.max(w,h*.78);const cx=(x0+x1)/2,cy=y0+Math.min(h,cote)*.5;const c=mkC(S,S),g=c.getContext('2d');
  const bg=g.createRadialGradient(S/2,S*.4,S*.1,S/2,S/2,S*.7);bg.addColorStop(0,'#5a4630');bg.addColorStop(1,'#1a0f06');g.fillStyle=bg;g.fillRect(0,0,S,S);
- g.drawImage(src,cx-cote/2,cy-cote/2,cote,cote,0,0,S,S);SPR_CACHE[k]=c;return c;}
+ g.drawImage(src,cx-cote/2,cy-cote/2,cote,cote,0,0,S,S);if(typeof CRE!=='undefined'&&Object.values(CRE).some(q=>q.amelio===id)){/* 24/11 : troupe améliorée — étoile dorée en coin */const r=S*.13,x=S*.17,y=S*.17;g.save();g.shadowColor='rgba(0,0,0,.7)';g.shadowBlur=S*.05;g.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}g.closePath();const gr=g.createLinearGradient(0,y-r,0,y+r);gr.addColorStop(0,'#fff2b0');gr.addColorStop(1,'#c08a28');g.fillStyle=gr;g.fill();g.shadowBlur=0;g.strokeStyle='#5a3a10';g.lineWidth=Math.max(1,S/64);g.stroke();g.restore();}SPR_CACHE[k]=c;return c;}
 
 /* 24/11 : emblème de fin de combat — victoire : épées croisées dans une couronne de laurier dorée, rayons ; défaite : bannière déchirée et épée brisée */
 function emblemeCombat(gagne,fuite){const W=300,H=120,c=mkC(W,H),g=c.getContext('2d');const cx=W/2,cy=H/2+4;

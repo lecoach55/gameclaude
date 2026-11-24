@@ -310,3 +310,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - **Monstres de la carte animés** : 4 images de repos de chaque créature 3D dans une bande, décalage de texture (`bandeRepos`, `panneauAnime`) — aucun coût de rendu en plus.
 - **Montagnes de lave** (`outils/ressources/montagnes_lave.py`) : basalte sombre avec veines rougeoyantes au pied, au lieu des montagnes brun-rouge unies qui détonnaient.
 - Collines : facteur par case lissé (3 passes) avant interpolation.
+- (v138) Vignettes des troupes améliorées marquées d'une petite étoile dorée (recrutement, améliorations, armées, file d'initiative).

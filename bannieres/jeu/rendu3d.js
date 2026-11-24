@@ -72,18 +72,19 @@ function etalonner(c,ox,oy,W,H,o={}){const g=c.getContext('2d');const w=c.width,
  g.globalCompositeOperation='soft-light';const cx=(-ox+W*(o.sx??.08))*k,cy=(-oy+H*(o.sy??.0))*k;const gr=g.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*1.1*k);gr.addColorStop(0,o.chaud||'rgba(255,190,110,.55)');gr.addColorStop(.6,'rgba(255,190,110,0)');gr.addColorStop(1,o.froid||'rgba(60,80,130,.35)');g.fillStyle=gr;g.fillRect(0,0,w,h);
  g.globalCompositeOperation='multiply';const vx=(-ox+W/2)*k,vy=(-oy+H*.48)*k;const vg=g.createRadialGradient(vx,vy,Math.min(W,H)*.45*k,vx,vy,Math.hypot(W,H)*.62*k);vg.addColorStop(0,'rgba(255,255,255,1)');vg.addColorStop(1,o.vignette||'rgba(178,164,150,1)');g.fillStyle=vg;g.fillRect(0,0,w,h);if(o.alpha&&o0){g.globalCompositeOperation='destination-in';g.drawImage(o0,0,0);}g.restore();}
 // ---------- relief ----------
-function hauteurs(){const c=G.carte;N=c.N;const SD=champSigne(c);const nz=bruit(G.graine*3+11);const R=S.qual>=2?4:3;const W=N*R+1;H=new Float32Array(W*W);
+const AMP_RIVE=1.6;function hauteurs(){const c=G.carte;N=c.N;const SD=champSigne(c);const nz=bruit(G.graine*3+11);const R=S.qual>=2?4:3;const W=N*R+1;H=new Float32Array(W*W);
  const sd=(fx,fy)=>{fx=Math.max(0,Math.min(N-1.001,fx-.5));fy=Math.max(0,Math.min(N-1.001,fy-.5));const x0=Math.floor(fx),y0=Math.floor(fy),ax=fx-x0,ay=fy-y0,x1=Math.min(N-1,x0+1),y1=Math.min(N-1,y0+1);return SD[y0*N+x0]*(1-ax)*(1-ay)+SD[y0*N+x1]*ax*(1-ay)+SD[y1*N+x0]*(1-ax)*ay+SD[y1*N+x1]*ax*ay;};
  const mont=new Float32Array(N*N);for(let i=0;i<N*N;i++)if(c.obs[i]===OBS.MONT||c.obs[i]===OBS.MONTP)mont[i]=1;
  // 24/11 : rivages adoucis — champ signé flouté (≈1 case) + léger bruit : les côtes diagonales ne font plus d'escaliers ; une case d'eau isolée reste de l'eau
- const WS=new Float32Array(W*W);for(let j=0;j<W;j++)for(let i=0;i<W;i++)WS[j*W+i]=sd(i/R,j/R);
+ /* 24/11 : distance exacte (euclidienne) au bord des cases de l’autre nature, dans un rayon de 2 cases : la rive suit le vrai contour des cases, coins arrondis ensuite par le flou */const EA=i=>c.ter[i]===EAU;const sdx=(x,z)=>{const tx=Math.max(0,Math.min(N-1,Math.floor(x))),tz=Math.max(0,Math.min(N-1,Math.floor(z)));const e=EA(tz*N+tx);let dm=2;for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){if(!dx&&!dz)continue;const nx=tx+dx,nz2=tz+dz;if(nx<0||nz2<0||nx>=N||nz2>=N)continue;if(EA(nz2*N+nx)===e)continue;const ax=Math.max(0,nx-x,x-(nx+1)),az=Math.max(0,nz2-z,z-(nz2+1));dm=Math.min(dm,Math.hypot(ax,az));}return e?dm:-dm;};const WS=new Float32Array(W*W);for(let j=0;j<W;j++)for(let i=0;i<W;i++)WS[j*W+i]=sdx(i/R,j/R);
  {const rb=R>=4?2:1,tmp=new Float32Array(W*W);for(let p=0;p<2;p++){for(let j=0;j<W;j++)for(let i=0;i<W;i++){let s=0,c2=0;for(let d=-rb;d<=rb;d++){const ii=i+d;if(ii>=0&&ii<W){s+=WS[j*W+ii];c2++;}}tmp[j*W+i]=s/c2;}
   for(let j=0;j<W;j++)for(let i=0;i<W;i++){let s=0,c2=0;for(let d=-rb;d<=rb;d++){const jj=j+d;if(jj>=0&&jj<W){s+=tmp[jj*W+i];c2++;}}WS[j*W+i]=s/c2;}}}
- for(let j=0;j<W;j++)for(let i=0;i<W;i++){const x=i/R,z=j/R;let h=(nz.fbm(x/7,z/7,3)-.5)*.55;
-  let w=WS[j*W+i];if(w>-1.2&&w<1)w+=(nz.fbm(x*.7+31,z*.7+17,2)-.5)*.28;if(w>-.6)h=Math.min(h,0)-Math.min(1,(w+.6)/1.4)*.45;// rives et fonds
+ for(let j=0;j<W;j++)for(let i=0;i<W;i++){const x=i/R,z=j/R;let h=Math.max(-.07,(nz.fbm(x/7,z/7,3)-.5)*.55);/* 24/11 : plus de cuvettes sous le niveau de l’eau sur la terre ferme (elles dessinaient de faux lacs où l’on marche) */
+  let w=WS[j*W+i];if(w>-1.6&&w<1.4){w+=(nz.fbm(x*.33+31,z*.33+17,3)-.5)*AMP_RIVE+(nz.fbm(x*1.3+7,z*1.3+3,2)-.5)*.24;/* 24/11 : garde par case — près du centre de chaque case, l'eau reste de l'eau et la terre reste de la terre, quel que soit le bruit (les chenaux d'une case restent ouverts) */const tx0=Math.min(N-1,Math.floor(x)),tz0=Math.min(N-1,Math.floor(z));const eT=c.ter[tz0*N+tx0]===EAU,fx=x-tx0,fz=z-tz0;let dm=9;for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dz)continue;const nx=tx0+dx,nz2=tz0+dz;if(nx<0||nz2<0||nx>=N||nz2>=N)continue;if((c.ter[nz2*N+nx]===EAU)===eT)continue;const ax=dx<0?fx:dx>0?1-fx:0,az=dz<0?fz:dz>0?1-fz:0;dm=Math.min(dm,Math.hypot(ax,az));}/* garde : le signe du champ suit le type réel de la case dès qu’on s’éloigne de la frontière eau/terre */if(eT)w=Math.max(w,Math.min(.35,dm-.42));else w=Math.min(w,Math.max(-.6,.42-dm));/* contrainte proportionnelle à la distance : pente douce, pas de marche sous l’eau */}
+  /* 24/11 : la rive passe exactement par le bord des cases (w=0 ⇒ niveau de l’eau), fond à −0,45 */if(w>-.5)h=Math.max(-.45,Math.min(h,w<0?-(w+.5)*.2:-.1-w*.9));/* plage en pente douce sur une demi-case, puis le fond */// rives et fonds
   // pied des montagnes
-  let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const tx=Math.floor(x)+dx,ty=Math.floor(z)+dy;if(tx>=0&&ty>=0&&tx<N&&ty<N&&mont[ty*N+tx]){const d=Math.hypot(x-tx-.5,z-ty-.5);m=Math.max(m,Math.max(0,1-d/1.6));}}h+=m*.45;
-  const tx=Math.min(N-1,Math.floor(x)),ty=Math.min(N-1,Math.floor(z));if(c.route[ty*N+tx])h*=.4;
+  let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const tx=Math.floor(x)+dx,ty=Math.floor(z)+dy;if(tx>=0&&ty>=0&&tx<N&&ty<N&&mont[ty*N+tx]){const d=Math.hypot(x-tx-.5,z-ty-.5);m=Math.max(m,Math.max(0,1-d/1.6));}}if(h>-.1)h+=m*.45*Math.min(1,(h+.1)*8);/* 24/11 : le pied des montagnes ne relève pas le fond de l’eau */
+  const tx=Math.min(N-1,Math.floor(x)),ty=Math.min(N-1,Math.floor(z));if(c.route[ty*N+tx]&&h>-.1)h=Math.max(-.09,h*.4);
   H[j*W+i]=h;}
  H.R=R;H.W=W;RIVE=texRive();}
 // rivages (19/11) : R = profondeur (distance à la terre, cases/2,5), G = proximité de l'eau sur la terre (bande de sable mouillé ≈ 0,45 case)
@@ -135,7 +136,10 @@ function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);const g=cv.getCont
  g.filter='blur('+(PX*.08)+'px)';g.lineWidth=PX*.42;g.strokeStyle='#ff0000';g.beginPath();for(const [a,b,c2,d2] of segs){g.moveTo((a+.5)*PX,(b+.5)*PX);g.lineTo((c2+.5)*PX,(d2+.5)*PX);}g.stroke();
  try{rivieres(g,Object.assign({graine:G.graine},c),G.objs,'#00ff00');}catch(e){console.warn(e);}g.filter='none';
  const t=new T.CanvasTexture(cv);t.minFilter=T.LinearMipmapLinearFilter;return t;}
-function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N;i++)td[i]=c.ter[i];const tt=new T.DataTexture(td,N,N,T.RedFormat);tt.needsUpdate=true;
+function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N;i++)td[i]=c.ter[i];
+ {/* 24/11 : sous l’eau, chaque case prend le terrain de la terre la plus proche : le liseré sec d’une case d’eau a la texture de sa rive (plus de dents de scie lave/fond), le fond lui-même est peint en sable par le shader */
+  const q=[];const vu=new Uint8Array(N*N);for(let i=0;i<N*N;i++)if(c.ter[i]!==EAU){vu[i]=1;q.push(i);}
+  for(let k=0;k<q.length;k++){const i=q[k],x=i%N,y=(i/N)|0;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=N||ny>=N)continue;const j=ny*N+nx;if(vu[j])continue;vu[j]=1;td[j]=td[i];q.push(j);}}}const tt=new T.DataTexture(td,N,N,T.RedFormat);tt.needsUpdate=true;
  const uni={bsLoin:U.loin,bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
  const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});
  return brume(m,{cle:'sol',extra:sh=>{Object.assign(sh.uniforms,uni);
@@ -164,7 +168,8 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  float hum=(t0==7.?w.x:0.)+(t1==7.?w.y:0.)+(t2==7.?w.z:0.)+(t3==7.?w.w:0.);col*=1.-.38*smoothstep(.05,.6,hum);
  col*=.84+.32*nz2;
  col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,.76);// grandes surfaces moins saturées (revue artistique : S ≤ 0,45)
- {float sa=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).g;if(sa>.002){sa=smoothstep(.2,.7,sa+(nz-.5)*.55);col=mix(col,couche(p,4.,nz)*vec3(.74,.72,.68),sa*(t0==6.?0.:1.));col*=1.-.22*smoothstep(.75,1.,sa);}}// sable mouillé (19/11) : calculé seulement près de l'eau
+ {float sub=smoothstep(-.085,-.16,vBsP.y);if(sub>.001){col=mix(col,mix(couche(p,4.,nz)*vec3(.6,.58,.52),col*.7,lav),sub);bsGlow*=1.-sub;}}// 24/11 : fond de l’eau en sable quel que soit le terrain de la case (la limite lave/neige/terre se voyait en dents de scie sous l’eau)
+ {float sa=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).g;if(sa>.002){sa=smoothstep(.2,.7,sa+(nz-.5)*.55);col=mix(col,couche(p,4.,nz)*vec3(.74,.72,.68),sa*(1.-lav));col*=1.-.22*smoothstep(.75,1.,sa);}}// sable mouillé (19/11) : calculé seulement près de l'eau
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
  bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
@@ -518,7 +523,7 @@ A.autoQualite=()=>{S.choisie=false;try{localStorage.removeItem('bs-q3d');localSt
 A.auto=()=>!S.fixe&&!S.choisie;A.figer=b=>{S.banc=!!b;SURV.l=[];};
 A.ouvrir=()=>{document.getElementById('carte3d').style.display='block';V.vide=false;};
 A.fermer=()=>{A.actif=false;document.getElementById('carte3d').style.display='none';V.fogDirty=true;V.vide=false;};
-A.pret=()=>RES.pret;A._scene=()=>scene;A._pi=(...a)=>planImp(...a);A._res=RES;A._ren=()=>ren;
+A.pret=()=>RES.pret;A._scene=()=>scene;A._pi=(...a)=>planImp(...a);A._res=RES;A._ren=()=>ren;A._h=(x,z)=>h(x,z);
 A.info=()=>ren?{calls:ren.info.render.calls,tris:ren.info.render.triangles,geo:ren.info.memory.geometries,tex:ren.info.memory.textures}:null;
 
 // =========================================================

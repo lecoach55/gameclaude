@@ -246,3 +246,10 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Un vol de cinq oiseaux traverse le ciel du panorama de la ville toutes les 28 s, en changeant de sens et de hauteur ; à la Nécropole ce sont des chauves-souris (battement plus rapide). Dessin 2D par-dessus le panorama, sans coût de rendu 3D.
 - (v116) Combats sur herbe, terre et lande : une quinzaine de feuilles qui tournoient en traversant le champ de bataille.
 - (v117) Les artefacts posés sur la carte scintillent aussi, comme les coffres.
+
+## v118 (24/11 après-midi) — l'eau de la carte, refaite à fond
+- **Bug trouvé et corrigé** : le relief de la terre ferme descendait par endroits sous le niveau de l'eau, ce qui dessinait de faux lacs et de fausses baies sur des cases où l'on marche (graine 7 : la baie et son îlot à droite du château ; graine 11 : le lac sous le château ; graine 23 : la mare au nord). Mesure avec le nouvel outil `outils/verif_rivages.py` sur 5 graines : avant, 78 à 224 centres de cases de terre sous l'eau, 3 à 17 cases d'eau hors de l'eau et 449 à 1 666 points de « faux lacs » par carte ; après : **0 partout**.
+- Rive tracée à partir de la distance exacte au bord des cases d'eau (et plus de la distance entre centres de cases), coins arrondis par un flou léger, ondulation par du bruit, et une contrainte proportionnelle à la distance qui garantit que chaque case garde sa nature (les chenaux et isthmes d'une case restent justes). Plage en pente douce sur une demi-case.
+- Fond de l'eau peint en sable (basalte sous la lave) quelle que soit la case ; sous l'eau, chaque case prend le terrain de la terre la plus proche : plus de « dents de scie » lave/fond le long des côtes.
+- Le pied des montagnes et les routes ne relèvent plus le fond de l'eau.
+- Outils : `verif_rivages.py [graines]` (code 1 si l'eau dessinée ne correspond pas aux cases), `capt_rivages.py dossier [graines] [zoom]` (planche de trois gros plans de côtes par graine), `capt_terrains.py` (combat par terrain). `R3._h(x,z)` donne la hauteur du sol.

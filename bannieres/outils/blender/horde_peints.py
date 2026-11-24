@@ -39,3 +39,19 @@ sc = scene(); MATS.clear(); B = BOIS(); R = mat('rondins', (.72, .52, .36, 1), '
 tour(0, 0, 4.2, R, CH, OS)
 cyl(.05, 1.6, (.55, -.55, 5.9), B, 8); boite((.6, .03, .4), (.86, -.55, 6.4), mat('banniere', (.4, .035, .02, 1), r=.9))
 rendre(sc, 'v_tour_h', 420)
+
+# fort de la Horde vu de la ville (24/11) : grande halle de rondins sur une butte, toit de chaume pentu à cornes, trois hautes tours de guet,
+# palissade pointue, crânes et bannières
+if os.environ.get('FORT'):
+    sc = scene(); MATS.clear(); B = BOIS(); R = mat('rondins', (.72, .52, .36, 1), 'ecorce.jpg', 2.5); CH = mat('chaume_h', (.95, .8, .55, 1), 'chaume.jpg', 1.3); OS = mat('os', (.55, .45, .32, 1), r=.6)
+    T = mat('terre_f', (.55, .36, .22, 1), 'mur.jpg', 1)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(0, 1, 0)); o = bpy.context.object; o.scale = (6, 4.5, 1.2); ob(o, T)
+    boite((5, 3, 2.4), (0, 1.2, 2.3), R)                                     # halle
+    for sg in (-1, 1): boite((5.8, 2.3, .12), (0, 1.2 + sg * 1.05, 4.4), CH, (-sg * .85, 0, 0))
+    for x in (-2.75, 2.75):
+        bpy.ops.mesh.primitive_cone_add(vertices=12, radius1=.16, depth=1.4, location=(x, -.2, 5.6), rotation=(0, -x / 6, 0)); ob(bpy.context.object, OS)
+    boite((1.2, .1, 1.6), (0, -.32, 1.9), mat('porte_f', (.2, .12, .06, 1), 'poutre.jpg', 2))
+    for x in (-3.8, 0, 3.8): tour(x, 3.2 if x == 0 else 2.0, 6.5 if x == 0 else 5.2, R, CH, OS)
+    rondins(-5.2, -1.6, -1.2, 2.0, R, alea=31); rondins(1.6, 5.2, -1.2, 2.0, R, alea=32)
+    for x in (-1, 1): cyl(.05, 3, (x * 1.4, -1.5, 2.2), B, 8); boite((.05, .6, 1.1), (x * 1.4, -1.5, 3.1), mat('banniere', (.4, .035, .02, 1), r=.9))
+    rendre(sc, 'fortv_horde', 900)

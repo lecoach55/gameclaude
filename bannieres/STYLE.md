@@ -181,3 +181,5 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v83 : fenêtre Construire illustrée (comme Heroes) : chaque carte montre le rendu Blender du bâtiment (`R3.imageBat`) et, pour les habitations, la créature produite ; en 2D, seulement la créature.
 - v84 : troupes améliorées reconnaissables à un liseré doré fin (à l'intérieur du liseré sombre) dans planche3D.
 - v85 : fiche du héros et fenêtre de montée de niveau : portrait plus grand encadré d'or, icônes des quatre caractéristiques.
+- v86 : fort de la Horde en bois vu de la ville (\`horde_peints.py\` FORT=1 → fortv_horde : halle de rondins à toit de chaume et cornes, trois tours de guet, palissade) au lieu du château de pierre.
+- Revue graphiste v83 (ORANGE), pistes : 1) échelle des rides de sable et des congères trop grande, transitions floues ; 2) piles trop grosses, or jaune plat, gemmes confettis ; 3) marais sans vase ni flaques, sanctuaires trop blancs ; 4) gros rochers et montagnes photo ; 5) liseré des créatures en ville, échelles incohérentes en combat ; 6) fenêtre Construire : même image par niveau, fond ciel bleu, icônes au trait.

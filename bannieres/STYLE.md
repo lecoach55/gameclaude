@@ -197,3 +197,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v98 : rochers d'obstacle en combat légèrement assombris ; rides du sable encore atténuées (plus d'effet de veinage sous la grille).
 - v99 : spectre et liche moins saturés (TEINTE3D).
 - v100 : combat de siège : château Blender de la carte (même plongée ≈ 51° que la caméra de combat, butte selon le terrain) à droite du champ de bataille, au lieu du château construit au code. Essai rejeté : vue de ville (8°) en panneau, incohérente avec la plongée.
+- v101 : terre battue et lande « peintes » (`sols_peints.py terre,rude` : photo d'origine gardée dans outils/ressources/bases, filtres médian + mode sur mosaïque 3×3 pour garder les raccords).

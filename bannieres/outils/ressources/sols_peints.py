@@ -76,4 +76,13 @@ if 'lave' in QUOI:  # croûte de basalte en plaques irrégulières de tailles va
     rgb = crout * (1 - fis[..., None]) + np.array([6, 4, 4.]) * fis[..., None]
     h = (1 - fis) * .8 + fin * .2
     sauver('lave', rgb, h, 4)
+for nom in ('terre', 'rude'):  # photo d'origine (ressources/bases) « peinte » : filtres médian + mode sur une mosaïque 3×3 (raccords gardés)
+    if nom not in QUOI: continue
+    from PIL import ImageFilter, ImageEnhance
+    src = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bases', f'sol_{nom}.jpg')).convert('RGB').resize((S, S))
+    m = Image.new('RGB', (S * 3, S * 3))
+    for i in range(3):
+        for j in range(3): m.paste(src, (i * S, j * S))
+    m = ImageEnhance.Contrast(m.filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.ModeFilter(5))).enhance(1.08).crop((S, S, 2 * S, 2 * S))
+    m.save(os.path.join(D, f'sol_{nom}.jpg'), quality=90)
 print('ok', QUOI)

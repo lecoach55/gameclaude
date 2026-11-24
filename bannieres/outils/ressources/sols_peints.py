@@ -63,4 +63,17 @@ if 'marais' in QUOI:  # herbe de marais (photo d'origine, gardée dans /tmp ou r
     rgb = rgb * (1 - flaque[..., None]) + (eau + reflet * 45) * flaque[..., None]
     h = (1 - flaque) * .7 + fin * .3
     sauver('marais', rgb, h, 3)
+if 'lave' in QUOI:  # croûte de basalte en plaques irrégulières de tailles variées ; fissures noires d'épaisseur variable (le shader les fait rougeoyer)
+    from scipy.spatial import cKDTree
+    r2 = np.random.default_rng(41); n = 70; pts = r2.random((n, 2)) * S
+    T = np.concatenate([pts + np.array([dx, dy]) * S for dx in (-1, 0, 1) for dy in (-1, 0, 1)])
+    yy, xx = np.mgrid[0:S, 0:S]; q = np.dstack([xx, yy]).reshape(-1, 2) + (np.dstack([bruit(6, 42), bruit(6, 43)]).reshape(-1, 2) - .5) * 60 + (np.dstack([bruit(20, 44), bruit(20, 45)]).reshape(-1, 2) - .5) * 12
+    d, i = cKDTree(T).query(q, k=2); bord = (d[:, 1] - d[:, 0]).reshape(S, S)
+    larg = 1.5 + bruit(5, 46) * 6 * (bruit(14, 47) > .45)
+    fis = np.clip(1 - bord / larg, 0, 1) ** 1.5
+    fin = bruit(70, 48); gros = bruit(3, 49)
+    crout = np.array([92, 84, 80.]) * (.75 + .5 * gros[..., None]) + (fin[..., None] - .5) * 30
+    rgb = crout * (1 - fis[..., None]) + np.array([6, 4, 4.]) * fis[..., None]
+    h = (1 - fis) * .8 + fin * .2
+    sauver('lave', rgb, h, 4)
 print('ok', QUOI)

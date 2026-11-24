@@ -191,3 +191,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v92 : en combat, échelle des créatures resserrée (hauteur 1,4+0,15×niveau au lieu de 1,05+0,2×niveau) : petites unités plus lisibles, grosses inchangées.
 - v93 : icônes de l'interface en relief doré (remplissage léger, ombre portée, reflet) au lieu du simple trait.
 - v94 : grenier de la Nécropole = grange Blender (plus la hutte ronde construite au code).
+- v95 : sol de lave régénéré (`sols_peints.py lave` : plaques de basalte irrégulières, Voronoï fortement déformé, fissures d'épaisseur variable) : coulées incandescentes en grappes au lieu d'un carrelage.

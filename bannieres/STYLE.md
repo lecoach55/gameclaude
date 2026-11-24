@@ -244,3 +244,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v115 (24/11) — oiseaux dans le ciel des villes
 - Un vol de cinq oiseaux traverse le ciel du panorama de la ville toutes les 28 s, en changeant de sens et de hauteur ; à la Nécropole ce sont des chauves-souris (battement plus rapide). Dessin 2D par-dessus le panorama, sans coût de rendu 3D.
+- (v116) Combats sur herbe, terre et lande : une quinzaine de feuilles qui tournoient en traversant le champ de bataille.

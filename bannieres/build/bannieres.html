@@ -5879,8 +5879,12 @@ function etalonner(c,ox,oy,W,H,o={}){const g=c.getContext('2d');const w=c.width,
 function hauteurs(){const c=G.carte;N=c.N;const SD=champSigne(c);const nz=bruit(G.graine*3+11);const R=S.qual>=2?4:3;const W=N*R+1;H=new Float32Array(W*W);
  const sd=(fx,fy)=>{fx=Math.max(0,Math.min(N-1.001,fx-.5));fy=Math.max(0,Math.min(N-1.001,fy-.5));const x0=Math.floor(fx),y0=Math.floor(fy),ax=fx-x0,ay=fy-y0,x1=Math.min(N-1,x0+1),y1=Math.min(N-1,y0+1);return SD[y0*N+x0]*(1-ax)*(1-ay)+SD[y0*N+x1]*ax*(1-ay)+SD[y1*N+x0]*(1-ax)*ay+SD[y1*N+x1]*ax*ay;};
  const mont=new Float32Array(N*N);for(let i=0;i<N*N;i++)if(c.obs[i]===OBS.MONT||c.obs[i]===OBS.MONTP)mont[i]=1;
+ // 24/11 : rivages adoucis — champ signé flouté (≈1 case) + léger bruit : les côtes diagonales ne font plus d'escaliers ; une case d'eau isolée reste de l'eau
+ const WS=new Float32Array(W*W);for(let j=0;j<W;j++)for(let i=0;i<W;i++)WS[j*W+i]=sd(i/R,j/R);
+ {const rb=R>=4?2:1,tmp=new Float32Array(W*W);for(let p=0;p<2;p++){for(let j=0;j<W;j++)for(let i=0;i<W;i++){let s=0,c2=0;for(let d=-rb;d<=rb;d++){const ii=i+d;if(ii>=0&&ii<W){s+=WS[j*W+ii];c2++;}}tmp[j*W+i]=s/c2;}
+  for(let j=0;j<W;j++)for(let i=0;i<W;i++){let s=0,c2=0;for(let d=-rb;d<=rb;d++){const jj=j+d;if(jj>=0&&jj<W){s+=tmp[jj*W+i];c2++;}}WS[j*W+i]=s/c2;}}}
  for(let j=0;j<W;j++)for(let i=0;i<W;i++){const x=i/R,z=j/R;let h=(nz.fbm(x/7,z/7,3)-.5)*.55;
-  const w=sd(x,z);if(w>-.6)h=Math.min(h,0)-Math.min(1,(w+.6)/1.4)*.45;// rives et fonds
+  let w=WS[j*W+i];if(w>-1.2&&w<1)w+=(nz.fbm(x*.7+31,z*.7+17,2)-.5)*.28;if(w>-.6)h=Math.min(h,0)-Math.min(1,(w+.6)/1.4)*.45;// rives et fonds
   // pied des montagnes
   let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const tx=Math.floor(x)+dx,ty=Math.floor(z)+dy;if(tx>=0&&ty>=0&&tx<N&&ty<N&&mont[ty*N+tx]){const d=Math.hypot(x-tx-.5,z-ty-.5);m=Math.max(m,Math.max(0,1-d/1.6));}}h+=m*.45;
   const tx=Math.min(N-1,Math.floor(x)),ty=Math.min(N-1,Math.floor(z));if(c.route[ty*N+tx])h*=.4;

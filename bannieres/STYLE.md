@@ -198,3 +198,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v99 : spectre et liche moins saturés (TEINTE3D).
 - v100 : combat de siège : château Blender de la carte (même plongée ≈ 51° que la caméra de combat, butte selon le terrain) à droite du champ de bataille, au lieu du château construit au code. Essai rejeté : vue de ville (8°) en panneau, incohérente avec la plongée.
 - v101 : terre battue et lande « peintes » (`sols_peints.py terre,rude` : photo d'origine gardée dans outils/ressources/bases, filtres médian + mode sur mosaïque 3×3 pour garder les raccords).
+
+## v102 (24/11) — rivages adoucis
+- Le champ « distance à l'eau » qui creuse le sol est flouté sur environ une case (deux passes) puis légèrement bruité : les côtes diagonales ne font plus d'escaliers de cases ; une case d'eau isolée reste de l'eau (vérifié : pas de flaque parasite sur la graine 7).
+- Essai rejeté : herbe « peinte » (filtre médian + mode comme terre/lande) — à peine visible et plus plate que la photo.

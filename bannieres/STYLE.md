@@ -303,3 +303,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Roseaux (et galets ou buissons secs sur le sable) posés sur les berges des cases de terre libres qui touchent l'eau.
 - Collines : facteur de relief par case interpolé (plus de marche carrée possible au bord des objets posés à plat ou entre deux terrains).
 - Rives un peu plus arrondies (flou ≈ 1 case, garde à 0,36 case) ; contrôle verif_rivages toujours à 0 défaut sur 5 graines.
+- (v136) Carte du Graal : fragments révélés en sépia comme un vieux parchemin, fragments manquants en pièces vierges tachées, bords assombris comme brûlés.

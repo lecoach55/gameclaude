@@ -170,3 +170,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Eau de la carte : scintillement plus rare et plus doux, vagues moins marquées.
 - v73 : liche sans pose T — planche refaite avec l'animation du modèle (`planche_sprites.py liche_sf.glb … --comme-bannieres --rotation 30 --hauteur 1.8 --anim "idle=Take 001,atk=Take 001,hit=Take 001"`, puis pack.py --fusion). La pose T venait de la pose de repos.
 - v74 : hôtel de ville du Bastion peint (`colombages_peints.py` → col_hv : grande maison à colombages + beffroi à horloge et toit d'ardoise, bannières bleues) à la place de l'église Sketchfab.
+- v75 : marchés propres aux factions (`outils/blender/marche_var.py` : Horde en rondins sous peaux sombres, Nécropole en pierre noire à toiles violettes et fioles vertes, Sylve en branches sous toits de feuilles).

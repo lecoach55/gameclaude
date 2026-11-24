@@ -188,3 +188,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v89 : fenêtre Construire sur fond parchemin (plus de ciel bleu), bâtiments à niveaux (conseil→capitole, fort→château, guildes) dessinés de plus en plus grands.
 - v90 : au-delà du bord de la carte, noir uni (le scintillement de l'eau ne transparaît plus).
 - v91 : montagnes de la carte en roche peinte ocre-brun plus contrastée (montagnes.py PEINT=1, rampe de couleur et soleil plus chauds) au lieu du gris.
+- v92 : en combat, échelle des créatures resserrée (hauteur 1,4+0,15×niveau au lieu de 1,05+0,2×niveau) : petites unités plus lisibles, grosses inchangées.

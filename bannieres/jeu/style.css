@@ -145,7 +145,7 @@ h1 span{color:#e8b850;font-style:italic}
 .slot.vide,.mini-armee .s.vide{background:radial-gradient(#3a2814,#1a0f06)}
 
 /* icônes au trait (Lucide, ISC) à la place des emoji — 19/11 */
-.ico{width:24px;height:24px;stroke:#f2d48a;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7));pointer-events:none}
+.ico{width:24px;height:24px;stroke:#f2d48a;fill:rgba(214,168,72,.32);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1.5px 0 #2a1806) drop-shadow(0 -1px 0 rgba(255,236,190,.28));pointer-events:none}/* 24/11 : icônes dorées en relief (remplissage léger, ombre et reflet) */
 .ico.pi{width:14px;height:14px;vertical-align:-2px;margin-right:3px;stroke-width:2}
 .ico.pt{width:17px;height:17px;vertical-align:-3px;margin-right:6px}
 .ib:disabled .ico{stroke:#9a8a6a}

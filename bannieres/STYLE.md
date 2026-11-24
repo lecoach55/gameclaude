@@ -189,3 +189,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v90 : au-delà du bord de la carte, noir uni (le scintillement de l'eau ne transparaît plus).
 - v91 : montagnes de la carte en roche peinte ocre-brun plus contrastée (montagnes.py PEINT=1, rampe de couleur et soleil plus chauds) au lieu du gris.
 - v92 : en combat, échelle des créatures resserrée (hauteur 1,4+0,15×niveau au lieu de 1,05+0,2×niveau) : petites unités plus lisibles, grosses inchangées.
+- v93 : icônes de l'interface en relief doré (remplissage léger, ombre portée, reflet) au lieu du simple trait.

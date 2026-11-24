@@ -298,3 +298,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Les cases atteignables par la troupe active sont assombries (comme dans Heroes III) et cernées d'un liseré doré lumineux qui suit le contour de la zone (obstacles et troupes exclus). Vérifié à l'ordinateur et au téléphone (`dessinerCombat` sans erreur au tour du joueur). Outil `outils/verif_tour_combat.py [dossier]` : dessin du tour du joueur (portée, survol, modes sort) sur 3 terrains, ordinateur + téléphone ; code 1 si erreur (les robots jouent en automatique et ne passent pas par ce dessin).
 - (v133) Vignettes de créatures recadrées sur leur silhouette (`vignetteCre`) avec fond brun dégradé : file d'initiative du combat, armée du héros dans le panneau, garnisons — les créatures remplissent leur case au lieu d'y flotter.
 - (v134) Fin de combat : emblème dessiné en tête de la fenêtre — victoire : épées croisées dans une couronne de laurier dorée avec rayons ; défaite : bannière sombre déchirée et épée brisée (bannière grise si fuite).
+
+## v135 (24/11 après-midi) — berges
+- Roseaux (et galets ou buissons secs sur le sable) posés sur les berges des cases de terre libres qui touchent l'eau.
+- Collines : facteur de relief par case interpolé (plus de marche carrée possible au bord des objets posés à plat ou entre deux terrains).
+- Rives un peu plus arrondies (flou ≈ 1 case, garde à 0,36 case) ; contrôle verif_rivages toujours à 0 défaut sur 5 graines.

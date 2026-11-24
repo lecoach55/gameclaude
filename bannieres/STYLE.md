@@ -335,3 +335,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - (v153) Bulle d'information d'un monstre de la carte : vignette de la créature.
 - (v154) Anneau de sélection du héros dessiné : cercle doré lumineux à quatre pointes qui tourne lentement et pulse, toujours visible même sur un sol vallonné.
 - (v155) Fin de partie : même emblème de victoire (laurier et épées) ou de défaite en tête de la fenêtre.
+- (v156) Après le test indépendant (VERT) : taverne avec portrait centré au-dessus du texte (plus de « Bénédiction » coupée), annonce de semaine en Cinzel sur une ligne et texte exact (« dans leurs habitations »). Restent signalés (non traités) : sauvegarde seulement en début de tour, date coupée au téléphone, journal de combat coupé au téléphone, zones de clic qui se chevauchent au centre de certains bâtiments, même visage Clerc/Druide.

@@ -312,7 +312,7 @@ brancher();
 
 /* 24/11 : annonce de la nouvelle semaine sur un parchemin, avec la créature de la semaine (comme « Semaine du griffon » dans Heroes III) */
 function annonceSemaine(n,sm,se){let e=$('annSem');if(!e){e=document.createElement('div');e.id='annSem';e.className='ann-sem';document.body.appendChild(e);}
- e.innerHTML=`<canvas width="150" height="150"></canvas><div><div class="t">Semaine ${n}</div><div class="s">${sm?`Semaine ${/^[AEIOUÉ]/.test(sm.nom)?'de l’':'du '}${esc(sm.nom.toLowerCase())}`:'Les créatures se multiplient'}</div>${sm?`<div class="d">+${se.bonus} ${esc(sm.pl.toLowerCase())} dans chaque habitation</div>`:''}</div>`;
+ e.innerHTML=`<canvas width="150" height="150"></canvas><div><div class="t">Semaine ${n}</div><div class="s">${sm?`Semaine ${/^[AEIOUÉ]/.test(sm.nom)?'de l’':'du '}${esc(sm.nom.toLowerCase())}`:'Les créatures se multiplient'}</div>${sm?`<div class="d">+${se.bonus} ${esc(sm.pl.toLowerCase())} dans leurs habitations</div>`:''}</div>`;
  try{if(sm)e.querySelector('canvas').getContext('2d').drawImage(spriteCreature(sm.id||se.cre,150),0,0);else e.querySelector('canvas').remove();}catch(x){}
  e.classList.remove('vu');void e.offsetWidth;e.classList.add('vu');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('vu'),4200);}
 

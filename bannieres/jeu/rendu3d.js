@@ -136,9 +136,9 @@ function ponts(){if(!MASQ_CV)return;const W=MASQ_CV.width,D=MASQ_CV.getContext('
  window.__ponts=[];for(const q of cl){if(q.n<4)continue;const cx=q.x/q.n,cz=q.z/q.n;let sxx=0,szz=0,sxz=0,m=0;const r0=Math.floor(PX*.75);
   for(let y=Math.max(0,Math.floor(cz*PX)-r0);y<Math.min(W,Math.floor(cz*PX)+r0);y+=2)for(let x=Math.max(0,Math.floor(cx*PX)-r0);x<Math.min(W,Math.floor(cx*PX)+r0);x+=2){const k=px(x,y);if(D[k]>150&&D[k+1]<90){const dx=x/PX-cx,dz=y/PX-cz;sxx+=dx*dx;szz+=dz*dz;sxz+=dx*dz;m++;}}
   const a=m>3?.5*Math.atan2(2*sxz,sxx-szz):0;window.__ponts.push([+cx.toFixed(2),+cz.toFixed(2),+(a*57.3).toFixed(0)]);
-  const gr=new T.Group();bloc(gr,BOX,0x8a6a48,PB,[0,.1,0],null,[1.15,.07,.52]);
-  for(const sd of [-1,1]){bloc(gr,BOX,0x6a4a30,PB,[0,.27,sd*.24],null,[1.1,.04,.045]);for(const p2 of [-.52,0,.52])bloc(gr,BOX,0x5a3e28,PB,[p2,.19,sd*.24],null,[.06,.2,.06]);}
-  for(let k=-2;k<=2;k++)bloc(gr,BOX,0x7a5a3c,PB,[k*.22,.14,0],null,[.04,.012,.5]);
+  const gr=new T.Group();/* pont : tablier de planches claires légèrement bombé, garde-corps, piles dans l’eau */for(let k=-5;k<=5;k++){const x=k*.105;bloc(gr,BOX,k%2?0xb08a5c:0xa07c50,PB,[x,.1+.05*(1-(x/.6)**2),0],[0,0,0],[.095,.05,.54]);}
+  for(const sd of [-1,1]){bloc(gr,BOX,0x7a5a3a,PB,[0,.3,sd*.25],null,[1.15,.035,.04]);for(const p2 of [-.55,-.18,.18,.55])bloc(gr,BOX,0x6a4a30,PB,[p2,.16,sd*.25],null,[.05,.32,.05]);}
+  for(const p2 of [-.3,.3])for(const sd of [-1,1])bloc(gr,CYL,0x5a3e28,PB,[p2,-.02,sd*.2],null,[.07,.2,.07]);
   const wz=cz;gr.rotation.y=-a;gr.position.set(cx,Math.max(-.08,h(cx,wz))+.02,wz);gr.traverse(o=>{if(o.isMesh)o.raycast=()=>{};});scene.add(gr);}}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint
 let BRUIT=null;function texBruitGL(){if(BRUIT)return BRUIT;const [T1]=textures();const d=new Uint8Array(65536);for(let i=0;i<65536;i++)d[i]=Math.max(0,Math.min(255,T1[i]*255));BRUIT=new T.DataTexture(d,256,256,T.RedFormat);BRUIT.wrapS=BRUIT.wrapT=T.RepeatWrapping;BRUIT.magFilter=BRUIT.minFilter=T.LinearFilter;BRUIT.needsUpdate=true;return BRUIT;}

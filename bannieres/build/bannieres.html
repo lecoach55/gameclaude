@@ -6232,6 +6232,13 @@ let MOMB=null;function ombrePied(l){if(!MOMB){const c=mkC(128,128),g=c.getContex
  const o=new T.Mesh(new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),MOMB);o.scale.set(l,1,l*.55);o.position.y=.02;o.renderOrder=1;o.raycast=()=>{};return o;}
 function panneau(canvas,cle,taille,miroir){const k=cle+(miroir?'-':'');let m=PANM.get(k);if(!m){const t=texCanvas(canvas,cle);m=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));if(miroir){m.map=t.clone();m.map.repeat.x=-1;m.map.offset.x=1;m.map.needsUpdate=true;}PANM.set(k,m);}
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
+/* 24/11 : un vol d'oiseaux traverse de temps en temps la carte (silhouettes qui battent des ailes, ombre au sol) */
+let OIS=null;function animOiseaux(t){if(!scene)return;if(!OIS){const c=mkC(64,32),q=c.getContext('2d');q.strokeStyle='#1c1814';q.lineWidth=3.2;q.lineCap='round';q.beginPath();q.moveTo(4,10);q.quadraticCurveTo(18,4,32,16);q.quadraticCurveTo(46,4,60,10);q.stroke();const tx=new T.CanvasTexture(c);tx.colorSpace=T.SRGBColorSpace;
+  const m=new T.SpriteMaterial({map:tx,transparent:true,depthWrite:false,opacity:.85}),mo=new T.SpriteMaterial({map:tx,transparent:true,depthWrite:false,opacity:.18,color:0x000000});OIS={g:new T.Group(),b:[]};
+  for(let i=0;i<5;i++){const s=new T.Sprite(m),o=new T.Sprite(mo);s.raycast=o.raycast=()=>{};s.renderOrder=6;OIS.g.add(s,o);OIS.b.push([s,o,[(i%2?1:-1)*Math.ceil(i/2)*.55,Math.ceil(i/2)*.5]]);}scene.add(OIS.g);}
+ if(OIS.g.parent!==scene)scene.add(OIS.g);const P=46,p=(t%P)/P;OIS.g.visible=p<.45;if(!OIS.g.visible)return;const k=window.OIS_K??p/.45,cy=C3.cible;const ang=Math.floor(t/P)*2.1;const dx=Math.cos(ang),dz=Math.sin(ang);const L=C3.dist*1.5;
+ const cx=cy.x+dx*(k-.5)*L*2,cz=cy.z+dz*(k-.5)*L*2;for(let i=0;i<OIS.b.length;i++){const [s,o,[ox,oz]]=OIS.b[i];const x=cx-dx*oz+(-dz)*ox,z=cz-dz*oz+dx*ox,y=4.2+Math.sin(t*.9+i)*.15;const f=.5+.5*Math.sin(t*9+i*1.7);
+  s.position.set(x,y,z);s.scale.set(.5,.18+.14*f,1);o.position.set(x+5.1,.05,z-3.0);o.scale.set(.5,.2,1);}}
 /* 24/11 : éclat doré qui scintille sur les coffres (on les repère d'un coup d'œil, comme dans Heroes III) */
 let TETO=null;function scintille(g,x,y){if(!TETO){const c=mkC(64,64),q=c.getContext('2d');const gr=q.createRadialGradient(32,32,0,32,32,12);gr.addColorStop(0,'rgba(255,250,220,1)');gr.addColorStop(1,'rgba(255,220,120,0)');q.fillStyle=gr;q.fillRect(0,0,64,64);q.globalCompositeOperation='lighter';for(const [w,h] of [[30,2.2],[2.2,30]]){const l=q.createRadialGradient(32,32,0,32,32,30);l.addColorStop(0,'rgba(255,240,190,.95)');l.addColorStop(1,'rgba(255,200,90,0)');q.fillStyle=l;q.fillRect(32-w,32-h,w*2,h*2);}TETO=new T.CanvasTexture(c);TETO.colorSpace=T.SRGBColorSpace;}
  const s=new T.Sprite(new T.SpriteMaterial({map:TETO,transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:0}));s.position.set(x,y,0);s.raycast=()=>{};s.renderOrder=5;g.add(s);g.userData.eclat=s;}
@@ -6305,6 +6312,7 @@ A.redim=()=>{if(!ren)return;const dpr=Math.min(devicePixelRatio||1,S.qual>=2?1.5
 A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;U.loin.value=C3.dist>24?1:0;// vue dézoomée : relief fin du sol inutile à cette distance (compense l'eau et le sable du 19/11)
 
  if(V.fogDirty){majBrume();V.fogDirty=false;}
+ try{animOiseaux(t);}catch(e){}
  majObjets();majHeros();majChemin();
  // animations : ailes des moulins, roues, artefacts, drapeaux
  for(const g of objets.values()){if(!g.visible)continue;if(g.userData.tourne)g.userData.tourne.rotation.z=t*1.2;if(g.userData.flotte){g.userData.flotte.position.y=.38+Math.sin(t*2+g.userData.id)*.05;g.userData.flotte.rotation.y=t;}if(g.userData.sprite)g.userData.sprite.position.y=Math.abs(Math.sin(t*2+g.userData.id))*.03;if(g.userData.fumee)animFumee(g,t);if(g.userData.eclat){const e=g.userData.eclat,p=((t*.45+(g.userData.id||0)*.61)%1.6);const a=p<.5?Math.sin(Math.PI*p/.5):0;e.material.opacity=a*.95;e.scale.setScalar(.12+a*.3);e.material.rotation=t*.8;}}

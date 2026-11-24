@@ -234,3 +234,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v112 (24/11) — coffres qui scintillent
 - Éclat doré (étoile à quatre branches, mélange additif) qui s'allume brièvement sur chaque coffre de la carte, à un rythme propre à chacun : les coffres se repèrent d'un coup d'œil.
+
+## v113 (24/11) — vol d'oiseaux
+- Toutes les 46 s, un petit vol de cinq oiseaux (silhouettes en V qui battent des ailes, ombre légère au sol) traverse la vue de la carte dans une direction qui change à chaque passage (`animOiseaux` ; `window.OIS_K` fige leur position pour les captures).

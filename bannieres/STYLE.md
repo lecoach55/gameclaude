@@ -318,3 +318,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - (v143) Écran de génération : rose des vents dessinée sur parchemin qui oscille doucement (au lieu du cercle de chargement), fond brun chaud, texte en italique ombré.
 - (v144) Les rivières ne passent plus sous une mine ou un lieu (ni sous la case que leur image recouvre).
 - (v145) Ponts en planches claires légèrement bombés, garde-corps et piles ; en combat, plaque sombre cerclée d'or derrière le portrait, le nom et le mana du héros.
+- (v146) Fiche du héros : barre d'expérience dorée vers le niveau suivant.

@@ -181,10 +181,13 @@ function a3d(id){return IMG3D[id]?SPR3D[id]:null;}
 function cadre3D(id,an,k){const D=SPR3D[id];const ord=['idle','atk','hit','die'];let o=0;for(const a of ord){if(a===an)break;o+=D.n[a]||0;}const n=D.n[an]||D.n.idle;k=Math.max(0,Math.min(n-1,k|0));return[IMG3D[id],(o+k)*D.w,0,D.w,D.h];}
 // dessine la créature : pied au point (x,y), echelle = pixels par unité du monde, miroir = regarde à gauche
 // 23/11 : liseré sombre et étalonnage commun sur toutes les planches de créatures (style illustré à la Heroes, modèles d'origines variées harmonisés)
+/* 24/11 : retouches de couleur des modèles qui détonnaient (ogre jaune plastique, tréant orange, troll blanchâtre) */
+const TEINTE3D={ogre:'saturate(.6) brightness(.82) sepia(.25) hue-rotate(35deg)',ogre2:'saturate(.6) brightness(.82) sepia(.25) hue-rotate(35deg)',treant:'hue-rotate(28deg) saturate(.7) brightness(.85)',treant2:'hue-rotate(28deg) saturate(.7) brightness(.85)',troll:'sepia(.6) hue-rotate(50deg) saturate(1.3) brightness(.75)',troll2:'sepia(.6) hue-rotate(50deg) saturate(1.3) brightness(.75)'};
 const LISERE=new Map();function planche3D(im){if(!im||!im.width)return im;let c=LISERE.get(im);if(c)return c;
  try{const w=im.width,h=im.height;const sil=document.createElement('canvas');sil.width=w;sil.height=h;const sg=sil.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='rgba(24,16,8,.9)';sg.fillRect(0,0,w,h);
   c=document.createElement('canvas');c.width=w;c.height=h;const cg=c.getContext('2d');for(const [dx,dy] of [[-1.5,0],[1.5,0],[0,-1.5],[0,1.5],[-1,-1],[1,1],[-1,1],[1,-1]])cg.drawImage(sil,dx,dy);
-  cg.filter='contrast(1.07) saturate(1.1)';cg.drawImage(im,0,0);cg.filter='none';}catch(e){c=im;}
+  let id0=null;if(typeof IMG3D!=='undefined')for(const k in IMG3D)if(IMG3D[k]===im){id0=k;break;}
+  cg.filter='contrast(1.07) saturate(1.1)'+(TEINTE3D[id0]?' '+TEINTE3D[id0]:'');cg.drawImage(im,0,0);cg.filter='none';}catch(e){c=im;}
  LISERE.set(im,c);return c;}
 /* 23/11 : ombre portée des créatures (silhouette noire couchée vers l'arrière-droite, côté opposé au soleil comme les arbres) */
 const PL_NOIR=new WeakMap();function plancheNoire(im){let c=PL_NOIR.get(im);if(c)return c;c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);PL_NOIR.set(im,c);return c;}

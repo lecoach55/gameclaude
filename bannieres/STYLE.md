@@ -285,3 +285,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v128 (24/11 après-midi) — bâtiment survolé cerclé d'or
 - En ville, le bâtiment sous la souris (et la créature posée devant son habitation) est entouré d'un liseré doré lumineux qui pulse doucement, calculé sur sa vraie silhouette (passe d'identifiants), au lieu du rectangle pointillé.
 - (v129) Carte, à la souris : cadre doré arrondi sur la case survolée (terrain libre) ; sur un objet ou un héros, le curseur devient une main.
+- (v130) Nouvelle semaine : annonce sur un parchemin cerclé d'or avec la créature de la semaine (« Semaine du griffon », +3 griffons…), qui glisse et s'efface en 4 s ; bandeaux d'information en dégradé brun avec ombre.

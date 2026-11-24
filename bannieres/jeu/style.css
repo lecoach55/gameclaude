@@ -161,3 +161,10 @@ h1 span{color:#e8b850;font-style:italic}
 .tav-port{float:left;width:72px;height:72px;margin:0 10px 4px 0;border-radius:3px;box-shadow:0 2px 5px rgba(0,0,0,.35)}/* 24/11 : portraits de la taverne */
 .sort-ico{float:left;width:44px;height:44px;margin:0 8px 2px 0}/* 24/11 : médaillons de sorts */
 .sort-li{display:inline-flex;align-items:center;gap:4px;margin-right:10px;white-space:nowrap}.sort-li img{width:24px;height:24px;vertical-align:middle}
+.ann-sem{position:fixed;left:50%;top:70px;transform:translate(-50%,-14px);display:flex;align-items:center;gap:14px;padding:12px 26px 12px 14px;min-width:360px;max-width:92vw;
+ background:radial-gradient(ellipse at 40% 35%,#f4e4bc,#d8bd86 70%,#b8955a);border:3px solid #6a4a20;outline:2px solid #c09a48;outline-offset:-7px;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.55);
+ color:#3a2410;font-family:Palatino,Georgia,serif;opacity:0;pointer-events:none;z-index:30;transition:opacity .5s,transform .5s}
+.ann-sem.vu{opacity:1;transform:translate(-50%,0)}.ann-sem canvas{width:96px;height:96px;filter:drop-shadow(0 3px 3px rgba(60,30,0,.4))}
+.ann-sem .t{font-size:26px;font-weight:bold;letter-spacing:.04em;color:#5a1a0a}.ann-sem .s{font-size:18px;font-style:italic;margin-top:2px}.ann-sem .d{font-size:14px;margin-top:4px;color:#5a3a1a}
+.bandeau{background:linear-gradient(#2a1a0c,#1a0f06);box-shadow:0 6px 18px rgba(0,0,0,.5);font-family:Palatino,Georgia,serif}/* 24/11 */
+@media (max-width:700px){.ann-sem{min-width:0;top:44px;padding:8px 14px 8px 8px}.ann-sem canvas{width:64px;height:64px}.ann-sem .t{font-size:20px}.ann-sem .s{font-size:15px}}

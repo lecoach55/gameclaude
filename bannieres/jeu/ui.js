@@ -105,7 +105,7 @@ async function debutTour(premier){const p=G.joueurs[G.courant];V.chemin=null;ban
   majUI();if(!premier||G.jour>1)sauver();
   if(premier&&!TEST){let vu=false;try{vu=localStorage.getItem('bs-tuto')==='1';}catch(e){}if(!vu){try{localStorage.setItem('bs-tuto','1');}catch(e){}
    setTimeout(()=>fenetre(`<h2>Premiers pas</h2><p>🐎 <b>Déplacer le héros :</b> touchez une case pour tracer le chemin (flèches vertes : aujourd’hui), touchez-la encore pour partir.</p><p>🏰 <b>Votre ville :</b> touchez-la (ou 🏰) pour construire un bâtiment par jour et recruter des créatures.</p><p>💰 <b>Ressources :</b> ramassez les tas, capturez les mines (drapeau) ; méfiez-vous des créatures qui gardent trésors et passages (appui long pour juger de leur force).</p><p>⌛ <b>Fin du tour</b> quand vos héros ont fini de bouger. Chaque lundi, les créatures se multiplient.</p><p style="font-size:13px">Aide complète : menu ☰ → 📖.</p>`,[{t:'C’est parti !',or:true}]),600);}}
-  if((G.jour-1)%7===0&&G.jour>1&&G.courant===G.joueurs.findIndex(q=>q.humain&&!q.elim)){SON.jour();const sm=G.semaine?CRE[G.semaine.cre]:null;bandeau(`<b>Semaine ${Math.floor((G.jour-1)/7)+1}</b>${sm?` — semaine ${/^[AEIOUÉ]/.test(sm.nom)?'de l’':'du '}${sm.nom.toLowerCase()} : +${G.semaine.bonus} ${sm.pl.toLowerCase()} dans chaque habitation`:' — les créatures se multiplient'}`,3600);}
+  if((G.jour-1)%7===0&&G.jour>1&&G.courant===G.joueurs.findIndex(q=>q.humain&&!q.elim)){SON.jour();const sm=G.semaine?CRE[G.semaine.cre]:null;annonceSemaine(Math.floor((G.jour-1)/7)+1,sm,G.semaine);}
   else bandeau(dateTxt(),1800);
   majAlerte();approches(p);
   return;}
@@ -306,3 +306,9 @@ function brancher(){V.mini=$('minicarte');{let dern=-2;addEventListener('pointer
  else{ecran('accueil');majAccueil();}
  requestAnimationFrame(boucle);}
 brancher();
+
+/* 24/11 : annonce de la nouvelle semaine sur un parchemin, avec la créature de la semaine (comme « Semaine du griffon » dans Heroes III) */
+function annonceSemaine(n,sm,se){let e=$('annSem');if(!e){e=document.createElement('div');e.id='annSem';e.className='ann-sem';document.body.appendChild(e);}
+ e.innerHTML=`<canvas width="150" height="150"></canvas><div><div class="t">Semaine ${n}</div><div class="s">${sm?`Semaine ${/^[AEIOUÉ]/.test(sm.nom)?'de l’':'du '}${esc(sm.nom.toLowerCase())}`:'Les créatures se multiplient'}</div>${sm?`<div class="d">+${se.bonus} ${esc(sm.pl.toLowerCase())} dans chaque habitation</div>`:''}</div>`;
+ try{if(sm)e.querySelector('canvas').getContext('2d').drawImage(spriteCreature(sm.id||se.cre,150),0,0);else e.querySelector('canvas').remove();}catch(x){}
+ e.classList.remove('vu');void e.offsetWidth;e.classList.add('vu');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('vu'),4200);}

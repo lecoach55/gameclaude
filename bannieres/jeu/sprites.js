@@ -184,9 +184,11 @@ function cadre3D(id,an,k){const D=SPR3D[id];const ord=['idle','atk','hit','die']
 /* 24/11 : retouches de couleur des modèles qui détonnaient (ogre jaune plastique, tréant orange, troll blanchâtre) */
 const TEINTE3D={ogre:'saturate(.6) brightness(.82) sepia(.25) hue-rotate(35deg)',ogre2:'saturate(.6) brightness(.82) sepia(.25) hue-rotate(35deg)',treant:'hue-rotate(28deg) saturate(.7) brightness(.85)',treant2:'hue-rotate(28deg) saturate(.7) brightness(.85)',troll:'sepia(.6) hue-rotate(50deg) saturate(1.3) brightness(.75)',troll2:'sepia(.6) hue-rotate(50deg) saturate(1.3) brightness(.75)'};
 const LISERE=new Map();function planche3D(im){if(!im||!im.width)return im;let c=LISERE.get(im);if(c)return c;
- try{const w=im.width,h=im.height;const sil=document.createElement('canvas');sil.width=w;sil.height=h;const sg=sil.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='rgba(24,16,8,.9)';sg.fillRect(0,0,w,h);
+ try{const w=im.width,h=im.height;let id0=null;if(typeof IMG3D!=='undefined')for(const k in IMG3D)if(IMG3D[k]===im){id0=k;break;}
+  const elite=!!(id0&&typeof CRE!=='undefined'&&Object.values(CRE).some(q=>q.amelio===id0));/* 24/11 : troupes améliorées reconnaissables à leur liseré doré */
+  const sil=document.createElement('canvas');sil.width=w;sil.height=h;const sg=sil.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='rgba(24,16,8,.9)';sg.fillRect(0,0,w,h);
   c=document.createElement('canvas');c.width=w;c.height=h;const cg=c.getContext('2d');for(const [dx,dy] of [[-1.5,0],[1.5,0],[0,-1.5],[0,1.5],[-1,-1],[1,1],[-1,1],[1,-1]])cg.drawImage(sil,dx,dy);
-  let id0=null;if(typeof IMG3D!=='undefined')for(const k in IMG3D)if(IMG3D[k]===im){id0=k;break;}
+  if(elite){sg.fillStyle='rgba(232,186,70,1)';sg.fillRect(0,0,w,h);for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])cg.drawImage(sil,dx,dy);}
   cg.filter='contrast(1.07) saturate(1.1)'+(TEINTE3D[id0]?' '+TEINTE3D[id0]:'');cg.drawImage(im,0,0);cg.filter='none';}catch(e){c=im;}
  LISERE.set(im,c);return c;}
 /* 23/11 : ombre portée des créatures (silhouette noire couchée vers l'arrière-droite, côté opposé au soleil comme les arbres) */

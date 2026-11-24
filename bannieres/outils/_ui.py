@@ -11,7 +11,7 @@ async def main():
         await pg.evaluate("()=>{ouvrirFiche(herosDe(0)[0]);}");await pg.wait_for_timeout(1200);await pg.screenshot(path='/tmp/ui_fiche.png')
         await pg.keyboard.press('Escape');await pg.wait_for_timeout(300)
         await pg.evaluate("()=>{const v=villesDe(0)[0];for(const b of BAT_ORDRE)if(!BAT[b].unique)v.bat[b]=1;ouvrirVille(v);}");await pg.wait_for_timeout(15000)
-        await pg.click('#vConstruire') if await pg.query_selector('#vConstruire') else None
+        await pg.click(os.environ.get('BTN','#vConstruire'))
         await pg.wait_for_timeout(800);await pg.screenshot(path='/tmp/ui_constr.png')
         await nav.close()
 asyncio.run(main())

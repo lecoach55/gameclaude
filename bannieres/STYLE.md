@@ -264,3 +264,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - **Bug corrigé** : sur la carte 3D, routes et rivières étaient dessinées en miroir nord ↔ sud (le masque peint était une CanvasTexture retournée) : les routes pavées ne passaient pas sur les vraies cases de route (bonus de déplacement). `flipY=false` : chaque route est maintenant dessinée sur ses cases.
 - Rivières : berges humides plus sombres, eau claire au bord et sombre au milieu, rides animées, écume le long des rives.
 - Ponts de bois (tablier, garde-corps, poteaux) posés automatiquement là où une route croise une rivière, dans l'axe de la route (détection sur le masque : pixels route + rivière, axe principal des pixels de route autour).
+
+## v122 (24/11 après-midi) — collines douces
+- Relief vallonné selon le terrain (lande la plus vallonnée, puis neige, terre, sable, herbe, lave ; marais plat), jamais près de l'eau (le contrôle des rivages reste à 0 défaut) ni sous les objets posés à plat (villes, mines, lieux : cases occupées à plat, voisines adoucies). La lumière rasante dessine des creux et des bosses sur les grandes prairies.

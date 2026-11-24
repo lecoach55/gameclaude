@@ -286,3 +286,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - En ville, le bâtiment sous la souris (et la créature posée devant son habitation) est entouré d'un liseré doré lumineux qui pulse doucement, calculé sur sa vraie silhouette (passe d'identifiants), au lieu du rectangle pointillé.
 - (v129) Carte, à la souris : cadre doré arrondi sur la case survolée (terrain libre) ; sur un objet ou un héros, le curseur devient une main.
 - (v130) Nouvelle semaine : annonce sur un parchemin cerclé d'or avec la créature de la semaine (« Semaine du griffon », +3 griffons…), qui glisse et s'efface en 4 s ; bandeaux d'information en dégradé brun avec ombre.
+
+## v131 (24/11 après-midi) — décor qui disparaissait en vue large
+- **Bug important corrigé** : three r160 élimine les InstancedMesh hors champ avec une sphère calculée sur le plan unité, sans le décalage appliqué dans le shader des imposteurs. En vue large (et sur les bords de l'écran), des massifs entiers de montagnes et de forêts disparaissaient en ne laissant que leurs **ombres** (ces grandes taches sombres sur les plaines). La sphère englobante juste est maintenant donnée à l'instance (`im.boundingSphere`).
+- Ombres des imposteurs : carte verticale face au soleil, sans l'inclinaison vers la caméra (ombres plus justes au pied des arbres). Arbres au pied des montagnes sans ombre portée.
+- Banc : carte 138 → 157 appels de dessin, vue large 399 → (voir mesures) ; images/s inchangées dans le banc.

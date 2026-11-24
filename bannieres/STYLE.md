@@ -267,3 +267,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v122 (24/11 après-midi) — collines douces
 - Relief vallonné selon le terrain (lande la plus vallonnée, puis neige, terre, sable, herbe, lave ; marais plat), jamais près de l'eau (le contrôle des rivages reste à 0 défaut) ni sous les objets posés à plat (villes, mines, lieux : cases occupées à plat, voisines adoucies). La lumière rasante dessine des creux et des bosses sur les grandes prairies.
+
+## v123 (24/11 après-midi) — brouillard de guerre en nuées
+- Les zones inexplorées ne sont plus d'un noir uni : nuées gris-violet sombres qui dérivent lentement (deux bruits animés), bord effiloché, liseré légèrement chaud à la limite. Les objets cachés (arbres, montagnes) sont retirés sous les nuées (pas de silhouette). Rien d'inexploré ne se lit sous les nuées. Combats et villes non concernés.

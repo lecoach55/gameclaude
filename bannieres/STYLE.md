@@ -252,4 +252,5 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Rive tracée à partir de la distance exacte au bord des cases d'eau (et plus de la distance entre centres de cases), coins arrondis par un flou léger, ondulation par du bruit, et une contrainte proportionnelle à la distance qui garantit que chaque case garde sa nature (les chenaux et isthmes d'une case restent justes). Plage en pente douce sur une demi-case.
 - Fond de l'eau peint en sable (basalte sous la lave) quelle que soit la case ; sous l'eau, chaque case prend le terrain de la terre la plus proche : plus de « dents de scie » lave/fond le long des côtes.
 - Le pied des montagnes et les routes ne relèvent plus le fond de l'eau.
+- Réglage final : flou ≈ 0,9 case, bruit centré faible (le bruit fort butait sur la garde et redonnait des bords droits) ; lacs et baies aux contours arrondis.
 - Outils : `verif_rivages.py [graines]` (code 1 si l'eau dessinée ne correspond pas aux cases), `capt_rivages.py dossier [graines] [zoom]` (planche de trois gros plans de côtes par graine), `capt_terrains.py` (combat par terrain). `R3._h(x,z)` donne la hauteur du sol.

@@ -208,3 +208,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v104 (24/11) — accessoires de place propres à chaque faction
 - `outils/blender/accessoires_peints.py` (ELEV=8) + `accessoires_vers_imp.py` : pierres tombales, croix et cercueil (Nécropole), totem, tambours de guerre et séchoir à peaux (Forteresse), souches à champignons et paniers de pommes (Sylve). Le Bastion garde tonneaux et caisses. Huit petites images ajoutées à l'atlas « b » (+60 Kio).
+
+## v105 (24/11) — grenier propre à chaque faction
+- `outils/blender/greniers_var.py` (ELEV=8 ROT=32) : greniers ronds en torchis sur pierres (Horde), grenier tressé sur pilotis à chaume moussu (Sylve), ossuaire de pierre à toit d'ardoise (Nécropole). La grange de bois du Bastion n'apparaît plus dans les autres villes.

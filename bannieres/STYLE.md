@@ -237,3 +237,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v113 (24/11) — vol d'oiseaux
 - Toutes les 46 s, un petit vol de cinq oiseaux (silhouettes en V qui battent des ailes, ombre légère au sol) traverse la vue de la carte dans une direction qui change à chaque passage (`animOiseaux` ; `window.OIS_K` fige leur position pour les captures).
+
+## v114 (24/11) — ambiance animée des combats
+- `ambianceCombat` (combat_ui.js) : flocons qui tombent en biais sur la neige, braises qui montent et clignotent sur la lave, lucioles qui s'allument au marais. Dessiné en 2D par-dessus le décor, quelques dizaines de points par image.
+- Mesure sur le Mac (navigateur intégré, v113) : rendu de la carte 3,7 ms par image (3 ms avant fumée, oiseaux et éclats).

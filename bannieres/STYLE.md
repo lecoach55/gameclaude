@@ -177,3 +177,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v79 : dallage peint (`sols_peints.py route` : pavés irréguliers Voronoï périodique, joints de terre, relief) pour l'allée des villes et les routes de la carte, au lieu de la photo de terre battue.
 - v80 : plus de troncs photo (« tronc_a », lus comme des bâtons noirs) semés dans la prairie.
 - v81 : ombre de contact (ellipse douce, `ombrePied`) sous les monstres et les héros de la carte.
+- v82 : ombre de contact aussi sous les coffres et les piles de ressources (essai de coffre peint rejeté : le modèle photo d'origine est plus réussi).

@@ -6169,7 +6169,7 @@ function mineMesh(o){const gr=new T.Group();let g=new T.SphereGeometry(.55,16,10
   if(!li){bloc(gr,BOX,0x0e0a08,{r:1},[0,.17,.32],null,[.3,.34,.1]);for(const s2 of [-1,1])bloc(gr,GBOX,0x4a3424,PP,[s2*.18,.2,.38],null,[.05,.42,.05]);bloc(gr,GBOX,0x4a3424,PP,[0,.42,.38],null,[.46,.05,.06]);}}for(let k=0;k<4;k++)bloc(gr,GBOX,0x4a3a30,PP,[0,.005,.5+k*.12],null,[.3,.01,.03]);
   const pile={or:0xf2c23a,minerai:0x9a9a9a,mercure:0xd8e8f0,soufre:0xe8d23a,cristal:0xe0384a,gemmes:0x3ac85a}[o.res];for(let k=0;k<5;k++)bloc(gr,o.res==='cristal'||o.res==='gemmes'?new T.OctahedronGeometry(.08):SPH,o.res==='gemmes'?[0x3a7ae8,0x3ac85a,0xe83a8a,0xf0d03a,0x3ac8e8][k]:pile,{r:.3,m:o.res==='or'||o.res==='mercure'?.7:0,em:o.res==='cristal'||o.res==='gemmes'?pile:null,ei:.25},[-.3+k*.14,.07,.48+(k%2)*.08],null,o.res==='cristal'||o.res==='gemmes'?[1,1.6,1]:[.14,.1,.14]);}
  if(RES.atlas&&o.res!=='bois'){impObj(gr,'tonneau',.22,-.42,.42);impObj(gr,'caisse',.16,.45,.45,1);}gr.userData.drap=drapeauMesh(gr,.3,.95,-.1,o.prop>=0?COULEURS[G.joueurs[o.prop].coul].c:'#d8d2c2',.9);return gr;}
-function pileMesh(o){const gr=new T.Group();const r=o.res;
+function pileMesh(o){const gr=new T.Group();const r=o.res;gr.add(ombrePied(.75));/* 24/11 */
  {const li=lieuImp('pile_'+r,{or:1,bois:.95,minerai:1,soufre:.95,cristal:.85,gemmes:.9,mercure:.95}[r]||.95);if(li){gr.add(li);return gr;}}// 21/11 : piles rendues dans Blender (outils/blender/piles.py)
  if(typeof IMGICO!=='undefined'&&IMGICO[r]&&r!=='bois'&&r!=='minerai'){const p=panneau(iconeRes(r,96),'ico'+r+'96',.6);p.position.z=.05;gr.add(p);return gr;}
  if(RES.atlas){if(r==='bois'){impObj(gr,'mort_a',.1,-.05,-.05);impObj(gr,'mort_a',.1,.05,.1,1);return gr;}if(r==='minerai'){impObj(gr,'roc_b',.22,-.1,0);impObj(gr,'roc_c',.16,.12,.08,1);impObj(gr,'roc_d',.12,0,.15);return gr;}if(r==='mercure'){impObj(gr,'seau',.2,0,0);bloc(gr,SPH,0xcfe3ea,{r:.05,m:1},[0,.18,.02],null,[.12,.03,.12]);return gr;}}
@@ -6181,7 +6181,7 @@ function pileMesh(o){const gr=new T.Group();const r=o.res;
  else{const cs=r==='cristal'?[0xe0384a]:[0x3a7ae8,0x3ac85a,0xe83a8a,0xf0d03a];for(let k=0;k<5;k++)bloc(gr,new T.OctahedronGeometry(.09),cs[k%cs.length],{r:.2,em:cs[k%cs.length],ei:.35},[(k%3-1)*.12,.12,((k*5)%3-1)*.1],[0,k,0],[1,1.8,1]);}
  return gr;}
 function impObj(gr,nom,ht,x,z,mir){const o=RES.atlas?planImp('h',nom,ht,!!mir,new T.Quaternion().setFromEuler(new T.Euler(-C3.tang*.75,0,0))):null;if(o){o.position.set(x,0,z);gr.add(o);}return o;}
-function coffreMesh(){const gr=new T.Group();if(impObj(gr,'coffre',.32,0,0))return gr; bloc(gr,BOX,0x8a5a2a,PB,[0,.14,0],null,[.5,.28,.32]);bloc(gr,CYL,0x9a6a32,PB,[0,.28,0],[0,0,Math.PI/2],[.32,.5,.32]);bloc(gr,BOX,0xd8b040,{m:.7,r:.3},[0,.2,.17],null,[.08,.1,.02]);return gr;}
+function coffreMesh(){const gr=new T.Group();if(impObj(gr,'coffre',.32,0,0)){gr.add(ombrePied(.6));return gr;} bloc(gr,BOX,0x8a5a2a,PB,[0,.14,0],null,[.5,.28,.32]);bloc(gr,CYL,0x9a6a32,PB,[0,.28,0],[0,0,Math.PI/2],[.32,.5,.32]);bloc(gr,BOX,0xd8b040,{m:.7,r:.3},[0,.2,.17],null,[.08,.1,.02]);return gr;}
 const _GS=new T.SphereGeometry(.5,16,12);function GSPH(){return _GS;}
 function lieuMesh(o){const gr=new T.Group();const b=o.b;
  switch(b){

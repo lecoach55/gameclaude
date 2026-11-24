@@ -63,16 +63,16 @@ def materiau_peint():
     pos = N.new('ShaderNodeSeparateXYZ'); L.new(geo.outputs['Position'], pos.inputs[0])
     wv = N.new('ShaderNodeTexNoise'); wv.inputs['Scale'].default_value = .7; wv.inputs['Detail'].default_value = 7; wv.inputs['Roughness'].default_value = .62
     L.new(geo.outputs['Position'], wv.inputs['Vector'])
-    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].position = .3; e[1].position = .7; e[0].color = (.09, .075, .055, 1); e[1].color = (.36, .3, .22, 1); e.new(.5).color = (.2, .17, .13, 1)
+    cr = N.new('ShaderNodeValToRGB'); e = cr.color_ramp.elements; e[0].position = .3; e[1].position = .7; e[0].color = (.08, .055, .035, 1); e[1].color = (.48, .36, .22, 1); e.new(.5).color = (.25, .18, .11, 1)
     L.new(wv.outputs['Fac'], cr.inputs['Fac'])
     vo = N.new('ShaderNodeTexVoronoi'); vo.feature = 'DISTANCE_TO_EDGE'; vo.inputs['Scale'].default_value = 1.6; L.new(geo.outputs['Position'], vo.inputs['Vector'])
     no = N.new('ShaderNodeTexNoise'); no.inputs['Scale'].default_value = 3; no.inputs['Detail'].default_value = 8; L.new(geo.outputs['Position'], no.inputs['Vector'])
     hb = N.new('ShaderNodeMath'); hb.operation = 'MULTIPLY_ADD'; hb.inputs[1].default_value = .5; L.new(no.outputs['Fac'], hb.inputs[0]); L.new(vo.outputs['Distance'], hb.inputs[2])
-    bu = N.new('ShaderNodeBump'); bu.inputs['Strength'].default_value = .85; bu.inputs['Distance'].default_value = .35; L.new(hb.outputs[0], bu.inputs['Height']); L.new(bu.outputs['Normal'], b.inputs['Normal'])
+    bu = N.new('ShaderNodeBump'); bu.inputs['Strength'].default_value = 1.0; bu.inputs['Distance'].default_value = .35; L.new(hb.outputs[0], bu.inputs['Height']); L.new(bu.outputs['Normal'], b.inputs['Normal'])
     pe = N.new('ShaderNodeMapRange'); L.new(sep.outputs['Z'], pe.inputs[0]); pe.inputs[1].default_value = .78; pe.inputs[2].default_value = .92
     hz = N.new('ShaderNodeMapRange'); L.new(pos.outputs['Z'], hz.inputs[0]); hz.inputs[1].default_value = 3.6; hz.inputs[2].default_value = .6
     mul = N.new('ShaderNodeMath'); mul.operation = 'MULTIPLY'; L.new(hz.outputs[0], mul.inputs[0]); L.new(pe.outputs[0], mul.inputs[1])
-    mx = N.new('ShaderNodeMixRGB'); L.new(mul.outputs[0], mx.inputs[0]); L.new(cr.outputs[0], mx.inputs[1]); mx.inputs[2].default_value = (.16, .24, .06, 1)
+    mx = N.new('ShaderNodeMixRGB'); L.new(mul.outputs[0], mx.inputs[0]); L.new(cr.outputs[0], mx.inputs[1]); mx.inputs[2].default_value = (.12, .24, .04, 1)
     out = mx
     if NEIGE:
         sn = N.new('ShaderNodeMapRange'); L.new(pos.outputs['Z'], sn.inputs[0]); sn.inputs[1].default_value = 3.4; sn.inputs[2].default_value = 4.4
@@ -93,7 +93,7 @@ for k, (seed, pics) in enumerate([(3, 2), (11, 3), (17, 1), (23, 2), (31, 3), (4
     pts = [o.matrix_world @ v.co for v in o.data.vertices if v.co.z > .3]
     larg = max(p.x for p in pts) - min(p.x for p in pts); prof = max(p.y for p in pts) - min(p.y for p in pts); haut = max(p.z for p in pts)
     d = Vector((-.75, -.45, .62)).normalized()
-    ld = bpy.data.lights.new('s', 'SUN'); ld.energy = 4.5; ld.color = (1, .89, .75); ld.angle = math.radians(3)
+    ld = bpy.data.lights.new('s', 'SUN'); ld.energy = 5.5; ld.color = (1, .87, .7); ld.angle = math.radians(3)
     lo = bpy.data.objects.new('s', ld); lo.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler(); sc.collection.objects.link(lo)
     w = bpy.data.worlds.new('w'); sc.world = w; w.use_nodes = True; bg = w.node_tree.nodes['Background']; bg.inputs[0].default_value = (.62, .72, .9, 1); bg.inputs[1].default_value = .55
     el = math.radians(52); cd = bpy.data.cameras.new('c'); cd.type = 'ORTHO'; cd.ortho_scale = 22

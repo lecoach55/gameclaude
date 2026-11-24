@@ -6294,14 +6294,17 @@ function objet3D(o){let g=null;
  if(!g)return null;const y=o.t==='ville'?sol(o.x,o.y-.4):sol(o.x,o.y);g.position.set(o.x+.5,y,o.y+.5+(o.t==='ville'?-1.05:o.t==='mine'?-.45:0));
  g.userData.id=o.id;g.userData.prop=o.prop;g.userData.tile=o.y*N+o.x;g.traverse(m=>m.userData.tile=o.y*N+o.x);return g;}
 // ---------- chemin, sélection ----------
-function construireAides(){const sh=new T.Shape();sh.moveTo(.16,0);sh.lineTo(-.1,-.11);sh.lineTo(-.04,0);sh.lineTo(-.1,.11);sh.closePath();const g=new T.ShapeGeometry(sh);g.rotateX(-Math.PI/2);
- fleches=new T.InstancedMesh(g,new T.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.95,depthWrite:false}),400);fleches.count=0;fleches.renderOrder=3;scene.add(fleches);
+function construireAides(){/* 24/11 : flèches de chemin dessinées (pointe épaisse cerclée de sombre, comme dans Heroes III) ; frustumCulled=false : la sphère englobante calculée à vide les rendait invisibles */
+ const cv=mkC(128,128),q=cv.getContext('2d');q.translate(64,64);const fl=()=>{q.beginPath();q.moveTo(46,0);q.lineTo(-6,-34);q.lineTo(-6,-14);q.lineTo(-40,-14);q.lineTo(-40,14);q.lineTo(-6,14);q.lineTo(-6,34);q.closePath();};
+ q.lineJoin='round';q.shadowColor='rgba(0,0,0,.55)';q.shadowBlur=8;fl();q.lineWidth=14;q.strokeStyle='rgba(20,14,6,.9)';q.stroke();q.shadowBlur=0;const gr=q.createLinearGradient(0,-34,0,34);gr.addColorStop(0,'#ffffff');gr.addColorStop(1,'#bdbdbd');fl();q.fillStyle=gr;q.fill();
+ const tx=new T.CanvasTexture(cv);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=4;const g=new T.PlaneGeometry(.44,.44);g.rotateX(-Math.PI/2);
+ fleches=new T.InstancedMesh(g,new T.MeshBasicMaterial({map:tx,color:0xffffff,transparent:true,opacity:.97,depthWrite:false,toneMapped:false}),400);fleches.frustumCulled=false;fleches.count=0;fleches.renderOrder=3;scene.add(fleches);
  anneau=new T.Mesh(new T.RingGeometry(.36,.46,32).rotateX(-Math.PI/2),new T.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.8,depthWrite:false}));anneau.renderOrder=2;scene.add(anneau);
  const cg=new T.Group();for(const r of [.785,-.785]){const b=new T.Mesh(new T.BoxGeometry(.5,.04,.08),new T.MeshBasicMaterial({color:0xe83a2a}));b.rotation.y=r;cg.add(b);}croixG=cg;scene.add(croixG);}
 let cheminCle='';function majChemin(){const c=V.chemin;const cle=c?c.h+':'+c.dest+':'+c.ch.length+':'+(heroPar(c.h)||{}).mp:'';if(cle===cheminCle)return;cheminCle=cle;if(!c){fleches.count=0;return;}const h0=heroPar(c.h);if(!h0){fleches.count=0;return;}
  const M=new T.Matrix4(),Q=new T.Quaternion(),P=new T.Vector3(),Sc=new T.Vector3(1,1,1);const col=new T.Color();let n=0;
  for(let k=0;k<c.ch.length&&n<400;k++){const [x,y]=xy(c.ch[k]);const fin=k===c.ch.length-1;const ok=c.cout[k]<=h0.mp;let a=0;if(!fin){const [nx,ny]=xy(c.ch[k+1]);a=Math.atan2(ny-y,nx-x);}else{const [px,py]=k?xy(c.ch[k-1]):[h0.x,h0.y];a=Math.atan2(y-py,x-px);}
-  Q.setFromAxisAngle(new T.Vector3(0,1,0),-a);P.set(x+.5,sol(x,y)+.06,y+.5);Sc.setScalar(fin?1.6:1);M.compose(P,Q,Sc);fleches.setMatrixAt(n,M);fleches.setColorAt(n,col.set(ok?0x6ae86a:0xe85a4a));n++;}
+  Q.setFromAxisAngle(new T.Vector3(0,1,0),-a);P.set(x+.5,sol(x,y)+.06,y+.5);Sc.setScalar(fin?1.6:1);M.compose(P,Q,Sc);fleches.setMatrixAt(n,M);fleches.setColorAt(n,col.set(ok?0x7cf07c:0xff6a50));n++;}
  fleches.count=n;fleches.instanceMatrix.needsUpdate=true;if(fleches.instanceColor)fleches.instanceColor.needsUpdate=true;}
 // ---------- synchronisation avec la partie ----------
 function majObjets(){const vu=G.joueurs[vueJoueur()].vu;const vus=new Set();

@@ -312,3 +312,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Collines : facteur par case lissé (3 passes) avant interpolation.
 - (v138) Vignettes des troupes améliorées marquées d'une petite étoile dorée (recrutement, améliorations, armées, file d'initiative).
 - (v139) Poussière soulevée sous les sabots quand un héros se déplace sur la carte (14 nuages réutilisés) ; buissons des forêts répartis dans la case.
+- (v140) Siège : le château assiégé est entièrement visible dans le coin haut-droit, derrière les défenseurs (il était coupé par le bord de l'écran).

@@ -164,3 +164,7 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v71 (24/11) — sable et neige peints
 - `outils/ressources/sols_peints.py` : textures raccordables générées (bruit périodique FFT) : sable à rides de vent et cailloux, neige à congères (crêtes blanches, creux bleutés, paillettes), avec cartes de relief `_n`. Remplacent les photos `sol_sable` (traces de pneus) et `sol_neige`.
 - Combat sur la neige : couche secondaire = neige (plus de taches de terre).
+
+## v72 (24/11) — maisons à colombages peintes, eau
+- `outils/blender/colombages_peints.py` (ELEV=8 ROT=32) : trois maisons du Bastion (col_a/b/c : rez de pierre, étage en encorbellement à poutres sombres et volets verts, toit de tuiles rouges, pignons, cheminée, lucarne ou auvent) à la place des maisons Sketchfab (pierre/pilotis/lierre, toujours dans imp/ mais plus utilisées par le Bastion).
+- Eau de la carte : scintillement plus rare et plus doux, vagues moins marquées.

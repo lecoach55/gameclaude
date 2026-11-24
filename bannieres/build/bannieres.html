@@ -5949,14 +5949,25 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
   gl_FragColor.rgb+=vec3(1.,.86,.62)*sc*.55*pr;}
 #endif`);}});eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
- const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);}
+ const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);try{ponts();}catch(e){console.warn(e);}}
+/* 24/11 : ponts de bois là où une route franchit une rivière (dans l’ancien rendu 2D ils existaient, la 3D faisait passer l’eau par-dessus la route) */
+function ponts(){if(!MASQ_CV)return;const W=MASQ_CV.width,D=MASQ_CV.getContext('2d').getImageData(0,0,W,W).data;const px=(x,y)=>(y*W+x)*4;
+ /* croisements = pixels à la fois route (rouge) et rivière (vert) dans le masque peint, regroupés ; axe du pont = axe principal des pixels de route autour */
+ const cl=[];for(let y=0;y<W;y+=3)for(let x=0;x<W;x+=3){const k=px(x,y);if(D[k]>150&&D[k+1]>150){const tx=x/PX,tz=y/PX;let c0=cl.find(q=>Math.hypot(q.x/q.n-tx,q.z/q.n-tz)<.9);if(!c0){c0={x:0,z:0,n:0};cl.push(c0);}c0.x+=tx;c0.z+=tz;c0.n++;}}
+ window.__ponts=[];for(const q of cl){if(q.n<4)continue;const cx=q.x/q.n,cz=q.z/q.n;let sxx=0,szz=0,sxz=0,m=0;const r0=Math.floor(PX*.75);
+  for(let y=Math.max(0,Math.floor(cz*PX)-r0);y<Math.min(W,Math.floor(cz*PX)+r0);y+=2)for(let x=Math.max(0,Math.floor(cx*PX)-r0);x<Math.min(W,Math.floor(cx*PX)+r0);x+=2){const k=px(x,y);if(D[k]>150&&D[k+1]<90){const dx=x/PX-cx,dz=y/PX-cz;sxx+=dx*dx;szz+=dz*dz;sxz+=dx*dz;m++;}}
+  const a=m>3?.5*Math.atan2(2*sxz,sxx-szz):0;window.__ponts.push([+cx.toFixed(2),+cz.toFixed(2),+(a*57.3).toFixed(0)]);
+  const gr=new T.Group();bloc(gr,BOX,0x8a6a48,PB,[0,.1,0],null,[1.15,.07,.52]);
+  for(const sd of [-1,1]){bloc(gr,BOX,0x6a4a30,PB,[0,.27,sd*.24],null,[1.1,.04,.045]);for(const p2 of [-.52,0,.52])bloc(gr,BOX,0x5a3e28,PB,[p2,.19,sd*.24],null,[.06,.2,.06]);}
+  for(let k=-2;k<=2;k++)bloc(gr,BOX,0x7a5a3c,PB,[k*.22,.14,0],null,[.04,.012,.5]);
+  const wz=cz;gr.rotation.y=-a;gr.position.set(cx,Math.max(-.08,h(cx,wz))+.02,wz);gr.traverse(o=>{if(o.isMesh)o.raycast=()=>{};});scene.add(gr);}}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint
 let BRUIT=null;function texBruitGL(){if(BRUIT)return BRUIT;const [T1]=textures();const d=new Uint8Array(65536);for(let i=0;i<65536;i++)d[i]=Math.max(0,Math.min(255,T1[i]*255));BRUIT=new T.DataTexture(d,256,256,T.RedFormat);BRUIT.wrapS=BRUIT.wrapT=T.RepeatWrapping;BRUIT.magFilter=BRUIT.minFilter=T.LinearFilter;BRUIT.needsUpdate=true;return BRUIT;}
-function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.globalCompositeOperation='lighter';
+let MASQ_CV=null;function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);MASQ_CV=cv;const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.globalCompositeOperation='lighter';
  const rt=i=>c.route[i]&&c.ter[i]!==EAU;g.lineCap='round';g.lineJoin='round';const segs=[];if(c.routeSeg)for(const [a,b] of c.routeSeg){if(rt(a)&&rt(b))segs.push([a%N,(a/N)|0,b%N,(b/N)|0]);}
  g.filter='blur('+(PX*.08)+'px)';g.lineWidth=PX*.42;g.strokeStyle='#ff0000';g.beginPath();for(const [a,b,c2,d2] of segs){g.moveTo((a+.5)*PX,(b+.5)*PX);g.lineTo((c2+.5)*PX,(d2+.5)*PX);}g.stroke();
  try{rivieres(g,Object.assign({graine:G.graine},c),G.objs,'#00ff00');}catch(e){console.warn(e);}g.filter='none';
- const t=new T.CanvasTexture(cv);t.minFilter=T.LinearMipmapLinearFilter;return t;}
+ const t=new T.CanvasTexture(cv);t.flipY=false;/* 24/11 : sans cela routes et rivières étaient dessinées en miroir (nord ↔ sud) par rapport aux vraies cases de route */t.minFilter=T.LinearMipmapLinearFilter;return t;}
 function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N;i++)td[i]=c.ter[i];
  {/* 24/11 : sous l’eau, chaque case prend le terrain de la terre la plus proche : le liseré sec d’une case d’eau a la texture de sa rive (plus de dents de scie lave/fond), le fond lui-même est peint en sable par le shader */
   const q=[];const vu=new Uint8Array(N*N);for(let i=0;i<N*N;i++)if(c.ter[i]!==EAU){vu[i]=1;q.push(i);}
@@ -6006,7 +6017,7 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  {float sa=texture2D(bsRive,(vBsW*bsRR+.5)/bsRW).g;if(sa>.002){sa=smoothstep(.2,.7,sa+(nz-.5)*.55);col=mix(col,couche(p,4.,nz)*vec3(.74,.72,.68),sa*(1.-lav));col*=1.-.22*smoothstep(.75,1.,sa);}}// sable mouillé (19/11) : calculé seulement près de l'eau
  {float nu=texture2D(bsBr,(p+vec2(bsT*.35,bsT*.12))*.018).r;col*=1.-.24*smoothstep(.56,.74,nu);}// ombres de nuages
  vec4 mk=texture2D(bsMasque,p/bsN);float rr=smoothstep(.25,.6,mk.r);col=mix(col*(1.-.28*smoothstep(.04,.3,mk.r)),couche(p*1.6,8.,nz)*(.9+.2*nz2),rr);
- bsRiv=smoothstep(.3,.6,mk.g);col=mix(col*(1.-.5*smoothstep(.03,.35,mk.g)),vec3(.05,.13,.17)+.04*nz,bsRiv);
+ bsRiv=smoothstep(.3,.6,mk.g);{/* 24/11 : rivière vivante — berge humide, eau plus claire au bord et sombre au milieu, rides qui coulent, écume le long des rives */vec3 bank=col*(1.-.42*smoothstep(.03,.33,mk.g));bank=mix(bank,bank*vec3(.82,.78,.7),smoothstep(.1,.3,mk.g));vec3 eauR=mix(vec3(.07,.22,.27),vec3(.03,.11,.16),smoothstep(.55,.95,mk.g));float rid=texture2D(bsBr,p*1.7+vec2(bsT*.11,bsT*.07)).r*.6+texture2D(bsBr,p*3.1-vec2(bsT*.09,-bsT*.13)).r*.4;eauR+=vec3(.08,.12,.12)*smoothstep(.55,.8,rid);float ecu=smoothstep(.3,.42,mk.g)*(1.-smoothstep(.45,.62,mk.g))*smoothstep(.45,.7,texture2D(bsBr,p*4.3+vec2(bsT*.2,0.)).r);eauR=mix(eauR,vec3(.78,.84,.82),ecu*.7);col=mix(bank,eauR,bsRiv);}
  diffuseColor.rgb*=col;}`).replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.06,bsRiv);').replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n#ifndef BS_LEGER\nif(bsRel>.5){vec3 nW=normalize((vec4(normal,0.)*viewMatrix).xyz);nW=normalize(nW+vec3(bsNt.x,0.,-bsNt.y)*1.1*(1.-bsRiv));normal=normalize((viewMatrix*vec4(nW,0.)).xyz);}\n#endif').replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(1.,.16,.01)*bsGlow*1.8;/* 23/11 : fissures rouge-orangé (le blanc-jaune venait de la saturation) */');}});}
 // ---------- brouillard (texture N×N, filtrage linéaire = bords doux) ----------
 function majBrume(){const vu=G.joueurs[vueJoueur()].vu;for(let i=0;i<N*N;i++)fogData[i]=vu[i]?255:0;fogTex.needsUpdate=true;}

@@ -259,3 +259,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Chaque terrain a une « appartenance » douce calculée sur la carte (distance exacte au bord des cases, coins arrondis par un flou, 4 points par case), envoyée au shader du sol dans deux textures (`bsMemA`, `bsMemB`). Le shader choisit le terrain par un softmax sur appartenance + bruit propre au terrain (2 octaves) + relief de la texture : limites ondulées et douces, centrées sur le vrai bord des cases (avant : coins d'un ancien maillage décalé, crêneaux sur les escaliers, neige qui « avalait » la lave).
 - Coût : génération de la carte +70 ms (472 → 543 ms en rendu logiciel) ; 6 lectures de texture de plus par pixel du sol (à mesurer sur le Mac).
 - Outil : `capt_transitions.py dossier [graines]` (trois gros plans de limites entre terrains par graine) ; `perf.py` accepte `JEU=` pour comparer une ancienne version.
+
+## v121 (24/11 après-midi) — routes à la bonne place, rivières vivantes, ponts
+- **Bug corrigé** : sur la carte 3D, routes et rivières étaient dessinées en miroir nord ↔ sud (le masque peint était une CanvasTexture retournée) : les routes pavées ne passaient pas sur les vraies cases de route (bonus de déplacement). `flipY=false` : chaque route est maintenant dessinée sur ses cases.
+- Rivières : berges humides plus sombres, eau claire au bord et sombre au milieu, rides animées, écume le long des rives.
+- Ponts de bois (tablier, garde-corps, poteaux) posés automatiquement là où une route croise une rivière, dans l'axe de la route (détection sur le masque : pixels route + rivière, axe principal des pixels de route autour).

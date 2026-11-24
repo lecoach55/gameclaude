@@ -300,3 +300,10 @@ function iconeSort(id,S=64){const k='sort:'+id+':'+S;if(SPR_CACHE[k])return SPR_
  const gl2=g.createRadialGradient(S/2,S/2,S*.1,S/2,S/2,S*.46);gl2.addColorStop(0,'rgba(255,240,200,.18)');gl2.addColorStop(1,'rgba(255,240,200,0)');g.fillStyle=gl2;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.fill();
  g.lineWidth=S*.06;const rim=g.createLinearGradient(0,0,0,S);rim.addColorStop(0,'#f2d488');rim.addColorStop(.5,'#a87a30');rim.addColorStop(1,'#6a4a1a');g.strokeStyle=rim;g.beginPath();g.arc(S/2,S/2,S*.46,0,7);g.stroke();
  SPR_CACHE[k]=c;return c;}
+
+/* 24/11 : vignette de créature recadrée sur la silhouette (file d'initiative, petites cases) : la créature remplit la case au lieu d'y flotter */
+function vignetteCre(id,S){const k='vig:'+id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const src=spriteCreature(id,256);const g0=src.getContext('2d');let d;try{d=g0.getImageData(0,0,256,256).data;}catch(e){return src;}
+ let x0=256,y0=256,x1=0,y1=0;for(let y=0;y<256;y+=2)for(let x=0;x<256;x+=2)if(d[(y*256+x)*4+3]>60){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+ if(x1<=x0){SPR_CACHE[k]=src;return src;}const w=x1-x0,h=y1-y0;const cote=Math.max(w,h*.78);const cx=(x0+x1)/2,cy=y0+Math.min(h,cote)*.5;const c=mkC(S,S),g=c.getContext('2d');
+ const bg=g.createRadialGradient(S/2,S*.4,S*.1,S/2,S/2,S*.7);bg.addColorStop(0,'#5a4630');bg.addColorStop(1,'#1a0f06');g.fillStyle=bg;g.fillRect(0,0,S,S);
+ g.drawImage(src,cx-cote/2,cy-cote/2,cote,cote,0,0,S,S);SPR_CACHE[k]=c;return c;}

@@ -56,7 +56,7 @@ random.seed(4)
 def gemme(loc, r, M, rot):
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=0, radius=r, location=loc, rotation=rot); o = bpy.context.object; o.scale.z = 1.3; o.data.materials.append(M); return o
 # or : monceau de pièces + lingots
-sc = scene(); OR = mat('or', (.95, .6, .08, 1), m=.85, r=.25, em=(.1, .06, 0, 1))
+sc = scene(); OR = mat('or', (.8, .5, .1, 1), m=.9, r=.3, em=(.05, .025, 0, 1))
 for k in range(170):
     a = random.random() * 6.28; d = random.random() ** .6 * .4; z = .26 * (1 - d / .42) ** 1.3 + .015
     bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=.045, depth=.012, location=(math.cos(a) * d, math.sin(a) * d * .9, z * random.uniform(.75, 1.05)), rotation=(random.uniform(-.6, .6), random.uniform(-.6, .6), 0)); bpy.context.object.data.materials.append(OR)
@@ -87,7 +87,7 @@ for k in range(10):
     a = k / 10 * 6.28; cristal((math.cos(a) * .17, math.sin(a) * .15, .14), random.uniform(.2, .32), .05, SO, (math.cos(a) * .45, math.sin(a) * .45, 0))
 rendre(sc, 'pile_soufre')
 # cristal : grappe de prismes rouges irréguliers et facettés sur une pierre (23/11 : plus de polyèdres lisses)
-sc = scene(); CR = mat('cristal', (.8, .02, .07, 1), r=.04, transm=.35, em=(.22, 0, .02, 1)); CR2 = mat('cristal2', (1, .25, .3, 1), r=.04, transm=.2, em=(.3, .02, .04, 1)); RO3 = mat('roc3', (.35, .33, .32, 1), r=.9, tex='roche.jpg', ech=1.5)
+sc = scene(); CR = mat('cristal', (.55, .02, .05, 1), r=.08, transm=.25, em=(.08, 0, .01, 1)); CR2 = mat('cristal2', (.75, .15, .18, 1), r=.08, transm=.15, em=(.1, .01, .02, 1)); RO3 = mat('roc3', (.35, .33, .32, 1), r=.9, tex='roche.jpg', ech=1.5)
 caillou((0, 0, .04), .24, RO3, 4.2)
 def prisme(loc, h, r, M, rot, n):
     bpy.ops.mesh.primitive_cylinder_add(vertices=n, radius=r, depth=h, location=loc, rotation=rot); o = bpy.context.object; o.data.materials.append(M)
@@ -102,7 +102,7 @@ rendre(sc, 'pile_cristal')
 # gemmes : pierres taillées de couleurs profondes, en tas sur une pierre plate
 sc = scene(); RO4 = mat('roc4', (.4, .37, .34, 1), r=.9, tex='roche.jpg', ech=1.5)
 caillou((0, 0, -.02), .28, RO4, 2.2, .15)
-cols = [(.75, 0, .04, 1), (0, .55, .12, 1), (.02, .1, .8, 1), (.4, .04, .7, 1), (.95, .7, 0, 1)]
+cols = [(.55, 0, .04, 1), (0, .38, .1, 1), (.02, .08, .55, 1), (.3, .03, .5, 1), (.55, .4, .02, 1)]
 GM = [mat('g%d' % k, c, r=.06, transm=.15, em=tuple(x * .18 for x in c[:3]) + (1,)) for k, c in enumerate(cols)]
 for k in range(22):
     a = random.random() * 6.28; d = random.random() ** .7 * .22

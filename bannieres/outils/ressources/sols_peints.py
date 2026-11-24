@@ -20,24 +20,24 @@ y, x = np.mgrid[0:S, 0:S] / S
 if 'sable' in QUOI:
     gros, moyen, fin = bruit(3, 1), bruit(10, 2), bruit(90, 3)
     # rides de sable : bandes diagonales périodiques (nombre entier de périodes) déformées par le bruit
-    ph = 2 * np.pi * (9 * x + 4 * y) + (moyen - .5) * 9 + (gros - .5) * 5
+    ph = 2 * np.pi * (23 * x + 10 * y) + (moyen - .5) * 14 + (gros - .5) * 8
     rides = (np.sin(ph) * .5 + .5) ** 1.6
-    h = rides * .6 + gros * .3 + fin * .1
+    h = rides * .35 + gros * .5 + fin * .15
     base = np.array([216, 176, 116.]); clair = np.array([240, 212, 156.]); ombre = np.array([176, 128, 76.])
-    t = (rides * .55 + gros * .45)[..., None]
+    t = (rides * .3 + gros * .7)[..., None]
     rgb = ombre * (1 - t) + clair * t; rgb = rgb * .5 + base * .5 + (fin[..., None] - .5) * 14
     cailloux = (bruit(160, 4) > .86)[..., None]; rgb = np.where(cailloux, rgb * .78, rgb)
-    sauver('sable', rgb, h, 7)
+    sauver('sable', rgb, h, 4)
 if 'neige' in QUOI:
     gros, moyen, fin = bruit(3, 11), bruit(9, 12), bruit(70, 13)
     # congères : crêtes vives soufflées par le vent (bandes périodiques déformées), creux bleutés, neige surtout blanche
-    ph = 2 * np.pi * (3 * x + 5 * y) + (moyen - .5) * 7 + (gros - .5) * 6
+    ph = 2 * np.pi * (7 * x + 12 * y) + (moyen - .5) * 12 + (gros - .5) * 8
     cr = np.sin(ph) * .5 + .5; crete = np.clip((cr - .55) * 3, 0, 1); creux = np.clip((.35 - cr) * 2.5, 0, 1) * (.4 + .6 * gros)
     h = cr * .6 + gros * .3 + fin * .1
     clair = np.array([248, 250, 255.]); mi = np.array([226, 233, 245.]); ombre = np.array([190, 205, 232.])
-    rgb = mi + (clair - mi) * (crete[..., None] * .8 + gros[..., None] * .4) - (mi - ombre) * creux[..., None] + (fin[..., None] - .5) * 7
+    rgb = mi + (clair - mi) * (crete[..., None] * .25 + gros[..., None] * .7) - (mi - ombre) * (creux[..., None] * .25 + (1 - gros[..., None]) * .25) + (fin[..., None] - .5) * 7
     paillettes = (bruit(200, 14) > .93)[..., None]; rgb = np.where(paillettes, np.minimum(rgb + 12, 255), rgb)
-    sauver('neige', rgb, h, 6)
+    sauver('neige', rgb, h, 3)
 if 'route' in QUOI:  # pavés irréguliers (Voronoï périodique) : pierres beiges arrondies, joints de terre
     from scipy.spatial import cKDTree
     n = 150; pts = rng.random((n, 2)) * S

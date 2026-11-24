@@ -728,7 +728,11 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
   const ch2=new T.Mesh(new T.PlaneGeometry(2.4,22).rotateX(-Math.PI/2),mat(0xc8c0b4,{tri:'pave',r:.95,ech:.9}));ch2.position.set(0,.02,-3);ch2.receiveShadow=true;sc.add(ch2);
   const pu=new T.Group();pu.position.set(2.6,0,4.2);pu.scale.setScalar(1.6);bloc(pu,GCYL,0xb0a898,PM3,[0,.32,0],null,[1,.64,1]);bloc(pu,GCYL,0x1a3a4a,{r:.05},[0,.6,0],null,[.8,.02,.8]);for(const s2 of [-1,1])bloc(pu,GBOX,0x5a4030,PP,[s2*.45,1,0],null,[.08,1.3,.08]);bloc(pu,PRISME,0x7a7a82,PT,[0,1.68,0],null,[1.2,.5,1]);sc.add(fusionner(pu));}
  if(reel){const qA=cam.quaternion.clone();const acc=(nom,ht,x,z)=>{const o=planImp('b',nom,ht,r.f()<.5,qA);if(o){o.position.set(x,0,z);sc.add(o);}};
-  acc('tonneau',.65,-3.6,7.4);acc('tonneau2',.6,-4.3,7.8);acc('caisse',.42,-2.9,7.9);acc('caisse',.4,3.4,7.6);acc('tonneau',.62,4.2,7.2);acc('seau',.3,2.9,5.2);
+  // 24/11 : accessoires propres à chaque faction (outils/blender/accessoires_peints.py) ; tonneaux et caisses gardés pour le Bastion
+  if(v.fac==='necro'){acc('tombe_a',.75,-3.7,7.3);acc('tombe_b',.95,-4.5,7.7);acc('tombe_a',.65,-2.9,7.9);acc('cercueil',.36,3.5,7.6);acc('tombe_b',.85,4.4,7.2);}
+  else if(v.fac==='horde'){acc('totem',2.3,-3.9,7.2);acc('tambour',.7,-3.0,7.9);acc('sechoir',1.7,3.9,7.3);acc('tambour',.6,3.1,7.9);}
+  else if(v.fac==='sylve'){acc('souche',.5,-3.6,7.4);acc('panier',.38,-2.8,7.9);acc('panier',.36,3.4,7.6);acc('souche',.45,4.3,7.2);}
+  else{acc('tonneau',.65,-3.6,7.4);acc('tonneau2',.6,-4.3,7.8);acc('caisse',.42,-2.9,7.9);acc('caisse',.4,3.4,7.6);acc('tonneau',.62,4.2,7.2);acc('seau',.3,2.9,5.2);}
   for(const x of [-1.6,1.6])for(const z of [1,6.5]){acc('lanterne',.9,x,z);}}
  // bâtiments
  const P=v.fac==='sylve'?PM2:v.fac==='horde'?PB:PM;

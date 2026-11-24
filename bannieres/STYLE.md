@@ -205,3 +205,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v103 (24/11) — créatures de la ville sans « autocollant »
 - Les créatures posées devant leurs habitations (panorama de la ville) n'ont plus le liseré sombre ni le liseré doré de la carte et des combats : elles se fondent dans la scène éclairée (planche brute, `plancheBrute` dans sprites.js ; filtres de couleur TEINTE3D conservés). Clics toujours exacts (villes_clics 28/28).
+
+## v104 (24/11) — accessoires de place propres à chaque faction
+- `outils/blender/accessoires_peints.py` (ELEV=8) + `accessoires_vers_imp.py` : pierres tombales, croix et cercueil (Nécropole), totem, tambours de guerre et séchoir à peaux (Forteresse), souches à champignons et paniers de pommes (Sylve). Le Bastion garde tonneaux et caisses. Huit petites images ajoutées à l'atlas « b » (+60 Kio).

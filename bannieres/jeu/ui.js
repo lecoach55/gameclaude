@@ -183,7 +183,7 @@ function ouvrirFiche(h){V.porTmp=h;const st=['att','def','pou','con'];
  <div style="flex:1"><b>${CLASSES[h.classe].nom}</b> ${FAC[h.fac].adj}, niveau ${h.niv}<br>Expérience : ${h.xp} / ${xpPourNiveau(h.niv+1)}<br>Mana : ${h.mana}/${manaMax(h)} · Mouvement : ${h.mp}/${mvtMax(h)}<br>Moral ${moralH(h)>=0?'+':''}${moralH(h)} · Chance ${chanceH(h)>=0?'+':''}${chanceH(h)}</div></div>
  <table class="stats" style="margin-top:8px"><tr>${st.map((k,i)=>`<td style="text-align:center"><svg class="ico" style="width:26px;height:26px;color:${['#8a2a1a','#2a4a8a','#a85a10','#2a6a3a'][i]}"><use href="#${['i-sword','i-shield','i-flame','i-book-open'][i]}"/></svg><br><small>${STAT_NOM[i]}</small><br><b style="font-size:18px">${statH(h,k)}</b>${bonusArts(h,k)?` <small>(+${bonusArts(h,k)})</small>`:''}</td>`).join('')}</tr></table>
  <p><b>Compétences :</b> ${Object.keys(h.comp).map(c=>`${COMP[c].nom} (${NIV_NOM[h.comp[c]]})`).join(', ')||'aucune'}</p>
- <p><b>Sorts :</b> ${h.sorts.map(s=>SORTS[s].nom).join(', ')||'aucun'}</p>
+ <p><b>Sorts :</b> ${h.sorts.map(s=>`<span class="sort-li"><img src="${typeof iconeSort==='function'?iconeSort(s,48).toDataURL():''}" alt="">${SORTS[s].nom}</span>`).join(' ')||'aucun'}</p>
  <p><b>Artefacts :</b> ${h.arts.map(a=>`${ARTS[a].nom} <small>(${txtBonus(ARTS[a].b)})</small>`).join(', ')||'aucun'}</p>
  <div id="edArm"></div>`;
  const sa=sortsAventure(h);const monTour=h.j===G.courant&&G.joueurs[h.j].humain&&!V.occupe;

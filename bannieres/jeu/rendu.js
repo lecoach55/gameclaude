@@ -23,15 +23,16 @@ function majMini(){const N=G.carte.N,S=V.mini.width,k=S/N;const g=V.mini.getCont
   const c=G.carte,hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];const CT={};for(const t in COUL_MINI)CT[t]=hex(COUL_MINI[t]);const T1=textures()[0];
   const col=new Float32Array(N*N*3),haut=new Float32Array(N*N),vis=new Float32Array(N*N),mont=new Float32Array(N*N),foret=new Float32Array(N*N);for(let i=0;i<N*N;i++){const t=TER[c.ter[i]];let q=CT[t]||[90,90,90];if(c.route[i]&&!c.obs[i]&&t!=='eau')q=[200,160,112];col[i*3]=q[0];col[i*3+1]=q[1];col[i*3+2]=q[2];
    const o=c.obs[i];const mn=o===OBS.MONT||o===OBS.MONTP;haut[i]=mn?1.4:o?.5:0;mont[i]=mn?1:0;foret[i]=o&&!mn?1:0;vis[i]=vu[i]?1:0;}
-  const SD=champSigne(c);const im=g.createImageData(S,S),d=im.data;const bil=(A,fx,fy,st,o)=>{fx=Math.max(0,Math.min(N-1.001,fx));fy=Math.max(0,Math.min(N-1.001,fy));const x0=fx|0,y0=fy|0,ax=fx-x0,ay=fy-y0,x1=Math.min(N-1,x0+1),y1=Math.min(N-1,y0+1);
+  const bil=(A,fx,fy,st,o)=>{fx=Math.max(0,Math.min(N-1.001,fx));fy=Math.max(0,Math.min(N-1.001,fy));const x0=fx|0,y0=fy|0,ax=fx-x0,ay=fy-y0,x1=Math.min(N-1,x0+1),y1=Math.min(N-1,y0+1);
    return A[(y0*N+x0)*st+o]*(1-ax)*(1-ay)+A[(y0*N+x1)*st+o]*ax*(1-ay)+A[(y1*N+x0)*st+o]*(1-ax)*ay+A[(y1*N+x1)*st+o]*ax*ay;};
+  const cle=G.graine+':'+N+':'+S;if(!V.miniFond||V.miniFond.cle!==cle){/* fond de terrain calculé une fois par carte (relecture : 12 ms à chaque pas) */const SD=champSigne(c);const fd=new Float32Array(S*S*3);
   for(let py=0;py<S;py++)for(let px=0;px<S;px++){const fx=px/k-.5,fy=py/k-.5,tx=Math.min(N-1,Math.floor(px/k)),ty=Math.min(N-1,Math.floor(py/k));
    const nz=T1[((py*3)&255)*256+((px*3)&255)],nz2=T1[((py>>1)&255)*256+((px>>1)&255)];
    let r=bil(col,fx,fy,3,0),gg=bil(col,fx,fy,3,1),b=bil(col,fx,fy,3,2);
    const ob=bil(foret,fx,fy,1,0),mo=bil(mont,fx,fy,1,0);if(ob>.05){const k2=Math.min(1,ob*1.4)*(.75+.5*nz);r=r*(1-k2)+34*k2;gg=gg*(1-k2)+62*k2;b=b*(1-k2)+28*k2;}if(mo>.05){const k2=Math.min(1,mo*1.3);r=r*(1-k2)+128*k2;gg=gg*(1-k2)+112*k2;b=b*(1-k2)+96*k2;}   const hh=bil(haut,fx,fy,1,0),hx=bil(haut,fx+.4,fy+.4,1,0);const sh=1+(hh-hx)*1.6+(nz-.5)*.22+(nz2-.5)*.1;r*=sh;gg*=sh;b*=sh;   {const w=bil(SD,fx,fy,1,0)+(nz-.5)*.35;const m=Math.min(1,Math.max(0,(w+.05)/.3));if(m>0){const dp=Math.min(1,Math.max(0,w/4));const er=58-38*dp,eg=116-48*dp,eb=148-38*dp;const bord=m<1?.6*(1-Math.abs(m*2-1)):0;r=r*(1-m)+er*m+bord*40;gg=gg*(1-m)+eg*m+bord*36;b=b*(1-m)+eb*m+bord*20;}}
-   let v=bil(vis,fx,fy,1,0);v=Math.min(1,Math.max(0,(v-.5)*1.6+.5+(nz2-.5)*.6));const nu=18+30*nz2;r=r*v+nu*(1-v);gg=gg*v+nu*(1-v);b=b*v+(nu+8)*(1-v);
-   const o=(py*S+px)*4;d[o]=r;d[o+1]=gg;d[o+2]=b;d[o+3]=255;}
-  g.putImageData(im,0,0);}
+   const o=py*S+px;fd[o*3]=r;fd[o*3+1]=gg;fd[o*3+2]=b;}
+  const fc=mkC(S,S),fg=fc.getContext('2d'),fi=fg.createImageData(S,S);for(let o=0;o<S*S;o++){fi.data[o*4]=fd[o*3];fi.data[o*4+1]=fd[o*3+1];fi.data[o*4+2]=fd[o*3+2];fi.data[o*4+3]=255;}fg.putImageData(fi,0,0);V.miniFond={cle,c:fc,nb:mkC(N,N)};}
+  /* brouillard : petite image N×N agrandie avec lissage (≈ 0,3 ms au lieu de 13) */const MF=V.miniFond;g.drawImage(MF.c,0,0);const ng=MF.nb.getContext('2d'),ni=ng.createImageData(N,N);for(let i=0;i<N*N;i++){ni.data[i*4]=24;ni.data[i*4+1]=24;ni.data[i*4+2]=32;ni.data[i*4+3]=vis[i]?0:245;}ng.putImageData(ni,0,0);g.imageSmoothingEnabled=true;g.drawImage(MF.nb,0,0,S,S);}
  for(const o of G.objs){if(!vu[idx(o.x,o.y)])continue;if(o.t==='ville'||o.t==='mine'){g.fillStyle=o.prop>=0?COULEURS[G.joueurs[o.prop].coul].c:'#aaa';const s=o.t==='ville'?3:1.6;g.fillRect((o.x-s/2+.5)*k,(o.y-s/2+.5)*k,s*k,s*k);}}
  for(const h of G.heros){if(!vu[idx(h.x,h.y)])continue;g.fillStyle=COULEURS[G.joueurs[h.j].coul].c;g.beginPath();g.arc((h.x+.5)*k,(h.y+.5)*k,Math.max(2,k*.9),0,7);g.fill();g.strokeStyle='#fff';g.lineWidth=1;g.stroke();}
  V.miniImg=g.getImageData(0,0,S,S);V.miniDirty=false;}

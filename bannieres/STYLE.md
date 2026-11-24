@@ -319,3 +319,11 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - (v144) Les rivières ne passent plus sous une mine ou un lieu (ni sous la case que leur image recouvre).
 - (v145) Ponts en planches claires légèrement bombés, garde-corps et piles ; en combat, plaque sombre cerclée d'or derrière le portrait, le nom et le mana du héros.
 - (v146) Fiche du héros : barre d'expérience dorée vers le niveau suivant.
+
+## v147 (24/11 fin d'après-midi) — corrections après relecture
+- Relecture indépendante (rôle relecteur) du diff v101 → v146 : ROUGE sur le contour doré des bâtiments (calcul plein écran : ~700 ms et ~20 Mo par bâtiment en Retina). Corrigé : calcul limité au rectangle du bâtiment, à demi-résolution, dilatation en deux passes, un seul contour gardé → 14 ms au pire en 1440×900.
+- Minicarte : fond de terrain calculé une fois par carte, brouillard par une petite image N×N agrandie → 3 ms par mise à jour (13 ms avant, 54 ms le premier calcul).
+- Survol de case : au plus ~11 lancers de rayon par seconde.
+- Textures propres à chaque carte (appartenance des terrains, masque routes/rivières, nénuphars) libérées à la nouvelle partie ; restes de débogage retirés (`bsDbg`, `__ponts`).
+- Limites entre terrains : appartenance plus franche (pente ×2, flou léger) et bruit réduit : plus de bord droit quand un terrain voisin n'était pas parmi les 4 cases candidates (ex. neige / herbe, graine 31).
+- Sauvegardes et équilibre : rien de modifié (confirmé par la relecture ; `rivieres()` est purement visuelle).

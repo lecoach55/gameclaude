@@ -128,21 +128,21 @@ function construireTerrain(){hauteurs();const R=H.R;const g=new T.PlaneGeometry(
   gl_FragColor.rgb+=vec3(1.,.86,.62)*sc*.55*pr;}
 #endif`);}});eau=new T.Mesh(ge,me);eau.renderOrder=1;scene.add(eau);
  // sol au-delà de la carte
- const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);try{ponts();}catch(e){console.warn(e);}}
+ const gb=new T.PlaneGeometry(N+80,N+80,1,1);gb.rotateX(-Math.PI/2);gb.translate(N/2,-.5,N/2);const bas=new T.Mesh(gb,new T.MeshBasicMaterial({color:0x0a0806}));bas.renderOrder=.5;scene.add(bas);try{ponts();}catch(e){console.warn(e);}MASQ_CV=null;}
 /* 24/11 : ponts de bois là où une route franchit une rivière (dans l’ancien rendu 2D ils existaient, la 3D faisait passer l’eau par-dessus la route) */
 function ponts(){if(!MASQ_CV)return;const W=MASQ_CV.width,D=MASQ_CV.getContext('2d').getImageData(0,0,W,W).data;const px=(x,y)=>(y*W+x)*4;
  /* croisements = pixels à la fois route (rouge) et rivière (vert) dans le masque peint, regroupés ; axe du pont = axe principal des pixels de route autour */
  const cl=[];for(let y=0;y<W;y+=3)for(let x=0;x<W;x+=3){const k=px(x,y);if(D[k]>150&&D[k+1]>150){const tx=x/PX,tz=y/PX;let c0=cl.find(q=>Math.hypot(q.x/q.n-tx,q.z/q.n-tz)<.9);if(!c0){c0={x:0,z:0,n:0};cl.push(c0);}c0.x+=tx;c0.z+=tz;c0.n++;}}
- window.__ponts=[];for(const q of cl){if(q.n<4)continue;const cx=q.x/q.n,cz=q.z/q.n;let sxx=0,szz=0,sxz=0,m=0;const r0=Math.floor(PX*.75);
+ for(const q of cl){if(q.n<4)continue;const cx=q.x/q.n,cz=q.z/q.n;let sxx=0,szz=0,sxz=0,m=0;const r0=Math.floor(PX*.75);
   for(let y=Math.max(0,Math.floor(cz*PX)-r0);y<Math.min(W,Math.floor(cz*PX)+r0);y+=2)for(let x=Math.max(0,Math.floor(cx*PX)-r0);x<Math.min(W,Math.floor(cx*PX)+r0);x+=2){const k=px(x,y);if(D[k]>150&&D[k+1]<90){const dx=x/PX-cx,dz=y/PX-cz;sxx+=dx*dx;szz+=dz*dz;sxz+=dx*dz;m++;}}
-  const a=m>3?.5*Math.atan2(2*sxz,sxx-szz):0;window.__ponts.push([+cx.toFixed(2),+cz.toFixed(2),+(a*57.3).toFixed(0)]);
+  const a=m>3?.5*Math.atan2(2*sxz,sxx-szz):0;
   const gr=new T.Group();/* pont : tablier de planches claires légèrement bombé, garde-corps, piles dans l’eau */for(let k=-5;k<=5;k++){const x=k*.105;bloc(gr,BOX,k%2?0xb08a5c:0xa07c50,PB,[x,.1+.05*(1-(x/.6)**2),0],[0,0,0],[.095,.05,.54]);}
   for(const sd of [-1,1]){bloc(gr,BOX,0x7a5a3a,PB,[0,.3,sd*.25],null,[1.15,.035,.04]);for(const p2 of [-.55,-.18,.18,.55])bloc(gr,BOX,0x6a4a30,PB,[p2,.16,sd*.25],null,[.05,.32,.05]);}
   for(const p2 of [-.3,.3])for(const sd of [-1,1])bloc(gr,CYL,0x5a3e28,PB,[p2,-.02,sd*.2],null,[.07,.2,.07]);
   const wz=cz;gr.rotation.y=-a;gr.position.set(cx,Math.max(-.08,h(cx,wz))+.02,wz);gr.traverse(o=>{if(o.isMesh)o.raycast=()=>{};});scene.add(gr);}}
 // sol réaliste : chaque fragment mélange les textures des 4 cases voisines (bords irréguliers), routes et rivières d'après un masque peint
 let BRUIT=null;function texBruitGL(){if(BRUIT)return BRUIT;const [T1]=textures();const d=new Uint8Array(65536);for(let i=0;i<65536;i++)d[i]=Math.max(0,Math.min(255,T1[i]*255));BRUIT=new T.DataTexture(d,256,256,T.RedFormat);BRUIT.wrapS=BRUIT.wrapT=T.RepeatWrapping;BRUIT.magFilter=BRUIT.minFilter=T.LinearFilter;BRUIT.needsUpdate=true;return BRUIT;}
-let MASQ_CV=null;function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);MASQ_CV=cv;const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.globalCompositeOperation='lighter';
+let MASQ_CV=null;const JETABLES=[];function masquesSol(){const c=G.carte;const cv=mkC(N*PX,N*PX);MASQ_CV=cv;const g=cv.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,cv.width,cv.height);g.globalCompositeOperation='lighter';
  const rt=i=>c.route[i]&&c.ter[i]!==EAU;g.lineCap='round';g.lineJoin='round';const segs=[];if(c.routeSeg)for(const [a,b] of c.routeSeg){if(rt(a)&&rt(b))segs.push([a%N,(a/N)|0,b%N,(b/N)|0]);}
  g.filter='blur('+(PX*.08)+'px)';g.lineWidth=PX*.42;g.strokeStyle='#ff0000';g.beginPath();for(const [a,b,c2,d2] of segs){g.moveTo((a+.5)*PX,(b+.5)*PX);g.lineTo((c2+.5)*PX,(d2+.5)*PX);}g.stroke();
  try{rivieres(g,Object.assign({graine:G.graine},c),G.objs,'#00ff00');}catch(e){console.warn(e);}g.filter='none';
@@ -155,17 +155,17 @@ function matSol(){const c=G.carte;const td=new Uint8Array(N*N);for(let i=0;i<N*N
  const RM=4,WM=N*RM;const MA=new Float32Array(WM*WM*8);
  for(let j=0;j<WM;j++)for(let i=0;i<WM;i++){const x=(i+.5)/RM,z=(j+.5)/RM,tx=Math.floor(x),tz=Math.floor(z),e=td[tz*N+tx];const d=[2,2,2,2,2,2,2,2];
   for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){const nx=tx+dx,nz2=tz+dz;if(nx<0||nz2<0||nx>=N||nz2>=N)continue;const t=td[nz2*N+nx];if(t===e)continue;const ax=Math.max(0,nx-x,x-(nx+1)),az=Math.max(0,nz2-z,z-(nz2+1));const v=Math.hypot(ax,az);if(v<d[t])d[t]=v;}
-  let own=2;for(let t=0;t<8;t++)if(t!==e&&d[t]<own)own=d[t];const o=(j*WM+i)*8;for(let t=0;t<8;t++){const sg=t===e?own:-d[t];MA[o+t]=Math.min(1,Math.max(0,.5+sg*.8));}}
- {const tmp=new Float32Array(MA.length);const rb=3;for(let pass=0;pass<3;pass++){for(let j=0;j<WM;j++)for(let i=0;i<WM;i++)for(let t=0;t<8;t++){let a=0,n=0;for(let k=-rb;k<=rb;k++){const ii=i+k;if(ii<0||ii>=WM)continue;a+=MA[(j*WM+ii)*8+t];n++;}tmp[(j*WM+i)*8+t]=a/n;}
+  let own=2;for(let t=0;t<8;t++)if(t!==e&&d[t]<own)own=d[t];const o=(j*WM+i)*8;for(let t=0;t<8;t++){const sg=t===e?own:-d[t];MA[o+t]=Math.min(1,Math.max(0,.5+sg*2));}}
+ {const tmp=new Float32Array(MA.length);const rb=1;for(let pass=0;pass<1;pass++){for(let j=0;j<WM;j++)for(let i=0;i<WM;i++)for(let t=0;t<8;t++){let a=0,n=0;for(let k=-rb;k<=rb;k++){const ii=i+k;if(ii<0||ii>=WM)continue;a+=MA[(j*WM+ii)*8+t];n++;}tmp[(j*WM+i)*8+t]=a/n;}
   for(let j=0;j<WM;j++)for(let i=0;i<WM;i++)for(let t=0;t<8;t++){let a=0,n=0;for(let k=-rb;k<=rb;k++){const jj=j+k;if(jj<0||jj>=WM)continue;a+=tmp[(jj*WM+i)*8+t];n++;}MA[(j*WM+i)*8+t]=a/n;}}}
  const mk2=o2=>{const u=new Uint8Array(WM*WM*4);for(let k=0;k<WM*WM;k++)for(let c2=0;c2<4;c2++)u[k*4+c2]=Math.round(MA[k*8+o2+c2]*255);const t=new T.DataTexture(u,WM,WM,T.RGBAFormat);t.magFilter=t.minFilter=T.LinearFilter;t.needsUpdate=true;return t;};
- const memA=mk2(0),memB=mk2(4);
- const uni={bsLoin:U.loin,bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMemA:{value:memA},bsDbg:{value:0},bsMemB:{value:memB},bsMasque:{value:masquesSol()},bsBr:{value:texBruitGL()}};
+ const memA=mk2(0),memB=mk2(4);JETABLES.push(tt,memA,memB);
+ const uni={bsLoin:U.loin,bsRive:{value:RIVE},bsRW:{value:RIVE.userData.W},bsRR:{value:RIVE.userData.R},bsLay:{value:RES.lay},bsLayN:{value:RES.layN||RES.lay},bsRel:{value:RES.layN?1:0},bsTer:{value:tt},bsMemA:{value:memA},bsMemB:{value:memB},bsMasque:{value:(()=>{const t=masquesSol();JETABLES.push(t);return t;})()},bsBr:{value:texBruitGL()}};
  const m=new T.MeshStandardMaterial({roughness:.95,metalness:0});
  return brume(m,{cle:'sol',extra:sh=>{Object.assign(sh.uniforms,uni);
   sh.fragmentShader=sh.fragmentShader.replace('void main() {',(S.qual<=0?'#define BS_LEGER\n':'')+`uniform float bsT;uniform highp sampler2DArray bsLay;uniform highp sampler2DArray bsLayN;uniform float bsRel;vec3 bsNt=vec3(0.,0.,1.);uniform sampler2D bsTer;uniform sampler2D bsMemA;uniform sampler2D bsMemB;uniform sampler2D bsMasque;uniform sampler2D bsBr;uniform sampler2D bsRive;uniform float bsRW;uniform float bsRR;uniform float bsLoin;
 float bsRiv=0.,bsGlow=0.;vec4 bsMa,bsMb;
-uniform float bsDbg;float mem(float t){int k=int(t+.5);return k<4?bsMa[k]:bsMb[k-4];}
+float mem(float t){int k=int(t+.5);return k<4?bsMa[k]:bsMb[k-4];}
 vec3 couche(vec2 p,float id,float nz){vec3 a=texture(bsLay,vec3(p*.42,id)).rgb;
 #ifdef BS_LEGER
 return a;
@@ -180,10 +180,9 @@ void main() {`).replace('#include <map_fragment>',`{vec2 p=vBsW;float nz=texture
  vec3 c0=couche(p,t0,nz),c1=couche(p,t1,nz),c2=couche(p,t2,nz),c3=couche(p,t3,nz);
  {vec2 um=p/bsN;bsMa=texture2D(bsMemA,um);bsMb=texture2D(bsMemB,um);}
  vec4 w=vec4(mem(t0),t1==t0?0.:mem(t1),(t2==t0||t2==t1)?0.:mem(t2),(t3==t0||t3==t1||t3==t2)?0.:mem(t3));
- vec4 nt=vec4((texture2D(bsBr,p*.37+vec2(t0*.173,t0*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t0*.311,t0*.137)).r),(texture2D(bsBr,p*.37+vec2(t1*.173,t1*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t1*.311,t1*.137)).r),(texture2D(bsBr,p*.37+vec2(t2*.173,t2*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t2*.311,t2*.137)).r),(texture2D(bsBr,p*.37+vec2(t3*.173,t3*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t3*.311,t3*.137)).r))-.85;w+=nt*.9*step(.001,w);/* bords ondulés : chaque terrain avance ou recule selon son propre bruit (2 octaves) *//* bords ondulés : chaque terrain avance ou recule un peu selon un bruit */
+ vec4 nt=vec4((texture2D(bsBr,p*.37+vec2(t0*.173,t0*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t0*.311,t0*.137)).r),(texture2D(bsBr,p*.37+vec2(t1*.173,t1*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t1*.311,t1*.137)).r),(texture2D(bsBr,p*.37+vec2(t2*.173,t2*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t2*.311,t2*.137)).r),(texture2D(bsBr,p*.37+vec2(t3*.173,t3*.291)).r+.7*texture2D(bsBr,p*1.13+vec2(t3*.311,t3*.137)).r))-.85;w+=nt*.5*step(.001,w);/* bords ondulés : chaque terrain avance ou recule selon son propre bruit (2 octaves) *//* bords ondulés : chaque terrain avance ou recule un peu selon un bruit */
  {vec4 ex=step(.001,w);vec4 sc=w+(vec4(dot(c0,vec3(.33)),dot(c1,vec3(.33)),dot(c2,vec3(.33)),dot(c3,vec3(.33)))-.4)*.18-(1.-ex)*9.;float mx=max(max(sc.x,sc.y),max(sc.z,sc.w));w=exp((sc-mx)*14.)*ex;w/=max(1e-5,w.x+w.y+w.z+w.w);}/* softmax : la limite passe là où les scores (appartenance + bruit + relief de la texture) s’égalent */
  vec3 col=c0*w.x+c1*w.y+c2*w.z+c3*w.w;
- if(bsDbg>.5){float lv=(t0==6.?w.x:0.)+(t1==6.?w.y:0.)+(t2==6.?w.z:0.)+(t3==6.?w.w:0.);col=vec3(lv,mem(6.),mem(0.));}
 
 #ifndef BS_LEGER
  if(bsLoin<.5){vec2 q=p*.42;bsNt=(texture(bsLayN,vec3(q,t0)).xyz*w.x+texture(bsLayN,vec3(q,t1)).xyz*w.y+texture(bsLayN,vec3(q,t2)).xyz*w.z+texture(bsLayN,vec3(q,t3)).xyz*w.w)*2.-1.;}
@@ -291,7 +290,7 @@ function construireDecor(){decor=new T.Group();scene.add(decor);const c=G.carte;
  /* 24/11 : nénuphars sur les eaux calmes près des rives (hors terrains de lave et de neige) */
  if(reel){const cv=mkC(256,256),q=cv.getContext('2d');const pad=(x,y,r,a)=>{q.save();q.translate(x,y);q.rotate(a);const gr=q.createRadialGradient(-r*.2,-r*.2,1,0,0,r);gr.addColorStop(0,'#6f9a3a');gr.addColorStop(1,'#2f5a22');q.fillStyle=gr;q.beginPath();q.moveTo(0,0);q.arc(0,0,r,.35,Math.PI*2-.05);q.closePath();q.fill();q.strokeStyle='rgba(20,40,10,.6)';q.lineWidth=2;q.stroke();q.restore();};
   const rr=creeRng(77);for(let k=0;k<9;k++)pad(40+rr.f()*176,40+rr.f()*176,14+rr.f()*16,rr.f()*6);for(let k=0;k<2;k++){const x=60+rr.f()*136,y=60+rr.f()*136;for(let j=0;j<6;j++){q.fillStyle=j%2?'#f6d0e0':'#e898b8';q.beginPath();q.ellipse(x+Math.cos(j)*5,y+Math.sin(j)*5,6,3,j,0,7);q.fill();}q.fillStyle='#f0d040';q.beginPath();q.arc(x,y,3,0,7);q.fill();}
-  const tx=new T.CanvasTexture(cv);tx.colorSpace=T.SRGBColorSpace;const mN=brume(new T.MeshLambertMaterial({map:tx,alphaTest:.4,transparent:false}),{cle:'nenu'});const gN=new T.PlaneGeometry(1,1).rotateX(-Math.PI/2);const L=[];
+  const tx=new T.CanvasTexture(cv);tx.colorSpace=T.SRGBColorSpace;JETABLES.push(tx);const mN=brume(new T.MeshLambertMaterial({map:tx,alphaTest:.4,transparent:false}),{cle:'nenu'});const gN=new T.PlaneGeometry(1,1).rotateX(-Math.PI/2);const L=[];
   for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){const i=y*N+x;if(c.ter[i]!==EAU)continue;let land=null;for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const j=(y+dy)*N+x+dx;if(c.ter[j]!==EAU){land=TER[c.ter[j]];break;}}if(!land||land==='lave'||land==='neige'||land==='sable')continue;const r=creeRng(i*31+5);if(r.f()>.22)continue;
    const m=new T.Matrix4().compose(new T.Vector3(x+.2+r.f()*.6,-.093,y+.2+r.f()*.6),new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),r.f()*6),new T.Vector3(.7+r.f()*.4,1,.7+r.f()*.4));L.push(m);}
   if(L.length){const im=new T.InstancedMesh(gN,mN,L.length);L.forEach((m,j)=>im.setMatrixAt(j,m));im.instanceMatrix.needsUpdate=true;im.computeBoundingSphere();im.receiveShadow=true;im.renderOrder=1.5;decor.add(im);}}
@@ -540,7 +539,7 @@ A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart()
  N=G.carte.N;fogData=new Uint8Array(N*N);fogTex=new T.DataTexture(fogData,N,N,T.RedFormat);fogTex.magFilter=T.LinearFilter;fogTex.minFilter=T.LinearFilter;U.fog.value=fogTex;U.N.value=N;majBrume();
  construireTerrain();construireDecor();grp=new T.Group();scene.add(grp);objets.clear();herosS.clear();HOMB.clear();construireAides();
  A.redim();A.actif=true;V.fogDirty=false;return true;};
-A.vider=()=>{if(!scene)return;if(RIVE){RIVE.dispose();RIVE=null;}scene.traverse(o=>{if(o.geometry&&!Object.values(GEO).includes(o.geometry)&&![BOX,CYL,CONE,CONE4,SPH].includes(o.geometry))o.geometry.dispose();});for(const t of TXC.values())t.dispose();TXC.clear();if(terrain&&terrain.material.map)terrain.material.map.dispose();scene=null;objets.clear();herosS.clear();};
+A.vider=()=>{if(!scene)return;for(const t of JETABLES.splice(0))try{t.dispose();}catch(e){}if(RIVE){RIVE.dispose();RIVE=null;}scene.traverse(o=>{if(o.geometry&&!Object.values(GEO).includes(o.geometry)&&![BOX,CYL,CONE,CONE4,SPH].includes(o.geometry))o.geometry.dispose();});for(const t of TXC.values())t.dispose();TXC.clear();if(terrain&&terrain.material.map)terrain.material.map.dispose();scene=null;objets.clear();herosS.clear();};
 A.redim=()=>{if(!ren)return;const dpr=Math.min(devicePixelRatio||1,S.qual>=2?1.5:S.qual>=1?1.25:1);ren.setPixelRatio(dpr);ren.setSize(innerWidth,innerHeight,false);if(cam){cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();}};
 A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;U.loin.value=C3.dist>24?1:0;// vue dézoomée : relief fin du sol inutile à cette distance (compense l'eau et le sable du 19/11)
 

@@ -1,3 +1,4 @@
+# Captures d'un combat par terrain (graine 7, banc figé) : python3 capt_terrains.py dossier neige,sable,marais,lave,terre,rude,herbe
 import asyncio,sys,os
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),'../../outils-communs'))
 from atelier import serveur,navigateur,page,avancer,attendre

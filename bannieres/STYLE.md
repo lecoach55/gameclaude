@@ -304,3 +304,9 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Collines : facteur de relief par case interpolé (plus de marche carrée possible au bord des objets posés à plat ou entre deux terrains).
 - Rives un peu plus arrondies (flou ≈ 1 case, garde à 0,36 case) ; contrôle verif_rivages toujours à 0 défaut sur 5 graines.
 - (v136) Carte du Graal : fragments révélés en sépia comme un vieux parchemin, fragments manquants en pièces vierges tachées, bords assombris comme brûlés.
+
+## v137 (24/11 après-midi) — côtes organiques, monstres animés, montagnes de lave
+- **Côtes** : le champ de distance est borné (±0,8 case) avant le flou et le bruit est centré et plus faible : auparavant le flou poussait la terre dans l'eau, la garde redressait alors la côte en ligne droite à 0,28 case du bord (baies rectangulaires). Les baies et caps sont maintenant arrondis et ondulés, toujours fidèles aux cases (verif_rivages : 0 défaut sur 5 graines).
+- **Monstres de la carte animés** : 4 images de repos de chaque créature 3D dans une bande, décalage de texture (`bandeRepos`, `panneauAnime`) — aucun coût de rendu en plus.
+- **Montagnes de lave** (`outils/ressources/montagnes_lave.py`) : basalte sombre avec veines rougeoyantes au pied, au lieu des montagnes brun-rouge unies qui détonnaient.
+- Collines : facteur par case lissé (3 passes) avant interpolation.

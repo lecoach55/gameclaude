@@ -320,3 +320,9 @@ function emblemeCombat(gagne,fuite){const W=300,H=120,c=mkC(W,H),g=c.getContext(
  else{g.fillStyle='#4a3a2a';g.fillRect(cx-1.5,cy-50,3,100);g.fillStyle=fuite?'#5a5040':'#3a1a14';g.beginPath();g.moveTo(cx+1,cy-46);g.lineTo(cx+46,cy-40);g.lineTo(cx+40,cy-28);g.lineTo(cx+48,cy-18);g.lineTo(cx+30,cy-10);g.lineTo(cx+38,cy+2);g.lineTo(cx+1,cy-4);g.closePath();g.fill();g.strokeStyle='#1a0a06';g.lineWidth=1.5;g.stroke();
   if(!fuite){epee(-.9,true);}g.fillStyle='rgba(40,30,20,.35)';g.beginPath();g.ellipse(cx,cy+50,60,6,0,0,7);g.fill();}
  return c;}
+
+/* 24/11 : bande des 4 images de repos d’une créature 3D (regard à gauche), pour animer les monstres de la carte en décalant la texture */
+function bandeRepos(id,S){const k='br'+id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];if(!a3d(id))return null;const D=SPR3D[id];const n=Math.min(4,D.n.idle||1);if(n<2)return null;const c=mkC(S*4,S),g=c.getContext('2d');
+ let ppu=S*.62/1.7;const [im,sx,sy,sw,sh]=cadre3D(id,'idle',0);const e0=ppu/D.pxu;const larg=Math.max(D.ax,sw-D.ax)*2*e0,haut=D.ay*e0;ppu*=Math.min(1,S*.98/larg,S*.86/haut);
+ for(let f=0;f<4;f++){g.save();g.translate(f*S+S,0);g.scale(-1,1);ombreSol(g,S*.5,S*.896,S*.3,S*.06,.4);dessiner3D(g,id,'idle',f%n,S*.5,S*.896,ppu,false);g.restore();}
+ SPR_CACHE[k]=c;return c;}

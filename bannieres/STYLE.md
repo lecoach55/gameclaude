@@ -295,4 +295,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Outil `outils/verif_culling.py [graines]` : rend 5 vues avec et sans élimination hors champ et compare (érosion pour ignorer les liserés du vent) ; code 1 si un objet manque. v130 : DÉFAUT (jusqu'à 4,7 %), v131 : 0 %.
 
 ## v132 (24/11 après-midi) — portée de déplacement en combat
-- Les cases atteignables par la troupe active sont assombries (comme dans Heroes III) et cernées d'un liseré doré lumineux qui suit le contour de la zone (obstacles et troupes exclus). Vérifié à l'ordinateur et au téléphone (`dessinerCombat` sans erreur au tour du joueur).
+- Les cases atteignables par la troupe active sont assombries (comme dans Heroes III) et cernées d'un liseré doré lumineux qui suit le contour de la zone (obstacles et troupes exclus). Vérifié à l'ordinateur et au téléphone (`dessinerCombat` sans erreur au tour du joueur). Outil `outils/verif_tour_combat.py [dossier]` : dessin du tour du joueur (portée, survol, modes sort) sur 3 terrains, ordinateur + téléphone ; code 1 si erreur (les robots jouent en automatique et ne passent pas par ce dessin).

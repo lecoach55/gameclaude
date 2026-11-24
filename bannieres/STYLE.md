@@ -241,3 +241,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v114 (24/11) — ambiance animée des combats
 - `ambianceCombat` (combat_ui.js) : flocons qui tombent en biais sur la neige, braises qui montent et clignotent sur la lave, lucioles qui s'allument au marais. Dessiné en 2D par-dessus le décor, quelques dizaines de points par image.
 - Mesure sur le Mac (navigateur intégré, v113) : rendu de la carte 3,7 ms par image (3 ms avant fumée, oiseaux et éclats).
+
+## v115 (24/11) — oiseaux dans le ciel des villes
+- Un vol de cinq oiseaux traverse le ciel du panorama de la ville toutes les 28 s, en changeant de sens et de hauteur ; à la Nécropole ce sont des chauves-souris (battement plus rapide). Dessin 2D par-dessus le panorama, sans coût de rendu 3D.

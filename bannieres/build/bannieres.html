@@ -6753,7 +6753,8 @@ function dessinerCombat(){if(!CB)return;const C=CB.C;const cv=$('cvCombat');cons
  if(C.ville&&!CB.obst3){const s=spriteVille(C.ville.fac);const w=G2.W*.32,h=w*s.height/s.width;g.globalAlpha=.9;g.drawImage(s,G2.W-w*.95,G2.oy-h*.92,w,h);g.globalAlpha=1;}
  // grille
  const p=C.actif;const monTour=p&&CB.humain[p.cote]&&!CB.auto&&CB.attente;const por=monTour&&!CB.mode?C.portee(p):null;
- g.lineWidth=1;for(let h=0;h<CW*CH;h++){const c=centreHex(h);cheminHex(g,c);if(por&&por.has(h)){g.fillStyle='rgba(255,255,230,.16)';g.fill();}g.strokeStyle='rgba(20,30,10,.28)';g.stroke();}
+ g.lineWidth=1;for(let h=0;h<CW*CH;h++){const c=centreHex(h);cheminHex(g,c);if(por&&por.has(h)){g.fillStyle='rgba(20,12,4,.2)';g.fill();}g.strokeStyle=por&&por.has(h)?'rgba(20,14,6,.42)':'rgba(20,30,10,.22)';g.stroke();}
+ if(por){/* 24/11 : portée de déplacement — zone assombrie (comme Heroes III) cernée d’un liseré doré */g.save();g.strokeStyle='rgba(255,220,130,.75)';g.lineWidth=2;g.shadowColor='rgba(255,200,90,.6)';g.shadowBlur=6;g.beginPath();for(const h of por.keys()){const c=centreHex(h),vs=hexVois(h);const pts=[];cheminHex({moveTo:(x,y)=>pts.push([x,y]),lineTo:(x,y)=>pts.push([x,y]),closePath:()=>{},beginPath:()=>{}},c);for(let k=0;k<pts.length;k++){const a=pts[k],b=pts[(k+1)%pts.length];const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;const ox=c.x+(mx-c.x)*2,oy=c.y+(my-c.y)*2;let ext=true;for(const n of vs){const cn=centreHex(n);if(Math.hypot(cn.x-ox,cn.y-oy)<CB.geo.w*.3){ext=!por.has(n)&&n!==p.h;break;}}if(ext){g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);}}}g.stroke();g.restore();}
  if(monTour){if(CB.mode){for(const h of C.ciblesSort(p.cote,CB.mode)){cheminHex(g,centreHex(h));g.fillStyle='rgba(150,200,255,.22)';g.fill();}}
   if(CB.survol>=0){cheminHex(g,centreHex(CB.survol));g.strokeStyle='#ffe08a';g.lineWidth=2.5;g.stroke();g.lineWidth=1;}
   if(CB.depuis!=null){cheminHex(g,centreHex(CB.depuis));g.fillStyle='rgba(255,220,120,.35)';g.fill();}}

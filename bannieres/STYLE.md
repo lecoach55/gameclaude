@@ -293,3 +293,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Ce bug touchait aussi la vue normale : jusqu'à 4,7 % de l'écran (montagnes, forêts) manquait selon la position de la caméra (mesure verif_culling sur la graine 11, version v130).
 - Banc : appels de dessin 138 → 157 (carte), 399 → 425 (vue large) : ce sont les objets qui manquaient ; images/s inchangées dans le banc.
 - Outil `outils/verif_culling.py [graines]` : rend 5 vues avec et sans élimination hors champ et compare (érosion pour ignorer les liserés du vent) ; code 1 si un objet manque. v130 : DÉFAUT (jusqu'à 4,7 %), v131 : 0 %.
+
+## v132 (24/11 après-midi) — portée de déplacement en combat
+- Les cases atteignables par la troupe active sont assombries (comme dans Heroes III) et cernées d'un liseré doré lumineux qui suit le contour de la zone (obstacles et troupes exclus). Vérifié à l'ordinateur et au téléphone (`dessinerCombat` sans erreur au tour du joueur).

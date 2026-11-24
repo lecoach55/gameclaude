@@ -202,3 +202,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v102 (24/11) — rivages adoucis
 - Le champ « distance à l'eau » qui creuse le sol est flouté sur environ une case (deux passes) puis légèrement bruité : les côtes diagonales ne font plus d'escaliers de cases ; une case d'eau isolée reste de l'eau (vérifié : pas de flaque parasite sur la graine 7).
 - Essai rejeté : herbe « peinte » (filtre médian + mode comme terre/lande) — à peine visible et plus plate que la photo.
+
+## v103 (24/11) — créatures de la ville sans « autocollant »
+- Les créatures posées devant leurs habitations (panorama de la ville) n'ont plus le liseré sombre ni le liseré doré de la carte et des combats : elles se fondent dans la scène éclairée (planche brute, `plancheBrute` dans sprites.js ; filtres de couleur TEINTE3D conservés). Clics toujours exacts (villes_clics 28/28).

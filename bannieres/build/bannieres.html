@@ -1420,16 +1420,18 @@ const LISERE=new Map();function planche3D(im){if(!im||!im.width)return im;let c=
   if(elite){sg.fillStyle='rgba(232,186,70,1)';sg.fillRect(0,0,w,h);for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])cg.drawImage(sil,dx,dy);}
   cg.filter='contrast(1.07) saturate(1.1)'+(TEINTE3D[id0]?' '+TEINTE3D[id0]:'');cg.drawImage(im,0,0);cg.filter='none';}catch(e){c=im;}
  LISERE.set(im,c);return c;}
+/* 24/11 : planche sans liseré (créatures de la ville, posées dans une scène éclairée : le liseré leur donnait un air d'autocollant) */
+const BRUTE=new Map();function plancheBrute(im,id){let c=BRUTE.get(im);if(c)return c;c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.filter='contrast(1.04) saturate(.95)'+(TEINTE3D[id]?' '+TEINTE3D[id]:'');g.drawImage(im,0,0);g.filter='none';BRUTE.set(im,c);return c;}
 /* 23/11 : ombre portée des créatures (silhouette noire couchée vers l'arrière-droite, côté opposé au soleil comme les arbres) */
 const PL_NOIR=new WeakMap();function plancheNoire(im){let c=PL_NOIR.get(im);if(c)return c;c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);PL_NOIR.set(im,c);return c;}
 function ombre3D(g,id,an,k,x,y,ppu,miroir,a){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=plancheNoire(planche3D(im0));const e=ppu/D.pxu;g.save();g.globalAlpha*=a;g.translate(x,y);g.transform(1,0,-.75,.32,0,0);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
-function dessiner3D(g,id,an,k,x,y,ppu,miroir){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=planche3D(im0);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
+function dessiner3D(g,id,an,k,x,y,ppu,miroir,brut){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=brut?plancheBrute(im0,id):planche3D(im0);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
 charger3D();
 // sprite d'une créature (face à droite), taille S, avec ombre
-function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);
+function spriteCreature(id,S,brut){const k=id+':'+S+(brut?'b':'');if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);
  if(a3d(id)){const D=SPR3D[id];const g=c.getContext('2d');ombreSol(g,S*.5,S*.896,S*.3,S*.06,.4);// même cadrage que les créatures dessinées : sol à 0,896 S
   let ppu=S*.62/1.7;const [im,sx,sy,sw,sh]=cadre3D(id,'idle',0);const e0=ppu/D.pxu;const larg=Math.max(D.ax,sw-D.ax)*2*e0,haut=D.ay*e0;const f=Math.min(1,S*.98/larg,S*.86/haut);ppu*=f;
-  dessiner3D(g,id,'idle',0,S*.5,S*.896,ppu,false);SPR_CACHE[k]=c;return c;}const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
+  dessiner3D(g,id,'idle',0,S*.5,S*.896,ppu,false,brut);SPR_CACHE[k]=c;return c;}const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
  ombreSol(g,50,91,30,6,.4);
  ({chevaucheur:dessChevaucheur,oiseau:dessOiseau,behemoth:dessBehemoth,hum:dessHum,squel:dessSquel,spectre:dessSpectre,cheval:dessCheval,cavalier:dessCavalier,centaure:dessCentaure,griffon:dessGriffon,loup:dessLoup,treant:dessTreant,dragon:dessDragon,ange:dessAnge})[d.t](g,d);
  eclairage(c);SPR_CACHE[k]=c;return c;}
@@ -6544,8 +6546,8 @@ A.panoVille=(v,W,H)=>{const R0=rendu();if(!R0)return null;W=Math.round(W);H=Math
   const gr=fusionner(batiment3D(b,v,u,P,nuit));gr.position.set((fx-.5)*L*.94,0,z);if(b.startsWith('hab')||b==='taverne'||b==='marche'||b==='silo')gr.rotation.y=-(fx-.5)*.5;gr.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(gr);gr.updateMatrixWorld(true);gr.traverse(o=>{if(o.userData.face){const pq=o.parent.getWorldQuaternion(new T.Quaternion()).invert();o.quaternion.copy(pq.multiply(cam.quaternion));}});gr.traverse(o=>{o.userData.bidx=objs.length;});objs.push([b,gr,u]);
   // créature devant son habitation (19/11) : panneau posé au sol dans la scène 3D (cachée par les bâtiments placés devant, au lieu de flotter par-dessus)
   if(b.startsWith('hab')&&!v.sansCre){const niv=+b[3];const cre0=FAC[v.fac].crea[niv-1];const cre=v.bat['hab'+niv+'u']&&CRE[cre0].amelio?CRE[cre0].amelio:cre0;const Sw=u*1.25;
-   const tx=new T.CanvasTexture(spriteCreature(cre,256));tx.colorSpace=T.SRGBColorSpace;texV.push(tx);const mc=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xa8a8c0:0xf4f0ea});matV.push(mc);
-   const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);{const [cx,cz]=posCre(b,gr,u);pc.position.set(cx,.03,cz);}pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;pc.userData.bidx=objs.length-1;{const sv=mkC(256,256),sg=sv.getContext('2d');sg.drawImage(spriteCreature(cre,256),0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,256,256);const st=new T.CanvasTexture(sv);texV.push(st);pc.userData.sil=st;}sc.add(pc);}}
+   const tx=new T.CanvasTexture(spriteCreature(cre,256,true));tx.colorSpace=T.SRGBColorSpace;texV.push(tx);const mc=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0xa8a8c0:0xf4f0ea});matV.push(mc);
+   const pc=new T.Mesh(GCRV,mc);pc.scale.setScalar(Sw);{const [cx,cz]=posCre(b,gr,u);pc.position.set(cx,.03,cz);}pc.quaternion.copy(cam.quaternion);pc.renderOrder=3;pc.userData.bidx=objs.length-1;{const sv=mkC(256,256),sg=sv.getContext('2d');sg.drawImage(spriteCreature(cre,256,true),0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,256,256);const st=new T.CanvasTexture(sv);texV.push(st);pc.userData.sil=st;}sc.add(pc);}}
  const dpr0=R0.getPixelRatio(),sz=R0.getSize(new T.Vector2());const exp0=R0.toneMappingExposure;
  const mIb=MPI.bm,cIb=mIb&&mIb.color.getHex();if(mIb&&nuit)mIb.color.setRGB(.42,.44,.6);R0.setPixelRatio(1);R0.setSize(W,H,false);R0.toneMappingExposure=nuit?1.1:ciel?1.06:.95;R0.shadowMap.needsUpdate=true;R0.render(sc,cam);if(mIb)mIb.color.setHex(cIb);
  const c=mkC(W,H);const cg=c.getContext('2d');cg.drawImage(R0.domElement,0,0);if(ciel)etalonner(c,0,0,W,H,{sx:-.05,sy:.1,chaud:hd?'rgba(255,170,90,.5)':'rgba(255,200,130,.45)',vignette:'rgba(180,166,152,1)'});

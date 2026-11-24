@@ -191,16 +191,18 @@ const LISERE=new Map();function planche3D(im){if(!im||!im.width)return im;let c=
   if(elite){sg.fillStyle='rgba(232,186,70,1)';sg.fillRect(0,0,w,h);for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]])cg.drawImage(sil,dx,dy);}
   cg.filter='contrast(1.07) saturate(1.1)'+(TEINTE3D[id0]?' '+TEINTE3D[id0]:'');cg.drawImage(im,0,0);cg.filter='none';}catch(e){c=im;}
  LISERE.set(im,c);return c;}
+/* 24/11 : planche sans liseré (créatures de la ville, posées dans une scène éclairée : le liseré leur donnait un air d'autocollant) */
+const BRUTE=new Map();function plancheBrute(im,id){let c=BRUTE.get(im);if(c)return c;c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.filter='contrast(1.04) saturate(.95)'+(TEINTE3D[id]?' '+TEINTE3D[id]:'');g.drawImage(im,0,0);g.filter='none';BRUTE.set(im,c);return c;}
 /* 23/11 : ombre portée des créatures (silhouette noire couchée vers l'arrière-droite, côté opposé au soleil comme les arbres) */
 const PL_NOIR=new WeakMap();function plancheNoire(im){let c=PL_NOIR.get(im);if(c)return c;c=document.createElement('canvas');c.width=im.width;c.height=im.height;const x=c.getContext('2d');x.drawImage(im,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);PL_NOIR.set(im,c);return c;}
 function ombre3D(g,id,an,k,x,y,ppu,miroir,a){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=plancheNoire(planche3D(im0));const e=ppu/D.pxu;g.save();g.globalAlpha*=a;g.translate(x,y);g.transform(1,0,-.75,.32,0,0);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
-function dessiner3D(g,id,an,k,x,y,ppu,miroir){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=planche3D(im0);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
+function dessiner3D(g,id,an,k,x,y,ppu,miroir,brut){const D=SPR3D[id];const [im0,sx,sy,sw,sh]=cadre3D(id,an,k);const im=brut?plancheBrute(im0,id):planche3D(im0);const e=ppu/D.pxu;g.save();g.translate(x,y);if(miroir)g.scale(-1,1);g.drawImage(im,sx,sy,sw,sh,-D.ax*e,-D.ay*e,sw*e,sh*e);g.restore();}
 charger3D();
 // sprite d'une créature (face à droite), taille S, avec ombre
-function spriteCreature(id,S){const k=id+':'+S;if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);
+function spriteCreature(id,S,brut){const k=id+':'+S+(brut?'b':'');if(SPR_CACHE[k])return SPR_CACHE[k];const c=mkC(S,S);
  if(a3d(id)){const D=SPR3D[id];const g=c.getContext('2d');ombreSol(g,S*.5,S*.896,S*.3,S*.06,.4);// même cadrage que les créatures dessinées : sol à 0,896 S
   let ppu=S*.62/1.7;const [im,sx,sy,sw,sh]=cadre3D(id,'idle',0);const e0=ppu/D.pxu;const larg=Math.max(D.ax,sw-D.ax)*2*e0,haut=D.ay*e0;const f=Math.min(1,S*.98/larg,S*.86/haut);ppu*=f;
-  dessiner3D(g,id,'idle',0,S*.5,S*.896,ppu,false);SPR_CACHE[k]=c;return c;}const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
+  dessiner3D(g,id,'idle',0,S*.5,S*.896,ppu,false,brut);SPR_CACHE[k]=c;return c;}const g=c.getContext('2d');g.translate(S*.1,S*.16);g.scale(S/125,S/125);const d=CRE[id].d; // marge : ailes et armes ne sont jamais coupées
  ombreSol(g,50,91,30,6,.4);
  ({chevaucheur:dessChevaucheur,oiseau:dessOiseau,behemoth:dessBehemoth,hum:dessHum,squel:dessSquel,spectre:dessSpectre,cheval:dessCheval,cavalier:dessCavalier,centaure:dessCentaure,griffon:dessGriffon,loup:dessLoup,treant:dessTreant,dragon:dessDragon,ange:dessAnge})[d.t](g,d);
  eclairage(c);SPR_CACHE[k]=c;return c;}

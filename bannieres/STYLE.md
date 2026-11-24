@@ -169,3 +169,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - `outils/blender/colombages_peints.py` (ELEV=8 ROT=32) : trois maisons du Bastion (col_a/b/c : rez de pierre, étage en encorbellement à poutres sombres et volets verts, toit de tuiles rouges, pignons, cheminée, lucarne ou auvent) à la place des maisons Sketchfab (pierre/pilotis/lierre, toujours dans imp/ mais plus utilisées par le Bastion).
 - Eau de la carte : scintillement plus rare et plus doux, vagues moins marquées.
 - v73 : liche sans pose T — planche refaite avec l'animation du modèle (`planche_sprites.py liche_sf.glb … --comme-bannieres --rotation 30 --hauteur 1.8 --anim "idle=Take 001,atk=Take 001,hit=Take 001"`, puis pack.py --fusion). La pose T venait de la pose de repos.
+- v74 : hôtel de ville du Bastion peint (`colombages_peints.py` → col_hv : grande maison à colombages + beffroi à horloge et toit d'ardoise, bannières bleues) à la place de l'église Sketchfab.

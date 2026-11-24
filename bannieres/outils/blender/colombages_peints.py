@@ -44,7 +44,20 @@ def maison(L, P, etages, toit_c, graine, lucarne=False, auvent=False):
         for sx in (-1, 1): cyl(.04, .9, (sx * L * .35, -P / 2 - .55, .45), PO, 8)
         boite((L * .85, .7, .06), (0, -P / 2 - .35, .95), mat('toile_c', (.75, .2, .15, 1), r=.9), (.35, 0, 0))
 
+def hotel():  # hôtel de ville : grande maison à colombages à deux étages, beffroi carré au toit pointu bleu, horloge, bannières
+    maison(3.4, 2.2, 2, (.9, .55, .45, 1), 21, True, False)
+    PI = MATS['pierre_c']; PO = MATS['poutre_c']; X = 2.25
+    boite((1.1, 1.1, 3.4), (X, 0, 1.7), PI); boite((1.2, 1.2, 1.5), (X, 0, 4.15), MATS['enduit'])
+    for x in (-.6, .6): boite((.08, 1.22, 1.5), (X + x, 0, 4.15), PO)
+    boite((1.26, 1.26, .12), (X, 0, 4.9), PO)
+    bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=1.0, depth=2.3, location=(X, 0, 6.1), rotation=(0, 0, math.pi / 4)); ob(bpy.context.object, mat('ardoise_hv', (.45, .58, .95, 1), 'ardoise.jpg', 1.4))
+    cyl(.34, .05, (X, -.62, 4.2), mat('horloge', (.95, .9, .7, 1), r=.5), 24).rotation_euler = (math.pi / 2, 0, 0)
+    boite((.03, .02, .24), (X, -.65, 4.27), PO); boite((.16, .02, .03), (X + .07, -.65, 4.2), PO)
+    boite((.45, .05, .8), (X, -.56, .4), mat('porte_c2', (.35, .2, .1, 1), 'poutre.jpg', 2))
+    for x in (-1.5, 1.5):
+        cyl(.03, 1.2, (x, -1.45, 2.8), PO, 8); boite((.04, .35, .7), (x, -1.62, 2.95), mat('banniere_hv', (.15, .3, .75, 1), r=.9))
 for nom, args in [('col_a', (2.2, 1.6, 1, (1, .62, .5, 1), 3, False, False)),
                   ('col_b', (2.8, 1.8, 2, (.9, .55, .45, 1), 7, True, False)),
                   ('col_c', (2.4, 1.7, 1, (.65, .6, .62, 1), 11, False, True))]:
     sc = scene(); maison(*args); rendre(sc, nom, 460)
+sc = scene(); hotel(); rendre(sc, 'col_hv', 520)

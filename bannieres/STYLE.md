@@ -211,3 +211,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v105 (24/11) — grenier propre à chaque faction
 - `outils/blender/greniers_var.py` (ELEV=8 ROT=32) : greniers ronds en torchis sur pierres (Horde), grenier tressé sur pilotis à chaume moussu (Sylve), ossuaire de pierre à toit d'ardoise (Nécropole). La grange de bois du Bastion n'apparaît plus dans les autres villes.
+
+## v106 (24/11) — écran d'accueil
+- Fond (ville du Bastion en travelling) rendu une fois légèrement flou et assourdi (`blur ≈1,4 px`, saturation .9), vignette sombre sur les bords : le titre se détache comme devant un décor de théâtre.
+- Halo du titre en dégradé « closest-side » (plus de rectangle sombre visible), titre sur une ligne à l'ordinateur ; marges réduites au téléphone.
+- Essai rejeté : bruit plus fort sur les rivages (lacs moins rectilignes) — il comblait un chenal d'une case sur la graine 7 (eau dessinée en terre).

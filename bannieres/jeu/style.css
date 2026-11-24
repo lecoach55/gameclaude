@@ -15,7 +15,7 @@ button{font-family:inherit}
 .ib.fin{background:linear-gradient(180deg,#b88a2a,#6a4a12)}
 /* accueil */
 #fondAccueil{position:absolute;inset:0;width:100%;height:100%}
-.titre-bloc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(92vw,640px);padding:28px 20px;background:radial-gradient(ellipse at center,rgba(20,10,4,.82),rgba(20,10,4,.35) 70%,transparent);border-radius:30px}
+.titre-bloc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(96vw,860px);background:radial-gradient(closest-side,rgba(20,10,4,.86),rgba(20,10,4,.62) 58%,rgba(20,10,4,0));padding:min(70px,8vh) min(80px,5vw)}/* 24/11 : halo sans bord rectangulaire */
 h1{font-family:"Cinzel","Palatino Linotype",Georgia,serif;font-weight:700;font-size:clamp(30px,6.2vw,58px);margin:0;color:#f6d77a;letter-spacing:1px;text-shadow:0 2px 0 #6a3e10,0 4px 14px #000,0 0 30px rgba(255,190,80,.35);font-variant:small-caps}
 h1 span{color:#e8b850;font-style:italic}
 .sous{margin:10px 0 24px;color:#e8dcc0;font-style:italic;text-shadow:0 1px 3px #000}

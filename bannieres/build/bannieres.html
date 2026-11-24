@@ -27,7 +27,7 @@ button{font-family:inherit}
 .ib.fin{background:linear-gradient(180deg,#b88a2a,#6a4a12)}
 /* accueil */
 #fondAccueil{position:absolute;inset:0;width:100%;height:100%}
-.titre-bloc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(92vw,640px);padding:28px 20px;background:radial-gradient(ellipse at center,rgba(20,10,4,.82),rgba(20,10,4,.35) 70%,transparent);border-radius:30px}
+.titre-bloc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;width:min(96vw,860px);background:radial-gradient(closest-side,rgba(20,10,4,.86),rgba(20,10,4,.62) 58%,rgba(20,10,4,0));padding:min(70px,8vh) min(80px,5vw)}/* 24/11 : halo sans bord rectangulaire */
 h1{font-family:"Cinzel","Palatino Linotype",Georgia,serif;font-weight:700;font-size:clamp(30px,6.2vw,58px);margin:0;color:#f6d77a;letter-spacing:1px;text-shadow:0 2px 0 #6a3e10,0 4px 14px #000,0 0 30px rgba(255,190,80,.35);font-variant:small-caps}
 h1 span{color:#e8b850;font-style:italic}
 .sous{margin:10px 0 24px;color:#e8dcc0;font-style:italic;text-shadow:0 1px 3px #000}
@@ -6921,9 +6921,11 @@ HOOK.combat=async(A,D,opts)=>{const ha=humain(A.joueur),hd=humain(D.joueur);if(!
 function fondAccueil(){const c=$('fondAccueil');c.width=innerWidth*Math.min(2,devicePixelRatio||1);c.height=innerHeight*Math.min(2,devicePixelRatio||1);const g=c.getContext('2d');
  // fond en 3D : une ville du Bastion rendue une fois, avec un lent travelling
  if(V.m3&&R3.ok&&R3.pret&&R3.pret()&&V.acc3!==false){try{if(!V.acc3||V.acc3.W!==c.width){const bat={};for(const b of BAT_ORDRE)if(!BAT[b].unique)bat[b]=1;const W=Math.round(c.width*1.12),H=Math.round(c.height*1.12);
-   V.acc3=R3.panoVille({id:11,fac:'bastion',nom:'',bat,prop:-1,sansCre:1},W,H);V.acc3.W=c.width;}
+   V.acc3=R3.panoVille({id:11,fac:'bastion',nom:'',bat,prop:-1,sansCre:1},W,H);V.acc3.W=c.width;
+   {/* 24/11 : fond légèrement flou et assourdi, comme un décor de théâtre : le titre ressort, la ville reste lisible */const b=document.createElement('canvas');b.width=V.acc3.c.width;b.height=V.acc3.c.height;const bg=b.getContext('2d');bg.filter='blur('+(1.4*b.width/1434).toFixed(2)+'px) saturate(.9) brightness(.94)';bg.drawImage(V.acc3.c,0,0);bg.filter='none';V.acc3.c=b;}}
   const t=performance.now()/1000;const im=V.acc3.c;const ox=-(Math.sin(t*.06)+1)*.5*(im.width-c.width),oy=-(Math.cos(t*.05)+1)*.5*(im.height-c.height);g.drawImage(im,ox,oy);
-  const gr=g.createLinearGradient(0,0,0,c.height);gr.addColorStop(0,'rgba(0,0,0,.25)');gr.addColorStop(.5,'rgba(0,0,0,.05)');gr.addColorStop(1,'rgba(0,0,0,.45)');g.fillStyle=gr;g.fillRect(0,0,c.width,c.height);return;}catch(e){console.error(e);V.acc3=false;}}
+  const gr=g.createLinearGradient(0,0,0,c.height);gr.addColorStop(0,'rgba(0,0,0,.25)');gr.addColorStop(.5,'rgba(0,0,0,.05)');gr.addColorStop(1,'rgba(0,0,0,.45)');g.fillStyle=gr;g.fillRect(0,0,c.width,c.height);
+  const vg=g.createRadialGradient(c.width/2,c.height*.45,Math.min(c.width,c.height)*.35,c.width/2,c.height*.45,Math.hypot(c.width,c.height)*.6);vg.addColorStop(0,'rgba(10,6,2,0)');vg.addColorStop(1,'rgba(10,6,2,.55)');g.fillStyle=vg;g.fillRect(0,0,c.width,c.height);return;}catch(e){console.error(e);V.acc3=false;}}
  if(!V.accueil){const gen=genererCarte({graine:31,taille:28,joueurs:[{fac:'bastion'},{fac:'necro'}],eau:2,monstres:1});V.accueil={sol:peindreSol(gen.carte),gen};}
  const {sol,gen}=V.accueil;const N=gen.carte.N;const k=Math.max(c.width,c.height)/(N*PX)*1.25;const t=performance.now()/1000;const ox=-((Math.sin(t*.05)+1)*.5)*(N*PX*k-c.width),oy=-((Math.cos(t*.04)+1)*.5)*(N*PX*k-c.height);
  g.drawImage(sol,ox,oy,N*PX*k,N*PX*k);const T=PX*k;

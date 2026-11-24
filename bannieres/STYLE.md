@@ -228,3 +228,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Médaillons de sorts (`iconeSort` dans sprites.js) : glyphe clair en relief sur un disque coloré par école (feu, foudre, lumière, terre, ténèbres, air), cerclé d'or ; dans la guilde des mages et le livre de sorts du combat.
 - Taverne : portrait de la classe proposée sur chaque carte.
 - (v110) Fiche du héros : médaillons devant les sorts connus. Combat : héros monté 30 % plus grand (comme le héros de Heroes III à côté de son armée).
+
+## v111 (24/11) — fumée au-dessus des villes
+- Cinq bouffées douces (sprites, sans écriture de profondeur) montent du donjon de chaque ville de la carte et se dissipent : la carte paraît habitée. Coût négligeable (5 sprites par ville).

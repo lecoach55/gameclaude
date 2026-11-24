@@ -6232,12 +6232,15 @@ let MOMB=null;function ombrePied(l){if(!MOMB){const c=mkC(128,128),g=c.getContex
  const o=new T.Mesh(new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),MOMB);o.scale.set(l,1,l*.55);o.position.y=.02;o.renderOrder=1;o.raycast=()=>{};return o;}
 function panneau(canvas,cle,taille,miroir){const k=cle+(miroir?'-':'');let m=PANM.get(k);if(!m){const t=texCanvas(canvas,cle);m=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));if(miroir){m.map=t.clone();m.map.repeat.x=-1;m.map.offset.x=1;m.map.needsUpdate=true;}PANM.set(k,m);}
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
+/* 24/11 : éclat doré qui scintille sur les coffres (on les repère d'un coup d'œil, comme dans Heroes III) */
+let TETO=null;function scintille(g,x,y){if(!TETO){const c=mkC(64,64),q=c.getContext('2d');const gr=q.createRadialGradient(32,32,0,32,32,12);gr.addColorStop(0,'rgba(255,250,220,1)');gr.addColorStop(1,'rgba(255,220,120,0)');q.fillStyle=gr;q.fillRect(0,0,64,64);q.globalCompositeOperation='lighter';for(const [w,h] of [[30,2.2],[2.2,30]]){const l=q.createRadialGradient(32,32,0,32,32,30);l.addColorStop(0,'rgba(255,240,190,.95)');l.addColorStop(1,'rgba(255,200,90,0)');q.fillStyle=l;q.fillRect(32-w,32-h,w*2,h*2);}TETO=new T.CanvasTexture(c);TETO.colorSpace=T.SRGBColorSpace;}
+ const s=new T.Sprite(new T.SpriteMaterial({map:TETO,transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:0}));s.position.set(x,y,0);s.raycast=()=>{};s.renderOrder=5;g.add(s);g.userData.eclat=s;}
 /* 24/11 : fumée de cheminée au-dessus des villes de la carte (cinq bouffées douces qui montent et se dissipent) */
 let TFUM=null;function fumeeVille(g){if(!TFUM){const c=mkC(64,64),x=c.getContext('2d');const gr=x.createRadialGradient(32,32,2,32,32,30);gr.addColorStop(0,'rgba(235,232,226,.9)');gr.addColorStop(.5,'rgba(215,212,206,.45)');gr.addColorStop(1,'rgba(200,198,194,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);TFUM=new T.CanvasTexture(c);TFUM.colorSpace=T.SRGBColorSpace;}
  const f=[];for(let i=0;i<5;i++){const s=new T.Sprite(new T.SpriteMaterial({map:TFUM,transparent:true,depthWrite:false,depthTest:false,opacity:0}));s.raycast=()=>{};s.renderOrder=4;g.add(s);f.push(s);}g.userData.fumee=f;}
 function animFumee(g,t){const f=g.userData.fumee;const ph=(g.userData.id||0)*.37;for(let i=0;i<f.length;i++){const p=(t*.16+i/f.length+ph)%1;const s=f[i];s.position.set(-.7+p*.6+Math.sin(t*.7+i)*.06,3.3+p*2.2,-.5);const k=.35+p*1.0;s.scale.set(k,k,1);s.material.opacity=Math.sin(Math.PI*Math.min(1,p*1.15))*.5;}}
 function objet3D(o){let g=null;
- switch(o.t){case 'ville':g=villeMesh(o,true);fumeeVille(g);break;case 'mine':g=mineMesh(o);break;case 'res':g=pileMesh(o);break;case 'coffre':g=coffreMesh();break;case 'artefact':g=artefactMesh(o);break;
+ switch(o.t){case 'ville':g=villeMesh(o,true);fumeeVille(g);break;case 'mine':g=mineMesh(o);break;case 'res':g=pileMesh(o);break;case 'coffre':g=coffreMesh();scintille(g,.1,.35);break;case 'artefact':g=artefactMesh(o);break;
   case 'bat':g=lieuMesh(o);if(o.b==='habitation'&&o.cre){const s=panneau(spriteCreature(o.cre,128),'c'+o.cre+'128',.9);s.position.set(.25,0,.3);g.add(s);}break;
   case 'monstre':{g=new T.Group();const s=panneau(spriteMiroir(o.cre,160),'m'+o.cre+'160',1.75);g.add(ombrePied(.95),s);g.userData.sprite=s;break;}}
  if(!g)return null;const y=o.t==='ville'?sol(o.x,o.y-.4):sol(o.x,o.y);g.position.set(o.x+.5,y,o.y+.5+(o.t==='ville'?-1.05:o.t==='mine'?-.45:0));
@@ -6304,7 +6307,7 @@ A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;
  if(V.fogDirty){majBrume();V.fogDirty=false;}
  majObjets();majHeros();majChemin();
  // animations : ailes des moulins, roues, artefacts, drapeaux
- for(const g of objets.values()){if(!g.visible)continue;if(g.userData.tourne)g.userData.tourne.rotation.z=t*1.2;if(g.userData.flotte){g.userData.flotte.position.y=.38+Math.sin(t*2+g.userData.id)*.05;g.userData.flotte.rotation.y=t;}if(g.userData.sprite)g.userData.sprite.position.y=Math.abs(Math.sin(t*2+g.userData.id))*.03;if(g.userData.fumee)animFumee(g,t);}
+ for(const g of objets.values()){if(!g.visible)continue;if(g.userData.tourne)g.userData.tourne.rotation.z=t*1.2;if(g.userData.flotte){g.userData.flotte.position.y=.38+Math.sin(t*2+g.userData.id)*.05;g.userData.flotte.rotation.y=t;}if(g.userData.sprite)g.userData.sprite.position.y=Math.abs(Math.sin(t*2+g.userData.id))*.03;if(g.userData.fumee)animFumee(g,t);if(g.userData.eclat){const e=g.userData.eclat,p=((t*.45+(g.userData.id||0)*.61)%1.6);const a=p<.5?Math.sin(Math.PI*p/.5):0;e.material.opacity=a*.95;e.scale.setScalar(.12+a*.3);e.material.rotation=t*.8;}}
  const hs=V.sel&&V.sel.t==='heros'?heroPar(V.sel.id):null;anneau.visible=!!hs;if(hs){const [hx,hy]=posHeros(hs);anneau.position.set(hx+.5,sol(Math.round(hx),Math.round(hy))+.04,hy+.5);anneau.material.opacity=.55+.3*Math.sin(t*4);}
  croixG.visible=graalConnu(vueJoueur());if(croixG.visible){const [gx,gy]=xy(G.carte.graal);croixG.position.set(gx+.5,sol(gx,gy)+.05,gy+.5);}
  if(eau.material.normalMap){eau.material.normalMap.offset.set(t*.012,t*.007);}

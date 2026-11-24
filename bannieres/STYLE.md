@@ -231,3 +231,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 
 ## v111 (24/11) — fumée au-dessus des villes
 - Cinq bouffées douces (sprites, sans écriture de profondeur) montent du donjon de chaque ville de la carte et se dissipent : la carte paraît habitée. Coût négligeable (5 sprites par ville).
+
+## v112 (24/11) — coffres qui scintillent
+- Éclat doré (étoile à quatre branches, mélange additif) qui s'allume brièvement sur chaque coffre de la carte, à un rythme propre à chacun : les coffres se repèrent d'un coup d'œil.

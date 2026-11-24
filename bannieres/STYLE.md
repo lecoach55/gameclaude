@@ -277,3 +277,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v125 (24/11 après-midi) — flèches de chemin visibles
 - **Bug corrigé** : les flèches du chemin du héros n'apparaissaient pas sur la carte 3D (InstancedMesh dont la sphère englobante était calculée à vide au premier rendu → toujours hors champ). `frustumCulled=false`.
 - Flèches redessinées : pointe épaisse cerclée de sombre avec ombre, vertes si atteignables ce tour, rouges au-delà, la dernière plus grande.
+
+## v126 (24/11 après-midi) — effets de sorts
+- Orbes (flèche magique, tirs magiques) : halo lumineux avec traînée. Boule de feu : onde de choc au sol, boule de feu, 26 braises projetées en gerbe, fumée qui monte. Sorts d'aide et de malédiction : cercle de runes au sol qui tourne et colonne de lumière. Éclair : flash sur le sol à l'impact.

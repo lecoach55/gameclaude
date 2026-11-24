@@ -194,3 +194,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v95 : sol de lave régénéré (`sols_peints.py lave` : plaques de basalte irrégulières, Voronoï fortement déformé, fissures d'épaisseur variable) : coulées incandescentes en grappes au lieu d'un carrelage.
 - v96 : nuages de ville dessinés au quart de la taille puis agrandis avec un seul flou (ouverture de ville 1,2 s → mesurée sur le Mac).
 - v97 : flaques du marais moins nombreuses et plus grandes (effet de pois en combat).
+- v98 : rochers d'obstacle en combat légèrement assombris ; rides du sable encore atténuées (plus d'effet de veinage sous la grille).

@@ -22,9 +22,9 @@ if 'sable' in QUOI:
     # rides de sable : bandes diagonales périodiques (nombre entier de périodes) déformées par le bruit
     ph = 2 * np.pi * (23 * x + 10 * y) + (moyen - .5) * 14 + (gros - .5) * 8
     rides = (np.sin(ph) * .5 + .5) ** 1.6
-    h = rides * .35 + gros * .5 + fin * .15
+    h = rides * .2 + gros * .6 + fin * .2
     base = np.array([216, 176, 116.]); clair = np.array([240, 212, 156.]); ombre = np.array([176, 128, 76.])
-    t = (rides * .3 + gros * .7)[..., None]
+    t = (rides * .16 + gros * .84)[..., None]
     rgb = ombre * (1 - t) + clair * t; rgb = rgb * .5 + base * .5 + (fin[..., None] - .5) * 14
     cailloux = (bruit(160, 4) > .86)[..., None]; rgb = np.where(cailloux, rgb * .78, rgb)
     sauver('sable', rgb, h, 4)

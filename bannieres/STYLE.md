@@ -327,3 +327,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Textures propres à chaque carte (appartenance des terrains, masque routes/rivières, nénuphars) libérées à la nouvelle partie ; restes de débogage retirés (`bsDbg`, `__ponts`).
 - Limites entre terrains : appartenance plus franche (pente ×2, flou léger) et bruit réduit : plus de bord droit quand un terrain voisin n'était pas parmi les 4 cases candidates (ex. neige / herbe, graine 31).
 - Sauvegardes et équilibre : rien de modifié (confirmé par la relecture ; `rivieres()` est purement visuelle).
+- (v148) Monstres de la carte : chacun son rythme de respiration (texture clonée, même image), libérés à la nouvelle partie.

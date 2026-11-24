@@ -450,8 +450,10 @@ let MOMB=null;function ombrePied(l){if(!MOMB){const c=mkC(128,128),g=c.getContex
  const t=new T.CanvasTexture(c);MOMB=brume(new T.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}),{cle:'ombp'});}
  const o=new T.Mesh(new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),MOMB);o.scale.set(l,1,l*.55);o.position.y=.02;o.renderOrder=1;o.raycast=()=>{};return o;}
 /* 24/11 : monstres de la carte animés (4 images de repos dans une bande, décalage de texture : aucun coût de rendu en plus) */
-const PANA=new Set();function panneauAnime(bande,cle,taille,id){let m=PANM.get(cle);if(!m){const t=new T.CanvasTexture(bande);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.repeat.set(.25,1);
-  m=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));m.userData.ph=(id.length*7+id.charCodeAt(0))%13/13;PANM.set(cle,m);PANA.add(m);}
+const PANA=new Set();function panneauAnime(bande,cle,taille,id){let m0=PANM.get(cle);if(!m0){const t=new T.CanvasTexture(bande);t.colorSpace=T.SRGBColorSpace;t.anisotropy=4;t.repeat.set(.25,1);
+  m0=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));PANM.set(cle,m0);}
+ /* chaque monstre a son propre décalage (texture clonée, même image) : ils ne respirent pas tous en même temps */
+ const m=m0.clone();m.onBeforeCompile=m0.onBeforeCompile;m.customProgramCacheKey=m0.customProgramCacheKey;m.map=m0.map.clone();m.map.needsUpdate=true;m.userData.ph=Math.random()*4;m.userData.v=4+Math.random()*1.2;PANA.add(m);
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
 function panneau(canvas,cle,taille,miroir){const k=cle+(miroir?'-':'');let m=PANM.get(k);if(!m){const t=texCanvas(canvas,cle);m=brume(new T.MeshBasicMaterial({map:t,transparent:true,alphaTest:.12,side:T.DoubleSide}));if(miroir){m.map=t.clone();m.map.repeat.x=-1;m.map.offset.x=1;m.map.needsUpdate=true;}PANM.set(k,m);}
  const s=new T.Mesh(GPAN,m);s.userData.pan=1;s.scale.set(taille,taille*PAN_K,1);s.rotation.x=-PAN_A;s.renderOrder=2;return s;}
@@ -539,12 +541,12 @@ A.init=async()=>{const cv=document.getElementById('carte3d');S.qual=qualDepart()
  N=G.carte.N;fogData=new Uint8Array(N*N);fogTex=new T.DataTexture(fogData,N,N,T.RedFormat);fogTex.magFilter=T.LinearFilter;fogTex.minFilter=T.LinearFilter;U.fog.value=fogTex;U.N.value=N;majBrume();
  construireTerrain();construireDecor();grp=new T.Group();scene.add(grp);objets.clear();herosS.clear();HOMB.clear();construireAides();
  A.redim();A.actif=true;V.fogDirty=false;return true;};
-A.vider=()=>{if(!scene)return;for(const t of JETABLES.splice(0))try{t.dispose();}catch(e){}if(RIVE){RIVE.dispose();RIVE=null;}scene.traverse(o=>{if(o.geometry&&!Object.values(GEO).includes(o.geometry)&&![BOX,CYL,CONE,CONE4,SPH].includes(o.geometry))o.geometry.dispose();});for(const t of TXC.values())t.dispose();TXC.clear();if(terrain&&terrain.material.map)terrain.material.map.dispose();scene=null;objets.clear();herosS.clear();};
+A.vider=()=>{if(!scene)return;for(const m of PANA){m.map.dispose();m.dispose();}PANA.clear();for(const t of JETABLES.splice(0))try{t.dispose();}catch(e){}if(RIVE){RIVE.dispose();RIVE=null;}scene.traverse(o=>{if(o.geometry&&!Object.values(GEO).includes(o.geometry)&&![BOX,CYL,CONE,CONE4,SPH].includes(o.geometry))o.geometry.dispose();});for(const t of TXC.values())t.dispose();TXC.clear();if(terrain&&terrain.material.map)terrain.material.map.dispose();scene=null;objets.clear();herosS.clear();};
 A.redim=()=>{if(!ren)return;const dpr=Math.min(devicePixelRatio||1,S.qual>=2?1.5:S.qual>=1?1.25:1);ren.setPixelRatio(dpr);ren.setSize(innerWidth,innerHeight,false);if(cam){cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();}};
 A.rendre=()=>{if(!A.actif||!G)return;const t=performance.now()/1000;U.t.value=t;U.loin.value=C3.dist>24?1:0;// vue dézoomée : relief fin du sol inutile à cette distance (compense l'eau et le sable du 19/11)
 
  if(V.fogDirty){majBrume();V.fogDirty=false;}
- try{animOiseaux(t);animPoussiere(t);}catch(e){}for(const m of PANA){const f=Math.floor(t*4.5+m.userData.ph*4)%4;m.map.offset.x=f*.25;}
+ try{animOiseaux(t);animPoussiere(t);}catch(e){}for(const m of PANA){const f=Math.floor(t*m.userData.v+m.userData.ph)%4;m.map.offset.x=f*.25;}
  majObjets();majHeros();majChemin();
  // animations : ailes des moulins, roues, artefacts, drapeaux
  for(const g of objets.values()){if(!g.visible)continue;if(g.userData.tourne)g.userData.tourne.rotation.z=t*1.2;if(g.userData.flotte){g.userData.flotte.position.y=.38+Math.sin(t*2+g.userData.id)*.05;g.userData.flotte.rotation.y=t;}if(g.userData.sprite)g.userData.sprite.position.y=Math.abs(Math.sin(t*2+g.userData.id))*.03;if(g.userData.fumee)animFumee(g,t);if(g.userData.eclat){const e=g.userData.eclat,p=((t*.45+(g.userData.id||0)*.61)%1.6);const a=p<.5?Math.sin(Math.PI*p/.5):0;e.material.opacity=a*.95;e.scale.setScalar(.12+a*.3);e.material.rotation=t*.8;}}

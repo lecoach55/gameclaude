@@ -54,9 +54,9 @@ if 'route' in QUOI:  # pavés irréguliers (Voronoï périodique) : pierres beig
 if 'marais' in QUOI:  # herbe de marais (photo d'origine, gardée dans /tmp ou ressources) + petites flaques sombres à reflet
     src = os.environ.get('MARAIS_BASE', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sol_marais_base.jpg'))
     base = np.asarray(Image.open(src).convert('RGB').resize((S, S)), float) * np.array([.92, .95, .85])
-    a, b2, fin = bruit(7, 31), bruit(16, 32), bruit(80, 33)
-    flaque = np.clip((a * .55 + b2 * .45 - .6) * 9, 0, 1)
-    bord = np.clip((a * .55 + b2 * .45 - .54) * 9, 0, 1) - flaque
+    a, b2, fin = bruit(4, 31), bruit(11, 32), bruit(80, 33)
+    flaque = np.clip((a * .65 + b2 * .35 - .64) * 9, 0, 1)
+    bord = np.clip((a * .65 + b2 * .35 - .58) * 9, 0, 1) - flaque
     eau = np.array([30, 46, 44.]); vase = np.array([70, 62, 36.])
     reflet = np.clip((fin - .62) * 3, 0, 1)[..., None] * flaque[..., None]
     rgb = base * (1 - bord[..., None]) + vase * bord[..., None]

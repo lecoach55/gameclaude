@@ -290,4 +290,6 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 ## v131 (24/11 après-midi) — décor qui disparaissait en vue large
 - **Bug important corrigé** : three r160 élimine les InstancedMesh hors champ avec une sphère calculée sur le plan unité, sans le décalage appliqué dans le shader des imposteurs. En vue large (et sur les bords de l'écran), des massifs entiers de montagnes et de forêts disparaissaient en ne laissant que leurs **ombres** (ces grandes taches sombres sur les plaines). La sphère englobante juste est maintenant donnée à l'instance (`im.boundingSphere`).
 - Ombres des imposteurs : carte verticale face au soleil, sans l'inclinaison vers la caméra (ombres plus justes au pied des arbres). Arbres au pied des montagnes sans ombre portée.
-- Banc : carte 138 → 157 appels de dessin, vue large 399 → (voir mesures) ; images/s inchangées dans le banc.
+- Ce bug touchait aussi la vue normale : jusqu'à 4,7 % de l'écran (montagnes, forêts) manquait selon la position de la caméra (mesure verif_culling sur la graine 11, version v130).
+- Banc : appels de dessin 138 → 157 (carte), 399 → 425 (vue large) : ce sont les objets qui manquaient ; images/s inchangées dans le banc.
+- Outil `outils/verif_culling.py [graines]` : rend 5 vues avec et sans élimination hors champ et compare (érosion pour ignorer les liserés du vent) ; code 1 si un objet manque. v130 : DÉFAUT (jusqu'à 4,7 %), v131 : 0 %.

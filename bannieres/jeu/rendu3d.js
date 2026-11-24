@@ -604,6 +604,8 @@ function maisonVue(nom,u,nuit,larg){const me=MAISV[nom],im=RES.maisV&&RES.maisV[
  const tx=new T.Texture(im);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=4;tx.needsUpdate=true;const sv=mkC(im.width,im.height),sg=sv.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,sv.width,sv.height);const st=new T.CanvasTexture(sv);
  const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);const m=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0x9a9ab8:0xffffff});
  const o=new T.Mesh(g,m);o.userData.face=1;o.userData.sil=st;o.castShadow=false;return o;}
+/* 24/11 : image d'un bâtiment pour la fenêtre Construire (rendus Blender des villes) */
+A.imageBat=(b,fac)=>{if(!RES.maisV&&!RES.fortV)return null;if(b==='fort'||b==='citadelle'||b==='chateau')return RES.fortV&&RES.fortV[fac]||null;const b0=b.replace(/u$/,'');const mn=maisonPour(b0,fac);return mn&&RES.maisV&&RES.maisV[mn]||null;};
 function maisonPour(b,fac){const hab=b.startsWith('hab');if(b.startsWith('guilde')&&(fac==='sylve'||fac==='necro'))return fac==='sylve'?'v_tourmage_s':'v_tourmage_n';/* 23/11 : tour de mage propre à la faction */
  if(fac==='necro'){if(b==='marche')return'v_marche_n';if(hab&&(+b[3])%2===0)return'v_mausolee';/* 23/11 : mausolées entre les cryptes */return(hab||b==='taverne'||['conseil','mairie','hotelville','capitole'].includes(b))?'crypte':null;}
  if(b.startsWith('guilde')&&fac!=='horde')return'v_tourmage';if(b==='marche')return fac==='horde'?'v_marche_h':fac==='necro'?'v_marche_n':fac==='sylve'?'v_marche_s':'v_marche';/* 24/11 : marché propre à la faction */if(b==='silo')return'v_grenier';

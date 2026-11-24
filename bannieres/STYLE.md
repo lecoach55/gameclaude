@@ -178,3 +178,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - v80 : plus de troncs photo (« tronc_a », lus comme des bâtons noirs) semés dans la prairie.
 - v81 : ombre de contact (ellipse douce, `ombrePied`) sous les monstres et les héros de la carte.
 - v82 : ombre de contact aussi sous les coffres et les piles de ressources (essai de coffre peint rejeté : le modèle photo d'origine est plus réussi).
+- v83 : fenêtre Construire illustrée (comme Heroes) : chaque carte montre le rendu Blender du bâtiment (`R3.imageBat`) et, pour les habitations, la créature produite ; en 2D, seulement la créature.

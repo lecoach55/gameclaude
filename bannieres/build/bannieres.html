@@ -100,7 +100,7 @@ h1 span{color:#e8b850;font-style:italic}
 .fen .carte-b.ok:hover{background:rgba(255,220,120,.35)}
 .fen .carte-b.non{opacity:.55;cursor:default}
 .fen .carte-b.fait{border-color:#3a8a2a;background:rgba(60,140,40,.15);cursor:default}
-.fen .carte-b b{display:block;font-size:14px;color:#4a1a04}
+.fen .carte-b b{display:block;font-size:14px;color:#4a1a04}.fen .carte-b .bat-img{display:block;width:100%;height:auto;aspect-ratio:200/110;border-radius:3px;margin-bottom:4px;border:1px solid rgba(60,40,10,.5)}
 .fen .cout{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}.fen .cout span{display:inline-flex;align-items:center;gap:2px}.fen .cout canvas{width:16px;height:16px}
 .fen .cout .manque{color:#b0201a;font-weight:bold}
 .fen table{border-collapse:collapse;width:100%;font-size:14px}.fen td,.fen th{padding:3px 5px;border-bottom:1px solid rgba(90,60,20,.3);text-align:left}
@@ -6406,6 +6406,8 @@ function maisonVue(nom,u,nuit,larg){const me=MAISV[nom],im=RES.maisV&&RES.maisV[
  const tx=new T.Texture(im);tx.colorSpace=T.SRGBColorSpace;tx.anisotropy=4;tx.needsUpdate=true;const sv=mkC(im.width,im.height),sg=sv.getContext('2d');sg.drawImage(im,0,0);sg.globalCompositeOperation='source-in';sg.fillStyle='#fff';sg.fillRect(0,0,sv.width,sv.height);const st=new T.CanvasTexture(sv);
  const g=new T.PlaneGeometry(w,hh);g.translate(w/2-me.px/me.w*w,hh/2-(1-me.py/me.h)*hh,0);const m=new T.MeshBasicMaterial({map:tx,transparent:true,alphaTest:.04,toneMapped:false,color:nuit?0x9a9ab8:0xffffff});
  const o=new T.Mesh(g,m);o.userData.face=1;o.userData.sil=st;o.castShadow=false;return o;}
+/* 24/11 : image d'un bâtiment pour la fenêtre Construire (rendus Blender des villes) */
+A.imageBat=(b,fac)=>{if(!RES.maisV&&!RES.fortV)return null;if(b==='fort'||b==='citadelle'||b==='chateau')return RES.fortV&&RES.fortV[fac]||null;const b0=b.replace(/u$/,'');const mn=maisonPour(b0,fac);return mn&&RES.maisV&&RES.maisV[mn]||null;};
 function maisonPour(b,fac){const hab=b.startsWith('hab');if(b.startsWith('guilde')&&(fac==='sylve'||fac==='necro'))return fac==='sylve'?'v_tourmage_s':'v_tourmage_n';/* 23/11 : tour de mage propre à la faction */
  if(fac==='necro'){if(b==='marche')return'v_marche_n';if(hab&&(+b[3])%2===0)return'v_mausolee';/* 23/11 : mausolées entre les cryptes */return(hab||b==='taverne'||['conseil','mairie','hotelville','capitole'].includes(b))?'crypte':null;}
  if(b.startsWith('guilde')&&fac!=='horde')return'v_tourmage';if(b==='marche')return fac==='horde'?'v_marche_h':fac==='necro'?'v_marche_n':fac==='sylve'?'v_marche_s':'v_marche';/* 24/11 : marché propre à la faction */if(b==='silo')return'v_grenier';
@@ -6801,8 +6803,13 @@ function clicBatiment(b){if(BAT[b].niv)return fenRecruter(BAT[b].niv-1);if(b.sta
 async function fenConstruire(){const v=VI.v,p=G.joueurs[v.prop];
  const cartes=BAT_ORDRE.map(b=>{const fait=!!v.bat[b];const d=batDisponible(v,b);if(!fait&&!d.ok&&d.raison==='Déjà amélioré')return'';const c=batCout(b,v.fac);const ok=!fait&&d.ok&&aDeQuoi(p.res,c)&&!v.construit;
   const desc=BAT[b].amel?`Permet de recruter des ${CRE[CRE[FAC[v.fac].crea[BAT[b].niv-1]].amelio].pl.toLowerCase()} et d’améliorer vos ${CRE[FAC[v.fac].crea[BAT[b].niv-1]].pl.toLowerCase()}.`:BAT[b].niv?`Produit ${CRE[FAC[v.fac].crea[BAT[b].niv-1]].cr} ${CRE[FAC[v.fac].crea[BAT[b].niv-1]].pl.toLowerCase()} par semaine.`:BAT[b].desc;
-  return`<div class="carte-b ${fait?'fait':ok?'ok':'non'}" data-b="${b}"><b>${batNom(b,v.fac)}</b><small>${desc}</small>${fait?'<div style="color:#2a6a1a">✔ Construit</div>':(d.ok?txtCout(c,p.res):`<div style="color:#8a2a1a;font-size:12px">${d.raison}</div>`)}</div>`;}).join('');
+  return`<div class="carte-b ${fait?'fait':ok?'ok':'non'}" data-b="${b}"><canvas class="bat-img" width="200" height="110" data-bimg="${b}"></canvas><b>${batNom(b,v.fac)}</b><small>${desc}</small>${fait?'<div style="color:#2a6a1a">✔ Construit</div>':(d.ok?txtCout(c,p.res):`<div style="color:#8a2a1a;font-size:12px">${d.raison}</div>`)}</div>`;}).join('');
  await fenetre(`<h2>Construire à ${esc(v.nom)}</h2>${v.construit?'<p style="text-align:center;color:#8a2a1a">Un seul bâtiment par jour : revenez demain.</p>':''}<div class="grille">${cartes}</div>`,[{t:'Fermer',or:true}],{init:(f,fermer)=>{
+  f.querySelectorAll('canvas[data-bimg]').forEach(c=>{const b=c.dataset.bimg;const g=c.getContext('2d');const gr=g.createLinearGradient(0,0,0,110);gr.addColorStop(0,v.fac==='necro'?'#3a3450':v.fac==='horde'?'#d8a070':'#a8c4e0');gr.addColorStop(1,v.fac==='necro'?'#2a2a2a':v.fac==='horde'?'#8a5a3a':'#7a9a5a');g.fillStyle=gr;g.fillRect(0,0,200,110);
+   let im=null;try{im=window.R3&&R3.imageBat?R3.imageBat(b,v.fac):null;}catch(e){}
+   if(im){const k=Math.min(190/im.width,104/im.height);const w=im.width*k,h=im.height*k;g.drawImage(im,(200-w)/2-(BAT[b].niv?18:0),108-h,w,h);}
+   if(BAT[b].niv){try{const cre=FAC[v.fac].crea[BAT[b].niv-1];const cr=BAT[b].amel&&CRE[cre].amelio?CRE[cre].amelio:cre;g.drawImage(spriteCreature(cr,128),200-96,110-90,92,92);}catch(e){}}
+   if(!im&&!BAT[b].niv)c.style.display='none';});/* 24/11 : image du bâtiment (et de sa créature) dans chaque carte, comme dans Heroes */
   f.querySelectorAll('.carte-b.ok').forEach(d=>d.onclick=async()=>{const b=d.dataset.b;const k=await fenetre(`<h2>${batNom(b,v.fac)}</h2><p>${BAT[b].amel?`Les ${CRE[FAC[v.fac].crea[BAT[b].niv-1]].pl.toLowerCase()} deviennent des ${CRE[CRE[FAC[v.fac].crea[BAT[b].niv-1]].amelio].pl.toLowerCase()}.`:BAT[b].niv?`Habitation des ${CRE[FAC[v.fac].crea[BAT[b].niv-1]].pl.toLowerCase()}.`:BAT[b].desc}</p>${txtCout(batCout(b,v.fac))}`,[{t:'Construire',or:true},{t:'Annuler'}]);
    if(k===0&&construire(v,b)){SON.construire();VI.dirty=true;fermer(0);majVille();toast(`${batNom(b,v.fac)} construit !`);}});}});}
 async function fenRecruter(niv){const v=VI.v,p=G.joueurs[v.prop];const h=herosVille();const cr=FAC[v.fac].crea;

@@ -562,7 +562,9 @@ A.fondCombat=(C,geo,cam,Hs,dpr)=>{const R0=rendu();if(!R0)return null;const ter=
   const ty=arbreType(ter,r);add(geoArbre(ty,k%3),mV,x,hS(x,z),z,2.6+r.f()*1.6,null,r.f()*6);}
  for(let k=0;k<7;k++){const x=-26+k*9+r.f()*3,z=-17-r.f()*5;add(geoMontagne(k%6,ter),mM,x,hS(x,z)-.5,z,4.5+r.f()*2,4+r.f()*3,r.f()*6);}
  for(let k=0;k<26;k++){const x=(r.f()-.5)*20,z=-1+r.f()*11;if(Math.abs(x)<8&&z>-.6&&z<9.5)continue;if(reel){const p0=r.f();imp(p0<.5?rocT(ter,'abcd'[r.i(0,3)]):neige||lave?rocT(ter,'a'):ter==='sable'?'desert_b':'buisson_a',x,hS(x,z),z,p0<.5?.3+r.f()*.35:.4+r.f()*.3);continue;}add(geoRocher(k%5,ter),mP,x,hS(x,z),z,.7+r.f()*.8,.6+r.f()*.6,r.f()*6);}
- if(C.ville){const v=villeMesh(C.ville);v.scale.setScalar(2.3);v.position.set(geo.port?0:11,0,geo.port?-4:1.2);v.rotation.y=geo.port?0:-.5;v.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(v);}
+ const fiS=C.ville&&!geo.port&&fortImp(C.ville.fac,{3:'_n',4:'_s',6:'_l'}[IDT[ter]]);/* 24/11 : siège : château Blender de la carte (même plongée ≈ 51° que la caméra de combat) */
+ if(fiS){fiS.quaternion.copy(cam.quaternion);fiS.scale.setScalar(1.35);fiS.position.set(9.6,0,2.6);fiS.material=fiS.material.clone();fiS.material.fog=false;sc.add(fiS);}
+ else if(C.ville){const v=villeMesh(C.ville);v.scale.setScalar(2.3);v.position.set(geo.port?0:11,0,geo.port?-4:1.2);v.rotation.y=geo.port?0:-.5;v.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});sc.add(v);}
  // obstacles posés sur leurs hexagones
  const obs=[];for(const h of C.obst){const [x,z]=hexMonde(h);const rr=creeRng(h*13+5);const gr=new T.Group();gr.position.set(x,0,z);
   if(reel){const arbre=ter==='herbe'&&h%2||ter==='marais'&&h%2||neige&&h%2;const n=arbre?2:2+rr.i(0,1);for(let k=0;k<n;k++){const nm=arbre?arbresPour(ter,rr):rocT(ter,'abcd'[rr.i(0,3)]);const o=planImp('h',nm,arbre?hauteurArbre(nm,rr)*1.9:(k?.35+rr.f()*.2:.6+rr.f()*.3),rr.f()<.5,qC);if(o){if(!arbre){o.material=o.material.clone();o.material.color.setRGB(.78,.76,.72);}/* 24/11 : rochers moins pâles sous la lumière du combat */o.position.set((rr.f()-.5)*.45,0,(rr.f()-.5)*.3+(k?.12:0));gr.add(o);}}}

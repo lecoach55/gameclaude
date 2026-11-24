@@ -254,3 +254,8 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Le pied des montagnes et les routes ne relèvent plus le fond de l'eau.
 - Réglage final : flou ≈ 0,9 case, bruit centré faible (le bruit fort butait sur la garde et redonnait des bords droits) ; lacs et baies aux contours arrondis.
 - Outils : `verif_rivages.py [graines]` (code 1 si l'eau dessinée ne correspond pas aux cases), `capt_rivages.py dossier [graines] [zoom]` (planche de trois gros plans de côtes par graine), `capt_terrains.py` (combat par terrain). `R3._h(x,z)` donne la hauteur du sol.
+
+## v120 (24/11 après-midi) — limites entre terrains
+- Chaque terrain a une « appartenance » douce calculée sur la carte (distance exacte au bord des cases, coins arrondis par un flou, 4 points par case), envoyée au shader du sol dans deux textures (`bsMemA`, `bsMemB`). Le shader choisit le terrain par un softmax sur appartenance + bruit propre au terrain (2 octaves) + relief de la texture : limites ondulées et douces, centrées sur le vrai bord des cases (avant : coins d'un ancien maillage décalé, crêneaux sur les escaliers, neige qui « avalait » la lave).
+- Coût : génération de la carte +70 ms (472 → 543 ms en rendu logiciel) ; 6 lectures de texture de plus par pixel du sol (à mesurer sur le Mac).
+- Outil : `capt_transitions.py dossier [graines]` (trois gros plans de limites entre terrains par graine) ; `perf.py` accepte `JEU=` pour comparer une ancienne version.

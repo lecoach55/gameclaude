@@ -4,7 +4,7 @@ import asyncio,sys,os,json
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),'../../outils-communs'))
 from atelier import serveur,navigateur,page,mesurer
 from playwright.async_api import async_playwright
-JEU=os.path.join(os.path.dirname(os.path.abspath(__file__)),'../jeu')
+JEU=os.environ.get('JEU') or os.path.join(os.path.dirname(os.path.abspath(__file__)),'../jeu')
 async def main():
     out=sys.argv[1];ral=float(sys.argv[2]) if len(sys.argv)>2 else 1;W=int(sys.argv[3]) if len(sys.argv)>3 else 1280;H=int(sys.argv[4]) if len(sys.argv)>4 else 800
     base=serveur(JEU,8783);res={}

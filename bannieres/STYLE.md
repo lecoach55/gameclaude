@@ -329,3 +329,4 @@ La Horde garde ses yourtes construites (la hutte essayée gardait son socle de t
 - Sauvegardes et équilibre : rien de modifié (confirmé par la relecture ; `rivieres()` est purement visuelle).
 - (v148) Monstres de la carte : chacun son rythme de respiration (texture clonée, même image), libérés à la nouvelle partie.
 - (v149) Mines libres sans drapeau (le drapeau blanc ressemblait à un panneau vide) ; le drapeau du joueur apparaît à la capture.
+- (v150) Entrée en combat et en ville en fondu depuis le sombre (0,55 s).
